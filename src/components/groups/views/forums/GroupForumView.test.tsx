@@ -19,7 +19,7 @@ const state = vi.hoisted(() => ({
     trackers: new Set<any>(),
     send: vi.fn(),
     groupInfo: vi.fn(),
-    pollPeriod: 300 as number,
+    pollPeriod: 300,
     threadList: null as any,
     threadView: null as any,
     compose: null as any
