@@ -1,8 +1,9 @@
 import { CreateLinkEvent, GetRoomEngine, GetSessionDataManager, RoomObjectCategory } from '@volt/renderer';
 import { Dispatch, FC, PropsWithChildren, SetStateAction, useEffect, useRef } from 'react';
 import { DispatchUiEvent, GetConfigurationValue, GetRoomSession, GetUserProfile, localizeWithFallback } from '../../api';
-import { Flex } from '../../common';
+import { Flex, LayoutItemCountView } from '../../common';
 import { GuideToolEvent } from '../../events';
+import { useGroupForumUnreadStore } from '../../state/groupForumUnreadStore';
 
 export const ToolbarMeView: FC<
     PropsWithChildren<{
@@ -13,6 +14,8 @@ export const ToolbarMeView: FC<
 {
     const { useGuideTool = false, setMeExpanded = null, children = null } = props;
     const elementRef = useRef<HTMLDivElement>(null);
+    // MeMenuNewController.unseenForumsCount: the forums item carries the number of the user's forums with unread messages.
+    const unreadForumsCount = useGroupForumUnreadStore((state) => state.unreadForumsCount);
 
     useEffect(() =>
     {
@@ -70,6 +73,7 @@ export const ToolbarMeView: FC<
             <div className="tbme-item" onClick={() => open(() => CreateLinkEvent('groupforum/list/my'))}>
                 <span className="volt-icon icon-me-forums" />
                 <span>{localizeWithFallback('widget.memenu.forums', 'Forums')}</span>
+                {unreadForumsCount > 0 && <LayoutItemCountView count={unreadForumsCount} />}
             </div>
             {children}
         </Flex>

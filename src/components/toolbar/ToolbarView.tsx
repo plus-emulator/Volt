@@ -8,6 +8,7 @@ import memenuBgImg from '../../assets/images/toolbar/air/memenu-bg.png';
 import memenuCircleImg from '../../assets/images/toolbar/air/memenu-circle.png';
 import { Flex, LayoutAvatarImageView, LayoutItemCountView } from '../../common';
 import { useAchievements, useBuildHeight, useDailyTasks, useFriends, useHasPermission, useInventoryUnseenTracker, useMessageEvent, useMessenger, useVoltEvent, useOpenIssueCount, useRewardTracks, useSessionInfo, useWiredTools } from '../../hooks';
+import { useGroupForumUnreadStore } from '../../state/groupForumUnreadStore';
 import { usePerkAllowed } from '../../state/perkAllowancesStore';
 import { AIR_RAISED_CHAT_BOTTOM } from './bottomDockLayout';
 import { ToolbarItemView } from './ToolbarItemView';
@@ -75,6 +76,8 @@ export const ToolbarView: FC<{ isInRoom: boolean }> = props =>
     const { unseenCount: unseenRewardTrackCount = 0 } = useRewardTracks();
     // HabboToolbar.setUnseenItemCount("HTIE_ICON_PROGRESSION", unseenProgMenuCount): achievements + daily tasks + reward track rewards.
     const unseenProgMenuCount = getTotalUnseen + unseenDailyTaskCount + unseenRewardTrackCount;
+    // HabboToolbar.onUnseenForumsCountUpdate -> setUnseenItemCount("HTIE_ICON_MEMENU", unseenMeMenuCount): the Me menu counts the forums with unread messages.
+    const unreadForumsCount = useGroupForumUnreadStore((state) => state.unreadForumsCount);
     const { requests = [] } = useFriends();
     const { iconState = MessengerIconState.HIDDEN } = useMessenger();
     const { openMonitor, showToolbarButton } = useWiredTools();
@@ -408,6 +411,7 @@ export const ToolbarView: FC<{ isInRoom: boolean }> = props =>
                             <LayoutAvatarImageView airMeMenu={true} direction={3} figure={userFigure} />
                         </motion.div>
                         <img src={memenuCircleImg} alt="" className="tb-memenu-circle" />
+                        <ToolbarUnseenCountView count={unreadForumsCount} />
                     </motion.div>
                     {isInRoom && showToolbarButton && (
                         <motion.div variants={itemVariants} className="tb-slot tb-slot-tall">
@@ -544,8 +548,8 @@ export const ToolbarView: FC<{ isInRoom: boolean }> = props =>
                             <LayoutAvatarImageView airMeMenu={true} direction={3} figure={userFigure} />
                         </motion.div>
                         <img src={memenuCircleImg} alt="" className="tb-memenu-circle" />
-                        {unseenProgMenuCount > 0 && (
-                            <LayoutItemCountView count={unseenProgMenuCount} className="pointer-events-none absolute -right-1 -top-1 z-10" />
+                        {(unseenProgMenuCount + unreadForumsCount) > 0 && (
+                            <LayoutItemCountView count={unseenProgMenuCount + unreadForumsCount} className="pointer-events-none absolute -right-1 -top-1 z-10" />
                         )}
                     </motion.div>
                     {isInRoom && (
