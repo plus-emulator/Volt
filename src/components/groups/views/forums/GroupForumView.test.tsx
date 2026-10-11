@@ -19,7 +19,10 @@ const state = vi.hoisted(() => ({
     trackers: new Set<any>(),
     send: vi.fn(),
     groupInfo: vi.fn(),
-    pollPeriod: 300 as number
+    pollPeriod: 300 as number,
+    threadList: null as any,
+    threadView: null as any,
+    compose: null as any
 }));
 
 vi.mock('@volt/renderer', () => {
@@ -99,14 +102,30 @@ vi.mock('../GroupNativeLayout', () => ({
 
 vi.mock('../../../notification-center/views/native/NativeNotificationPopupView', () => ({ NativeNotificationPopupView: () => null }));
 vi.mock('./GroupForumThreadListView', () => ({
-    GroupForumThreadListView: ({ onLeave }: any) => (
-        <button type="button" onClick={onLeave}>
-            leave threads
-        </button>
-    )
+    GroupForumThreadListView: (props: any) => {
+        state.threadList = props;
+
+        return (
+            <button type="button" onClick={props.onLeave}>
+                leave threads
+            </button>
+        );
+    }
 }));
-vi.mock('./GroupForumThreadView', () => ({ GroupForumThreadView: () => null }));
-vi.mock('./GroupForumComposeView', () => ({ GroupForumComposeView: () => null }));
+vi.mock('./GroupForumThreadView', () => ({
+    GroupForumThreadView: (props: any) => {
+        state.threadView = props;
+
+        return null;
+    }
+}));
+vi.mock('./GroupForumComposeView', () => ({
+    GroupForumComposeView: (props: any) => {
+        state.compose = props;
+
+        return null;
+    }
+}));
 vi.mock('./GroupForumSettingsView', () => ({ GroupForumSettingsView: () => null }));
 
 const dispatch = (type: typeof MessageEvent, parser: unknown) => {
@@ -161,6 +180,9 @@ beforeEach(() => {
     state.send.mockClear();
     state.groupInfo.mockClear();
     state.pollPeriod = 300;
+    state.threadList = null;
+    state.threadView = null;
+    state.compose = null;
     useGroupForumUnreadStore.setState({ unreadForumsCount: 0 });
 });
 
@@ -293,5 +315,41 @@ describe('GroupForumView forums list', () => {
         expect(sent(GetForumsListMessageComposer)).toEqual([]);
         expect(sent(UpdateForumReadMarkerMessageComposer)).toHaveLength(1);
         expect(screen.queryByRole('dialog')).toBeNull();
+    });
+
+    it('opens a thread at the first message after the last one seen (onGoToFirstUnread)', () => {
+        render(<GroupForumView />);
+
+        link('groupforum/5');
+        dispatch(ForumDataMessageEvent, forumData(5));
+
+        const thread = { threadId: 3, totalMessages: 45, unreadMessagesCount: 5 };
+
+        act(() => state.threadList.onOpenThread(thread));
+        expect(state.threadView).toMatchObject({ threadId: 3, initialPageIndex: 2, scrollIndex: 0 });
+
+        act(() => state.threadView.onMessagesSeen(90, 3, 43));
+        act(() => state.threadView.onBack());
+        expect(state.threadList.getLastReadMessageIndex(thread)).toBe(43);
+
+        act(() => state.threadList.onOpenThread(thread));
+        expect(state.threadView).toMatchObject({ initialPageIndex: 2, scrollIndex: 4 });
+    });
+
+    it('goes back to the first page of the thread list after posting a thread (onPostThreadMessage)', () => {
+        render(<GroupForumView />);
+
+        link('groupforum/5');
+        dispatch(ForumDataMessageEvent, forumData(5));
+        act(() => state.threadList.onPageChange(2));
+        act(() => state.threadList.onNewThread());
+
+        const reloadKey = state.threadList.reloadKey;
+
+        act(() => state.compose.onThreadCreated({ threadId: 8, lastMessageId: 120, totalMessages: 1, unreadMessagesCount: 0 }));
+
+        expect(state.threadList.pageIndex).toBe(0);
+        expect(state.threadList.reloadKey).toBe(reloadKey + 1);
+        expect(state.threadList.getLastReadMessageIndex({ threadId: 8, totalMessages: 1, unreadMessagesCount: 1 })).toBe(0);
     });
 });

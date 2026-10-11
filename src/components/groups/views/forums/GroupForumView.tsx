@@ -80,6 +80,8 @@ export const GroupForumView: FC<{}> = () =>
     // GroupForumController.var_406: the forums list last shown. It outlives the window and is only forgotten when a link opens a forum.
     const [forumsList, setForumsList] = useState<GroupForumsListData>(null);
     const [threadsPage, setThreadsPage] = useState<number>(0);
+    // requestThreadList for the page already shown (after a new thread was posted) asks for it again.
+    const [threadsReload, setThreadsReload] = useState<number>(0);
     const [threadStart, setThreadStart] = useState<{ pageIndex: number; scrollIndex: number }>({ pageIndex: 0, scrollIndex: 0 });
     const unreadForumsCount = useGroupForumUnreadStore((state) => state.unreadForumsCount);
     const setUnreadForumsCount = useGroupForumUnreadStore((state) => state.setUnreadForumsCount);
@@ -91,6 +93,8 @@ export const GroupForumView: FC<{}> = () =>
     const forumRef = useRef<ExtendedForumData>(null);
     const seenMessageId = useRef<number>(0);
     const pendingThread = useRef<PendingThread>(null);
+    // _lastReadMessageIndexByThread: the index of the newest message the reader has seen per thread of the open forum.
+    const lastReadIndexByThread = useRef<Map<number, number>>(new Map());
     // _requestedForumsListCode: the list asked for last; -1 while a forum is asked for or the window is closed.
     const requestedListCode = useRef<number>(-1);
     const forumsListRef = useRef<GroupForumsListData>(null);
@@ -167,24 +171,40 @@ export const GroupForumView: FC<{}> = () =>
         }
 
         seenMessageId.current = 0;
+        lastReadIndexByThread.current = new Map();
     }, []);
 
-    // updateUnreadMessageCounts: a newer seen message also updates the forums list the forum was opened from, and with it the "My Forums" count.
-    const onMessagesSeen = useCallback((messageId: number) =>
+    // updateUnreadMessageCounts: the thread remembers the index of the message seen; a newer seen message also updates the forums list the
+    // forum was opened from, and with it the "My Forums" count.
+    const onMessagesSeen = useCallback((messageId: number, seenThreadId: number, messageIndex: number) =>
     {
-        if (messageId <= seenMessageId.current) return;
+        if (messageId > seenMessageId.current)
+        {
+            seenMessageId.current = messageId;
 
-        seenMessageId.current = messageId;
+            const list = forumsListRef.current;
+            const forum = forumRef.current;
 
-        const list = forumsListRef.current;
-        const forum = forumRef.current;
+            if (list && forum)
+            {
+                updateUnreadMessages(list, forum, messageId);
 
-        if (!list || !forum) return;
+                if (list.listCode === MY_FORUMS) setUnreadForumsCount(countUnreadForums(list.forums));
+            }
+        }
 
-        updateUnreadMessages(list, forum, messageId);
-
-        if (list.listCode === MY_FORUMS) setUnreadForumsCount(countUnreadForums(list.forums));
+        lastReadIndexByThread.current.set(seenThreadId, messageIndex);
     }, [setUnreadForumsCount]);
+
+    // getThreadLastReadMessageIndex: what was seen this session, else what the server counts as read.
+    const getThreadLastReadMessageIndex = useCallback((thread: GuildForumThread) =>
+    {
+        const seenIndex = lastReadIndexByThread.current.get(thread.threadId);
+
+        if (seenIndex !== undefined) return seenIndex;
+
+        return thread.totalMessages - thread.unreadMessagesCount - 1;
+    }, []);
 
     // initForum: the previous forum is marked read before another one is asked for.
     const initForum = useCallback((id: number) =>
@@ -224,6 +244,34 @@ export const GroupForumView: FC<{}> = () =>
         setThreadStart(start);
         setMode('thread');
     }, []);
+
+    // ThreadListView.onGoToFirstUnread: the thread opens at the message after the last one seen (goToMessageIndex).
+    const openThreadAtFirstUnread = useCallback((thread: GuildForumThread) =>
+    {
+        const messageIndex = Math.max(0, Math.min(getThreadLastReadMessageIndex(thread) + 1, thread.totalMessages - 1));
+
+        openThread(thread, { pageIndex: Math.floor(messageIndex / FORUM_PAGE_SIZE), scrollIndex: messageIndex % FORUM_PAGE_SIZE });
+    }, [getThreadLastReadMessageIndex, openThread]);
+
+    // GroupForumController.onPostThreadMessage: the new thread counts as seen, the forums list counts it, and the forum goes to the first
+    // page of its thread list.
+    const onThreadCreated = useCallback((thread: GuildForumThread) =>
+    {
+        setCompose(null);
+
+        const forum = forumRef.current;
+
+        if (!forum || forum.groupId !== groupId) return;
+
+        onMessagesSeen(thread.lastMessageId, thread.threadId, thread.totalMessages - 1);
+        forumsListRef.current?.forums.find((listed) => listed.groupId === groupId)?.addNewThread(thread);
+
+        setThreadId(0);
+        setCurrentThread(null);
+        setThreadsPage(0);
+        setThreadsReload((value) => value + 1);
+        setMode('threads');
+    }, [groupId, onMessagesSeen]);
 
     // linkReceived "groupforum/<group>/<thread>[/<message index>]": initForum, GetThread, then the page that holds the message.
     const openForumThread = useCallback((id: number, linkedThreadId: number, messageIndex: number) =>
@@ -422,11 +470,13 @@ export const GroupForumView: FC<{}> = () =>
                 {mode === 'threads' && forumData && (
                     <GroupForumThreadListView
                         forumData={forumData}
+                        getLastReadMessageIndex={getThreadLastReadMessageIndex}
                         groupId={effectiveGroupId}
                         pageIndex={threadsPage}
+                        reloadKey={threadsReload}
                         onLeave={leaveThreads}
                         onNewThread={() => setCompose({ kind: 'thread' })}
-                        onOpenThread={(thread) => openThread(thread)}
+                        onOpenThread={openThreadAtFirstUnread}
                         onPageChange={setThreadsPage}
                     />
                 )}
@@ -452,11 +502,7 @@ export const GroupForumView: FC<{}> = () =>
                     initialPosition={dialogPosition(455)}
                     readForumData={() => forumRef.current}
                     onClose={() => setCompose(null)}
-                    onThreadCreated={(thread) =>
-                    {
-                        setCompose(null);
-                        openThread(thread);
-                    }}
+                    onThreadCreated={onThreadCreated}
                 />
             )}
             {isSettingsOpen && forumData && (
