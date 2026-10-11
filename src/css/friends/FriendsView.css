@@ -3475,3 +3475,154 @@ button.swf-friends-section-header {
 
 .friend-bar-add-tab__button:hover { border-image-source: var(--habbo-skin-shiny-thick-hover); }
 .friend-bar-add-tab__button:active { border-image-source: var(--habbo-skin-shiny-thick-pressed); }
+
+/* NewFriendEntityTab pieces (AIR WIN63-202609161723-93809945). Between the header and the controls the
+   selected tab stacks facebook_piece_xml and one message_piece_xml per notification token, and grows
+   upwards by their height: FriendBarItemView measures .friend-bar-pieces into --friend-bar-pieces. */
+.friend-bar .friend-bar-friend.is-selected .friend-bar-actions {
+    height: calc(70px + var(--friend-bar-pieces, 0px));
+    min-height: calc(70px + var(--friend-bar-pieces, 0px));
+}
+
+.friend-bar .friend-bar-friend.is-selected .friend-bar-tab {
+    top: calc(-34px - var(--friend-bar-pieces, 0px));
+}
+
+.friend-bar .friend-bar-friend.is-selected .friend-bar-item-head.avatar {
+    top: calc(-39px - var(--friend-bar-pieces, 0px)) !important;
+}
+
+.friend-bar .friend-bar-pieces {
+    position: absolute;
+    top: 35px;
+    left: 3px;
+    display: flex;
+    flex-direction: column;
+    width: 121px;
+}
+
+/* message_piece_xml: 121x37 #4c5832, title u_italic 11 at (2,0), message u_bold 11 at (2,15), wraps. */
+.friend-bar .friend-bar-piece-message {
+    box-sizing: border-box;
+    width: 121px;
+    min-height: 37px;
+    padding: 0 0 6px 2px;
+    background: #4c5832;
+    color: #fff;
+    font-family: Ubuntu, sans-serif;
+    font-size: 11px;
+    line-height: 16px;
+    text-align: left;
+}
+
+.friend-bar .friend-bar-piece-title {
+    font-style: italic;
+}
+
+.friend-bar .friend-bar-piece-text {
+    margin-top: -1px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+/* facebook_piece_xml: 121x19 #72893f, 14x14 icon at (1,2), real name u_small at (32,-2). */
+.friend-bar .friend-bar-piece-real-name {
+    position: relative;
+    width: 121px;
+    height: 19px;
+    overflow: hidden;
+    background: #72893f;
+}
+
+.friend-bar .friend-bar-piece-real-name img {
+    position: absolute;
+    top: 2px;
+    left: 1px;
+    width: 14px;
+    height: 14px;
+}
+
+.friend-bar .friend-bar-piece-real-name span {
+    position: absolute;
+    top: -2px;
+    left: 32px;
+    width: 87px;
+    color: #fff;
+    font-family: Ubuntu, sans-serif;
+    font-size: 10px;
+    line-height: 15px;
+}
+
+/* new_friend_entity_xml `icons`: horizontal list at (117,-13) of 25x25 token icons, 2px apart. */
+.friend-bar .friend-bar-tokens {
+    position: absolute;
+    top: -13px;
+    left: 117px;
+    z-index: 95;
+    display: flex;
+    gap: 2px;
+    height: 25px;
+}
+
+.friend-bar .friend-bar-friend.is-selected .friend-bar-tokens {
+    top: calc(-47px - var(--friend-bar-pieces, 0px));
+}
+
+.friend-bar .friend-bar-token {
+    display: block;
+    width: 25px;
+    height: 25px;
+    cursor: pointer;
+    animation: friend-bar-token-drop 600ms linear both;
+}
+
+/* Token: DropBounce(icon, 600 ms, 32 px), sampled from DropBounce.getBounceOffset (its 0.9091 included). */
+@keyframes friend-bar-token-drop {
+    0% { transform: translateY(-32px); }
+    2.5% { transform: translateY(-31.85px); }
+    5% { transform: translateY(-31.39px); }
+    7.5% { transform: translateY(-30.64px); }
+    10% { transform: translateY(-29.58px); }
+    12.5% { transform: translateY(-28.22px); }
+    15% { transform: translateY(-26.55px); }
+    17.5% { transform: translateY(-24.59px); }
+    20% { transform: translateY(-22.32px); }
+    22.5% { transform: translateY(-19.75px); }
+    25% { transform: translateY(-16.88px); }
+    27.5% { transform: translateY(-13.7px); }
+    30% { transform: translateY(-10.22px); }
+    32.5% { transform: translateY(-6.44px); }
+    35% { transform: translateY(-2.36px); }
+    37.5% { transform: translateY(-1.01px); }
+    40% { transform: translateY(-2.91px); }
+    42.5% { transform: translateY(-4.52px); }
+    45% { transform: translateY(-5.82px); }
+    47.5% { transform: translateY(-6.81px); }
+    50% { transform: translateY(-7.51px); }
+    52.5% { transform: translateY(-7.9px); }
+    55% { transform: translateY(-7.99px); }
+    57.5% { transform: translateY(-7.78px); }
+    60% { transform: translateY(-7.27px); }
+    62.5% { transform: translateY(-6.45px); }
+    65% { transform: translateY(-5.33px); }
+    67.5% { transform: translateY(-3.91px); }
+    70% { transform: translateY(-2.19px); }
+    72.5% { transform: translateY(-0.16px); }
+    75% { transform: translateY(4.13px); }
+    77.5% { transform: translateY(2.35px); }
+    80% { transform: translateY(0.88px); }
+    82.5% { transform: translateY(-0.29px); }
+    85% { transform: translateY(-1.15px); }
+    87.5% { transform: translateY(-1.72px); }
+    90% { transform: translateY(-1.98px); }
+    92.5% { transform: translateY(-0.28px); }
+    95% { transform: translateY(-0.49px); }
+    97.5% { transform: translateY(-0.4px); }
+    100% { transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .friend-bar .friend-bar-token {
+        animation: none;
+    }
+}

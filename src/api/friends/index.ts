@@ -1,3 +1,4 @@
+export * from './friendBarNotifications';
 export * from './friendCategory.helpers';
 export * from './GetGroupChatData';
 export * from './IGroupChatData';
