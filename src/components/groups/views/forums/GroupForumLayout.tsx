@@ -180,15 +180,20 @@ interface ForumPagerProps {
     onPage: (pageIndex: number) => void;
 }
 
-/** The 165x30 pager: first / previous, "n / total", next / last. */
+/**
+ * The 165x30 pager: first / previous, "n / total", next / last. GroupForumView.initCommonControls: the caption is
+ * "<page + 1> / <pages>" with pages = ceil(total / 20), so an empty list reads "1 / 0"; << and < work from the
+ * second page on, > and >> up to the one before the last.
+ */
 export const ForumPager: FC<ForumPagerProps> = ({ pageIndex, pageCount, onPage }) =>
 {
-    const last = Math.max(0, pageCount - 1);
+    const canGoBack = pageIndex > 0;
+    const canGoForward = pageIndex < (pageCount - 1);
     const buttons: [string, number, number, boolean][] = [
-        ['<<', 0, 0, pageIndex === 0],
-        ['<', 30, Math.max(0, pageIndex - 1), pageIndex === 0],
-        ['>', 110, Math.min(last, pageIndex + 1), pageIndex >= last],
-        ['>>', 140, last, pageIndex >= last]
+        ['<<', 0, 0, !canGoBack],
+        ['<', 30, pageIndex - 1, !canGoBack],
+        ['>', 110, pageIndex + 1, !canGoForward],
+        ['>>', 140, pageCount - 1, !canGoForward]
     ];
 
     return (
@@ -198,7 +203,7 @@ export const ForumPager: FC<ForumPagerProps> = ({ pageIndex, pageCount, onPage }
                     <GroupText blend="multiply" className="is-static" text={label} textStyle="u_bold" x={0} y={0} />
                 </button>
             ))}
-            <GroupText align="center" background={FORUM_SURFACE} overrides={flatText(12, { color: 0x949491 })} text={`${pageIndex + 1} / ${Math.max(1, pageCount)}`} width={50} x={58} y={5} />
+            <GroupText align="center" background={FORUM_SURFACE} overrides={flatText(12, { color: 0x949491 })} text={`${pageIndex + 1} / ${pageCount}`} width={50} x={58} y={5} />
         </div>
     );
 };

@@ -51,10 +51,10 @@ interface GroupForumThreadListViewProps {
 export const GroupForumThreadListView: FC<GroupForumThreadListViewProps> = ({ forumData, groupId, pageIndex, onLeave, onNewThread, onOpenThread, onPageChange }) => {
     const [threads, setThreads] = useState<GuildForumThread[]>([]);
     const { report = null } = useHelp();
-    const canModerate = forumData.hasModeratePermissionError;
+    const canModerate = forumData.canModerate;
     const canReport = forumData.canReport;
-    const canPostThread = forumData.hasPostThreadPermissionError;
-    const pageCount = Math.max(1, Math.ceil(forumData.totalThreads / FORUM_PAGE_SIZE));
+    const canPostThread = forumData.canPostThread;
+    const pageCount = Math.ceil(forumData.totalThreads / FORUM_PAGE_SIZE);
 
     useMessageEvent<GuildForumThreadsEvent>(GuildForumThreadsEvent, (event) => {
         const parser = event.getParser();

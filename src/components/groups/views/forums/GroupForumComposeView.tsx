@@ -89,7 +89,7 @@ export const GroupForumComposeView: FC<GroupForumComposeViewProps> = ({ compose,
     {
         // Checked again at the moment of sending: the posting permission can be gone by now, the cooldown of an earlier post still runs.
         const live = readForumData();
-        const allowed = !!live && live.groupId === groupId && (isReply ? live.hasPostMessagePermissionError : live.hasPostThreadPermissionError);
+        const allowed = !!live && live.groupId === groupId && (isReply ? live.canPostMessage : live.canPostThread);
         const remaining = POST_COOLDOWN - (performance.now() - lastPostTime);
 
         if (postSent.current || isPosting || !subjectOk || !messageOk || !allowed || remaining > 0)

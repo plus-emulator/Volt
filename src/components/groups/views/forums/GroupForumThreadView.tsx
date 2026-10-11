@@ -49,11 +49,11 @@ export const GroupForumThreadView: FC<GroupForumThreadViewProps> = ({ forumData,
     const viewportRef = useRef<HTMLDivElement>(null);
     const pendingScroll = useRef<number>(scrollIndex);
     const { report = null } = useHelp();
-    const canModerate = forumData?.hasModeratePermissionError ?? false;
+    const canModerate = forumData?.canModerate ?? false;
     const canReport = forumData?.canReport ?? false;
-    const canPost = forumData?.hasPostMessagePermissionError ?? false;
+    const canPost = forumData?.canPostMessage ?? false;
     const totalMessages = thread?.totalMessages ?? messages.length;
-    const pageCount = Math.max(1, Math.ceil(totalMessages / FORUM_PAGE_SIZE));
+    const pageCount = Math.ceil(totalMessages / FORUM_PAGE_SIZE);
 
     useMessageEvent<ThreadMessagesMessageEvent>(ThreadMessagesMessageEvent, (event) => {
         const parser = event.getParser();
