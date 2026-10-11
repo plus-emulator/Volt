@@ -3492,6 +3492,11 @@ button.swf-friends-section-header {
     top: calc(-39px - var(--friend-bar-pieces, 0px)) !important;
 }
 
+/* new_controls_piece_xml is the last item of the same pieces list, so the buttons sit under the pieces. */
+.friend-bar .friend-bar-friend.is-selected .friend-bar-actions-buttons {
+    top: calc(35px + var(--friend-bar-pieces, 0px));
+}
+
 .friend-bar .friend-bar-pieces {
     position: absolute;
     top: 35px;
