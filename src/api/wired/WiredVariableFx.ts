@@ -617,34 +617,67 @@ export interface IWiredVariableFxConfigLike {
     showMode: number;
     showOnMouseHover?: number | boolean;
     showDurationMs: number;
-    defaultMinValue: number;
-    defaultMaxValue: number;
+    defaultMinValue: bigint | number;
+    defaultMaxValue: bigint | number;
     extra: Record<string, string>;
 }
 
 export interface IWiredVariableFxStatusLike {
-    value: number;
-    overrideMinValue: number | null;
-    overrideMaxValue: number | null;
+    value: bigint | number;
+    overrideMinValue: bigint | number | null;
+    overrideMaxValue: bigint | number | null;
     extra: Record<string, string>;
 }
 
-/** The range a status is drawn against: its own pair when the server sent one, the config's otherwise. */
-export const resolveWiredVariableFxRange = (config: IWiredVariableFxConfigLike, status: IWiredVariableFxStatusLike): { min: number; max: number } => {
-    const hasOverrides = status.overrideMinValue !== null && status.overrideMaxValue !== null && status.overrideMinValue !== undefined && status.overrideMaxValue !== undefined;
-    const min = hasOverrides ? status.overrideMinValue : config.defaultMinValue;
-    let max = hasOverrides ? status.overrideMaxValue : config.defaultMaxValue;
+/** Signed 64-bit values arrive as bigint; plain numbers stay numbers so existing callers keep their types. */
+type FxScalar = bigint | number;
 
-    if (max <= min) max = min + 1;
+const anyBigint = (...values: FxScalar[]) => values.some((value) => typeof value === 'bigint');
+const exactFx = (value: FxScalar): bigint => {
+    if (typeof value === 'number' && !Number.isSafeInteger(value)) throw new RangeError('Inexact FX value');
+
+    return BigInt(value);
+};
+
+/** `value - base`, exact when either side is a bigint. */
+export const subtractWiredVariableFx = (value: FxScalar, base: FxScalar): FxScalar =>
+    anyBigint(value, base) ? exactFx(value) - exactFx(base) : (value as number) - (base as number);
+
+/** The range a status is drawn against: its own pair when the server sent one, the config's otherwise. */
+export const resolveWiredVariableFxRange = (config: IWiredVariableFxConfigLike, status: IWiredVariableFxStatusLike): { min: FxScalar; max: FxScalar } => {
+    const hasOverrides = status.overrideMinValue !== null && status.overrideMaxValue !== null && status.overrideMinValue !== undefined && status.overrideMaxValue !== undefined;
+    let min: FxScalar = hasOverrides ? status.overrideMinValue : config.defaultMinValue;
+    let max: FxScalar = hasOverrides ? status.overrideMaxValue : config.defaultMaxValue;
+
+    if (anyBigint(min, max)) {
+        min = exactFx(min);
+        max = exactFx(max);
+    }
+
+    if (max <= min) max = typeof min === 'bigint' ? min + 1n : (min as number) + 1;
 
     return { min, max };
 };
 
 /** 0..1 of the way from min to max, clamped. */
-export const wiredVariableFxProgress = (value: number, min: number, max: number): number => {
-    if (!Number.isFinite(value) || max <= min) return 0;
+export const wiredVariableFxProgress = (value: FxScalar, min: FxScalar, max: FxScalar): number => {
+    if (anyBigint(value, min, max)) {
+        const v = exactFx(value);
+        const lo = exactFx(min);
+        const hi = exactFx(max);
 
-    return clamp((value - min) / (max - min), 0, 1);
+        if (hi <= lo || v <= lo) return 0;
+        if (v >= hi) return 1;
+
+        // Only a bounded 0..10000 proportion becomes a number, never the scalar itself.
+        return Number(((v - lo) * 10000n) / (hi - lo)) / 10000;
+    }
+
+    const plain = value as number;
+
+    if (!Number.isFinite(plain) || (max as number) <= (min as number)) return 0;
+
+    return clamp((plain - (min as number)) / ((max as number) - (min as number)), 0, 1);
 };
 
 export interface IWiredVariableFxLevel {
@@ -706,7 +739,12 @@ export const resolveWiredVariableFxColor = (config: IWiredVariableFxConfigLike, 
 export const wiredVariableFxWidthPx = (widthId: number): number => (WIRED_FX_WIDTHS.find((entry) => entry.id === widthId) ?? WIRED_FX_WIDTHS[2]).px;
 
 /** Compact numbers so a boss bar reads "1.2k / 5k" instead of overflowing. */
-export const formatWiredVariableFxValue = (value: number): string => {
+export const formatWiredVariableFxValue = (input: FxScalar): string => {
+    // Under 10000 a bigint prints exactly; above it the compact form is a display approximation anyway.
+    if (typeof input === 'bigint' && input > -10000n && input < 10000n) return input.toString();
+
+    const value = Number(input);
+
     if (!Number.isFinite(value)) return '0';
 
     const abs = Math.abs(value);

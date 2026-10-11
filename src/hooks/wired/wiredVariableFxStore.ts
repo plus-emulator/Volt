@@ -8,7 +8,7 @@ export interface IWiredVariableFxStatusEntry {
     status: IWiredVariableFxStatus;
     changedAt: number;
     visibleUntil?: number;
-    previousValue: number | null;
+    previousValue: bigint | number | null;
 }
 
 export type WiredVariableFxState = {

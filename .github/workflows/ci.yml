@@ -5,7 +5,10 @@ on:
     branches:
       - main
       - Dev
+      - dev
       - 'feat/**'
+      - 'bugfix/**'
+      - 'feature/**'
   pull_request:
   workflow_dispatch:
     inputs:
@@ -14,7 +17,7 @@ on:
         required: false
         default: ''
       renderer_ref:
-        description: 'Renderer git ref. Empty = vars.RENDERER_REF or auto (main on client main, else Dev).'
+        description: 'Renderer git ref. Empty = vars.RENDERER_REF or auto (main on client main, dev on client dev, else Dev).'
         required: false
         default: ''
 
@@ -58,7 +61,7 @@ jobs:
       #        → a fork renderer only when it carries a branch specific to
       #          the PR, otherwise <github.repository_owner>/Octane-Renderer
       #          or UPSTREAM_RENDERER_REPO. Ref is `main` on a main build,
-      #          otherwise `Dev`. A stale generic fork branch must never
+      #          `dev` on a dev build, otherwise `Dev`. A stale generic fork branch must never
       #          shadow the current upstream integration branch.
       #
       # The two repos must stay wire-aligned (composer/parser

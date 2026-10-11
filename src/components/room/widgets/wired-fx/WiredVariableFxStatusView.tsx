@@ -4,6 +4,7 @@ import {
     formatWiredVariableFxValue,
     resolveWiredVariableFxColor,
     resolveWiredVariableFxRange,
+    subtractWiredVariableFx,
     WIRED_FX_CONFIG_EXTRA,
     WIRED_FX_RENDERER,
     wiredVariableFxLevel,
@@ -137,7 +138,7 @@ export const WiredVariableFxStatusView: FC<WiredVariableFxStatusViewProps> = (pr
                         Lv {level.level}
                         {level.maxLevel > 1 ? ` / ${level.maxLevel}` : ''}
                     </span>
-                    <span className="octane-wired-fx__value">{level.maxed ? 'MAX' : `${formatWiredVariableFxValue(status.value - range.min)} / ${formatWiredVariableFxValue(range.max - range.min)}`}</span>
+                    <span className="octane-wired-fx__value">{level.maxed ? 'MAX' : `${formatWiredVariableFxValue(subtractWiredVariableFx(status.value, range.min))} / ${formatWiredVariableFxValue(subtractWiredVariableFx(range.max, range.min))}`}</span>
                 </div>
             );
         }

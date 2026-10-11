@@ -327,6 +327,7 @@ const useRoomState = () => {
         GetStage().addChild(displayObject);
 
         SetActiveRoomId(roomSession.roomId);
+        roomEngine.initializeRoomCamera(roomId, canvasId);
 
         const resize = () => {
             const { width: newWidth, height: newHeight } = getViewportSize();
