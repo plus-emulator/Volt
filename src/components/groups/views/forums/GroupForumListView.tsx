@@ -1,47 +1,32 @@
-import { CreateLinkEvent, ForumData, ForumsListMessageEvent, GetForumsListMessageComposer, UpdateForumReadMarkerEntry, UpdateForumReadMarkerMessageComposer } from '@volt/renderer';
-import { FC, useEffect, useState } from 'react';
-import { LocalizeText, SendMessageComposer } from '../../../../api';
+import { CreateLinkEvent, ForumData } from '@volt/renderer';
+import { FC } from 'react';
+import { GetGroupInformation, LocalizeText } from '../../../../api';
 import { ClassicScrollAreaView, LayoutBadgeImageView } from '../../../../common';
-import { useMessageEvent } from '../../../../hooks';
 import { flatText, GroupText } from '../GroupNativeLayout';
 import { FORUM_PAGE_SIZE, FORUM_SURFACE, stripTags, ForumButton, forumAge, ForumPager } from './GroupForumLayout';
 
 const ROW_WIDTH = 532;
 
-interface GroupForumListViewProps {
+/** ForumsListData: one answer to GetForumsList, as the forum window shows it. */
+export interface GroupForumsListData {
     listCode: number;
-    pageIndex: number;
-    onLeave: () => void;
-    onOpenForum: (groupId: number) => void;
-    onPageChange: (pageIndex: number) => void;
+    totalAmount: number;
+    startIndex: number;
+    forums: ForumData[];
 }
 
-export const GroupForumListView: FC<GroupForumListViewProps> = ({ listCode, pageIndex, onLeave, onOpenForum, onPageChange }) => {
-    const [forums, setForums] = useState<ForumData[]>([]);
-    const [totalForums, setTotalForums] = useState<number>(0);
-    const pageCount = Math.max(1, Math.ceil(totalForums / FORUM_PAGE_SIZE));
+interface GroupForumListViewProps {
+    list: GroupForumsListData;
+    onMarkAsRead: () => void;
+    onOpenForum: (groupId: number) => void;
+    onPage: (pageIndex: number) => void;
+}
 
-    useMessageEvent<ForumsListMessageEvent>(ForumsListMessageEvent, (event) => {
-        const parser = event.getParser();
-
-        if (parser.listCode !== listCode || parser.startIndex !== pageIndex * FORUM_PAGE_SIZE) return;
-
-        setTotalForums(parser.totalAmount);
-        setForums(parser.forums);
-    });
-
-    useEffect(() => {
-        SendMessageComposer(new GetForumsListMessageComposer(listCode, pageIndex * FORUM_PAGE_SIZE, FORUM_PAGE_SIZE));
-    }, [listCode, pageIndex]);
-
-    // markForumsAsRead: every listed forum with unread messages is marked read as a whole, then the window closes (back_button of the forums list).
-    const markAsRead = () => {
-        const entries = forums.filter((forum) => forum.unreadMessages > 0).map((forum) => new UpdateForumReadMarkerEntry(forum.groupId, forum.totalMessages, true));
-
-        if (entries.length) SendMessageComposer(new UpdateForumReadMarkerMessageComposer(...entries));
-
-        onLeave();
-    };
+/** GroupForumView.openForumsList + ForumsListView: the page shown is the one the answer starts at, out of ceil(total / 20). */
+export const GroupForumListView: FC<GroupForumListViewProps> = ({ list, onMarkAsRead, onOpenForum, onPage }) => {
+    const { listCode, forums } = list;
+    const pageIndex = Math.ceil(list.startIndex / FORUM_PAGE_SIZE);
+    const pageCount = Math.ceil(list.totalAmount / FORUM_PAGE_SIZE);
 
     // "Did you know? You can get your own group forum <u><a href=...>here</a></u>." keeps its link as a separate, working piece.
     const status = LocalizeText('groupforum.view.forums_list.status');
@@ -68,15 +53,19 @@ export const GroupForumListView: FC<GroupForumListViewProps> = ({ listCode, page
                         );
 
                         return (
-                            <div key={forum.groupId} className="volt-forum__forum" onClick={() => onOpenForum(forum.groupId)}>
-                                <div className="volt-forum__forum-badge" style={{ background: rowColor }}>
+                            <div key={forum.groupId} className="volt-forum__forum">
+                                {/* group_icon: a group badge widget, its click asks for the group details (GetHabboGroupDetails, open). */}
+                                <div className="volt-forum__forum-badge" style={{ background: rowColor }} onClick={() => GetGroupInformation(forum.groupId)}>
                                     <LayoutBadgeImageView badgeCode={forum.icon} isGroup={true} />
                                 </div>
                                 <div className="volt-forum__forum-body" style={{ left: 42, width: ROW_WIDTH - 42 - 1 - 100, background: rowColor }}>
                                     <GroupText background={background} overrides={isUnread ? { bold: true } : undefined} text={forum.name} x={0} y={0} />
                                     <GroupText background={background} overrides={flatText(10)} text={details} x={0} y={16} />
+                                    {/* header_region: the 280x17 strip over the group name opens the forum. */}
+                                    <div className="volt-forum__forum-header" role="button" onClick={() => onOpenForum(forum.groupId)} />
                                 </div>
-                                <div className="volt-forum__forum-counts" style={{ left: ROW_WIDTH - 100, background: rowColor }}>
+                                {/* unread_region: the message counts open the forum too. */}
+                                <div className="volt-forum__forum-counts" role="button" style={{ left: ROW_WIDTH - 100, background: rowColor }} onClick={() => onOpenForum(forum.groupId)}>
                                     <GroupText
                                         background={background}
                                         overrides={flatText(10, { bold: isUnread })}
@@ -98,8 +87,8 @@ export const GroupForumListView: FC<GroupForumListViewProps> = ({ listCode, page
                 </ClassicScrollAreaView>
             </div>
             <div className="volt-forum__footer">
-                <ForumButton label={LocalizeText('groupforum.view.mark_read')} width={95} x={10} onClick={markAsRead} />
-                <ForumPager pageCount={pageCount} pageIndex={pageIndex} onPage={onPageChange} />
+                <ForumButton label={LocalizeText('groupforum.view.mark_read')} width={95} x={10} onClick={onMarkAsRead} />
+                <ForumPager pageCount={pageCount} pageIndex={pageIndex} onPage={onPage} />
             </div>
             <div className="volt-forum__status is-list">
                 <GroupText background={FORUM_SURFACE} className="is-static" overrides={flatText(11)} text={before} x={0} y={0} />
