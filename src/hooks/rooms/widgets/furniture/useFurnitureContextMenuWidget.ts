@@ -1,5 +1,6 @@
 import {
     ContextMenuEnum,
+    CreateLinkEvent,
     GetRoomEngine,
     GroupFurniContextMenuInfoMessageEvent,
     GroupFurniContextMenuInfoMessageParser,
@@ -70,6 +71,10 @@ const useFurnitureContextMenuWidgetState = () => {
                     return;
                 case 'go_to_group_homeroom':
                     if (groupData) TryVisitRoom(groupData.guildHomeRoomId);
+                    break;
+                case 'open_forum':
+                    // GuildFurnitureContextMenuView "open_forum" (shown when the group has a readable forum): the link groupforum/<group id>.
+                    if (groupData) CreateLinkEvent(`groupforum/${groupData.guildId}`);
                     break;
             }
         }
