@@ -16,7 +16,6 @@ import {
     RoomWidgetFurniInfoUsagePolicyEnum,
     SetObjectDataMessageComposer,
     SongInfoReceivedEvent,
-    StringDataType,
     UpdateFurniturePositionComposer
 } from '@volt/renderer';
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
@@ -165,7 +164,9 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
     const plantClassnames = GetConfigurationValue<string[]>('furni.plant.classnames', []) ?? [];
     const [godMode, setGodMode] = useState(false);
     const [canSeeFurniId, setCanSeeFurniId] = useState(false);
+    // InfoStandFurniView.groupName / groupBadgeId: both come from the group details (onGroupDetails), not from the furni's stuff data.
     const [groupName, setGroupName] = useState<string>(null);
+    const [groupBadge, setGroupBadge] = useState<string>(null);
     const [isJukeBox, setIsJukeBox] = useState<boolean>(false);
     const [isSongDisk, setIsSongDisk] = useState<boolean>(false);
     const [isBranded, setIsBranded] = useState<boolean>(false);
@@ -415,6 +416,7 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
         setGodMode(godMode);
         setCanSeeFurniId(canSeeFurniId);
         setGroupName(null);
+        setGroupBadge(null);
         setIsJukeBox(furniIsJukebox);
         setIsSongDisk(furniIsSongDisk);
         setSongId(furniSongId);
@@ -423,13 +425,13 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
         if (avatarInfo.groupId) SendMessageComposer(new GroupInformationComposer(avatarInfo.groupId, false));
     }, [roomSession, avatarInfo]);
 
+    // InfoStandWidgetHandler.onGroupDetails: any details of the furni's group fill its badge and name, also the ones a click on them asked for.
     useMessageEvent<GroupInformationEvent>(GroupInformationEvent, (event) => {
         const parser = event.getParser();
 
-        if (!avatarInfo || avatarInfo.groupId !== parser.id || parser.flag) return;
+        if (!avatarInfo || avatarInfo.groupId !== parser.id) return;
 
-        if (groupName) setGroupName(null);
-
+        setGroupBadge(parser.badge);
         setGroupName(parser.title);
     });
 
@@ -623,14 +625,6 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
         [avatarInfo, pickupMode, customKeys, customValues, getFurniSettingsAsString, pickupRoomObject]
     );
 
-    const getGroupBadgeCode = useCallback(() => {
-        const stringDataType = avatarInfo.stuffData as StringDataType;
-
-        if (!stringDataType || !(stringDataType instanceof StringDataType)) return null;
-
-        return stringDataType.getValue(2);
-    }, [avatarInfo]);
-
     if (!avatarInfo) return null;
 
     const showIds = canSeeFurniId;
@@ -771,7 +765,7 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
                                 <div className="volt-furni-infostand__rule" />
                                 <div className="volt-furni-infostand__group" onClick={() => GetGroupInformation(avatarInfo.groupId)}>
                                     <div className="volt-furni-infostand__group-badge">
-                                        <LayoutBadgeImageView badgeCode={getGroupBadgeCode()} isGroup={true} />
+                                        {!!groupBadge && <LayoutBadgeImageView badgeCode={groupBadge} isGroup={true} />}
                                     </div>
                                     <span className="volt-furni-infostand__group-name">{groupName}</span>
                                 </div>
