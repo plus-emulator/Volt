@@ -28,7 +28,8 @@ import { RoomToolsWidgetView } from './room-tools/RoomToolsWidgetView';
 import { applyRoomZoom } from './room-tools/roomZoom.helpers';
 import { WordQuizWidgetView } from './word-quiz/WordQuizWidgetView';
 
-const MAX_ZOOM_SHIFT = 3;
+// Level 5 is 16x, the top AIR zoom step (RoomDesktop ROOM_ZOOM_SCALES), as on the zoom buttons.
+const MAX_ZOOM_SHIFT = 4;
 
 export const RoomWidgetsView: FC<{}> = (props) => {
     const { roomSession = null } = useRoom();
@@ -39,7 +40,8 @@ export const RoomWidgetsView: FC<{}> = (props) => {
     useVoltEvent<RoomZoomEvent>(RoomZoomEvent.ROOM_ZOOM, (event) => {
         const level = Number.isFinite(event.level) ? Math.floor(event.level) : 1;
         const logicalScale = level < 1 ? 0.5 : (1 << Math.min(level - 1, MAX_ZOOM_SHIFT));
-        applyRoomZoom(event.roomId, logicalScale, event.isFlipForced);
+        // A ctrl+alt(+shift) click zooms around the pointer (AIR handleRoomCanvasMouseEvent).
+        applyRoomZoom(event.roomId, logicalScale, event.isFlipForced, event.point ?? null);
     });
 
     useVoltEvent<RoomEngineObjectEvent>(

@@ -1,6 +1,7 @@
 export * from './AddAnimationTickerCallback';
 export * from './DispatchMouseEvent';
 export * from './DispatchTouchEvent';
+export * from './DispatchWheelEvent';
 export * from './GetOwnRoomObject';
 export * from './GetRoomObjectBounds';
 export * from './GetRoomObjectScreenLocation';
