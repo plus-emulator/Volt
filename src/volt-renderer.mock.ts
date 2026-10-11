@@ -268,6 +268,11 @@ export class HabbiconInfoEvent extends MessageEvent {}
 export class PurchaseOKMessageEvent extends MessageEvent {}
 export class PurchaseErrorMessageEvent extends MessageEvent {}
 export class NotEnoughBalanceMessageEvent extends MessageEvent {}
+// Achievements window (useAchievements).
+export class AchievementsEvent extends MessageEvent {}
+export class AchievementEvent extends MessageEvent {}
+export class AchievementsScoreEvent extends MessageEvent {}
+export class WiredEnvironmentEvent extends MessageEvent {}
 export class PurchaseNotAllowedMessageEvent extends MessageEvent {}
 
 export const MessengerMessageType = {
@@ -439,6 +444,7 @@ export class HabboWebTools extends StubClass {}
 // Composers — symbol-only constructors; only their identity matters in the
 // codebase ("did the SUT call SendMessageComposer(new FooComposer(args))").
 export class AddFavouriteRoomMessageComposer extends StubClass {}
+export class RequestAchievementsMessageComposer extends StubClass {}
 export class DeleteFavouriteRoomMessageComposer extends StubClass {}
 export class FollowFriendMessageComposer extends StubClass {}
 export class GetUserEventCatsMessageComposer extends StubClass {}
