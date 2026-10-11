@@ -1,5 +1,6 @@
 import { FC, KeyboardEvent as ReactKeyboardEvent, useEffect, useRef, useState } from 'react';
 import { CreateLinkEvent, GetConfigurationValue, LocalizeText } from '../../../../api';
+import { useChatHelpButton } from '../../../../hooks';
 
 const CHAT_INPUT_WIDTH = 471;
 const CHAT_INPUT_HEIGHT = 38;
@@ -36,6 +37,7 @@ export const SnowWarChatInputView: FC<SnowWarChatInputViewProps> = ({ onSend }) 
     const [ value, setValue ] = useState('');
     const inputRef = useRef<HTMLInputElement>(null);
     const maxLength = GetConfigurationValue<number>('chat.input.maxlength', 100);
+    const { isHelpButtonVisible, hoverRegionProps, helpButtonProps } = useChatHelpButton();
 
     // Like the room chat input, typing anywhere in the arena goes to the chat.
     useEffect(() =>
@@ -81,7 +83,7 @@ export const SnowWarChatInputView: FC<SnowWarChatInputViewProps> = ({ onSend }) 
                     <span className="swf-chat-style-arrow shrink-0" />
                     <div className="swf-chat-style-icon" />
                 </div>
-                <div className="flex-1 items-center input-sizer swf-chat-input-sizer" data-value={value}>
+                <div className="flex-1 items-center input-sizer swf-chat-input-sizer" data-value={value} {...hoverRegionProps}>
                     <input
                         ref={inputRef}
                         className="swf-chat-input-field w-full border-none bg-transparent"
@@ -93,7 +95,15 @@ export const SnowWarChatInputView: FC<SnowWarChatInputViewProps> = ({ onSend }) 
                         onKeyDown={onKeyDown}
                     />
                 </div>
-                <button aria-label={LocalizeText('chat.input.help')} className="swf-chat-help-button" type="button" onClick={() => CreateLinkEvent('habbopages/chat/commands')} />
+                {isHelpButtonVisible && (
+                    <button
+                        aria-label={LocalizeText('chat.input.help')}
+                        className="swf-chat-help-button"
+                        type="button"
+                        onClick={() => CreateLinkEvent('habbopages/chat/commands')}
+                        {...helpButtonProps}
+                    />
+                )}
             </div>
         </div>
     );

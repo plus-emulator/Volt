@@ -2,8 +2,7 @@ import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ChatMessageTypeEnum, CreateLinkEvent, GetConfigurationValue, LocalizeText, RoomWidgetUpdateChatInputContentEvent } from '../../../../api';
 import { Text } from '../../../../common';
-import { useChatCommandSelector, useChatInputWidget, useClientAccessLists, useRoom, useSessionInfo, useUiEvent, useUserDataSnapshot } from '../../../../hooks';
-import { ChatInputCommandSelectorView } from './ChatInputCommandSelectorView';
+import { useChatHelpButton, useChatInputWidget, useClientAccessLists, useRoom, useSessionInfo, useUiEvent, useUserDataSnapshot } from '../../../../hooks';
 import { ChatInputHabbiconSelectorView } from './ChatInputHabbiconSelectorView';
 import { ChatInputStyleSelectorView } from './ChatInputStyleSelectorView';
 import { ChatStyleDefinition, getSelectableChatStyleIds } from './chatStyles';
@@ -30,16 +29,7 @@ export const ChatInputView: FC<{}> = (props) => {
         { hasClub: clubLevel > 0, isAmbassador, hasSecurity: securityLevel >= 4 }
     ), [ chatStyleIds, clubLevel, isAmbassador, securityLevel ]);
     const inputRef = useRef<HTMLInputElement>(null);
-    const {
-        isVisible: commandSelectorVisible,
-        filteredCommands,
-        selectedIndex,
-        setSelectedIndex,
-        moveUp,
-        moveDown,
-        selectCurrent,
-        close: closeCommandSelector
-    } = useChatCommandSelector(chatValue);
+    const { isHelpButtonVisible, hoverRegionProps, helpButtonProps } = useChatHelpButton();
 
     const chatModeIdWhisper = useMemo(() => LocalizeText('widgets.chatinput.mode.whisper'), []);
     const chatModeIdShout = useMemo(() => LocalizeText('widgets.chatinput.mode.shout'), []);
@@ -144,36 +134,6 @@ export const ChatInputView: FC<{}> = (props) => {
 
             if (document.activeElement !== inputRef.current) setInputFocus();
 
-            if (commandSelectorVisible) {
-                switch (event.key) {
-                    case 'ArrowUp':
-                        event.preventDefault();
-                        moveUp();
-                        return;
-                    case 'ArrowDown':
-                        event.preventDefault();
-                        moveDown();
-                        return;
-                    case 'Tab':
-                        event.preventDefault();
-                    case 'NumpadEnter':
-                    case 'Enter': {
-                        const selected = selectCurrent();
-
-                        if (selected) {
-                            event.preventDefault();
-                            setChatValue(':' + selected.key + ' ');
-                            return;
-                        }
-                        break;
-                    }
-                    case 'Escape':
-                        event.preventDefault();
-                        closeCommandSelector();
-                        return;
-                }
-            }
-
             const value = (event.target as HTMLInputElement).value;
 
             switch (event.key) {
@@ -196,20 +156,7 @@ export const ChatInputView: FC<{}> = (props) => {
                     return;
             }
         },
-        [
-            floodBlocked,
-            inputRef,
-            chatModeIdWhisper,
-            anotherInputHasFocus,
-            setInputFocus,
-            checkSpecialKeywordForInput,
-            sendChatValue,
-            commandSelectorVisible,
-            moveUp,
-            moveDown,
-            selectCurrent,
-            closeCommandSelector
-        ]
+        [floodBlocked, inputRef, chatModeIdWhisper, anotherInputHasFocus, setInputFocus, checkSpecialKeywordForInput, sendChatValue]
     );
 
     useUiEvent<RoomWidgetUpdateChatInputContentEvent>(RoomWidgetUpdateChatInputContentEvent.CHAT_INPUT_CONTENT, (event) => {
@@ -273,20 +220,9 @@ export const ChatInputView: FC<{}> = (props) => {
         // trailing button (habbicons disabled) redistributes the slack between the
         // trigger and the bubble, exposing the cap and opening a gap.
         <div className="volt-chat-input-container swf-chat-input relative flex w-full items-center justify-start overflow-visible">
-            {commandSelectorVisible && (
-                <ChatInputCommandSelectorView
-                    commands={filteredCommands}
-                    selectedIndex={selectedIndex}
-                    onSelect={(cmd) => {
-                        setChatValue(':' + cmd.key + ' ');
-                        inputRef.current?.focus();
-                    }}
-                    onHover={setSelectedIndex}
-                />
-            )}
             <ChatInputStyleSelectorView chatStyleId={chatStyleId} chatStyleIds={selectableChatStyleIds} selectChatStyleId={updateChatStyleId} />
             {!floodBlocked && (
-                <div className="flex-1 items-center input-sizer swf-chat-input-sizer">
+                <div className="flex-1 items-center input-sizer swf-chat-input-sizer" {...hoverRegionProps}>
                     <input
                         ref={inputRef}
                         className="swf-chat-input-field w-full border-none bg-transparent"
@@ -300,18 +236,22 @@ export const ChatInputView: FC<{}> = (props) => {
                 </div>
             )}
             {floodBlocked && (
-                <div className="swf-chat-flood flex min-w-0 flex-1 items-center">
+                <div className="swf-chat-flood flex min-w-0 flex-1 items-center" {...hoverRegionProps}>
                     <Text variant="danger" className="w-full truncate whitespace-nowrap text-[0.8rem] font-bold leading-none">
                         {LocalizeText('chat.input.alert.flood', ['time'], [floodBlockedSeconds.toString()])}
                     </Text>
                 </div>
             )}
-            <button
-                aria-label={LocalizeText('chat.input.help')}
-                className="swf-chat-help-button"
-                type="button"
-                onClick={() => CreateLinkEvent('habbopages/chat/commands')}
-            />
+            {/* AIR builds `helpbutton` hidden and shows it only while the bubble or the button is hovered. */}
+            {isHelpButtonVisible && (
+                <button
+                    aria-label={LocalizeText('chat.input.help')}
+                    className="swf-chat-help-button"
+                    type="button"
+                    onClick={() => CreateLinkEvent('habbopages/chat/commands')}
+                    {...helpButtonProps}
+                />
+            )}
             <ChatInputHabbiconSelectorView />
         </div>,
         portalTarget

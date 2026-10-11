@@ -9,7 +9,6 @@ export * from './ChatBubbleMessage';
 export * from './ChatBubbleUtilities';
 export * from './ChatMessageTypeEnum';
 export * from './ChooserSelectionVisualizer';
-export * from './CommandDefinition';
 export * from './DimmerFurnitureWidgetPresetItem';
 export * from './DoChatsOverlap';
 export * from './FurnitureDimmerUtilities';

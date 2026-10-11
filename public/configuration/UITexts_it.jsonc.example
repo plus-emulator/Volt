@@ -710,25 +710,6 @@
     // ------------------------------------------------------------------------
     // Chat commands: client
     // ------------------------------------------------------------------------
-    "chatcmd.client.shake": "Scuoti la stanza",
-    "chatcmd.client.rotate": "Ruota la stanza",
-    "chatcmd.client.zoom": "Zoom avanti/indietro",
-    "chatcmd.client.flip": "Reimposta zoom",
-    "chatcmd.client.iddqd": "Capovolgi la stanza",
-    "chatcmd.client.screenshot": "Screenshot della stanza",
-    "chatcmd.client.togglefps": "Attiva/disattiva FPS",
-    "chatcmd.client.laugh": "Ridi (VIP)",
-    "chatcmd.client.kiss": "Manda un bacio (VIP)",
-    "chatcmd.client.jump": "Salta (VIP)",
-    "chatcmd.client.idle": "Vai inattivo",
-    "chatcmd.client.sign": "Mostra cartello",
-    "chatcmd.client.furni": "Selettore arredi",
-    "chatcmd.client.chooser": "Selettore utenti",
-    "chatcmd.client.floor": "Editor pavimento",
-    "chatcmd.client.pickall": "Raccogli tutti gli arredi",
-    "chatcmd.client.ejectall": "Rimuovi tutti gli arredi",
-    "chatcmd.client.settings": "Impostazioni stanza",
-    "chatcmd.client.info": "Info client",
 
     // ------------------------------------------------------------------------
     // Me-menu settings + User account settings window
