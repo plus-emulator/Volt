@@ -48,11 +48,17 @@ export const CameraWidgetView: FC<{}> = (props) => {
         setCameraRoll = null,
         price = { credits: 0, duckets: 0, publishDucketPrice: 0 }
     } = useCamera();
-    const { achievementCategories = [] } = useAchievements();
+    const { achievementCategories = [], ensureAchievementsInitialized = null } = useAchievements();
     const { simpleAlert = null } = useNotification();
     const { roomSession = null } = useRoom();
 
     const myLevel = useMemo(() => getCameraAchievementLevel(achievementCategories), [achievementCategories]);
+
+    // The official CameraWidget asks the quest engine to load the achievement list (ensureAchievementsInitialized) when a
+    // room creates it, so the photo lab can read the CameraPhotoCount level without the achievements window being opened.
+    useEffect(() => {
+        if (roomSession && ensureAchievementsInitialized) ensureAchievementsInitialized();
+    }, [roomSession, ensureAchievementsInitialized]);
 
     const openCamera = useCallback(() => {
         if (!roomSession) return;

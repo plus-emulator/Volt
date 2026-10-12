@@ -95,8 +95,7 @@
 }
 
 .volt-achievements-air .air-achievements-category-tile:hover .air-achievements-category-bg,
-.volt-achievements-air .air-achievements-category-tile:focus-visible .air-achievements-category-bg,
-.volt-achievements-air .air-achievements-category-tile.is-active .air-achievements-category-bg {
+.volt-achievements-air .air-achievements-category-tile:focus-visible .air-achievements-category-bg {
     background-image: var(--air-achievement-category-background-hover);
 }
 
@@ -111,8 +110,7 @@
 }
 
 .volt-achievements-air .air-achievements-category-tile:hover .air-achievements-category-content,
-.volt-achievements-air .air-achievements-category-tile:focus-visible .air-achievements-category-content,
-.volt-achievements-air .air-achievements-category-tile.is-active .air-achievements-category-content {
+.volt-achievements-air .air-achievements-category-tile:focus-visible .air-achievements-category-content {
     top: 0;
     left: 0;
 }
@@ -158,6 +156,12 @@
     background-position: 0 1px;
     background-repeat: no-repeat;
     cursor: default;
+}
+
+/* The cell of a hidden category (new, wired_games): AIR creates no tile at its list index. */
+.volt-achievements-air .air-achievements-category-hole {
+    width: 112px;
+    height: 105px;
 }
 
 

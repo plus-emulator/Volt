@@ -16,7 +16,7 @@ export const AchievementBadgeView: FC<AchievementBadgeViewProps> = (props) => {
     return (
         <LayoutBadgeImageView
             badgeCode={AchievementUtilities.getAchievementBadgeCode(achievement)}
-            isGrayscale={!AchievementUtilities.getAchievementHasStarted(achievement)}
+            isGrayscale={AchievementUtilities.isAchievementBadgeGreyscale(achievement)}
             scale={scale}
             {...rest}
         />

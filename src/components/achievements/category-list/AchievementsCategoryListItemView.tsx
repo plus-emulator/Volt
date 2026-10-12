@@ -4,12 +4,13 @@ import { AchievementText } from '../AchievementText';
 
 interface AchievementCategoryListItemViewProps {
     category: IAchievementCategory;
-    selectedCategoryCode: string;
+    /** AchievementController.getCategoryUnseenCount for this category. */
+    unseenCount?: number;
     setSelectedCategoryCode: (code: string) => void;
 }
 
 export const AchievementsCategoryListItemView: FC<AchievementCategoryListItemViewProps> = (props) => {
-    const { category = null, selectedCategoryCode = null, setSelectedCategoryCode = null } = props;
+    const { category = null, unseenCount = 0, setSelectedCategoryCode = null } = props;
 
     if (!category) {
         return (
@@ -26,7 +27,6 @@ export const AchievementsCategoryListItemView: FC<AchievementCategoryListItemVie
     const progress = AchievementUtilities.getAchievementCategoryProgress(category);
     const maxProgress = AchievementUtilities.getAchievementCategoryMaxProgress(category);
     const getCategoryImage = AchievementUtilities.getAchievementCategoryImageUrl(category);
-    const getTotalUnseen = AchievementUtilities.getAchievementCategoryTotalUnseen(category);
     const style = {
         '--air-achievement-category-background': `url(${AchievementUtilities.getAchievementImageUrl('achievement_background_active_1')})`,
         '--air-achievement-category-background-hover': `url(${AchievementUtilities.getAchievementImageUrl('achievement_background_active_2')})`
@@ -35,7 +35,7 @@ export const AchievementsCategoryListItemView: FC<AchievementCategoryListItemVie
     return (
         <button
             type="button"
-            className={`air-achievements-category-tile${!AchievementUtilities.hasBundledCategoryImage(category) ? ' is-legacy-category' : ''}${selectedCategoryCode === category.code ? ' is-active' : ''}`}
+            className={`air-achievements-category-tile${!AchievementUtilities.hasBundledCategoryImage(category) ? ' is-legacy-category' : ''}`}
             style={style}
             onClick={() => setSelectedCategoryCode(category.code)}
         >
@@ -51,9 +51,9 @@ export const AchievementsCategoryListItemView: FC<AchievementCategoryListItemVie
                 />
                 <AchievementText text={`${progress}/${maxProgress}`} bold color={0xffffff} height={14} x={0} y={70} width={115} align="center" />
             </span>
-            {getTotalUnseen > 0 && (
+            {unseenCount > 0 && (
                 <span className="air-achievements-unseen-count">
-                    <AchievementText color={0xffffff} style={{ position: 'relative' }} text={String(getTotalUnseen)} textStyle="u_bold" x={0} y={0} />
+                    <AchievementText color={0xffffff} style={{ position: 'relative' }} text={String(unseenCount)} textStyle="u_bold" x={0} y={0} />
                 </span>
             )}
         </button>

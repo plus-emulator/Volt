@@ -27,7 +27,7 @@ export const AirAchievementProgressBar: FC<AirAchievementProgressBarProps> = ({
     percentCaption = false,
     className = ''
 }) => {
-    const targetWidth = maxProgress > 0 ? Math.max(0, Math.round((width * progress) / maxProgress)) : 0;
+    const targetWidth = AchievementUtilities.getProgressBarWidth(width, progress, maxProgress);
     const currentWidth = useRef(targetWidth);
     const previousValues = useRef({ identity, maxProgress });
     const [animation, setAnimation] = useState({ width: targetWidth, opacity: 1, progress });
@@ -67,6 +67,7 @@ export const AirAchievementProgressBar: FC<AirAchievementProgressBarProps> = ({
         return () => cancelAnimationFrame(frame);
     }, [identity, maxProgress, progress, targetWidth, width]);
 
+    const caption = AchievementUtilities.getProgressBarCaption(animation.progress, maxProgress, scoreAtStartOfLevel, percentCaption);
     const style = {
         '--air-achievement-progress-left': `url(${AchievementUtilities.getAchievementImageUrl('ach_progressbar1')})`,
         '--air-achievement-progress-track': `url(${AchievementUtilities.getAchievementImageUrl('ach_progressbar2')})`,
@@ -100,14 +101,8 @@ export const AirAchievementProgressBar: FC<AirAchievementProgressBarProps> = ({
                 color={0xffffff}
                 text={
                     localizationKey
-                        ? LocalizeText(
-                              localizationKey,
-                              ['progress', 'limit'],
-                              percentCaption
-                                  ? [String(Math.floor((animation.progress / maxProgress) * 100)), String(maxProgress)]
-                                  : [String(animation.progress + scoreAtStartOfLevel), String(maxProgress + scoreAtStartOfLevel)]
-                          )
-                        : `${animation.progress + scoreAtStartOfLevel}/${maxProgress + scoreAtStartOfLevel}`
+                        ? LocalizeText(localizationKey, ['progress', 'limit'], [caption.progress, caption.limit])
+                        : `${caption.progress}/${caption.limit}`
                 }
                 height={17}
                 width={width}

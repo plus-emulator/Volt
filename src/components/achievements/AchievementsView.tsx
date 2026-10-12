@@ -16,9 +16,10 @@ export const AchievementsView: FC = () => {
         isLoaded,
         show,
         close,
+        goBack,
         achievementCategories = [],
-        selectedCategoryCode = null,
         setSelectedCategoryCode = null,
+        unseenAchievements,
         achievementScore = 0,
         getProgress = 0,
         getMaxProgress = 0,
@@ -50,9 +51,10 @@ export const AchievementsView: FC = () => {
 
         const questTracker: ILinkEventTracker = {
             eventUrlPrefix: 'questengine/achievements',
+            // HabboQuestEngine.linkReceived: questengine/achievements/<category> shows the window and selects the category.
             linkReceived: (url) => {
-                const category = url.split('/')[2];
-                if (category) show(category);
+                const parts = url.split('/');
+                if (parts.length === 3) show(parts[2]);
                 else show();
             }
         };
@@ -100,7 +102,7 @@ export const AchievementsView: FC = () => {
                     <>
                         <AchievementsCategoryListView
                             categories={achievementCategories}
-                            selectedCategoryCode={selectedCategoryCode}
+                            unseenAchievements={unseenAchievements}
                             setSelectedCategoryCode={setSelectedCategoryCode}
                         />
                         <div className="air-achievements-category-footer">
@@ -131,12 +133,7 @@ export const AchievementsView: FC = () => {
                 {selectedCategory && (
                     <>
                         <div className="air-achievements-category-header">
-                            <button
-                                type="button"
-                                className="air-achievements-back"
-                                onClick={() => setSelectedCategoryCode(null)}
-                                aria-label={LocalizeText('generic.back')}
-                            />
+                            <button type="button" className="air-achievements-back" onClick={goBack} aria-label={LocalizeText('generic.back')} />
                             <AchievementText background={0x8899a2} bold color={0xffffff} height={22} size={20} text={AchievementUtilities.getAchievementCategoryName(selectedCategory)} x={78} y={13} />
                             <AchievementText
                                 background={0x8899a2}
