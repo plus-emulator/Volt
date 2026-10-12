@@ -257,6 +257,7 @@ export class ThumbnailStatusMessageEvent extends MessageEvent {}
 // disabled. Keep these on the same dispatchable event bus as the room events.
 export class UnseenItemsEvent extends MessageEvent {}
 export class FurnitureListEvent extends MessageEvent {}
+export class FriendNotificationEvent extends MessageEvent {}
 export class FurnitureListAddOrUpdateEvent extends MessageEvent {}
 export class FurnitureListInvalidateEvent extends MessageEvent {}
 export class AuthenticatedEvent extends MessageEvent {}

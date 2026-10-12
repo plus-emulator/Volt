@@ -1,15 +1,20 @@
 import { FindNewFriendsMessageComposer, MouseEventType } from '@volt/renderer';
 import { AnimatePresence, motion } from 'framer-motion';
-import { FC, useEffect, useRef, useState } from 'react';
-import { GetUserProfile, LocalizeText, MessengerFriend, OpenMessengerChat, SendMessageComposer } from '../../../../api';
+import { FC, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { FriendBarNotificationLocalizer, FriendBarNotificationType, getFriendBarNotificationMessage, getFriendBarNotificationTitleKey, getFriendBarTokenIcon, getFriendBarTokenIcons, GetUserProfile, LocalizeBadgeName, LocalizeText, MessengerFriend, OpenMessengerChat, SendMessageComposer } from '../../../../api';
 import findFriendsIcon from '../../../../assets/images/toolbar/air/find-friends-icon.png';
 import chatIcon from '../../../../assets/images/friends/swf/friendlist_chat.png';
 import profileIcon from '../../../../assets/images/friends/swf/friendlist_eye.png';
 import visitIcon from '../../../../assets/images/friends/swf/friendlist_go_room.png';
+import realNameIcon from '../../../../assets/images/friends/swf/fb_icon_small.png';
+import notifyIcon from '../../../../assets/images/friends/swf/friend_bar_event_notification_icon.png';
+import gameIcon from '../../../../assets/images/friends/swf/game_center_snowball_notification_icon.png';
 import { LayoutAvatarImageView, LayoutBadgeImageView } from '../../../../common';
-import { useFriends } from '../../../../hooks';
+import { selectFriendBarNotifications, useFriendBarNotificationsStore, useFriends } from '../../../../hooks';
 import { isStaffChatIdentity } from '../../staffChatIdentity';
 import { StaffChatFrankIconView } from '../../StaffChatFrankIconView';
+
+const LOCALIZER: FriendBarNotificationLocalizer = { badgeName: LocalizeBadgeName, text: key => LocalizeText(key) };
 
 interface FriendBarItemViewProps
 {
@@ -25,6 +30,8 @@ export const FriendBarItemView: FC<FriendBarItemViewProps> = (props) => {
     const [ concealed, setConcealed ] = useState(false);
     const { followFriend = null } = useFriends();
     const elementRef = useRef<HTMLDivElement>(null);
+    const piecesRef = useRef<HTMLDivElement>(null);
+    const notifications = useFriendBarNotificationsStore(selectFriendBarNotifications(friend?.id ?? 0));
     const isVisible = selected;
     const setVisible = (value: boolean) => (value ? (!selected && onToggle()) : (selected && onDeselect()));
 
@@ -39,6 +46,29 @@ export const FriendBarItemView: FC<FriendBarItemViewProps> = (props) => {
         document.addEventListener(MouseEventType.MOUSE_CLICK, onClick);
         return () => document.removeEventListener(MouseEventType.MOUSE_CLICK, onClick);
     }, [ selected, onDeselect ]);
+
+    // NewFriendEntityTab.select: the tab grows upwards by the height of the pieces between header and controls.
+    useLayoutEffect(() =>
+    {
+        const element = elementRef.current;
+        const pieces = piecesRef.current;
+
+        if(!element || !pieces) return;
+
+        const apply = () => element.style.setProperty('--friend-bar-pieces', `${ pieces.offsetHeight }px`);
+
+        apply();
+
+        const observer = new ResizeObserver(apply);
+
+        observer.observe(pieces);
+
+        return () =>
+        {
+            observer.disconnect();
+            element.style.removeProperty('--friend-bar-pieces');
+        };
+    }, [ isVisible, notifications ]);
 
     if (!friend) {
         // add_friends_tab_xml (AddFriendsTab b4e): 127x36 tab that grows to 164px upwards when selected.
@@ -77,6 +107,10 @@ export const FriendBarItemView: FC<FriendBarItemViewProps> = (props) => {
     }
 
     const isStaffChat = isStaffChatIdentity(friend);
+    const tokenIcons = getFriendBarTokenIcons(notifications);
+    const isInGame = notifications.some(entry => entry.typeCode === FriendBarNotificationType.PLAYING_GAME);
+    // A new notification of the same tag drops its icon in again (Token's DropBounce on creation).
+    const tokenIconKey = (icon: string) => `${ icon }:${ notifications.filter(entry => getFriendBarTokenIcon(entry.typeCode) === icon).map(entry => `${ entry.typeCode }/${ entry.message }`).join('|') }`;
 
     return (
         <div ref={elementRef} className={`friend-bar-friend relative ${isVisible ? 'is-selected' : ''}`}>
@@ -99,6 +133,19 @@ export const FriendBarItemView: FC<FriendBarItemViewProps> = (props) => {
                     <LayoutBadgeImageView badgeCode="ADM" isGroup={false} className="block pointer-events-none drop-shadow-[1px_1px_0_rgba(0,0,0,0.6)]" />
                 </div>
             )}
+            {(tokenIcons.length > 0) && (
+                <div className="friend-bar-tokens">
+                    {tokenIcons.map(icon => (
+                        <img
+                            key={tokenIconKey(icon)}
+                            className="friend-bar-token"
+                            src={(icon === 'game') ? gameIcon : notifyIcon}
+                            alt=""
+                            onClick={(event) => { event.stopPropagation(); onToggle(); }}
+                        />
+                    ))}
+                </div>
+            )}
             <motion.button
                 type="button"
                 className={`friend-bar-item friend-bar-tab find-friends-active ${friend.id <= 0 ? 'group' : ''}`}
@@ -116,6 +163,20 @@ export const FriendBarItemView: FC<FriendBarItemViewProps> = (props) => {
                             transition={{ duration: 0.12 }}
                             className="friend-bar-actions friend-bar-item find-friends-active"
                         >
+                        <div ref={piecesRef} className="friend-bar-pieces">
+                            {!!friend.realName && (
+                                <div className="friend-bar-piece-real-name">
+                                    <img src={realNameIcon} alt="" />
+                                    <span>{friend.realName}</span>
+                                </div>
+                            )}
+                            {notifications.map(entry => (
+                                <div key={entry.typeCode} className="friend-bar-piece-message">
+                                    <div className="friend-bar-piece-title">{LocalizeText(getFriendBarNotificationTitleKey(entry.typeCode))}</div>
+                                    <div className="friend-bar-piece-text">{getFriendBarNotificationMessage(entry, LOCALIZER)}</div>
+                                </div>
+                            ))}
+                        </div>
                         <div className="friend-bar-actions-buttons">
                             <div
                                 className="cursor-pointer friend-bar-action-icon"
@@ -125,7 +186,7 @@ export const FriendBarItemView: FC<FriendBarItemViewProps> = (props) => {
                                     setVisible(false);
                                 }}
                             ><img src={chatIcon} alt="" /></div>
-                            {!isStaffChat && friend.online && (
+                            {!isStaffChat && friend.online && friend.followingAllowed && !isInGame && (
                                 <div
                                     className="cursor-pointer friend-bar-action-icon"
                                     onClick={(event) => {

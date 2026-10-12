@@ -1,8 +1,9 @@
-import { FC, useLayoutEffect, useState } from 'react';
+import { FC, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import friendsBrowseArrowLeft from '../../../../assets/images/toolbar/air/friend-browse-arrow-left.png';
 import friendsBrowseArrowRight from '../../../../assets/images/toolbar/air/friend-browse-arrow-right.png';
 import friendsBrowseBg from '../../../../assets/images/toolbar/air/friends-browse-bg.png';
-import { localizeWithFallback, MessengerFriend } from '../../../../api';
+import { localizeWithFallback, MessengerFriend, orderFriendBarFriends } from '../../../../api';
+import { useFriendBarNotifications, useFriendBarNotificationsStore } from '../../../../hooks';
 import { FriendBarItemView } from './FriendBarItemView';
 
 // HabboFriendBarView (v4e): 127px tabs with 3px list spacing, the 150px friendtools block and a 16px reserve.
@@ -11,6 +12,7 @@ const TAB_SPACING = 3;
 const FRIEND_TOOLS_WIDTH = 150;
 const BAR_RESERVE = 16;
 const MIN_TABS = 3;
+const FRIEND_KEY = 'friend-';
 
 // Bar width is the desktop width minus the left bottom bar's right edge.
 const resolveCapacity = () =>
@@ -37,6 +39,23 @@ export const FriendBarView: FC<{ onlineFriends: MessengerFriend[]; requestsCount
     const [ indexOffset, setIndexOffset ] = useState(0);
     const [ capacity, setCapacity ] = useState(MIN_TABS);
     const [ selectedKey, setSelectedKey ] = useState<string | null>(null);
+    const frontFriendIds = useFriendBarNotificationsStore(state => state.frontFriendIds);
+    const consumeViewed = useFriendBarNotificationsStore(state => state.consumeViewed);
+
+    const previousKeyRef = useRef<string | null>(null);
+
+    useFriendBarNotifications(onlineFriends);
+
+    // HabboFriendBarView.deSelect(true): however a friend's tab closes (its own toggle, another tab, paging,
+    // a click elsewhere), its view-once notifications are consumed.
+    useEffect(() =>
+    {
+        const previousKey = previousKeyRef.current;
+
+        previousKeyRef.current = selectedKey;
+
+        if(previousKey && (previousKey !== selectedKey) && previousKey.startsWith(FRIEND_KEY)) consumeViewed(Number(previousKey.slice(FRIEND_KEY.length)));
+    }, [ selectedKey, consumeViewed ]);
 
     useLayoutEffect(() =>
     {
@@ -63,7 +82,8 @@ export const FriendBarView: FC<{ onlineFriends: MessengerFriend[]; requestsCount
         };
     }, []);
 
-    const friends = onlineFriends.filter(Boolean);
+    // Online friends by name, except that a notification moves its friend to the front (setFriendAt(friend, 0)).
+    const friends = orderFriendBarFriends(onlineFriends.filter(Boolean), frontFriendIds);
     const total = friends.length + 1;
     const visibleCount = Math.min(capacity, total);
     const offset = Math.max(0, Math.min(indexOffset, total - visibleCount));
@@ -74,6 +94,8 @@ export const FriendBarView: FC<{ onlineFriends: MessengerFriend[]; requestsCount
     const canPageRight = (offset + visibleFriends.length + findFriendsCount) < total;
 
     const toggleSelected = (key: string) => setSelectedKey(prev => (prev === key ? null : key));
+    // A tab's own close (click elsewhere, a control button) must not undo a tab selected meanwhile.
+    const deselect = (key: string) => setSelectedKey(prev => (prev === key ? null : prev));
 
     return (
         <div className="friend-bar">
@@ -94,9 +116,9 @@ export const FriendBarView: FC<{ onlineFriends: MessengerFriend[]; requestsCount
                     <FriendBarItemView
                         key={friend.id}
                         friend={friend}
-                        selected={selectedKey === `friend-${ friend.id }`}
-                        onToggle={() => toggleSelected(`friend-${ friend.id }`)}
-                        onDeselect={() => setSelectedKey(null)}
+                        selected={selectedKey === `${ FRIEND_KEY }${ friend.id }`}
+                        onToggle={() => toggleSelected(`${ FRIEND_KEY }${ friend.id }`)}
+                        onDeselect={() => deselect(`${ FRIEND_KEY }${ friend.id }`)}
                     />
                 ))}
                 {Array.from({ length: findFriendsCount }, (_, index) => (
@@ -105,7 +127,7 @@ export const FriendBarView: FC<{ onlineFriends: MessengerFriend[]; requestsCount
                         friend={null}
                         selected={selectedKey === `find-${ index }`}
                         onToggle={() => toggleSelected(`find-${ index }`)}
-                        onDeselect={() => setSelectedKey(null)}
+                        onDeselect={() => deselect(`find-${ index }`)}
                     />
                 ))}
             </div>
