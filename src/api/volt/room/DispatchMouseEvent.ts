@@ -1,50 +1,37 @@
 import { GetRoomEngine, MouseEventType } from '@volt/renderer';
 
-let didMouseMove = false;
-let lastClick = 0;
-let clickCount = 0;
+/** The DOM `dblclick` event; the renderer calls it `MouseEventType.DOUBLE_CLICK`. */
+const DOM_DOUBLE_CLICK = 'dblclick';
 
+/**
+ * Forwards a canvas mouse event to the room engine the way the AIR client does
+ * (MouseEventProcessor): the modifier keys are the ones the event itself carries,
+ * every click is delivered as a click, and a native double-click arrives as its own
+ * event after the click that completed it. Meta counts as ctrl for Mac users.
+ */
 export const DispatchMouseEvent = (event: MouseEvent, canvasId: number = 1) => {
-    const x = event.clientX;
-    const y = event.clientY;
-
-    let eventType = event.type;
-
-    if (eventType === MouseEventType.MOUSE_CLICK) {
-        if (lastClick) {
-            clickCount = 1;
-
-            if (lastClick >= Date.now() - 300) clickCount++;
-        }
-
-        lastClick = Date.now();
-
-        if (clickCount === 2) {
-            if (!didMouseMove) eventType = MouseEventType.DOUBLE_CLICK;
-
-            clickCount = 0;
-            lastClick = null;
-        }
-    }
+    const eventType = event.type === DOM_DOUBLE_CLICK ? MouseEventType.DOUBLE_CLICK : event.type;
 
     switch (eventType) {
         case MouseEventType.MOUSE_CLICK:
-            break;
         case MouseEventType.DOUBLE_CLICK:
-            break;
         case MouseEventType.MOUSE_MOVE:
-            didMouseMove = true;
-            break;
         case MouseEventType.MOUSE_DOWN:
-            didMouseMove = false;
-            break;
         case MouseEventType.MOUSE_UP:
-            break;
         case MouseEventType.RIGHT_CLICK:
             break;
         default:
             return;
     }
 
-    GetRoomEngine().dispatchMouseEvent(canvasId, x, y, eventType, event.altKey, event.ctrlKey || event.metaKey, event.shiftKey, false);
+    GetRoomEngine().dispatchMouseEvent(
+        canvasId,
+        event.clientX,
+        event.clientY,
+        eventType,
+        event.altKey,
+        event.ctrlKey || event.metaKey,
+        event.shiftKey,
+        (event.buttons & 1) !== 0
+    );
 };

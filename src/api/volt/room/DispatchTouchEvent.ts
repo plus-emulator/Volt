@@ -1,9 +1,16 @@
 import { GetRoomEngine, MouseEventType, TouchEventType } from '@volt/renderer';
 
-let didMouseMove = false;
-let lastClick = 0;
-let clickCount = 0;
+/** Two taps this close together, with no drag in between, also make a double-click. */
+const DOUBLE_TAP_INTERVAL_MS = 300;
 
+let didMouseMove = false;
+let lastTapAt = 0;
+
+/**
+ * Touch counterpart of DispatchMouseEvent. A tap is always delivered as a click; a
+ * quick second tap is followed by a double-click, the same click-then-double-click
+ * order the AIR client uses for the mouse, so the second tap is never lost.
+ */
 export const DispatchTouchEvent = (
     event: TouchEvent,
     canvasId: number = 1,
@@ -23,57 +30,36 @@ export const DispatchTouchEvent = (
         y = event.changedTouches[0].clientY;
     }
 
-    let eventType = event.type;
+    const dispatch = (eventType: string) => GetRoomEngine().dispatchMouseEvent(canvasId, x, y, eventType, altKey, ctrlKey, shiftKey, false);
 
-    if (longTouch) eventType = TouchEventType.TOUCH_LONG;
-
-    if (eventType === MouseEventType.MOUSE_CLICK || eventType === TouchEventType.TOUCH_END) {
-        eventType = MouseEventType.MOUSE_CLICK;
-
-        if (lastClick) {
-            clickCount = 1;
-
-            if (lastClick >= Date.now() - 300) clickCount++;
-        }
-
-        lastClick = Date.now();
-
-        if (clickCount === 2) {
-            if (!didMouseMove) eventType = MouseEventType.DOUBLE_CLICK;
-
-            clickCount = 0;
-            lastClick = null;
-        }
+    if (longTouch) {
+        dispatch(MouseEventType.MOUSE_DOWN_LONG);
+        return;
     }
 
-    switch (eventType) {
-        case MouseEventType.MOUSE_CLICK:
-            break;
-        case MouseEventType.DOUBLE_CLICK:
-            break;
+    switch (event.type) {
         case TouchEventType.TOUCH_START:
-            eventType = MouseEventType.MOUSE_DOWN;
-
             didMouseMove = false;
-            break;
-        case TouchEventType.TOUCH_MOVE:
-            eventType = MouseEventType.MOUSE_MOVE;
-
-            didMouseMove = true;
-            break;
-        case TouchEventType.TOUCH_END:
-            eventType = MouseEventType.MOUSE_UP;
-            break;
-        case TouchEventType.TOUCH_LONG:
-            eventType = MouseEventType.MOUSE_DOWN_LONG;
-            break;
-        default:
+            dispatch(MouseEventType.MOUSE_DOWN);
             return;
-    }
+        case TouchEventType.TOUCH_MOVE:
+            didMouseMove = true;
+            dispatch(MouseEventType.MOUSE_MOVE);
+            return;
+        case TouchEventType.TOUCH_END:
+        case MouseEventType.MOUSE_CLICK: {
+            const now = Date.now();
+            const isDoubleTap = lastTapAt > 0 && now - lastTapAt <= DOUBLE_TAP_INTERVAL_MS && !didMouseMove;
 
-    if (eventType === TouchEventType.TOUCH_START) {
-        GetRoomEngine().dispatchMouseEvent(canvasId, x, y, eventType, altKey, ctrlKey, shiftKey, false);
-    }
+            dispatch(MouseEventType.MOUSE_CLICK);
 
-    GetRoomEngine().dispatchMouseEvent(canvasId, x, y, eventType, altKey, ctrlKey, shiftKey, false);
+            if (isDoubleTap) {
+                dispatch(MouseEventType.DOUBLE_CLICK);
+                lastTapAt = 0;
+            } else {
+                lastTapAt = now;
+            }
+            return;
+        }
+    }
 };
