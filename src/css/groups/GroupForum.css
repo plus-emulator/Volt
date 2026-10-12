@@ -206,11 +206,26 @@
     flex: none;
     width: 532px;
     height: 40px;
-    cursor: pointer;
 }
 
 .volt-forum__forum {
     height: 41px;
+}
+
+/* Thread and forum rows only react on their header_region (280x17 over the subject or name), their unread_region and, for a forum, the group badge. */
+.volt-forum__thread-header,
+.volt-forum__forum-header {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 280px;
+    height: 17px;
+    cursor: pointer;
+}
+
+.volt-forum__thread-counts,
+.volt-forum__forum-counts {
+    cursor: pointer;
 }
 
 .volt-forum__thread > *,
@@ -313,6 +328,7 @@
     width: 39px;
     height: 39px;
     overflow: hidden;
+    cursor: pointer;
 }
 
 /* messages (groupforum_message_list_item) */

@@ -17,10 +17,13 @@ export const CatalogLayouGuildForumView: FC<CatalogLayoutProps> = (props) => {
     const { data: groups = null } = useUserGroups();
 
     const teaserImage = page.localization.getImage(1);
+    // GuildSelectorCatalogWidget.populateAndSelectFavorite toggles the purchase widget on any group membership at all.
     const hasGroups = !!(groups && groups.length);
     // The guild selector stores the chosen guild id as the purchase parameter.
     const selectedGroupId = purchaseOptions?.extraData ?? null;
     const selectedGroup = (selectedGroupId && groups?.find((group) => group.groupId.toString() === selectedGroupId)) || null;
+    // GuildForumSelectorCatalogWidget.selectGroup: a group with a forum only gets the warning that this buys another terminal for it
+    // (warningWidget, ${catalog.alert.group_has_forum}); the purchase stays open.
     const selectedGroupHasForum = !!selectedGroup?.hasForum;
 
     return (
@@ -38,7 +41,7 @@ export const CatalogLayouGuildForumView: FC<CatalogLayoutProps> = (props) => {
                                 <CatalogGuildBadgeWidgetView className="shrink-0" />
                                 <CatalogTotalPriceWidget />
                                 <div className="grow! min-w-0">
-                                    <CatalogGuildSelectorWidgetView ownerOnly />
+                                    <CatalogGuildSelectorWidgetView forumSelector />
                                 </div>
                             </Flex>
                             {selectedGroupHasForum && (
@@ -48,7 +51,7 @@ export const CatalogLayouGuildForumView: FC<CatalogLayoutProps> = (props) => {
                             )}
                             {hasGroups && (
                                 <div className="flex justify-center">
-                                    <CatalogPurchaseWidgetView disabled={selectedGroupHasForum} noGiftOption={true} />
+                                    <CatalogPurchaseWidgetView noGiftOption={true} />
                                 </div>
                             )}
                         </div>
