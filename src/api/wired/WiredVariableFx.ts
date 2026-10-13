@@ -523,9 +523,9 @@ export const defaultWiredVariableFxParams = (category: number = WIRED_FX_CATEGOR
 /** The params as the box stored them, with anything missing or outside the server's options replaced by the server's default. */
 export const readWiredVariableFxParams = (intData: number[], category: number): IWiredVariableFxParams => {
     const defaults = defaultWiredVariableFxParams(category);
-    const styleCount = wiredVariableFxStyles(category).length;
-    const styleId = clamp(int(intData, 6, defaults.styleId), 0, styleCount - 1);
-    const style = wiredVariableFxStyle(category, styleId);
+    // An unknown style id falls back to the category's first style, as the official editor does.
+    const style = wiredVariableFxStyle(category, int(intData, 6, defaults.styleId));
+    const styleId = style.styleId;
     const source = int(intData, 0, defaults.source) === WIRED_FX_SOURCE.FURNI ? WIRED_FX_SOURCE.FURNI : WIRED_FX_SOURCE.USER;
     const visibility = clamp(int(intData, 1, defaults.visibility), WIRED_FX_VISIBILITY.ONLY_USER, WIRED_FX_VISIBILITY.HAS_VARIABLE_WITH_VALUE);
     const overrideTarget = (index: number) => (int(intData, index, 0) === WIRED_FX_GLOBAL_TARGET_CODE ? WIRED_FX_OVERRIDE_TARGET.GLOBAL : WIRED_FX_OVERRIDE_TARGET.HOLDER);
