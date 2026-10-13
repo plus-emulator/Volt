@@ -4,13 +4,15 @@ import { Text } from '../../../../common';
 import { useWired } from '../../../../hooks';
 import { OctaneInput } from '../../../../layout';
 import { WiredTextCounter, WiredTextFormattingHelp } from '../common/WiredTextFormattingHelp';
+import { WiredTextPlaceholders } from '../common/WiredTextPlaceholders';
 import { WiredBubbleWidthSelect } from '../WiredBubbleWidthSelect';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredActionBaseView } from './WiredActionBaseView';
 
 const SHOW_MESSAGE_STYLE_IDS = [34, 200, 201, 202, 210, 211, 212, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 250, 251, 252];
 const DEFAULT_SHOW_MESSAGE_STYLE_ID = 34;
-const SHOW_MESSAGE_MAX_LENGTH = 200;
+// The October Show Message editor: TextAreaParam(40, -1, 8, -1, 400).
+const SHOW_MESSAGE_MAX_LENGTH = 400;
 const SHOW_MESSAGE_MAX_LINES = 8;
 
 const clampShowMessage = (value: string) => {
@@ -106,7 +108,7 @@ export const WiredActionChatView: FC<{}> = (props) => {
             validate={validate}
             footer={<WiredSourcesSelector showUsers={true} userSource={userSource} onChangeUsers={setUserSource} />}
         >
-            {validationError && <Text className="text-danger">Use a supported source, style and width, with at most 200 characters and 8 lines.</Text>}
+            {validationError && <Text className="text-danger">Use a supported source, style and width, with at most 400 characters and 8 lines.</Text>}
             <div className="flex flex-col gap-1">
                 <Text bold>{field ? localizeWithFallback(field.key, field.fallback) : LocalizeText('wiredfurni.params.message')}</Text>
                 {!field || field.multiline ? (
@@ -120,6 +122,7 @@ export const WiredActionChatView: FC<{}> = (props) => {
                         />
                         <WiredTextCounter maxLength={maxMessageLength} value={message} />
                         {isChat && <WiredTextFormattingHelp />}
+                        {isChat && <WiredTextPlaceholders onInsert={(token) => setMessage((current) => (current + token).slice(0, SHOW_MESSAGE_MAX_LENGTH))} />}
                     </>
                 ) : (
                     <OctaneInput

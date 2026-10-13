@@ -1,10 +1,12 @@
 import { FC, useEffect, useState } from 'react';
-import { LocalizeText, WIRED_STRING_DELIMETER, WiredFurniType } from '../../../../api';
+import { LocalizeText, localizeWithFallback, WIRED_STRING_DELIMETER, WiredFurniType } from '../../../../api';
 import { Text } from '../../../../common';
 import { useWired } from '../../../../hooks';
 import { OctaneInput } from '../../../../layout';
 import { WiredTextCounter, WiredTextFormattingHelp } from '../common/WiredTextFormattingHelp';
+import { WiredTextPlaceholders } from '../common/WiredTextPlaceholders';
 import { WiredBubbleWidthSelect } from '../WiredBubbleWidthSelect';
+import { WiredCheckboxOption } from '../WiredOptions';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredActionBaseView } from './WiredActionBaseView';
 import { normalizeBotSource, WIRED_BOT_NAMED_SOURCE } from '../../../../api';
@@ -15,18 +17,20 @@ export const WiredActionBotTalkToAvatarView: FC<{}> = (props) => {
     const [talkMode, setTalkMode] = useState(-1);
     const [botSource, setBotSource] = useState<number>(WIRED_BOT_NAMED_SOURCE);
     const [bubbleWidth, setBubbleWidth] = useState<number>(-1);
+    const [hideBotName, setHideBotName] = useState(false);
     const { trigger = null, setStringParam = null, setIntParams = null, setUserSources = null } = useWired();
     const botAllowed = trigger?.inputSources?.usersAllowed[0];
     const botDefault = trigger?.inputSources?.userDefaults[0] ?? 0;
     const userAllowed = trigger?.inputSources?.usersAllowed[1];
     const userDefault = trigger?.inputSources?.userDefaults[1] ?? 0;
-    const maxMessageLength = 200;
+    // The October bot talk editors: TextAreaParam(40, -1, 8, -1, 400).
+    const maxMessageLength = 400;
     const [userSource, setUserSource] = useState<number>(() => trigger?.userSources?.[1] ?? userDefault);
 
     const save = () => {
         setStringParam((botSource === WIRED_BOT_NAMED_SOURCE ? botName : '') + WIRED_STRING_DELIMETER + message);
-        // owned: [talk mode, bubble width]; users: [bot, talked-to user].
-        setIntParams([talkMode, bubbleWidth]);
+        // owned: [talk mode, bubble width, hide bot name]; users: [bot, talked-to user].
+        setIntParams([talkMode, bubbleWidth, hideBotName ? 1 : 0]);
         setUserSources([botSource, userSource]);
     };
 
@@ -41,6 +45,7 @@ export const WiredActionBotTalkToAvatarView: FC<{}> = (props) => {
         setUserSource(trigger.userSources.length > 1 ? trigger.userSources[1] : userDefault);
         setBotSource(normalizeBotSource(trigger.userSources.length > 0 ? trigger.userSources[0] : botDefault, botAllowed, botDefault, nextBotName.length > 0));
         setBubbleWidth(trigger.intData.length > 1 ? trigger.intData[1] : -1);
+        setHideBotName(trigger.intData.length > 2 && trigger.intData[2] === 1);
     }, [trigger]);
 
     return (
@@ -79,6 +84,7 @@ export const WiredActionBotTalkToAvatarView: FC<{}> = (props) => {
                 />
                 <WiredTextCounter maxLength={maxMessageLength} value={message} />
                 <WiredTextFormattingHelp />
+                <WiredTextPlaceholders onInsert={(token) => setMessage((current) => (current + token).slice(0, maxMessageLength))} />
             </div>
             <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-1">
@@ -105,6 +111,7 @@ export const WiredActionBotTalkToAvatarView: FC<{}> = (props) => {
                 </div>
             </div>
             <WiredBubbleWidthSelect value={bubbleWidth} onChange={setBubbleWidth} />
+            <WiredCheckboxOption checked={hideBotName} label={localizeWithFallback('wiredfurni.params.bot_talk.hide_bot_name', 'Hide bot name')} last={true} onChange={setHideBotName} />
         </WiredActionBaseView>
     );
 };
