@@ -21,7 +21,7 @@ interface IVariableDefinition {
 const DISPLAY_NUMERIC = 1;
 const DISPLAY_TEXTUAL = 2;
 const DEFAULT_CAPTURER_NAME = '';
-const MAX_CAPTURER_NAME_LENGTH = 32;
+const MAX_CAPTURER_NAME_LENGTH = 40;
 const PLACEHOLDER_WRAPPER_PATTERN = /^#(.*)#$/;
 
 const normalizeDisplayType = (value: number) => (value === DISPLAY_TEXTUAL ? DISPLAY_TEXTUAL : DISPLAY_NUMERIC);
