@@ -863,6 +863,12 @@
     color: #fff;
 }
 
+/* The card shell colours every span; the intro text keeps the white above. */
+:is(.content-area, .volt-card-content-shell) .volt-catalog-badge-intro span {
+    color: inherit;
+    font-family: inherit;
+}
+
 .volt-catalog-badge-intro img {
     width: auto;
     height: auto;

@@ -41,26 +41,41 @@
     background-size: auto;
 }
 
-.volt-cfp-item-title {
-    position: absolute;
-    top: 93px;
-    left: 5px;
-    box-sizing: border-box;
-    width: 346px;
-    height: 30px;
-    padding: 5px;
-    overflow: hidden;
-    background: rgba(51, 51, 51, 0.5);
-    color: #fff;
-    font-size: 18px;
-    line-height: 20px;
+/* item_image in featured_item_template is 356 wide inside the 360 cell. */
+.volt-cfp-list .volt-cfp-item-image {
+    right: 4px;
 }
 
+/* text_container: a 0x333333 border at blend 0.5 that resizes to its item_title
+   and keeps its bottom edge (y 93 + 30 = 123 of 126), so the strip hugs the text
+   and a wrapped title grows upwards. item_title sits at (5, 5) with margin_right
+   and margin_bottom 5 and wraps at width_max 340. */
+.volt-cfp-item-title {
+    position: absolute;
+    bottom: 3px;
+    left: 5px;
+    box-sizing: border-box;
+    max-width: 346px;
+    padding: 5px;
+    background: rgba(51, 51, 51, 0.5);
+}
+
+/* ubuntu_condensed_title: UbuntuCondensed 18, #ffffff. The card shell styles every
+   span, so this needs the extra class to keep the AIR colour and face. */
+.volt-cfp .volt-cfp-item-title span {
+    display: block;
+    color: #fff;
+    font-family: UbuntuCondensed, Ubuntu, sans-serif;
+    font-size: 18px;
+    line-height: 20px;
+    overflow-wrap: break-word;
+}
+
+/* firstitem: the border ends at y 428 + 29 = 457 of 460 and is capped at 174 wide;
+   its item_title starts at (5, 0). */
 .volt-cfp-item.is-first .volt-cfp-item-title {
-    top: 428px;
-    width: 174px;
-    height: 29px;
-    padding: 0 5px;
+    max-width: 174px;
+    padding: 0 5px 5px;
 }
 
 .volt-cfp-item-region {

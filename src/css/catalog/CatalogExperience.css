@@ -300,6 +300,10 @@
     background: rgba(236, 236, 228, 0.78);
 }
 
+:is(.content-area, .volt-card-content-shell) :is(.volt-catalog-loading-state, .volt-catalog-purchase-confirm-summary) > span {
+    color: inherit;
+}
+
 .volt-catalog-loading-state.is-error {
     flex-direction: column;
     padding: 24px;
