@@ -294,6 +294,8 @@ const useChatWidgetState = () => {
             chatSettings.weight
         );
 
+        chatMessage.hideUsername = !!(event as RoomSessionChatEvent & { hideUsername?: boolean }).hideUsername;
+
         if (outgoingTranslation) {
             applyTranslationToBubble(
                 chatMessage,
