@@ -20,6 +20,23 @@ export const WIRED_SLIDER_PULSES: WiredSliderConverter = {
     endsWithFive: true
 };
 
+// ActionDelaySection precise mode: steps of 50 ms shown as seconds (0.05, 0.1, ... 60).
+export const WIRED_SLIDER_PRECISE_DELAY: WiredSliderConverter = {
+    toIntParam: (text) => Math.round(Number(text) * 20),
+    toString: (value) =>
+    {
+        const milliseconds = value * 50;
+        const seconds = Math.trunc(milliseconds / 1000);
+        const rest = milliseconds % 1000;
+
+        if(rest === 0) return `${seconds}`;
+
+        return `${seconds}.${rest % 100 === 0 ? rest / 100 : (rest < 100 ? '0' : '') + rest / 10}`;
+    },
+    precision: 2,
+    endsWithFive: true
+};
+
 export const WIRED_SLIDER_SECONDS_5: WiredSliderConverter = {
     toIntParam: (text) => Math.round(Number(text) / 5),
     toString: (value) => `${value * 5}`,
