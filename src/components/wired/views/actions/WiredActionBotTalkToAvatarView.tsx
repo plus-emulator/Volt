@@ -1,9 +1,9 @@
 import { FC, useEffect, useState } from 'react';
-import { LocalizeText, WIRED_STRING_DELIMETER, WiredFurniType } from '../../../../api';
+import { LocalizeText, localizeWithFallback, WIRED_STRING_DELIMETER, WiredFurniType } from '../../../../api';
 import { Text } from '../../../../common';
 import { useWired } from '../../../../hooks';
 import { OctaneInput } from '../../../../layout';
-import { WiredTextCounter, WiredTextFormattingHelp } from '../common/WiredTextFormattingHelp';
+import { getWiredTextPlaceholderNames, WiredMessageEditor } from '../common/WiredMessageEditor';
 import { WiredBubbleWidthSelect } from '../WiredBubbleWidthSelect';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredActionBaseView } from './WiredActionBaseView';
@@ -15,18 +15,18 @@ export const WiredActionBotTalkToAvatarView: FC<{}> = (props) => {
     const [talkMode, setTalkMode] = useState(-1);
     const [botSource, setBotSource] = useState<number>(WIRED_BOT_NAMED_SOURCE);
     const [bubbleWidth, setBubbleWidth] = useState<number>(-1);
+    const [hideBotName, setHideBotName] = useState(false);
     const { trigger = null, setStringParam = null, setIntParams = null, setUserSources = null } = useWired();
     const botAllowed = trigger?.inputSources?.usersAllowed[0];
     const botDefault = trigger?.inputSources?.userDefaults[0] ?? 0;
     const userAllowed = trigger?.inputSources?.usersAllowed[1];
     const userDefault = trigger?.inputSources?.userDefaults[1] ?? 0;
-    const maxMessageLength = 200;
-    const [userSource, setUserSource] = useState<number>(() => trigger?.userSources?.[1] ?? userDefault);
+        const [userSource, setUserSource] = useState<number>(() => trigger?.userSources?.[1] ?? userDefault);
 
     const save = () => {
         setStringParam((botSource === WIRED_BOT_NAMED_SOURCE ? botName : '') + WIRED_STRING_DELIMETER + message);
-        // owned: [talk mode, bubble width]; users: [bot, talked-to user].
-        setIntParams([talkMode, bubbleWidth]);
+        // owned: [talk mode, bubble width, hide bot name]; users: [bot, talked-to user].
+        setIntParams([talkMode, bubbleWidth, hideBotName ? 1 : 0]);
         setUserSources([botSource, userSource]);
     };
 
@@ -41,6 +41,7 @@ export const WiredActionBotTalkToAvatarView: FC<{}> = (props) => {
         setUserSource(trigger.userSources.length > 1 ? trigger.userSources[1] : userDefault);
         setBotSource(normalizeBotSource(trigger.userSources.length > 0 ? trigger.userSources[0] : botDefault, botAllowed, botDefault, nextBotName.length > 0));
         setBubbleWidth(trigger.intData.length > 1 ? trigger.intData[1] : -1);
+        setHideBotName(trigger.intData.length > 2 && trigger.intData[2] !== 0);
     }, [trigger]);
 
     return (
@@ -70,15 +71,7 @@ export const WiredActionBotTalkToAvatarView: FC<{}> = (props) => {
             )}
             <div className="flex flex-col gap-1">
                 <Text bold>{LocalizeText('wiredfurni.params.message')}</Text>
-                <textarea
-                    className="form-control form-control-sm octane-wired__resizable-textarea"
-                    maxLength={maxMessageLength}
-                    rows={4}
-                    value={message}
-                    onChange={(event) => setMessage(event.target.value)}
-                />
-                <WiredTextCounter maxLength={maxMessageLength} value={message} />
-                <WiredTextFormattingHelp />
+                <WiredMessageEditor placeholderNames={getWiredTextPlaceholderNames(trigger?.contexts)} value={message} onChange={setMessage} />
             </div>
             <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-1">
@@ -103,6 +96,10 @@ export const WiredActionBotTalkToAvatarView: FC<{}> = (props) => {
                     />
                     <Text>{LocalizeText('wiredfurni.params.whisper')}</Text>
                 </div>
+            </div>
+            <div className="flex items-center gap-1">
+                <input checked={hideBotName} className="form-check-input" type="checkbox" onChange={(event) => setHideBotName(event.target.checked)} />
+                <Text>{localizeWithFallback('wiredfurni.params.bot_talk.hide_bot_name', 'Hide bot name')}</Text>
             </div>
             <WiredBubbleWidthSelect value={bubbleWidth} onChange={setBubbleWidth} />
         </WiredActionBaseView>

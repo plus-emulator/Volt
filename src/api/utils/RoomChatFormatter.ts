@@ -44,12 +44,16 @@ const formatTag = (content: string, tag: string, replacement: (value: string) =>
 };
 
 const applyWiredTextMarkup = (content: string) => {
+    // ChatMarkup.COLOUR_ARRAY (colours for the usual dark-on-light bubble): the eight tags the message editor's palette offers.
     const colorStyles: Record<string, string> = {
+        red: '#8b1919',
+        orange: '#9c3b00',
+        yellow: '#6f5b00',
         green: '#008000',
-        cyan: '#008b8b',
-        red: '#d60000',
-        blue: '#005dff',
-        purple: '#7d31b8'
+        cyan: '#007f7f',
+        blue: '#004c99',
+        purple: '#4c004c',
+        pink: '#9c145b'
     };
 
     let result = content;

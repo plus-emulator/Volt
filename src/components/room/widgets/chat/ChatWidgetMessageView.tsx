@@ -189,7 +189,7 @@ export const ChatWidgetMessageView: FC<ChatWidgetMessageViewProps> = ({
                 <div className="chat-content">
                     {!chat.showTranslation && nativeTextEnabled && (
                         <NativeChatText
-                            username={chat.username}
+                            username={chat.hideUsername ? '' : chat.username}
                             html={formattedText}
                             type={chat.type}
                             anonymous={anonymous}
@@ -200,13 +200,13 @@ export const ChatWidgetMessageView: FC<ChatWidgetMessageViewProps> = ({
                     )}
                     {!chat.showTranslation && !nativeTextEnabled && (
                         <>
-                            {!anonymous && <b className="username">{chat.username}: </b>}
+                            {!anonymous && !chat.hideUsername && <b className="username">{chat.username}: </b>}
                             <span className={messageClassName} dangerouslySetInnerHTML={{ __html: formattedText }} onClick={onClickChat} />
                         </>
                     )}
                     {chat.showTranslation && (
                         <>
-                            {!anonymous && <b className="username">{chat.username}: </b>}
+                            {!anonymous && !chat.hideUsername && <b className="username">{chat.username}: </b>}
                             <div className="mt-[2px] flex flex-col gap-[2px]" onClick={onClickChat}>
                                 <div className="flex items-start gap-1 leading-[1.1]">
                                     <span className="inline-block min-w-[52px] font-bold" style={{ opacity: 0.75 }}>
