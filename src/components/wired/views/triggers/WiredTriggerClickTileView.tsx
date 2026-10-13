@@ -7,8 +7,7 @@ import { WiredTriggerBaseView } from './WiredTriggerBaseView';
 const CLICK_TILE_INTERACTION_TYPES = ['room_invisible_click_tile'];
 const FURNI_SOURCE_OPTIONS: WiredSourceOption[] = [
     { value: 100, label: 'wiredfurni.params.sources.furni.100' },
-    { value: 200, label: 'wiredfurni.params.sources.furni.200' },
-    { value: 0, label: 'wiredfurni.params.sources.furni.0' }
+    { value: 200, label: 'wiredfurni.params.sources.furni.200' }
 ];
 
 export const WiredTriggerClickTileView: FC<{}> = () => {
