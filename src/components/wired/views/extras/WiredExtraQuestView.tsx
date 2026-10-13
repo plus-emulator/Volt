@@ -10,6 +10,7 @@ import { WiredExtraBaseView } from './WiredExtraBaseView';
  * The quest box is itself a read-only user variable: owned [], text "variableName TAB questName", no variable ids.
  * Progress, target and completion are read through the variable it creates, not from the editor.
  */
+// AirSourceOnly (wf_var_quest): AS3 wired_setup/variables/QuestVariable.as
 export const WiredExtraQuestView: FC<{}> = () => {
     const { trigger = null, setIntParams = null, setStringParam = null, setVariableIds = null } = useWired();
     const [variableName, setVariableName] = useState('');

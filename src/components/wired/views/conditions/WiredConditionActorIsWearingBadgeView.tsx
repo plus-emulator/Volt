@@ -26,6 +26,7 @@ interface WiredConditionActorIsWearingBadgeViewProps {
     field?: WiredTextField | null;
 }
 
+// AirSourceOnly (wf_cnd_wearing_badge, wf_cnd_not_wearing_b): AS3 wired_setup/conditions/class_4263.as
 export const WiredConditionActorIsWearingBadgeView: FC<WiredConditionActorIsWearingBadgeViewProps> = ({ negative = false, field = 'badge' }) => {
     const [badge, setBadge] = useState('');
     const [quantifier, setQuantifier] = useState(1);

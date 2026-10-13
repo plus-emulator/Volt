@@ -10,6 +10,7 @@ import { WiredExtraBaseView } from './WiredExtraBaseView';
  * The quest chain box is itself a read-only user variable: owned [], text "variableName TAB chainName", no variable ids.
  * Progress, target and completion are read through the variable it creates, not from the editor.
  */
+// AirSourceOnly (wf_var_quest_chain): AS3 wired_setup/variables/QuestChainVariable.as
 export const WiredExtraQuestChainView: FC<{}> = () => {
     const { trigger = null, setIntParams = null, setStringParam = null, setVariableIds = null } = useWired();
     const [variableName, setVariableName] = useState('');

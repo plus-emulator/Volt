@@ -17,6 +17,7 @@ interface WiredConditionActorIsWearingEffectViewProps {
     showEffect?: boolean;
 }
 
+// AirSourceOnly (wf_cnd_wearing_effect, wf_cnd_not_wearing_fx): AS3 wired_setup/conditions/class_4227.as
 export const WiredConditionActorIsWearingEffectView: FC<WiredConditionActorIsWearingEffectViewProps> = ({ negative = false, showEffect = true }) => {
     const [effect, setEffect] = useState(-1);
     const [quantifier, setQuantifier] = useState(1);
