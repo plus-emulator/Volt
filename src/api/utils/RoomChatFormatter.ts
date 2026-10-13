@@ -28,45 +28,99 @@ const encodeHTML = (str: string) => {
     return str.replace(/&#\d+;|[\u00A0-\u9999<>&]/gu, (match) => (match.length > 1 ? match : `&#${match.codePointAt(0)};`));
 };
 
-const formatTag = (content: string, tag: string, replacement: (value: string) => string) => {
-    const pattern = new RegExp(`\\[${tag}\\]([\\s\\S]*?)\\[\\/${tag}\\]`, 'gi');
-    let previous = '';
-    let next = content;
-    let guard = 0;
+/** ChatMarkup.tokenize: splits into literal runs and bracket runs; a bracket run is closed by `]` and restarted by a further `[`. */
+const tokenizeMarkup = (input: string): string[] => {
+    const tokens: string[] = [];
+    let current = '';
+    let inBracket = false;
 
-    while (previous !== next && guard < 20) {
-        previous = next;
-        next = next.replace(pattern, (match, value) => replacement(value));
-        guard++;
+    for (const character of input) {
+        if (character === '[') {
+            if (current.length > 0) {
+                tokens.push(current);
+                current = '';
+            }
+
+            inBracket = true;
+            current += character;
+        } else if (character === ']' && inBracket) {
+            current += character;
+            tokens.push(current);
+            current = '';
+            inBracket = false;
+        } else {
+            current += character;
+        }
     }
 
-    return next;
+    if (current.length > 0) tokens.push(current);
+
+    return tokens;
 };
 
+/** ChatMarkup.isMarkupToken: a closing token, or a bracket token of 3 to 10 characters. */
+const isMarkupToken = (token: string) =>
+    token.charAt(0) === '[' && token.charAt(token.length - 1) === ']' && (token.charAt(1) === '/' || (token.length > 2 && token.length <= 10));
+
+/** ChatMarkup.isOpeningTableTabToken: `[a]`, in any case. */
+const isOpeningTableTabToken = (token: string) => isMarkupToken(token) && token.charAt(1) !== '/' && token.substring(1, token.length - 1).toLowerCase() === 'a';
+
+// ChatMarkup.COLOUR_ARRAY (colours for the usual dark-on-light bubble): the eight tags the message editor's palette offers.
+const MARKUP_COLOURS: ReadonlyMap<string, string> = new Map(Object.entries({
+    red: '#8b1919',
+    orange: '#9c3b00',
+    yellow: '#6f5b00',
+    green: '#008000',
+    cyan: '#007f7f',
+    blue: '#004c99',
+    purple: '#4c004c',
+    pink: '#9c145b'
+}));
+
+const TABLE_TAB_HTML = '<span data-chat-table-tab="" style="display:inline-block;min-width:4em"></span>';
+
+/** ChatMarkup.applyToElements: tags only take effect as a matched pair, with a stack; anything else stays as typed. */
 const applyWiredTextMarkup = (content: string) => {
-    // ChatMarkup.COLOUR_ARRAY (colours for the usual dark-on-light bubble): the eight tags the message editor's palette offers.
-    const colorStyles: Record<string, string> = {
-        red: '#8b1919',
-        orange: '#9c3b00',
-        yellow: '#6f5b00',
-        green: '#008000',
-        cyan: '#007f7f',
-        blue: '#004c99',
-        purple: '#4c004c',
-        pink: '#9c145b'
-    };
+    if (content.length === 0) return '';
 
-    let result = content;
+    const tokens = tokenizeMarkup(content);
+    const tableTabs = tokens.some(isOpeningTableTabToken);
+    const open: { tag: string; index: number }[] = [];
 
-    result = formatTag(result, 'b', (value) => `<strong>${value}</strong>`);
-    result = formatTag(result, 'i', (value) => `<em>${value}</em>`);
-    result = formatTag(result, 'u', (value) => `<u>${value}</u>`);
+    for (let index = 0; index < tokens.length; index++) {
+        const token = tokens[index];
 
-    Object.entries(colorStyles).forEach(([tag, color]) => {
-        result = formatTag(result, tag, (value) => `<span style="color:${color}">${value}</span>`);
-    });
+        if (!isMarkupToken(token)) continue;
 
-    return result;
+        let tag = token.substring(1, token.length - 1).toLowerCase();
+        const closing = tag.charAt(0) === '/';
+
+        if (tableTabs && isOpeningTableTabToken(token)) {
+            if (index > 0) tokens[index - 1] = tokens[index - 1].replace(/[ \t]+$/, '');
+            if (index + 1 < tokens.length) tokens[index + 1] = tokens[index + 1].replace(/^[ \t]+/, '');
+            tokens[index] = TABLE_TAB_HTML;
+        } else if (closing) {
+            tag = tag.substring(1);
+
+            if (open.length > 0 && open[open.length - 1].tag === tag) {
+                const opener = open.pop();
+
+                if (tag === 'b' || tag === 'i' || tag === 'u') {
+                    const element = tag === 'b' ? 'strong' : tag === 'i' ? 'em' : 'u';
+
+                    tokens[opener.index] = `<${element}>`;
+                    tokens[index] = `</${element}>`;
+                } else if (MARKUP_COLOURS.has(tag)) {
+                    tokens[opener.index] = `<span style="color:${MARKUP_COLOURS.get(tag)}">`;
+                    tokens[index] = '</span>';
+                }
+            }
+        } else if (tag === 'b' || tag === 'i' || tag === 'u' || MARKUP_COLOURS.has(tag)) {
+            open.push({ tag, index });
+        }
+    }
+
+    return tokens.join('');
 };
 
 const FONT_NAMED_COLORS = new Set([

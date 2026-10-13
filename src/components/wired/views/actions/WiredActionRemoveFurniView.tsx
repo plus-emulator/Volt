@@ -6,8 +6,10 @@ import { WiredActionBaseView } from './WiredActionBaseView';
 
 export const WiredActionRemoveFurniView: FC<{}> = () => {
     const { trigger, setIntParams, setFurniSources } = useWired();
-    const [source, setSource] = useState(100);
-    useEffect(() => setSource(trigger?.furniSources[0] ?? 100), [trigger]);
+    // Observed on hhus: the card offers 0/200/201 with 200 selected, and the server refuses the selected-furni source 100.
+    const furniDefault = trigger?.inputSources?.furniDefaults[0] ?? 200;
+    const [source, setSource] = useState(furniDefault);
+    useEffect(() => setSource(trigger?.furniSources[0] ?? furniDefault), [furniDefault, trigger]);
     const save = () => {
         setIntParams([]);
         setFurniSources([source]);
@@ -16,7 +18,7 @@ export const WiredActionRemoveFurniView: FC<{}> = () => {
         <WiredActionBaseView
             nativeLayout={true}
             hasSpecialInput={true}
-            requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID}
+            requiresFurni={source === 100 ? WiredFurniType.STUFF_SELECTION_OPTION_BY_ID : WiredFurniType.STUFF_SELECTION_OPTION_NONE}
             save={save}
             footer={<WiredSourcesSelector showFurni={true} furniSource={source} onChangeFurni={setSource} />}
         />
