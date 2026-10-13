@@ -12,7 +12,7 @@ export const WiredActionMoveFurniAsGroupView: FC<{}> = () => {
     const [x, setX] = useState(0);
     const [y, setY] = useState(0);
     const [moverSource, setMoverSource] = useState(100);
-    const [targetSource, setTargetSource] = useState(101);
+    const [targetSource, setTargetSource] = useState(0);
     const [userSource, setUserSource] = useState(0);
     useEffect(() => {
         setTargetUser(trigger.intData[0] === 1);
