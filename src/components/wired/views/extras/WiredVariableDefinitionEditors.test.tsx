@@ -9,7 +9,7 @@ vi.mock('../../../../api', async () => ({
     LocalizeText: (key: string) => key,
     localizeWithFallback: (key: string, fallback: string, names: string[] = [], values: string[] = []) => names.reduce((text, name, index) => text.replace(`%${name}%`, values[index]), fallback || key)
 }));
-vi.mock('../../../../hooks', () => ({ useWired: () => state }));
+vi.mock('../../../../hooks', () => ({ useWired: () => state, useNotificationActions: () => ({ showConfirm: vi.fn() }) }));
 vi.mock('../../../../common', () => ({ Text: ({ children }: PropsWithChildren) => <span>{children}</span> }));
 vi.mock('../WiredText', () => ({ WiredText: ({ text }: { text: string }) => <span>{text}</span> }));
 vi.mock('../WiredDropdown', () => ({ WiredDropdown: ({ options, value, caption, disabled, onChange }: any) => <select aria-label={caption} disabled={disabled} value={value} onChange={event => onChange(Number(event.target.value))}><option value={-1}>{caption}</option>{options.map((option: any) => <option key={option.id} value={option.id}>{option.label}</option>)}</select> }));

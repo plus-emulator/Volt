@@ -1,6 +1,6 @@
 import { FC, useEffect, useMemo, useState } from 'react';
 import { handleWiredVariableNameKeyDown, LocalizeText, localizeWithFallback, normalizeWiredVariableName, WIRED_VARIABLE_NAME_MAX, WiredFurniType } from '../../../../api';
-import { useWired } from '../../../../hooks';
+import { useNotificationActions, useWired } from '../../../../hooks';
 import { WiredCheckboxOption, WiredRadioGroup } from '../WiredOptions';
 import { WiredSection } from '../WiredSection';
 import { WiredTextInput } from '../WiredTextInput';
@@ -24,6 +24,7 @@ interface WiredExtraVariableViewProps {
 /** AIR UserVariable/FurniVariable buildInputs share these three sections. */
 export const WiredExtraVariableView: FC<WiredExtraVariableViewProps> = props => {
     const { trigger, setIntParams, setStringParam } = useWired();
+    const { showConfirm } = useNotificationActions();
     const [variableName, setVariableName] = useState('');
     const [hasValue, setHasValue] = useState(false);
     const [availability, setAvailability] = useState(props.availabilityRoomValue);
@@ -39,7 +40,14 @@ export const WiredExtraVariableView: FC<WiredExtraVariableViewProps> = props => 
         setIntParams(props.availabilityFirst ? [normalizeAvailability(availability), hasValue ? 1 : 0] : [hasValue ? 1 : 0, normalizeAvailability(availability)]);
     };
     const roomText = props.availabilityRoomText === 'wiredfurni.params.variables.availability.1' ? localizeWithFallback('wiredfurni.condition.room.active', 'While the room is active') : props.availabilityRoomText;
-    return <WiredExtraBaseView nativeLayout hasSpecialInput requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save}>
+    // UserVariable.requireConfirmation: moving persisted/shared data to room-only availability deletes stored holders.
+    const wasStored = trigger?.intData[0] === 10 || trigger?.intData[0] === 11;
+    const clearsStoredValues = props.availabilityFirst && wasStored && availability !== 10 && availability !== 11;
+    return <WiredExtraBaseView nativeLayout hasSpecialInput requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save}
+        confirmSave={clearsStoredValues ? (confirm, cancel) => showConfirm(
+            LocalizeText('wiredfurni.variables.availability_change.body'), confirm, cancel, null, null,
+            LocalizeText('wiredfurni.variables.availability_change.title')
+        ) : undefined}>
         <WiredVariableNameSection value={variableName} onChange={setVariableName} />
         <WiredSection title={LocalizeText('wiredfurni.params.variables.settings')}><WiredCheckboxOption last checked={hasValue} onChange={setHasValue} label={LocalizeText('wiredfurni.params.variables.settings.has_value')} /></WiredSection>
         <WiredSection title={LocalizeText('wiredfurni.params.variables.availability')}>

@@ -1,5 +1,5 @@
 import { CreateLinkEvent, GetRoomEngine, GetSessionDataManager } from '@volt/renderer';
-import { CSSProperties, FC, PropsWithChildren, ReactNode, useEffect, useState } from 'react';
+import { CSSProperties, FC, PropsWithChildren, ReactNode, useEffect, useRef, useState } from 'react';
 import {
     isWiredVolterStyle,
     LocalizeText,
@@ -25,12 +25,16 @@ import { WiredVolterBorderView, WiredVolterFrameView } from './WiredVolterFrameV
 // The official frame is centred while it is still its 108px minimum height and then grows downwards.
 const WIRED_OPEN_HEIGHT = 108;
 
+export type WiredSaveConfirmation = (confirm: () => void, cancel: () => void) => void;
+
 export interface WiredBaseViewProps {
     wiredType: string;
     requiresFurni: number;
     hasSpecialInput: boolean;
     save: () => void;
     validate?: () => boolean;
+    /** AIR element.requireConfirmation, requested only on an actual save (not Copy). */
+    confirmSave?: WiredSaveConfirmation;
     cardStyle?: CSSProperties;
     /** Runtime AIR width modifier, e.g. neighborhood small/large drawing mode. */
     widthMultiplier?: number;
@@ -54,6 +58,7 @@ export const WiredBaseView: FC<PropsWithChildren<WiredBaseViewProps>> = (props) 
         requiresFurni = WiredFurniType.STUFF_SELECTION_OPTION_NONE,
         save = null,
         validate = null,
+        confirmSave = undefined,
         children = null,
         hasSpecialInput = false,
         cardStyle = undefined,
@@ -102,21 +107,35 @@ export const WiredBaseView: FC<PropsWithChildren<WiredBaseViewProps>> = (props) 
         GetRoomEngine().areaSelectionManager.deactivate();
     };
 
+    const pendingConfirmation = useRef<object | null>(null);
+    // A pending dialog cannot commit into a different editor or a closed editor.
+    useEffect(() => () => { pendingConfirmation.current = null; }, [trigger]);
     const onClose = () => {
+        pendingConfirmation.current = null;
         clearRoomAreaSelection();
         WiredSelectionVisualizer.clearAllSelectionShaders();
         setTrigger(null);
     };
 
-    const onSave = (keepOpen: boolean = false) => {
-        if (!roomSettings.canModify) return;
-
-        if (validate && !validate()) return;
-
+    const completeSave = useRef<(keepOpen: boolean) => void>(() => {});
+    completeSave.current = (keepOpen) => {
+        if (!roomSettings.canModify || (validate && !validate())) return;
         if (save) save();
-
         setKeepOpenOnSave(keepOpen);
         setNeedsSave(true);
+    };
+    const onSave = (keepOpen: boolean = false) => {
+        if (!roomSettings.canModify || pendingConfirmation.current || (validate && !validate())) return;
+        if (!confirmSave) { completeSave.current(keepOpen); return; }
+        const request = {};
+        pendingConfirmation.current = request;
+        confirmSave(() => {
+            if (pendingConfirmation.current !== request) return;
+            pendingConfirmation.current = null;
+            completeSave.current(keepOpen);
+        }, () => {
+            if (pendingConfirmation.current === request) pendingConfirmation.current = null;
+        });
     };
 
     useEffect(() => {
