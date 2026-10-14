@@ -1,4 +1,4 @@
-import { FC, Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { FC, Fragment, ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import variableIcon from '../../../../assets/images/wired/native/icon_variable_reference.png';
 import nativeFurniIcon from '../../../../assets/images/wired/native/icon_source_furni.png';
 import nativeUserIcon from '../../../../assets/images/wired/native/icon_source_users.png';
@@ -6,6 +6,8 @@ import nativeGlobalIcon from '../../../../assets/images/wired/native/icon_source
 import nativeContextIcon from '../../../../assets/images/wired/native/icon_source_context.png';
 import { useWiredNative } from '../WiredNativeContext';
 import { WiredSourceTypeSelector } from '../WiredSourceTypeSelector';
+import { WiredCheckboxOption } from '../WiredOptions';
+import { parseWiredLiteral } from '../../../../api/wired/WiredLiteral';
 import { WiredText } from '../WiredText';
 import { localizeWithFallback, WIRED_NATIVE_VARIABLE_TARGET } from '../../../../api';
 import contextVariableIcon from '../../../../assets/images/wired/var/icon_source_context_clean.png';
@@ -66,6 +68,13 @@ export interface WiredActionValueOrVariableSectionProps {
     option: number;
     onOptionChange: (option: number) => void;
     literal: number;
+    /** Preserve existing emulator signed-64 literals without a lossy Number conversion. */
+    literalText?: string;
+    onLiteralTextChange?: (value: string) => void;
+    primaryTarget?: WiredValueTargetType;
+    sameHolder?: boolean;
+    onSameHolderChange?: (value: boolean) => void;
+    popupSources?: ReactNode;
     onLiteralChange: (value: number) => void;
     target: WiredValueTargetType;
     onTargetChange: (target: WiredValueTargetType) => void;
@@ -182,8 +191,11 @@ const NativeValueOrVariable: FC<WiredActionValueOrVariableSectionProps & { entri
     const { title, targetTitle, recentScope, option, literal, min, max, target, variableToken, entries, disabled = false, onOptionChange, onLiteralChange, onTargetChange, onVariableTokenChange, onValidityChange } = props;
     const flatEntries = flattenWiredVariablePickerEntries(entries);
     const selected = flatEntries.find(entry => entry.token === variableToken);
-    const shown = props.variableOnlyOrEmpty || option === WIRED_VALUE_OPTION_VARIABLE ? selected?.displayLabel ?? variableToken : String(literal);
-    const wireKey = `${option}:${literal}:${target}:${variableToken}`;
+    const shown = props.variableOnlyOrEmpty || option === WIRED_VALUE_OPTION_VARIABLE ? selected?.displayLabel ?? variableToken : props.literalText ?? String(literal);
+    const literalKey = props.literalText ?? String(literal);
+    const wireKey = `${option}:${literalKey}:${target}:${variableToken}`;
+    const sameHolderEligible = (props.primaryTarget === 'user' || props.primaryTarget === 'furni') && props.primaryTarget === target;
+    const sourceLocked = option === WIRED_VALUE_OPTION_VARIABLE && !!props.sameHolder && sameHolderEligible;
     const publishedKey = useRef(wireKey);
     const [text, setText] = useState(shown);
     const [valid, setValid] = useState(true);
@@ -201,16 +213,24 @@ const NativeValueOrVariable: FC<WiredActionValueOrVariableSectionProps & { entri
         setText(next);
         // These three forms are accepted by AIR ValueOrVariableSection.isNumericText.
         if (!props.variableOnlyOrEmpty && (/^-?\d+$/.test(next) || /^0x[0-9a-fA-F]+$/.test(next) || /^0b[01]+$/.test(next))) {
+            if (props.onLiteralTextChange) {
+                const value = parseWiredLiteral(BigInt(next));
+                setValid(value !== null);
+                publishedKey.current = `0:${value === null ? literalKey : value.toString()}:${target}:${variableToken}`;
+                onOptionChange(WIRED_VALUE_OPTION_LITERAL);
+                if (value !== null) props.onLiteralTextChange(value.toString());
+                return;
+            }
             const value = Number(next);
             const accepted = Number.isInteger(value) && value >= min && value <= max && value >= -2147483648 && value <= 2147483647;
             setValid(accepted);
-            publishedKey.current = `0:${accepted ? value : literal}:${target}:${variableToken}`;
+            publishedKey.current = `0:${accepted ? value : literalKey}:${target}:${variableToken}`;
             onOptionChange(WIRED_VALUE_OPTION_LITERAL);
             if (accepted) onLiteralChange(value);
             return;
         }
         if (!props.variableOnlyOrEmpty && (next === '-' || next === '+')) {
-            publishedKey.current = `0:${literal}:${target}:${variableToken}`;
+            publishedKey.current = `0:${literalKey}:${target}:${variableToken}`;
             onOptionChange(WIRED_VALUE_OPTION_LITERAL);
             setValid(false);
             return;
@@ -223,7 +243,7 @@ const NativeValueOrVariable: FC<WiredActionValueOrVariableSectionProps & { entri
         }
         const matches = flatEntries.filter(entry => entry.selectable && entry.displayLabel === next);
         setValid(matches.length === 1);
-        publishedKey.current = `1:${literal}:${target}:${matches.length === 1 ? matches[0].token : variableToken}`;
+        publishedKey.current = `1:${literalKey}:${target}:${matches.length === 1 ? matches[0].token : variableToken}`;
         onOptionChange(WIRED_VALUE_OPTION_VARIABLE);
         if (matches.length === 1) onVariableTokenChange(matches[0].token);
     };
@@ -243,8 +263,10 @@ const NativeValueOrVariable: FC<WiredActionValueOrVariableSectionProps & { entri
                     <div role="dialog" aria-label={targetTitle} className="volt-wired__value-chooser" style={{ position: 'absolute', zIndex: 100, top: '100%', right: 0, width: 260, border: '1px solid #000', padding: 8, background: '#e9e9e1' }}>
                         <div className="flex items-center justify-between gap-2">
                             <WiredText text={targetTitle} bold />
-                            <WiredSourceTypeSelector types={['furni', 'user', 'global', 'context']} value={target} onChange={next => { onTargetChange(next); onVariableTokenChange(''); }} />
+                            <WiredSourceTypeSelector types={['furni', 'user', 'global', 'context']} value={target} disabled={sourceLocked} onChange={next => { onTargetChange(next); onVariableTokenChange(''); }} />
                         </div>
+                        {props.popupSources}
+                        {props.onSameHolderChange && <WiredCheckboxOption label={localizeWithFallback('wiredfurni.params.variables.reference_value.same_holder', 'Use the same variable holder')} checked={!!props.sameHolder} disabled={!sameHolderEligible} onChange={checked => { props.onSameHolderChange(checked); if (checked) onOptionChange(WIRED_VALUE_OPTION_VARIABLE); }} />}
                         <WiredVariablePicker entries={entries} recentScope={recentScope} selectedToken={variableToken} onSelect={entry => {
                             onOptionChange(WIRED_VALUE_OPTION_VARIABLE);
                             onVariableTokenChange(entry.token);
