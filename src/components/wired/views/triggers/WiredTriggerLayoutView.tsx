@@ -17,7 +17,10 @@ import { WiredTriggeExecutePeriodicallyShortView } from './WiredTriggerExecutePe
 import { WiredTriggeExecutePeriodicallyView } from './WiredTriggerExecutePeriodicallyView';
 import { WiredTriggerGameEndsView } from './WiredTriggerGameEndsView';
 import { WiredTriggerGameStartsView } from './WiredTriggerGameStartsView';
+import { WiredTriggerReceiveLinkDataframeView } from './WiredTriggerReceiveLinkDataframeView';
+import { WiredTriggerReceiveLinkMessageView } from './WiredTriggerReceiveLinkMessageView';
 import { WiredTriggerReceiveSignalView } from './WiredTriggerReceiveSignalView';
+import { WiredTriggerRoomInitializedView } from './WiredTriggerRoomInitializedView';
 import { WiredTriggeScoreAchievedView } from './WiredTriggerScoreAchievedView';
 import { WiredTriggerToggleFurniView } from './WiredTriggerToggleFurniView';
 import { WiredTriggerTransactionCompleteView } from './WiredTriggerTransactionCompleteView';
@@ -79,6 +82,12 @@ export const WiredTriggerLayoutView = (code: number) => {
             return <WiredTriggerTransactionCompleteView />;
         case WiredTriggerLayout.TRANSACTION_FAIL:
             return <WiredTriggerTransactionFailView />;
+        case WiredTriggerLayout.INITIALIZATION:
+            return <WiredTriggerRoomInitializedView />;
+        case WiredTriggerLayout.RECEIVE_LINK_MESSAGE:
+            return <WiredTriggerReceiveLinkMessageView />;
+        case WiredTriggerLayout.RECEIVE_LINK_DATAFRAME:
+            return <WiredTriggerReceiveLinkDataframeView />;
     }
 
     return null;

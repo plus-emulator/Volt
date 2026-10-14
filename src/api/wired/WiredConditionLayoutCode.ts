@@ -42,6 +42,8 @@ export class WiredConditionlayout {
     public static VAR_VAL_MATCH: number = 42;
     public static VAR_AGE_MATCH: number = 43;
     public static NO_BATTLEBANZAI: number = 44;
+    /** AIR LevelMatches (ConditionCodes.USER_LEVEL, WIN63-202610131318): the native code the server sends is 44. */
+    public static USER_LEVEL_MATCHES: number = 44;
     public static USER_ON_FURNI_WITH_STATE: number = 45;
     public static TRG_FURNI_ADJACENT_STATE: number = 46;
     public static CHEST_HAS_ITEMS: number = 45;

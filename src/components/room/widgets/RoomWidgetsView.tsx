@@ -19,12 +19,16 @@ import { FurniChooserWidgetView } from './choosers/FurniChooserWidgetView';
 import { UserChooserWidgetView } from './choosers/UserChooserWidgetView';
 import { DoorbellWidgetView } from './doorbell/DoorbellWidgetView';
 import { FriendRequestWidgetView } from './friend-request/FriendRequestWidgetView';
+import { FurnitureLabelSettingsView } from './furniture-label/FurnitureLabelSettingsView';
+import { FurnitureLabelWidgetView } from './furniture-label/FurnitureLabelWidgetView';
 import { FurnitureWidgetsView } from './furniture/FurnitureWidgetsView';
 import { PetPackageWidgetView } from './pet-package/PetPackageWidgetView';
 import { RoomKeybindView } from './RoomKeybindView';
 import { RoomFilterWordsWidgetView } from './room-filter-words/RoomFilterWordsWidgetView';
 import { RoomThumbnailWidgetView } from './room-thumbnail/RoomThumbnailWidgetView';
 import { RoomToolsWidgetView } from './room-tools/RoomToolsWidgetView';
+import { VariableLeaderboardOverlayView } from './variable-leaderboard/VariableLeaderboardOverlayView';
+import { WiredLinkWidgetView } from './wired-link/WiredLinkWidgetView';
 import { applyRoomZoom } from './room-tools/roomZoom.helpers';
 import { WordQuizWidgetView } from './word-quiz/WordQuizWidgetView';
 
@@ -176,6 +180,12 @@ export const RoomWidgetsView: FC<{}> = (props) => {
     return (
         <WidgetErrorBoundary name="RoomWidgets">
             <div className="absolute top-0 left-0 pointer-events-none size-full">
+                <WidgetErrorBoundary name="VariableLeaderboard">
+                    <VariableLeaderboardOverlayView />
+                </WidgetErrorBoundary>
+                <WidgetErrorBoundary name="FurnitureLabel">
+                    <FurnitureLabelWidgetView />
+                </WidgetErrorBoundary>
                 <WidgetErrorBoundary name="FurnitureWidgets">
                     <FurnitureWidgetsView />
                 </WidgetErrorBoundary>
@@ -221,6 +231,12 @@ export const RoomWidgetsView: FC<{}> = (props) => {
             </WidgetErrorBoundary>
             <WidgetErrorBoundary name="FriendRequestWidget">
                 <FriendRequestWidgetView />
+            </WidgetErrorBoundary>
+            <WidgetErrorBoundary name="FurnitureLabelSettings">
+                <FurnitureLabelSettingsView />
+            </WidgetErrorBoundary>
+            <WidgetErrorBoundary name="WiredLink">
+                <WiredLinkWidgetView />
             </WidgetErrorBoundary>
         </WidgetErrorBoundary>
     );
