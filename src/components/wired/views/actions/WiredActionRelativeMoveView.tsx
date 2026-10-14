@@ -1,35 +1,28 @@
 import { FC, useEffect, useState } from 'react';
-import { FaArrowDown, FaArrowLeft, FaArrowRight, FaArrowUp } from 'react-icons/fa';
 import { LocalizeText, WiredFurniType } from '../../../../api';
-import { Text } from '../../../../common';
 import { useWired } from '../../../../hooks';
-import { WiredLegacySlider as Slider } from '../WiredSlider';
+import { WiredSlider } from '../WiredSlider';
+import { WiredRadioGroup } from '../WiredOptions';
+import { WiredSection } from '../WiredSection';
+import { WiredText } from '../WiredText';
+import move0 from '../../../../assets/images/wired/native/move_0.png';
+import move2 from '../../../../assets/images/wired/native/move_2.png';
+import move4 from '../../../../assets/images/wired/native/move_4.png';
+import move6 from '../../../../assets/images/wired/native/move_6.png';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredActionBaseView } from './WiredActionBaseView';
 
 const MAX_DISTANCE = 20;
 
+// AIR class_4082: positive axis first (move_2 / move_4), then negative (move_6 / move_0).
 const HORIZONTAL_OPTIONS = [
-    { value: 0, icon: <FaArrowLeft /> },
-    { value: 1, icon: <FaArrowRight /> }
+    { id: 1, label: <img src={move2} alt="+X" /> },
+    { id: 0, label: <img src={move6} alt="−X" /> }
 ];
-
 const VERTICAL_OPTIONS = [
-    { value: 0, icon: <FaArrowDown /> },
-    { value: 1, icon: <FaArrowUp /> }
+    { id: 1, label: <img src={move4} alt="+Y" /> },
+    { id: 0, label: <img src={move0} alt="−Y" /> }
 ];
-
-const normalizeDirection = (value: number, fallback = 1) => {
-    if (value === 0 || value === 1) return value;
-
-    return fallback;
-};
-
-const normalizeDistance = (value: number) => {
-    if (isNaN(value)) return 0;
-
-    return Math.max(0, Math.min(MAX_DISTANCE, value));
-};
 
 export const WiredActionRelativeMoveView: FC<{}> = () => {
     const { trigger = null, setIntParams = null, setFurniSources } = useWired();
@@ -64,48 +57,16 @@ export const WiredActionRelativeMoveView: FC<{}> = () => {
             save={save}
             footer={<WiredSourcesSelector showFurni={true} furniSource={furniSource} onChangeFurni={setFurniSource} />}
         >
-            <div className="flex flex-col gap-2">
-                <Text bold>{LocalizeText('wiredfurni.params.movement.horizontal.selection')}</Text>
-                <div className="flex gap-2">
-                    {HORIZONTAL_OPTIONS.map((option) => {
-                        return (
-                            <label key={option.value} className="flex items-center gap-1">
-                                <input
-                                    checked={horizontalDirection === option.value}
-                                    className="form-check-input"
-                                    name="relativeMoveHorizontal"
-                                    type="radio"
-                                    onChange={() => setHorizontalDirection(option.value)}
-                                />
-                                <Text>{option.icon}</Text>
-                            </label>
-                        );
-                    })}
-                </div>
-                <Text>{LocalizeText('wiredfurni.params.movement.horizontal.distance', ['distance'], [horizontalDistance.toString()])}</Text>
-                <Slider max={MAX_DISTANCE} min={0} step={1} value={horizontalDistance} onChange={(value) => setHorizontalDistance(value as number)} />
-            </div>
-            <div className="flex flex-col gap-2">
-                <Text bold>{LocalizeText('wiredfurni.params.movement.vertical.selection')}</Text>
-                <div className="flex gap-2">
-                    {VERTICAL_OPTIONS.map((option) => {
-                        return (
-                            <label key={option.value} className="flex items-center gap-1">
-                                <input
-                                    checked={verticalDirection === option.value}
-                                    className="form-check-input"
-                                    name="relativeMoveVertical"
-                                    type="radio"
-                                    onChange={() => setVerticalDirection(option.value)}
-                                />
-                                <Text>{option.icon}</Text>
-                            </label>
-                        );
-                    })}
-                </div>
-                <Text>{LocalizeText('wiredfurni.params.movement.vertical.distance', ['distance'], [verticalDistance.toString()])}</Text>
-                <Slider max={MAX_DISTANCE} min={0} step={1} value={verticalDistance} onChange={(value) => setVerticalDistance(value as number)} />
-            </div>
+            <WiredSection title={LocalizeText('wiredfurni.params.movement.horizontal.selection')}>
+                <WiredRadioGroup name="relativeMoveHorizontal" columns={4} options={HORIZONTAL_OPTIONS} value={horizontalDirection} onChange={setHorizontalDirection} />
+                <WiredText text={LocalizeText('wiredfurni.params.movement.horizontal.distance', ['distance'], [horizontalDistance.toString()])} />
+                <WiredSlider max={MAX_DISTANCE} min={0} step={1} value={horizontalDistance} onChange={setHorizontalDistance} />
+            </WiredSection>
+            <WiredSection title={LocalizeText('wiredfurni.params.movement.vertical.selection')}>
+                <WiredRadioGroup name="relativeMoveVertical" columns={4} options={VERTICAL_OPTIONS} value={verticalDirection} onChange={setVerticalDirection} />
+                <WiredText text={LocalizeText('wiredfurni.params.movement.vertical.distance', ['distance'], [verticalDistance.toString()])} />
+                <WiredSlider max={MAX_DISTANCE} min={0} step={1} value={verticalDistance} onChange={setVerticalDistance} />
+            </WiredSection>
         </WiredActionBaseView>
     );
 };
