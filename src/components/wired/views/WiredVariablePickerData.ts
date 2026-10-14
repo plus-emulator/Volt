@@ -7,6 +7,7 @@ export interface IWiredVariableDefinitionLike {
     availability: number;
     hasValue: boolean;
     isReadOnly?: boolean;
+    requiresExecutionContext?: boolean;
     /** Native wired forms key a variable by its opaque server id; the tools' definitions still carry the numeric item id. */
     variableId?: string;
     itemId?: number;
@@ -203,7 +204,8 @@ const getCustomSelectable = (usage: WiredVariablePickerUsage, definition: IWired
         case 'filter-main':
             return true;
         case 'echo':
-            return definition.name.includes('.');
+            // AIR EchoVariable.variableSelectionFilter: any variable that can be read outside a running stack.
+            return !definition.requiresExecutionContext;
         case 'change-reference':
             return !!definition.hasValue;
         case 'change-destination':
