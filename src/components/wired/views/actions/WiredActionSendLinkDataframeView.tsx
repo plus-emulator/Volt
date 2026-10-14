@@ -24,7 +24,7 @@ import { LinkDataframeField, LinkDataframeVariableField } from '../common/WiredL
 import { WiredDropdown } from '../WiredDropdown';
 import { WiredNumberInput } from '../WiredNumberInput';
 import { WiredSection } from '../WiredSection';
-import { WiredSourcesSelector } from '../WiredSourcesSelector';
+import { FURNI_SOURCES, nativeSourceOptions, USER_SOURCES, WiredSourceOption, WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredText } from '../WiredText';
 import { WiredTextInput } from '../WiredTextInput';
 import { WiredActionBaseView } from './WiredActionBaseView';
@@ -33,12 +33,31 @@ import { WiredActionBaseView } from './WiredActionBaseView';
  * Habbo's "send dataframe" action (`wf_act_send_dataframe`, AIR class SendLinkDataframe, action 64, widthModifier 1.4,
  * build WIN63-202610131318-860371703). Its preset LinkDataframeSendPreset.as: int params [count, then per row
  * mode, literal, target] (37 ints), the string param the first `count` rows as [key, text] JSON, and one variable slot
- * per row (readVariableIds L154). Variable rows read the source furni and users picked in the footer.
+ * per row (readVariableIds L154). The sources are the full AIR arrays: furni slot 0 is the endpoint WIRED Links,
+ * and row i reads its furni or user variable from furni slot i + 1 and user slot i (SendLinkDataframe.as:89-99
+ * mergedSelections [i + 1, i]), so the save always carries 13 furni and 12 user source types.
  */
 
 const INT_MIN = -2147483648;
 const INT_MAX = 2147483647;
 const DEFAULT_SOURCE = 0;
+const FURNI_SOURCE_COUNT = LINK_DATAFRAME_MAX_ROWS + 1;
+const USER_SOURCE_COUNT = LINK_DATAFRAME_MAX_ROWS;
+const TARGET_FURNI = 0;
+const TARGET_USER = 1;
+
+/** The loaded source array at its AIR length, missing slots taken from the card's defaults. */
+const sourceArray = (loaded: number[] | undefined, defaults: number[] | undefined, length: number): number[] =>
+    Array.from({ length }, (_, index) => loaded?.[index] ?? defaults?.[index] ?? DEFAULT_SOURCE);
+
+const sourceDropdownOptions = (allowed: number[] | undefined, kind: 'furni' | 'users', current: number) => {
+    const options: WiredSourceOption[] = allowed?.length ? nativeSourceOptions(allowed, kind) : kind === 'furni' ? FURNI_SOURCES : USER_SOURCES;
+    const listed = options.some((option) => option.value === current)
+        ? options
+        : [...options, { value: current, label: `wiredfurni.params.sources.${kind}.${current}` }];
+
+    return listed.map((option) => ({ id: option.value, label: LocalizeText(option.label) }));
+};
 
 const SOURCE_OPTIONS = [
     { id: LINK_SOURCE_NUMBER, label: 'wiredfurni.params.link.source.number' },
@@ -133,9 +152,12 @@ interface SendRowProps {
     index: number;
     row: ISendDraftRow;
     onChange: (row: ISendDraftRow) => void;
+    /** The merged source of the row's variable target: furni slot index + 1 or user slot index. */
+    source: { kind: 'furni' | 'users'; value: number; allowed: number[] | undefined } | null;
+    onChangeSource: (value: number) => void;
 }
 
-const SendRow: FC<SendRowProps> = ({ index, row, onChange }) => (
+const SendRow: FC<SendRowProps> = ({ index, row, onChange, source, onChangeSource }) => (
     <WiredSection title={LocalizeText('wiredfurni.params.link.row', ['number'], [`${index + 1}`])}>
         <LinkDataframeField label={LocalizeText('wiredfurni.params.link.key')}>
             <WiredTextInput maxLength={LINK_DATAFRAME_KEY_MAX_LENGTH} value={row.key} onChange={(key) => onChange({ ...row, key })} />
@@ -165,6 +187,11 @@ const SendRow: FC<SendRowProps> = ({ index, row, onChange }) => (
                 />
             </LinkDataframeField>
         )}
+        {isVariableMode(row.mode) && source && (
+            <LinkDataframeField label={LocalizeText(source.kind === 'furni' ? 'wiredfurni.params.link.source_furni' : 'wiredfurni.params.link.source_users')}>
+                <WiredDropdown options={sourceDropdownOptions(source.allowed, source.kind, source.value)} value={source.value} onChange={onChangeSource} />
+            </LinkDataframeField>
+        )}
     </WiredSection>
 );
 
@@ -173,8 +200,8 @@ export const WiredActionSendLinkDataframeView: FC<{}> = () => {
     const [loadError, setLoadError] = useState<string | null>(null);
     const [count, setCount] = useState(0);
     const [rows, setRows] = useState<ISendDraftRow[]>(emptyDraftRows);
-    const [furniSource, setFurniSource] = useState(DEFAULT_SOURCE);
-    const [userSource, setUserSource] = useState(DEFAULT_SOURCE);
+    const [furniSources, setFurniSourceSlots] = useState<number[]>(() => sourceArray(undefined, undefined, FURNI_SOURCE_COUNT));
+    const [userSources, setUserSourceSlots] = useState<number[]>(() => sourceArray(undefined, undefined, USER_SOURCE_COUNT));
 
     useEffect(() => {
         if (!trigger) return;
@@ -184,21 +211,35 @@ export const WiredActionSendLinkDataframeView: FC<{}> = () => {
         setLoadError(state ? null : 'wiredfurni.error.link.invalid_dataframe');
         setCount(state?.count ?? 0);
         setRows(state ? state.rows.map(toDraftRow) : emptyDraftRows());
-        setFurniSource(trigger.furniSources?.[0] ?? DEFAULT_SOURCE);
-        setUserSource(trigger.userSources?.[0] ?? DEFAULT_SOURCE);
+        setFurniSourceSlots(sourceArray(trigger.furniSources, trigger.inputSources?.furniDefaults, FURNI_SOURCE_COUNT));
+        setUserSourceSlots(sourceArray(trigger.userSources, trigger.inputSources?.userDefaults, USER_SOURCE_COUNT));
     }, [trigger]);
 
     const state = useMemo<ILinkDataframeSendState>(() => ({ count, rows: rows.map(toRowState) }), [count, rows]);
     const error = useMemo(() => sendFrameError(loadError, state), [loadError, state]);
 
     const updateRow = (index: number, row: ISendDraftRow) => setRows((current) => current.map((item, itemIndex) => (itemIndex === index ? row : item)));
+    const setSlot = (setter: (update: (current: number[]) => number[]) => void, slot: number, value: number) =>
+        setter((current) => current.map((item, index) => (index === slot ? value : item)));
+
+    const rowSource = (index: number, row: ISendDraftRow): SendRowProps['source'] => {
+        if (row.target === TARGET_FURNI) return { kind: 'furni', value: furniSources[index + 1], allowed: trigger?.inputSources?.furniAllowed?.[index + 1] };
+        if (row.target === TARGET_USER) return { kind: 'users', value: userSources[index], allowed: trigger?.inputSources?.usersAllowed?.[index] };
+
+        return null;
+    };
+
+    const onChangeRowSource = (index: number, row: ISendDraftRow, value: number) => {
+        if (row.target === TARGET_FURNI) setSlot(setFurniSourceSlots, index + 1, value);
+        else if (row.target === TARGET_USER) setSlot(setUserSourceSlots, index, value);
+    };
 
     const save = () => {
         setIntParams(writeLinkDataframeSendInts(state));
         setStringParam(writeLinkDataframeSendString(state));
         setVariableIds(state.rows.map((row) => row.variableId));
-        setFurniSources([furniSource]);
-        setUserSources([userSource]);
+        setFurniSources([...furniSources]);
+        setUserSources([...userSources]);
     };
 
     return (
@@ -211,13 +252,9 @@ export const WiredActionSendLinkDataframeView: FC<{}> = () => {
             footer={
                 <WiredSourcesSelector
                     showFurni={true}
-                    showUsers={true}
-                    furniSource={furniSource}
-                    userSource={userSource}
-                    furniTitle="wiredfurni.params.link.source_furni"
-                    usersTitle="wiredfurni.params.link.source_users"
-                    onChangeFurni={setFurniSource}
-                    onChangeUsers={setUserSource}
+                    furniSource={furniSources[0]}
+                    furniTitle="wiredfurni.params.link.endpoints"
+                    onChangeFurni={(value) => setSlot(setFurniSourceSlots, 0, value)}
                 />
             }
         >
@@ -228,7 +265,14 @@ export const WiredActionSendLinkDataframeView: FC<{}> = () => {
                 <WiredDropdown options={COUNT_OPTIONS} value={count} onChange={setCount} />
             </WiredSection>
             {rows.slice(0, count).map((row, index) => (
-                <SendRow key={index} index={index} row={row} onChange={(next) => updateRow(index, next)} />
+                <SendRow
+                    key={index}
+                    index={index}
+                    row={row}
+                    source={rowSource(index, row)}
+                    onChange={(next) => updateRow(index, next)}
+                    onChangeSource={(value) => onChangeRowSource(index, row, value)}
+                />
             ))}
             {error && (
                 <WiredSection>
