@@ -1,7 +1,12 @@
 import { WiredGenerateWebApiKeyComposer, WiredWebApiKeyResultEvent } from '@volt/renderer';
 import { FC, useEffect, useState } from 'react';
 import { CopyToClipboard, expandLocalizedText, localizeWithFallback, NotificationBubbleType, SendMessageComposer, WiredFurniType } from '../../../../api';
-import { buildVariablesWebApiKeys, canAllowVariablesBulkDelete, parseVariablesWebApiKeys } from '../../../../api/wired/WiredVariablesWebApiKeys';
+import {
+    buildVariablesWebApiKeys,
+    canAllowVariablesBulkDelete,
+    parseVariablesWebApiKeys,
+    withVariablesWebApiRoutes
+} from '../../../../api/wired/WiredVariablesWebApiKeys';
 import { Button, Text } from '../../../../common';
 import { useMessageEvent, useNotification, useWired } from '../../../../hooks';
 import { WiredCheckboxGroup, WiredCheckboxOption } from '../WiredOptions';
@@ -63,9 +68,11 @@ export const WiredExtraVariablesWebApiNativeView: FC<{}> = () => {
         }
 
         showConfirm(
-            localizeText(
-                'wiredfurni.params.web_api.permissions.bulk_delete.warning.desc',
-                'Enabling this option is dangerous.\nAccidentally calling the "/variables/bulk-delete" endpoint irreversibly deletes all contents of variables.\n\nMake sure to test your application on test variables in a different room first.'
+            withVariablesWebApiRoutes(
+                localizeText(
+                    'wiredfurni.params.web_api.permissions.bulk_delete.warning.desc',
+                    'Enabling this option is dangerous.\nAccidentally calling the "/variables/bulk-delete" endpoint irreversibly deletes all contents of variables.\n\nMake sure to test your application on test variables in a different room first.'
+                )
             ),
             () => setBulkDelete(true),
             null,
@@ -151,9 +158,11 @@ export const WiredExtraVariablesWebApiNativeView: FC<{}> = () => {
                     />
                 </WiredCheckboxGroup>
                 <Text small>
-                    {localizeText(
-                        'wiredfurni.params.web_api.permissions.bulk_delete.info',
-                        'Enables access to the /variables/bulk-delete endpoint. Use with caution!'
+                    {withVariablesWebApiRoutes(
+                        localizeText(
+                            'wiredfurni.params.web_api.permissions.bulk_delete.info',
+                            'Enables access to the /variables/bulk-delete endpoint. Use with caution!'
+                        )
                     )}
                 </Text>
             </WiredSection>
