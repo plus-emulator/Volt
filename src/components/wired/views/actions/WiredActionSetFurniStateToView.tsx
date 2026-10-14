@@ -1,6 +1,7 @@
 import { FC, useEffect, useState } from 'react';
 import { LocalizeText, WiredFurniType } from '../../../../api';
-import { Text } from '../../../../common';
+import { WiredCheckboxGroup, WiredCheckboxOption } from '../WiredOptions';
+import { WiredSection } from '../WiredSection';
 import { useWired } from '../../../../hooks';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredActionBaseView } from './WiredActionBaseView';
@@ -39,49 +40,15 @@ export const WiredActionSetFurniStateToView: FC<{}> = (props) => {
             save={save}
             footer={<WiredSourcesSelector showFurni={true} furniSource={furniSource} onChangeFurni={onChangeFurniSource} />}
         >
-            <div className="flex flex-col gap-1">
-                <Text bold>{LocalizeText('wiredfurni.params.conditions')}</Text>
-                <div className="flex items-center gap-1">
-                    <input
-                        checked={!!stateFlag}
-                        className="form-check-input"
-                        id="stateFlag"
-                        type="checkbox"
-                        onChange={(event) => setStateFlag(event.target.checked ? 1 : 0)}
-                    />
-                    <Text>{LocalizeText('wiredfurni.params.condition.state')}</Text>
-                </div>
-                <div className="flex items-center gap-1">
-                    <input
-                        checked={!!directionFlag}
-                        className="form-check-input"
-                        id="directionFlag"
-                        type="checkbox"
-                        onChange={(event) => setDirectionFlag(event.target.checked ? 1 : 0)}
-                    />
-                    <Text>{LocalizeText('wiredfurni.params.condition.direction')}</Text>
-                </div>
-                <div className="flex items-center gap-1">
-                    <input
-                        checked={!!positionFlag}
-                        className="form-check-input"
-                        id="positionFlag"
-                        type="checkbox"
-                        onChange={(event) => setPositionFlag(event.target.checked ? 1 : 0)}
-                    />
-                    <Text>{LocalizeText('wiredfurni.params.condition.position')}</Text>
-                </div>
-                <div className="flex items-center gap-1">
-                    <input
-                        checked={!!altitudeFlag}
-                        className="form-check-input"
-                        id="altitudeFlag"
-                        type="checkbox"
-                        onChange={(event) => setAltitudeFlag(event.target.checked ? 1 : 0)}
-                    />
-                    <Text>{LocalizeText('wiredfurni.params.condition.altitude')}</Text>
-                </div>
-            </div>
+            <WiredSection title={LocalizeText('wiredfurni.params.conditions')}>
+                <WiredCheckboxGroup>{[
+                    { key: 'state', value: stateFlag, update: setStateFlag },
+                    { key: 'direction', value: directionFlag, update: setDirectionFlag },
+                    { key: 'position', value: positionFlag, update: setPositionFlag },
+                    { key: 'altitude', value: altitudeFlag, update: setAltitudeFlag }
+                ].map(({ key, value, update }, index) => <WiredCheckboxOption key={key} last={index === 3} checked={!!value}
+                    label={LocalizeText(`wiredfurni.params.condition.${key}`)} onChange={checked => update(checked ? 1 : 0)} />)}</WiredCheckboxGroup>
+            </WiredSection>
         </WiredActionBaseView>
     );
 };

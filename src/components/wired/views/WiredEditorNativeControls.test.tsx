@@ -21,7 +21,7 @@ vi.mock('../../../common/native-text/NativeText', () => ({ NativeText: ({ text }
 vi.mock('../../mod-tools/native/NativeSkinView', () => ({ NativeSkinView: () => null }));
 vi.mock('./WiredText', async () => ({ WiredText: ({ text }: { text: string }) => <span>{text}</span>, WiredSurfaceContext: (await import('react')).createContext(0xffffff) }));
 vi.mock('./WiredShellHeaderView', () => ({ WiredShellButton: ({ children, onClick }: PropsWithChildren<{ onClick: () => void }>) => <button onClick={onClick}>{children}</button> }));
-vi.mock('./WiredSourcesSelector', () => ({ WiredSourcesSelector: () => null }));
+vi.mock('./WiredSourcesSelector', () => ({ WiredSourcesSelector: () => null, nativeSourceOptions: (values: number[]) => values.map(value => ({ value, label: String(value) })) }));
 vi.mock('./actions/WiredActionBaseView', () => ({ WiredActionBaseView: ({ children, save }: PropsWithChildren<{ save: () => void }>) => <div>{children}<button onClick={save}>Save</button></div> }));
 vi.mock('./conditions/WiredConditionBaseView', () => ({ WiredConditionBaseView: ({ children, save }: PropsWithChildren<{ save: () => void }>) => <div>{children}<button onClick={save}>Save</button></div> }));
 

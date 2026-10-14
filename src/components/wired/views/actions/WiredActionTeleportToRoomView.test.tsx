@@ -3,15 +3,17 @@ import { PropsWithChildren } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const setIntParams = vi.fn();
+const setFurniSources = vi.fn();
+const setUserSources = vi.fn();
 const setStringParam = vi.fn();
 const setAllowedFurniCheck = vi.fn();
 const setAllowedInteractionErrorKey = vi.fn();
-let trigger: { stringData: string; intData: number[] } | null = null;
+let trigger: { stringData: string; intData: number[]; furniSources: number[]; userSources: number[] } | null = null;
 let furniIds: number[] = [];
 let baseProps: { save: () => void; validate?: () => boolean } | null = null;
 
 vi.mock('../../../../hooks', () => ({
-    useWired: () => ({ trigger, furniIds, setIntParams, setStringParam, setAllowedFurniCheck, setAllowedInteractionErrorKey })
+    useWired: () => ({ setFurniSources, setUserSources, trigger, furniIds, setIntParams, setStringParam, setAllowedFurniCheck, setAllowedInteractionErrorKey })
 }));
 
 vi.mock('../../../../common', () => ({
@@ -42,37 +44,17 @@ describe('WiredActionTeleportToRoomView', () => {
         furniIds = [];
     });
 
-    it('opens a box saved with only a room id and saves it with the picked furni source', () => {
-        trigger = { stringData: '77', intData: [11] };
+    it('uses only the native source selectors and saves no invented room-id input', () => {
+        trigger = { stringData: '', intData: [], furniSources: [100], userSources: [201] };
         render(<WiredActionTeleportToRoomView />);
-
-        expect((screen.getByRole('textbox') as HTMLInputElement).value).toBe('77');
-        expect(baseProps.validate()).toBe(true);
-
+        expect(screen.queryByRole('textbox')).toBeNull();
         baseProps.save();
-
-        expect(setStringParam).toHaveBeenCalledWith('77');
-        expect(setIntParams).toHaveBeenCalledWith([11, 100]);
-    });
-
-    it('needs a room id or a picked furni, and keeps the id to digits', () => {
-        trigger = { stringData: '', intData: [0, 100] };
-        const { rerender } = render(<WiredActionTeleportToRoomView />);
-
-        expect(baseProps.validate()).toBe(false);
-
-        fireEvent.change(screen.getByRole('textbox'), { target: { value: '4a2' } });
-        expect((screen.getByRole('textbox') as HTMLInputElement).value).toBe('42');
-        expect(baseProps.validate()).toBe(true);
-
-        fireEvent.change(screen.getByRole('textbox'), { target: { value: '' } });
-        furniIds = [9];
-        rerender(<WiredActionTeleportToRoomView />);
-        expect(baseProps.validate()).toBe(true);
+        expect(setStringParam).toHaveBeenCalledWith(''); expect(setIntParams).toHaveBeenCalledWith([]);
+        expect(setFurniSources).toHaveBeenCalledWith([100]); expect(setUserSources).toHaveBeenCalledWith([201]);
     });
 
     it('only lets teleporters and room links be picked', () => {
-        trigger = { stringData: '', intData: [] };
+        trigger = { stringData: '', intData: [], furniSources: [100], userSources: [0] };
         render(<WiredActionTeleportToRoomView />);
 
         const check = setAllowedFurniCheck.mock.calls.find((call) => typeof call[0] === 'function')[0];
