@@ -6,7 +6,6 @@ import { useWired } from '../../../../hooks';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredConditionBaseView } from './WiredConditionBaseView';
 
-const COUNTER_INTERACTION_TYPES = ['game_upcounter'];
 const MIN_ALTITUDE = 0;
 const MAX_ALTITUDE = 80;
 const ALTITUDE_STEP = 0.01;
@@ -49,11 +48,11 @@ const parseAltitude = (value: string) => {
  */
 type AltitudeVariant = 'altitude' | 'userRange' | 'furniRange' | 'furniProperty';
 
-const VARIANTS: Record<AltitudeVariant, { counterOnly: boolean; comparison: boolean; value: 'altitude' | 'radius' | null; users: boolean }> = {
-    altitude: { counterOnly: false, comparison: true, value: 'altitude', users: false },
-    userRange: { counterOnly: false, comparison: true, value: 'radius', users: true },
-    furniRange: { counterOnly: false, comparison: true, value: 'radius', users: false },
-    furniProperty: { counterOnly: false, comparison: false, value: null, users: false }
+const VARIANTS: Record<AltitudeVariant, { comparison: boolean; value: 'altitude' | 'radius' | null; users: boolean }> = {
+    altitude: { comparison: true, value: 'altitude', users: false },
+    userRange: { comparison: true, value: 'radius', users: true },
+    furniRange: { comparison: true, value: 'radius', users: false },
+    furniProperty: { comparison: false, value: null, users: false }
 };
 
 const RANGE_COMPARISON_LABELS: Record<number, { key: string; fallback: string }> = {
@@ -78,8 +77,6 @@ export const WiredConditionHasAltitudeView: FC<WiredConditionHasAltitudeViewProp
         trigger = null,
         setIntParams = null,
         setStringParam = null,
-        setAllowedInteractionTypes = null,
-        setAllowedInteractionErrorKey = null,
         setFurniSources,
         setUserSources,
         quantifier: nativeQuantifier,
@@ -93,18 +90,6 @@ export const WiredConditionHasAltitudeView: FC<WiredConditionHasAltitudeViewProp
     const [showAdvanced, setShowAdvanced] = useState(false);
     const [altitude, setAltitude] = useState(0);
     const [altitudeInput, setAltitudeInput] = useState('0');
-
-    useEffect(() => {
-        if (!spec.counterOnly) return;
-
-        setAllowedInteractionTypes(COUNTER_INTERACTION_TYPES);
-        setAllowedInteractionErrorKey('wiredfurni.error.require_counter_furni');
-
-        return () => {
-            setAllowedInteractionTypes(null);
-            setAllowedInteractionErrorKey(null);
-        };
-    }, [spec.counterOnly, setAllowedInteractionErrorKey, setAllowedInteractionTypes]);
 
     useEffect(() => {
         if (!trigger) return;

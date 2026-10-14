@@ -6,7 +6,6 @@ import { useWired } from '../../../../hooks';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredConditionBaseView } from './WiredConditionBaseView';
 
-const COUNTER_INTERACTION_TYPES = ['game_upcounter'];
 const MINUTES_MIN = 0;
 const MINUTES_MAX = 99;
 const HALF_SECONDS_MIN = 0;
@@ -35,15 +34,7 @@ const formatSeconds = (halfSeconds: number) => {
 };
 
 export const WiredConditionCounterTimeMatchesView: FC<{}> = () => {
-    const {
-        trigger = null,
-        setIntParams = null,
-        setAllowedInteractionTypes = null,
-        setAllowedInteractionErrorKey = null,
-        setFurniSources,
-        quantifier: nativeQuantifier,
-        setQuantifier: setNativeQuantifier
-    } = useWired();
+    const { trigger = null, setIntParams = null, setFurniSources, quantifier: nativeQuantifier, setQuantifier: setNativeQuantifier } = useWired();
     const [comparison, setComparison] = useState(1);
     const [furniSource, setFurniSource] = useState<number>(() => {
         return trigger?.furniSources[0] ?? 100;
@@ -69,16 +60,6 @@ export const WiredConditionCounterTimeMatchesView: FC<{}> = () => {
         setFurniSource(trigger.furniSources[0] ?? 100);
         setQuantifier(nativeQuantifier);
     }, [trigger, nativeQuantifier]);
-
-    useEffect(() => {
-        setAllowedInteractionTypes(COUNTER_INTERACTION_TYPES);
-        setAllowedInteractionErrorKey('wiredfurni.error.require_counter_furni');
-
-        return () => {
-            setAllowedInteractionTypes(null);
-            setAllowedInteractionErrorKey(null);
-        };
-    }, [setAllowedInteractionErrorKey, setAllowedInteractionTypes]);
 
     return (
         <WiredConditionBaseView

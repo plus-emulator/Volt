@@ -4,14 +4,13 @@ import { useWired } from '../../../../hooks';
 import { WiredSourceOption, WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredTriggerBaseView } from './WiredTriggerBaseView';
 
-const CLICK_TILE_INTERACTION_TYPES = ['room_invisible_click_tile'];
 const FURNI_SOURCE_OPTIONS: WiredSourceOption[] = [
     { value: 100, label: 'wiredfurni.params.sources.furni.100' },
     { value: 200, label: 'wiredfurni.params.sources.furni.200' }
 ];
 
 export const WiredTriggerClickTileView: FC<{}> = () => {
-    const { trigger = null, setIntParams = null, setFurniSources, setAllowedInteractionTypes = null, setAllowedInteractionErrorKey = null } = useWired();
+    const { trigger = null, setIntParams = null, setFurniSources } = useWired();
     const [furniSource, setFurniSource] = useState(100);
 
     const save = () => {
@@ -22,16 +21,6 @@ export const WiredTriggerClickTileView: FC<{}> = () => {
     useEffect(() => {
         setFurniSource(trigger?.furniSources[0] ?? 100);
     }, [trigger]);
-
-    useEffect(() => {
-        setAllowedInteractionTypes(CLICK_TILE_INTERACTION_TYPES);
-        setAllowedInteractionErrorKey('wiredfurni.error.require_click_tiles');
-
-        return () => {
-            setAllowedInteractionTypes(null);
-            setAllowedInteractionErrorKey(null);
-        };
-    }, [setAllowedInteractionErrorKey, setAllowedInteractionTypes]);
 
     return (
         <WiredTriggerBaseView

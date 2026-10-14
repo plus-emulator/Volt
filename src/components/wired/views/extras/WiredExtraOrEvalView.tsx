@@ -17,8 +17,6 @@ const MIN_COMPARE_VALUE = 0;
 const MAX_COMPARE_VALUE = 1000;
 const DEFAULT_COMPARE_VALUE = 1;
 const COMPARE_VALUE_PATTERN = /^\d*$/;
-const CONDITION_EVALUATION_INTERACTION_TYPES = ['wf_cnd_*', 'wf_xtra_*'];
-const CONDITION_EVALUATION_ERROR_KEY = 'wiredfurni.error.condition_evaluation_furni';
 
 const MODE_OPTIONS = [MODE_ALL, MODE_AT_LEAST_ONE, MODE_NOT_ALL, MODE_NONE];
 const COMPARISON_OPTIONS = [MODE_LESS_THAN, MODE_EXACTLY, MODE_MORE_THAN];
@@ -31,7 +29,7 @@ const normalizeCompareValue = (value: number) => {
 };
 
 export const WiredExtraOrEvalView: FC<{}> = () => {
-    const { trigger = null, setIntParams = null, setStringParam = null, setFurniSources = null, setAllowedInteractionTypes = null, setAllowedInteractionErrorKey = null } = useWired();
+    const { trigger = null, setIntParams = null, setStringParam = null, setFurniSources = null } = useWired();
     const [evaluationMode, setEvaluationMode] = useState(MODE_ALL);
     const [furniSource, setFurniSource] = useState(0);
     const [compareValue, setCompareValue] = useState(DEFAULT_COMPARE_VALUE);
@@ -40,16 +38,6 @@ export const WiredExtraOrEvalView: FC<{}> = () => {
     const furniAllowed = trigger?.inputSources?.furniAllowed[0];
     const furniDefault = trigger?.inputSources?.furniDefaults[0] ?? 0;
     const normalizeFurniSource = (value: number) => normalizeNativeSource(value, furniAllowed, furniDefault);
-
-    useEffect(() => {
-        setAllowedInteractionTypes(CONDITION_EVALUATION_INTERACTION_TYPES);
-        setAllowedInteractionErrorKey(CONDITION_EVALUATION_ERROR_KEY);
-
-        return () => {
-            setAllowedInteractionTypes(null);
-            setAllowedInteractionErrorKey(null);
-        };
-    }, [setAllowedInteractionErrorKey, setAllowedInteractionTypes]);
 
     useEffect(() => {
         if (!trigger) return;
