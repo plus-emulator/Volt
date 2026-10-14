@@ -1,6 +1,7 @@
 import { FC, useEffect, useState } from 'react';
 import { localizeWithFallback, WiredFurniType } from '../../../../api';
-import { Text } from '../../../../common';
+import { WiredSection } from '../WiredSection';
+import { WiredText } from '../WiredText';
 import { useWired } from '../../../../hooks';
 import { WiredRadioGroup } from '../WiredOptions';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
@@ -33,6 +34,7 @@ export const WiredActionCancelTransactionView: FC<{}> = () => {
     return (
         <WiredActionBaseView
             hasSpecialInput={true}
+            nativeLayout={true}
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID}
             save={save}
             footer={
@@ -48,22 +50,23 @@ export const WiredActionCancelTransactionView: FC<{}> = () => {
                 </>
             }
         >
-            <Text className="whitespace-pre-line">
-                {localizeWithFallback(
+            <WiredSection title={localizeWithFallback('wiredfurni.params.general_box_info', 'Usage information:')}>
+                <WiredText soft wrap text={localizeWithFallback(
                     'wiredfurni.params.cancel_transaction.usage_info',
                     'Cancel an ongoing payment or trade. You can specify the contract, or cancel any transaction that may be ongoing.'
-                )}
-            </Text>
-            <Text bold>{localizeWithFallback('wiredfurni.params.cancel_transaction.match_criteria', 'Cancel transaction:')}</Text>
-            <WiredRadioGroup
-                name="cancelTransactionMode"
-                value={matchMode}
-                onChange={setMatchMode}
-                options={[
-                    { id: 0, label: localizeWithFallback('wiredfurni.params.cancel_transaction.match_criteria.0', 'Specified contract') },
-                    { id: 1, label: localizeWithFallback('wiredfurni.params.cancel_transaction.match_criteria.1', 'Any ongoing transaction') }
-                ]}
-            />
+                )} />
+            </WiredSection>
+            <WiredSection title={localizeWithFallback('wiredfurni.params.cancel_transaction.match_criteria', 'Cancel transaction:')}>
+                <WiredRadioGroup
+                    name="cancelTransactionMode"
+                    value={matchMode}
+                    onChange={setMatchMode}
+                    options={[
+                        { id: 0, label: localizeWithFallback('wiredfurni.params.cancel_transaction.match_criteria.0', 'Specified contract') },
+                        { id: 1, label: localizeWithFallback('wiredfurni.params.cancel_transaction.match_criteria.1', 'Any ongoing transaction') }
+                    ]}
+                />
+            </WiredSection>
         </WiredActionBaseView>
     );
 };

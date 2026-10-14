@@ -1,6 +1,7 @@
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import { localizeWithFallback, tokenOfVariableSlot, variableSlotOf, WIRED_VARIABLE_ABSENT, WiredFurniType } from '../../../../api';
-import { Text } from '../../../../common';
+import { WiredText } from '../WiredText';
+import { WiredCollapsibleSection } from '../WiredCollapsibleSection';
 import { useWired, useWiredNativeVariables } from '../../../../hooks';
 import { FurniPickSlotButtons } from '../conditions/WiredVariableConditionParts';
 import { WiredExtraBaseView } from '../extras/WiredExtraBaseView';
@@ -67,6 +68,7 @@ export const WiredSelectorScanChestFurniByType: FC<{}> = () => {
     return (
         <WiredExtraBaseView
             hasSpecialInput={true}
+            nativeLayout={true}
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID}
             save={save}
             validate={validate}
@@ -93,19 +95,21 @@ export const WiredSelectorScanChestFurniByType: FC<{}> = () => {
                 </>
             }
         >
-            <Text className="whitespace-pre-line">
-                {localizeWithFallback(
+            <WiredSection title={localizeWithFallback('wiredfurni.params.general_box_info', 'Usage information:')}>
+                <WiredText soft wrap text={localizeWithFallback(
                     'wiredfurni.params.chest_item_type_scanner.info',
                     'This add-on scans Wired chest(s) for certain furni types, and stores the amount of available items inside a context variable of choice'
-                )}
-            </Text>
-            <WiredVariablePicker
-                entries={entries}
-                recentScope="scan-chest-variable"
-                selectedToken={variableToken}
-                onSelect={(entry) => setVariableToken(entry.token)}
-            />
-            <WiredSection title={localizeWithFallback('wiredfurni.params.chest_item_type_scanner', 'Scanning options:')}>
+                )} />
+            </WiredSection>
+            <WiredSection title={localizeWithFallback('wiredfurni.params.variables.variable_selection', 'Choose Variable:')}>
+                <WiredVariablePicker
+                    entries={entries}
+                    recentScope="scan-chest-variable"
+                    selectedToken={variableToken}
+                    onSelect={(entry) => setVariableToken(entry.token)}
+                />
+            </WiredSection>
+            <WiredCollapsibleSection title={localizeWithFallback('wiredfurni.params.chest_item_type_scanner', 'Scanning options:')}>
                 <WiredRadioGroup
                     name="scanChestMode"
                     value={scanningMode}
@@ -115,7 +119,7 @@ export const WiredSelectorScanChestFurniByType: FC<{}> = () => {
                         label: localizeWithFallback(`wiredfurni.params.chest_item_type_scanner.${value}`, `Mode ${value}`)
                     }))}
                 />
-            </WiredSection>
+            </WiredCollapsibleSection>
         </WiredExtraBaseView>
     );
 };
