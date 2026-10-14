@@ -77,9 +77,10 @@ export class ChatBubbleUtilities {
     }
 
     /**
-     * The face icon the official client builds with HabboFaceFocuser: the head centred, chin near the bottom
-     * (a bubble shows the icon's bottom rows). The official fixed crop assumes its own avatar canvas, which
-     * Volt's head image does not share, so the head is placed by its visible pixels instead.
+     * The face icon the official client builds with HabboFaceFocuser: the head centred in the icon, like the
+     * pet heads beside it. The official fixed crop assumes its own avatar canvas, which Volt's head image does
+     * not share, so the head is placed by its visible pixels instead. A head taller than the icon (big hats)
+     * keeps its chin near the bottom, because a bubble shows the icon's bottom rows.
      */
     private static focusFace(head: HTMLCanvasElement | HTMLImageElement, size: number): HTMLCanvasElement {
         const width = head.width;
@@ -111,7 +112,10 @@ export class ChatBubbleUtilities {
 
         const context = face.getContext('2d');
         context.imageSmoothingEnabled = false;
-        context.drawImage(source, Math.round(size / 2 - (left + right + 1) / 2), Math.round(size * 0.94 - (bottom + 1)));
+        const headHeight = bottom + 1 - top;
+        const faceY = headHeight <= size ? (size - headHeight) / 2 - top : size * 0.94 - (bottom + 1);
+
+        context.drawImage(source, Math.round(size / 2 - (left + right + 1) / 2), Math.round(faceY));
 
         return face;
     }
