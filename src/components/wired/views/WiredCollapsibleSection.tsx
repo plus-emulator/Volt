@@ -12,7 +12,10 @@ export const WiredCollapsibleSection: FC<PropsWithChildren<{ title: string }>> =
                 <WiredText text={title} bold />
             </button>
         }>
-            {expanded && children}
+            {/* AIR folds the section's existing child presets; their text and validation state survive. */}
+            <div hidden={!expanded} style={{ display: expanded ? 'contents' : 'none' }}>
+                {children}
+            </div>
         </WiredSection>
     );
 };
