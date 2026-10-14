@@ -1,6 +1,8 @@
+import { WiredRadioGroup } from '../WiredOptions';
+import { WiredSection } from '../WiredSection';
 import { FC, useCallback, useEffect, useState } from 'react';
 import { LocalizeText } from '../../../../api';
-import { Text } from '../../../../common';
+import { WiredSelectorOptionsSection } from './WiredSelectorOptionsSection';
 import { useWired } from '../../../../hooks';
 import { WiredSelectorBaseView } from './WiredSelectorBaseView';
 
@@ -8,7 +10,7 @@ const TEAM_TYPES = [0, 1, 2, 3, 4];
 
 export const WiredSelectorUsersTeamView: FC<{}> = () => {
     const [teamType, setTeamType] = useState(0);
-    const { trigger = null, setIntParams = null, filter = false, setFilter = null, inverse = false, setInverse = null } = useWired();
+    const { trigger = null, setIntParams = null } = useWired();
 
     useEffect(() => {
         if (!trigger) return;
@@ -22,43 +24,12 @@ export const WiredSelectorUsersTeamView: FC<{}> = () => {
     }, [teamType, setIntParams]);
 
     return (
-        <WiredSelectorBaseView hasSpecialInput={true} requiresFurni={0} save={save} hideDelay={true} cardStyle={{ width: 400 }}>
-            <div className="flex flex-col gap-2">
-                <div className="flex flex-col gap-1">
-                    <Text bold>{LocalizeText('wiredfurni.params.team')}</Text>
-                    {TEAM_TYPES.map((value) => (
-                        <label key={value} className="flex items-center gap-1">
-                            <input
-                                checked={teamType === value}
-                                className="form-check-input"
-                                name="usersTeamSelector"
-                                type="radio"
-                                onChange={() => setTeamType(value)}
-                            />
-                            <Text>{LocalizeText(value === 0 ? 'wiredfurni.params.team.any' : `wiredfurni.params.team.${value}`)}</Text>
-                        </label>
-                    ))}
-                </div>
-
-                <hr className="m-0 bg-dark" />
-
-                <Text bold>{LocalizeText('wiredfurni.params.selector_options_selector')}</Text>
-
-                <label className="flex items-center gap-2">
-                    <input
-                        type="checkbox"
-                        className="form-check-input"
-                        checked={filter}
-                        onChange={(event) => setFilter(event.target.checked)}
-                    />
-                    <Text small>{LocalizeText('wiredfurni.params.selector_option.0')}</Text>
-                </label>
-
-                <label className="flex items-center gap-2">
-                    <input type="checkbox" className="form-check-input" checked={inverse} onChange={(event) => setInverse(event.target.checked)} />
-                    <Text small>{LocalizeText('wiredfurni.params.selector_option.1')}</Text>
-                </label>
-            </div>
+        <WiredSelectorBaseView hasSpecialInput={true} nativeLayout={true} requiresFurni={0} save={save} hideDelay={true}>
+            <WiredSection title={LocalizeText('wiredfurni.params.team')}>
+                <WiredRadioGroup name="usersTeamSelector" columns={2} value={teamType} onChange={setTeamType}
+                    options={TEAM_TYPES.map(id => ({ id, newLine: id === 0, label: LocalizeText(id === 0 ? 'wiredfurni.params.team.any' : `wiredfurni.params.team.${id}`) }))} />
+            </WiredSection>
+            <WiredSelectorOptionsSection />
         </WiredSelectorBaseView>
     );
 };
