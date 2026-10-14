@@ -67,6 +67,7 @@ export const WiredActionSendLinkMessageView: FC<{}> = () => {
                     maxLength={1000}
                     maxLines={-1}
                     height={60}
+                    previewStyle={211}
                     disabled={source !== SOURCE_CUSTOM}
                     showCompactCounter={false}
                     placeholderNames={getWiredTextPlaceholderNames(trigger?.contexts)}

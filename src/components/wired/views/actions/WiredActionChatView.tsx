@@ -114,7 +114,7 @@ export const WiredActionChatView: FC<{}> = (props) => {
                 <Text bold>{field ? localizeWithFallback(field.key, field.fallback) : LocalizeText('wiredfurni.params.message')}</Text>
                 {!field || field.multiline ? (
                     nativeShow ? (
-                        <WiredMessageEditor placeholderNames={getWiredTextPlaceholderNames(trigger?.contexts)} value={message} onChange={setMessage} />
+                        <WiredMessageEditor previewStyle={bubbleStyle} previewWidth={bubbleWidth} placeholderNames={getWiredTextPlaceholderNames(trigger?.contexts)} value={message} onChange={setMessage} />
                     ) : (
                         <>
                             <textarea

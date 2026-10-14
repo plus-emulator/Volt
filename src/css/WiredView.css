@@ -2884,3 +2884,24 @@
 .volt-wired-fx-editor__visualization > .volt-wired-fx-editor__named-row { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; }
 
 .volt-wired-fx-editor__range .volt-wired__input-box { flex: 1; min-width: 0; }
+
+/* AIR25 message_editor_toolbar / preview and MessageEditorPopupPreset. */
+.volt-wired-message-editor__body { padding: 8px; display: flex; flex-direction: column; gap: 5px; }
+.volt-wired-message-editor__toolbar { position: relative; display: flex; align-items: flex-start; height: 19px; flex-shrink: 0; }
+.volt-wired-message-editor__references { position: absolute; left: 50%; transform: translateX(-50%); display: flex; gap: 5px; height: 19px; }
+.volt-wired-message-editor__counter { position: absolute; right: 0; top: 1px; width: 60px; text-align: right; }
+.volt-wired-message-editor__palette { position: absolute; left: 54px; top: 19px; z-index: 2; padding: 4px; display: flex; gap: 3px; border: 1px solid #919191; background: #e2e2e2; }
+.volt-wired-message-editor__swatch { width: 13px; height: 14px; border: 1px solid #919191; }
+.volt-wired-message-editor__textarea { width: 100%; resize: none; padding: 3px; border: 1px solid #919191; border-radius: 0; background: #fff; color: #000; font: 11px/16px HabboAirUbuntu, sans-serif; }
+.volt-wired-message-preview { display: flex; flex-direction: column; gap: 5px; }
+.volt-wired-message-preview__area { width: 100%; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+.volt-wired-message-preview__bubble { position: absolute; top: 50%; left: 0; width: max-content; transform-origin: left center; translate: 0 -50%; pointer-events: none; }
+.volt-wired-message-preview__bubble .bubble-container { position: relative; pointer-events: none; }
+
+.volt-wired-message-editor__native-button { position: relative; height: 19px; padding: 0; border: 0; background: transparent; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
+.volt-wired-message-editor__native-button.is-color { margin-left: 4px; }
+.volt-wired-message-editor__button-text { position: relative; top: -1px; pointer-events: none; }
+.volt-wired-message-editor__divider { width: 1px; height: 19px; background: linear-gradient(to bottom, #919191 0 18px, #f2f2f2 18px); }
+.volt-wired-message-editor [role='dialog'] { pointer-events: auto; }
+.volt-wired-message-editor__body { position: relative; z-index: 1; }
+.volt-wired.volt-wired-message-editor textarea.volt-wired-message-editor__textarea { background: #fff !important; border: 1px solid #919191 !important; border-radius: 0 !important; box-shadow: none !important; }

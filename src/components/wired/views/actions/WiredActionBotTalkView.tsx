@@ -61,7 +61,7 @@ export const WiredActionBotTalkView: FC<{}> = (props) => {
             )}
             <div className="flex flex-col gap-1">
                 <Text bold>{LocalizeText('wiredfurni.params.message')}</Text>
-                <WiredMessageEditor placeholderNames={getWiredTextPlaceholderNames(trigger?.contexts)} value={message} onChange={setMessage} />
+                <WiredMessageEditor previewStyle={31} previewWidth={bubbleWidth} previewType={talkMode === 1 ? 2 : 0} previewUsername={hideBotName ? '' : botName} placeholderNames={getWiredTextPlaceholderNames(trigger?.contexts)} value={message} onChange={setMessage} />
             </div>
             <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-1">

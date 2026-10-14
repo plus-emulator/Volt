@@ -13,7 +13,10 @@ vi.mock('../../../../api', () => ({
     WiredFurniType: { STUFF_SELECTION_OPTION_BY_ID: 1 }
 }));
 vi.mock('../../../../hooks', () => ({ useWired: () => state }));
-vi.mock('../../../../common', () => ({ Text: ({ children }: PropsWithChildren) => <span>{children}</span> }));
+vi.mock('../../../../common', () => ({ Text: ({ children }: PropsWithChildren) => <span>{children}</span>, VoltCardView: ({ children }: PropsWithChildren) => <div>{children}</div> }));
+vi.mock('./WiredMessageToolbarButton', () => ({ WiredMessageToolbarButton: ({ text, ...props }: { text: string }) => <button {...props}>{text}</button> }));
+vi.mock('./WiredMessagePreview', () => ({ WiredMessagePreview: ({ value, styleId }: { value: string; styleId: number }) => <output data-testid="message-preview" data-style={styleId}>{value}</output> }));
+vi.mock('../WiredShellHeaderView', () => ({ WiredShellHeaderView: ({ title, onClose }: { title: string; onClose: () => void }) => <header>{title}<button onClick={onClose}>Close</button></header> }));
 vi.mock('../WiredText', () => ({ WiredText: ({ text }: { text: string }) => <span>{text}</span> }));
 vi.mock('../actions/WiredActionBaseView', () => ({ WiredActionBaseView: ({ children, save, validate }: PropsWithChildren<{ save: () => void; validate: () => boolean }>) => <WiredNativeContext.Provider value={true}>{children}<button disabled={!validate()} onClick={save}>Save</button></WiredNativeContext.Provider> }));
 
@@ -58,6 +61,8 @@ describe('message editor limits and Send Link save contract', () => {
         openEditor();
         const popup = screen.getAllByRole('textbox')[1] as HTMLTextAreaElement;
         expect(popup.value).toBe(lines);
+        expect(screen.getByTestId('message-preview').getAttribute('data-style')).toBe('211');
+        expect(screen.getByTestId('message-preview').textContent).toBe(lines);
         expect(screen.getByText(`${lines.length}/1000`)).toBeTruthy();
         fireEvent.change(popup, { target: { value: 'a'.repeat(1001) } });
         expect(popup.value).toHaveLength(1000);
