@@ -2,7 +2,8 @@ import { FC, useEffect, useState } from 'react';
 import { LocalizeText, localizeWithFallback, WiredFurniType } from '../../../../api';
 import { Text } from '../../../../common';
 import { useWired } from '../../../../hooks';
-import { WiredLegacySlider as Slider } from '../WiredSlider';
+import { WiredSliderSection } from '../WiredSlider';
+import { WiredSection } from '../WiredSection';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredActionBaseView } from './WiredActionBaseView';
 
@@ -67,8 +68,7 @@ export const WiredActionMoveFurniToView: FC<{}> = (props) => {
                 </>
             }
         >
-            <div className="flex flex-col gap-1">
-                <Text bold>{localizeWithFallback('wiredfurni.params.movefurni', LocalizeText('wiredfurni.params.startdir'))}</Text>
+            <WiredSection title={localizeWithFallback('wiredfurni.params.movefurni', LocalizeText('wiredfurni.params.startdir'))}>
                 <div className="flex gap-1">
                     {directionOptions.map((value) => {
                         return (
@@ -88,11 +88,8 @@ export const WiredActionMoveFurniToView: FC<{}> = (props) => {
                         );
                     })}
                 </div>
-            </div>
-            <div className="flex flex-col gap-1">
-                <Text bold>{LocalizeText('wiredfurni.params.emptytiles', ['tiles'], [spacing.toString()])}</Text>
-                <Slider max={5} min={1} value={spacing} onChange={(event) => setSpacing(event)} />
-            </div>
+            </WiredSection>
+            <WiredSliderSection titleKey="wiredfurni.params.emptytiles" unit="tiles" min={1} max={5} value={spacing} onChange={setSpacing} />
         </WiredActionBaseView>
     );
 };
