@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { PropsWithChildren } from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const state = vi.hoisted(() => ({
     trigger: null as any, nativeCatalog: null,
@@ -12,6 +12,8 @@ vi.mock('../../../../api', () => ({
     WiredFurniType: { STUFF_SELECTION_OPTION_NONE: 0 }
 }));
 vi.mock('../../../../common', () => ({ Text: ({ children }: PropsWithChildren) => <span>{children}</span> }));
+vi.mock('../../../../common/native-text/NativeText', () => ({ NativeText: ({ text }: { text: string }) => <span>{text}</span> }));
+vi.mock('../../../mod-tools/native/NativeSkinView', () => ({ NativeSkinView: () => null }));
 vi.mock('../WiredText', async () => ({ WiredText: ({ text }: { text: string }) => <span>{text}</span>, WiredSurfaceContext: (await import('react')).createContext(0xffffff) }));
 vi.mock('../WiredVariablePickerData', () => ({ buildWiredVariablePickerEntries: () => [], flattenWiredVariablePickerEntries: () => [] }));
 vi.mock('../WiredVariablePicker', () => ({ WiredVariablePicker: () => null }));
@@ -22,7 +24,10 @@ import { WiredNativeContext } from '../WiredNativeContext';
 import { WiredExtraVariableLeaderboardView } from './WiredExtraVariableLeaderboardView';
 
 describe('Leaderboard AIR general controls', () => {
-    afterEach(() => { cleanup(); vi.clearAllMocks(); });
+    beforeEach(() => {
+        vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({ measureText: (text: string) => ({ width: text.length * 6 }) } as unknown as ReturnType<HTMLCanvasElement['getContext']>);
+    });
+    afterEach(() => { cleanup(); vi.clearAllMocks(); vi.restoreAllMocks(); });
 
     it('keeps native information rows and paired sorting controls editable without changing columns or location', () => {
         const config = createUnpublishedVariableLeaderboardConfig();
@@ -38,7 +43,8 @@ describe('Leaderboard AIR general controls', () => {
         fireEvent.change(title, { target: { value: 'Updated title' } });
         const pageSize = screen.getByRole('combobox', { name: 'Page size:' });
         expect(pageSize.closest('.volt-wired-leaderboard__sorting')).not.toBeNull();
-        fireEvent.change(pageSize, { target: { value: '2' } });
+        fireEvent.click(pageSize);
+        fireEvent.pointerDown(screen.getByRole('option', { name: '20' }), { button: 0 });
         fireEvent.click(screen.getByText('Save'));
         const saved = decodeVariableLeaderboardConfig(state.setIntParams.mock.lastCall![0], state.setVariableIds.mock.lastCall![0], state.setStringParam.mock.lastCall![0])!;
         expect(saved.title).toBe('Updated title');
