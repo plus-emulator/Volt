@@ -104,7 +104,7 @@ export const WiredVariableFxStatusView: FC<WiredVariableFxStatusViewProps> = (pr
                 count={stackedHeartCount(status.value, range.min, range.max, config.widthId)} widthId={config.widthId}
                 color={color ?? '#df291e'} metallic={config.colorId >= 100 && config.colorId <= 104} initialize={status.initialize} /></div>;
         case WIRED_FX_RENDERER.MASKED_HEART_FILL:
-            return <div className={rootClass} data-testid="fx-status"><WiredMaskedHeartView progress={progress}
+            return <div className={rootClass} data-testid="fx-status"><WiredMaskedHeartView progress={progress} initialize={status.initialize}
                 color={color ?? '#df291e'} metallic={config.colorId >= 100 && config.colorId <= 104} /></div>;
         case WIRED_FX_RENDERER.LEVEL_WITH_PROGRESS: {
             const level = wiredVariableFxLevel(status);
