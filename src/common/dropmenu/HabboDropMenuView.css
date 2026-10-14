@@ -146,3 +146,29 @@
 .habbo-dropmenu-scroll-thumb .habbo-dropmenu-thumb-top { top: 0; width: 17px; height: 2px; }
 .habbo-dropmenu-scroll-thumb .habbo-dropmenu-thumb-bottom { bottom: 0; width: 17px; height: 2px; }
 .habbo-dropmenu-scroll-thumb .habbo-dropmenu-thumb-grip { top: calc(50% - 5px); left: 5px; width: 7px; height: 10px; }
+
+/* AIR dropmenu_3 / dropmenu_item_3: Ubuntu captions, (6,4) closed text, 2px list inset. */
+.habbo-dropmenu.habbo-dropmenu--ubuntu,
+.habbo-dropmenu-popup.habbo-dropmenu--ubuntu {
+    border-image-source: url('../../assets/images/habbo-skin/slices/dropmenu-3.png') !important;
+    border-image-slice: 6 fill !important;
+    border-image-width: 6px !important;
+    font: 400 12px/14px HabboAirUbuntu, UbuntuRegular, sans-serif !important;
+    font-kerning: normal;
+}
+.habbo-dropmenu--ubuntu .habbo-dropmenu-caption {
+    left: 6px; top: 4px; right: 24px; height: 16px; padding: 0;
+    font: 400 12px/14px HabboAirUbuntu, UbuntuRegular, sans-serif !important;
+    font-kerning: normal;
+}
+.habbo-dropmenu--ubuntu .habbo-dropmenu-arrow { top: 4px; right: 6px; }
+.habbo-dropmenu--ubuntu .habbo-dropmenu-list { left: 2px; right: 2px; }
+.habbo-dropmenu--ubuntu .habbo-dropmenu-item { height: 20px; padding: 2px 4px 4px; }
+.habbo-dropmenu--ubuntu .habbo-dropmenu-item span {
+    padding: 0; font: 400 12px/14px HabboAirUbuntu, UbuntuRegular, sans-serif;
+    font-kerning: normal;
+}
+.habbo-dropmenu--ubuntu .habbo-dropmenu-item:hover,
+.habbo-dropmenu--ubuntu .habbo-dropmenu-item.is-active { background: #ebebeb; }
+.habbo-dropmenu--ubuntu .habbo-dropmenu-item.is-selected,
+.habbo-dropmenu--ubuntu .habbo-dropmenu-item:active { background: #ddd; }
