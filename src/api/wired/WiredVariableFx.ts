@@ -3,9 +3,9 @@ import { joinWiredLiteral, splitWiredLiteral } from './WiredLiteral';
 
 /**
  * The variable fx boxes, as the server numbers them. Everything here mirrors WiredVariableFxStyles / WiredVariableFxSettings
- * on the gameserver: the int layout the editor sends (21 ints, 22 for levelling and number displays), the style catalogue the
- * editor offers, and the config extras the server attaches for the overlay. The three variable slots and a number display's
- * icon travel beside the ints, never inside them.
+ * on the gameserver: the int layout the editor sends (the 23 ints of the official editor frame: [21] is the category slot, [22]
+ * the "Order in FX stack"), the style catalogue the editor offers, and the config extras the server attaches for the overlay.
+ * The three variable slots and a number display's icon travel beside the ints, never inside them.
  */
 export const WIRED_FX_CATEGORY = {
     HEALTH_POINTS: 0,
@@ -80,8 +80,16 @@ export const WIRED_FX_CONFIG_EXTRA = {
     COLOR: 'color',
     METALLIC: 'metallic',
     SUB_RENDERER: 'sub_renderer',
-    SEGMENTS: 'segments'
+    SEGMENTS: 'segments',
+    STACK_ORDER: 'stack_order'
 } as const;
+
+/** The ints of every fx form: the shared 21, the category slot and the order in the fx stack. */
+export const WIRED_FX_INT_COUNT = 23;
+export const WIRED_FX_CATEGORY_SLOT_INDEX = 21;
+export const WIRED_FX_STACK_ORDER_INDEX = 22;
+export const WIRED_FX_STACK_ORDER_MIN = -2147483648;
+export const WIRED_FX_STACK_ORDER_MAX = 2147483647;
 
 /** One style the category offers, with the options the server allows for it. */
 export interface IWiredVariableFxStyle {
@@ -126,32 +134,32 @@ export const WIRED_FX_STATUS_BAR_THEMES: { icon: string; color: string | null; m
     { icon: 'droplet', color: '#4aabf5', metallic: false }
 ];
 
-/** The fixed palette, by the server's colour ids; the hex is what the overlay paints. */
+/** The fixed palette, by the server's colour ids; the hex is the official renderer's own RGB (VariableFxColorType.resolve). */
 const PALETTE_ROWS: [number, string, string][] = [
-    [1, 'green', '#5fd35f'],
-    [2, 'lime_green', '#9be33b'],
+    [1, 'green', '#36b24a'],
+    [2, 'lime_green', '#8ddc35'],
     [3, 'yellow', '#ffd83d'],
     [4, 'orange', '#ff9f24'],
-    [5, 'red', '#e04b4b'],
-    [6, 'cyan', '#4fd6e0'],
+    [5, 'red', '#df291e'],
+    [6, 'cyan', '#42d4e8'],
     [7, 'blue', '#3b7de3'],
     [8, 'purple', '#8751d1'],
-    [9, 'pink', '#ff6fb5'],
-    [10, 'brown', '#a0663a'],
-    [11, 'beige', '#e8d3a8'],
-    [12, 'teal', '#1f9e95'],
-    [13, 'indigo', '#4b4bc4'],
-    [14, 'magenta', '#d63ec7'],
-    [15, 'light_blue', '#8fd3ff'],
+    [9, 'pink', '#ff6fb3'],
+    [10, 'brown', '#8a533a'],
+    [11, 'beige', '#d6c28c'],
+    [12, 'teal', '#2fb7a8'],
+    [13, 'indigo', '#4d5bd7'],
+    [14, 'magenta', '#d64bc1'],
+    [15, 'light_blue', '#82cfff'],
     [16, 'fire_orange', '#ff5a1f'],
-    [17, 'dark_green', '#2e7d32'],
-    [18, 'dark_blue', '#1d3f8f'],
-    [19, 'white', '#f4f4f4'],
+    [17, 'dark_green', '#1f6f3a'],
+    [18, 'dark_blue', '#1f3d8f'],
+    [19, 'white', '#d8d8d8'],
     [100, 'bronze', '#cd7f32'],
     [101, 'silver', '#c0c0c0'],
     [102, 'gold', '#ffc83d'],
-    [103, 'diamond', '#b9f2ff'],
-    [104, 'emerald', '#50c878']
+    [103, 'diamond', '#8eeaff'],
+    [104, 'emerald', '#27c46b']
 ];
 
 export const WIRED_FX_PALETTE: { id: number; key: string; fallback: string; hex: string }[] = PALETTE_ROWS.map(([id, name, hex]) => ({
@@ -171,7 +179,7 @@ export const WIRED_FX_WIDTHS: { id: number; key: string; fallback: string; px: n
     { id: 100, key: 'wiredfurni.params.variablefx.width.huge', fallback: 'Huge', px: 180 }
 ];
 
-/** The icons the client ships; the server drops any other name. */
+/** The icons of the official editor's dropdown (STANDARD_ICON_IDS); the server refuses any other name. */
 export const WIRED_FX_ICONS = [
     'battery',
     'burning',
@@ -198,10 +206,7 @@ export const WIRED_FX_ICONS = [
     'stealth',
     'timeleft',
     'upgrading',
-    'wooden_logs',
-    'misc_heart',
-    'misc_skull',
-    'misc_star'
+    'wooden_logs'
 ];
 
 export const WIRED_FX_NUMBER_ALIGNMENTS = ['left', 'right', 'double'];
@@ -440,7 +445,7 @@ export const wiredVariableFxStyle = (category: number, styleId: number): IWiredV
 /** Levels and plain numbers have no editable range; the server pins them to 0..100. */
 export const wiredVariableFxUsesRange = (category: number) => category !== WIRED_FX_CATEGORY.LEVELLING_PROGRESS && category !== WIRED_FX_CATEGORY.NUMBER_DISPLAY;
 
-/** Levelling and number displays carry one more int: the level bar or the icon alignment. */
+/** Levelling and number displays use the category slot ([21]): the level bar or the icon alignment. The others send 0 there. */
 export const wiredVariableFxUsesCategoryExtra = (category: number) =>
     category === WIRED_FX_CATEGORY.LEVELLING_PROGRESS || category === WIRED_FX_CATEGORY.NUMBER_DISPLAY;
 
@@ -492,6 +497,8 @@ export interface IWiredVariableFxParams {
     segments: number;
     /** Levelling: the bar beside the badge. Number display: the icon alignment. Other categories: 0. */
     categoryExtra: number;
+    /** "Order in FX stack": higher values place this fx lower in the holder's stack. Any int; 0 is the default. */
+    stackOrder: number;
 }
 
 export const defaultWiredVariableFxParams = (category: number = WIRED_FX_CATEGORY.PROGRESS_BAR): IWiredVariableFxParams => {
@@ -516,7 +523,8 @@ export const defaultWiredVariableFxParams = (category: number = WIRED_FX_CATEGOR
         overrideMaxTarget: WIRED_FX_OVERRIDE_TARGET.HOLDER,
         audienceValue: 0,
         segments: 0,
-        categoryExtra: style.defaultSubRendererId
+        categoryExtra: style.defaultSubRendererId,
+        stackOrder: 0
     };
 };
 
@@ -554,11 +562,12 @@ export const readWiredVariableFxParams = (intData: number[], category: number): 
         overrideMaxTarget: overrideTarget(17),
         audienceValue: Number(literalAt(intData, 18, 0)),
         segments: clamp(int(intData, 20, 0), 0, WIRED_FX_SEGMENTS_MAX),
-        categoryExtra
+        categoryExtra,
+        stackOrder: clamp(int(intData, WIRED_FX_STACK_ORDER_INDEX, 0), WIRED_FX_STACK_ORDER_MIN, WIRED_FX_STACK_ORDER_MAX)
     };
 };
 
-/** The int layout the server validates: 21 ints, plus the category extra for levelling and number displays. */
+/** The int layout the server validates: the 23 ints of the official editor frame (category slot at 21, stack order at 22). */
 export const writeWiredVariableFxParams = (params: IWiredVariableFxParams, category: number): number[] => {
     const usesRange = wiredVariableFxUsesRange(category);
     const source = params.source === WIRED_FX_SOURCE.FURNI ? WIRED_FX_SOURCE.FURNI : WIRED_FX_SOURCE.USER;
@@ -604,7 +613,7 @@ export const writeWiredVariableFxParams = (params: IWiredVariableFxParams, categ
         segments
     ];
 
-    return wiredVariableFxUsesCategoryExtra(category) ? [...ints, categoryExtra] : ints;
+    return [...ints, categoryExtra, clamp(Math.trunc(Number.isFinite(params.stackOrder) ? params.stackOrder : 0), WIRED_FX_STACK_ORDER_MIN, WIRED_FX_STACK_ORDER_MAX)];
 };
 
 /** What the overlay needs of a config to size and colour a value. */

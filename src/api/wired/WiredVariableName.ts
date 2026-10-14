@@ -1,4 +1,7 @@
-/** A variable's name as the server reads it: letters, digits and underscores, at most 40 characters. */
+/**
+ * A variable's name as the server reads it: letters, digits and underscores, at most 40 characters. The official editor
+ * (VariableNameSection) turns spaces into underscores and lowercases what is typed.
+ */
 export const WIRED_VARIABLE_NAME_MAX = 40;
 
 export const normalizeWiredVariableName = (value: string) => {
@@ -11,7 +14,7 @@ export const normalizeWiredVariableName = (value: string) => {
     }
 
     normalizedValue = normalizedValue.replace(/\s+/g, '_');
-    normalizedValue = normalizedValue.replace(/[^A-Za-z0-9_]/g, '');
+    normalizedValue = normalizedValue.replace(/[^A-Za-z0-9_]/g, '').toLowerCase();
 
     return normalizedValue.slice(0, WIRED_VARIABLE_NAME_MAX);
 };

@@ -17,7 +17,7 @@ const normalizeVariableName = (value: string) => {
     }
 
     normalizedValue = normalizedValue.replace(/\s+/g, '_');
-    normalizedValue = normalizedValue.replace(/[^A-Za-z0-9_]/g, '');
+    normalizedValue = normalizedValue.replace(/[^A-Za-z0-9_]/g, '').toLowerCase();
 
     return normalizedValue.slice(0, MAX_NAME_LENGTH);
 };

@@ -19,6 +19,8 @@ import {
     WIRED_FX_SHOW_DURATION_MIN_MS,
     WIRED_FX_SHOW_MODE,
     WIRED_FX_SOURCE,
+    WIRED_FX_STACK_ORDER_MAX,
+    WIRED_FX_STACK_ORDER_MIN,
     WIRED_FX_VISIBILITY,
     WIRED_FX_WIDTH_NOT_APPLICABLE,
     WIRED_FX_WIDTHS,
@@ -62,16 +64,16 @@ const SOURCE_OPTIONS: IFxOption[] = [
 
 const VISIBILITY_OPTIONS: IFxOption[] = [
     { value: WIRED_FX_VISIBILITY.EVERYONE, key: 'wiredfurni.params.variablefx.visibility.everyone', fallback: 'Everyone' },
-    { value: WIRED_FX_VISIBILITY.ONLY_USER, key: 'wiredfurni.params.variablefx.visibility.only_user', fallback: 'Only the user it belongs to' },
-    { value: WIRED_FX_VISIBILITY.GAME_TEAM, key: 'wiredfurni.params.variablefx.visibility.game_team', fallback: 'The user and their game team' },
-    { value: WIRED_FX_VISIBILITY.HAS_VARIABLE, key: 'wiredfurni.params.variablefx.visibility.has_variable', fallback: 'Users who have a variable' },
-    { value: WIRED_FX_VISIBILITY.HAS_VARIABLE_WITH_VALUE, key: 'wiredfurni.params.variablefx.visibility.has_variable_with_value', fallback: 'Users whose variable has a value' }
+    { value: WIRED_FX_VISIBILITY.ONLY_USER, key: 'wiredfurni.params.variablefx.visibility.only_user', fallback: 'Only the user' },
+    { value: WIRED_FX_VISIBILITY.GAME_TEAM, key: 'wiredfurni.params.variablefx.visibility.game_team', fallback: 'Users who are on the same team' },
+    { value: WIRED_FX_VISIBILITY.HAS_VARIABLE, key: 'wiredfurni.params.variablefx.visibility.has_variable', fallback: 'Users who have variable' },
+    { value: WIRED_FX_VISIBILITY.HAS_VARIABLE_WITH_VALUE, key: 'wiredfurni.params.variablefx.visibility.has_variable.value', fallback: 'Users with variable and value' }
 ];
 
 const SHOW_MODE_OPTIONS: IFxOption[] = [
-    { value: WIRED_FX_SHOW_MODE.ALWAYS, key: 'wiredfurni.params.variablefx.show.always', fallback: 'Always' },
-    { value: WIRED_FX_SHOW_MODE.WHEN_CHANGES, key: 'wiredfurni.params.variablefx.show.when_changes', fallback: 'While the value changes' },
-    { value: WIRED_FX_SHOW_MODE.NEVER, key: 'wiredfurni.params.variablefx.show.never', fallback: 'Never (hidden)' }
+    { value: WIRED_FX_SHOW_MODE.ALWAYS, key: 'wiredfurni.params.variablefx.show_mode.always', fallback: 'Always visible' },
+    { value: WIRED_FX_SHOW_MODE.WHEN_CHANGES, key: 'wiredfurni.params.variablefx.show_mode.when_variable_changes', fallback: 'Visible when the variable updates' },
+    { value: WIRED_FX_SHOW_MODE.NEVER, key: 'wiredfurni.params.variablefx.show_mode.never', fallback: 'Visible on mouse hover' }
 ];
 
 const TARGET_OPTIONS: IFxOption[] = [
@@ -320,7 +322,7 @@ export const WiredExtraVariableFxView: FC<WiredExtraVariableFxViewProps> = (prop
                     </div>
                 )}
 
-                {select(localizeWithFallback('wiredfurni.params.variablefx.show', 'Show'), params.showMode, SHOW_MODE_OPTIONS, (showMode) => patch({ showMode }))}
+                {select(localizeWithFallback('wiredfurni.params.variablefx.show_mode', 'When is it shown'), params.showMode, SHOW_MODE_OPTIONS, (showMode) => patch({ showMode }))}
 
                 <label className="flex items-center gap-1">
                     <input type="checkbox" checked={params.showOnMouseHover === 1} onChange={event => patch({ showOnMouseHover: event.target.checked ? 1 : 0 })} />
@@ -328,10 +330,10 @@ export const WiredExtraVariableFxView: FC<WiredExtraVariableFxViewProps> = (prop
                 </label>
                 {params.showMode === WIRED_FX_SHOW_MODE.WHEN_CHANGES && (
                     <div className="flex flex-wrap gap-2">
-                        {[[1, 'New value'], [2, 'Increase'], [4, 'Decrease'], [8, 'Unchanged']].map(([bit, label]) => (
+                        {[[1, 'Created variable'], [2, 'Increased variable'], [4, 'Decreased variable'], [8, 'Unchanged variable']].map(([bit, label], index) => (
                             <label key={bit} className="flex items-center gap-1">
                                 <input type="checkbox" checked={(params.updateMask & Number(bit)) !== 0} onChange={event => patch({ updateMask: event.target.checked ? params.updateMask | Number(bit) : params.updateMask & ~Number(bit) })} />
-                                {label}
+                                {localizeWithFallback(`wiredfurni.params.variablefx.update_mask.${index + 1}`, String(label))}
                             </label>
                         ))}
                     </div>
@@ -339,7 +341,7 @@ export const WiredExtraVariableFxView: FC<WiredExtraVariableFxViewProps> = (prop
 
                 {params.showMode === WIRED_FX_SHOW_MODE.WHEN_CHANGES && (
                     <div className="flex items-center gap-1 pl-4">
-                        <Text>{localizeWithFallback('wiredfurni.params.variablefx.show_duration', 'for (ms)')}</Text>
+                        <Text>{localizeWithFallback('wiredfurni.params.variablefx.show_duration', 'Duration (milliseconds):')}</Text>
                         <OctaneInput
                             type="number"
                             inputSize="sm"
@@ -499,6 +501,21 @@ export const WiredExtraVariableFxView: FC<WiredExtraVariableFxViewProps> = (prop
                         )}
                     </>
                 )}
+
+                <div className="flex flex-col gap-1">
+                    <Text bold>{localizeWithFallback('wiredfurni.params.variablefx.stack_order', 'Order in FX stack')}</Text>
+                    <Text small={true}>{localizeWithFallback('wiredfurni.params.variablefx.stack_order.info', "Higher values place this FX lower in the object's FX stack.")}</Text>
+                    <OctaneInput
+                        type="number"
+                        inputSize="sm"
+                        data-testid="fx-stack-order"
+                        min={WIRED_FX_STACK_ORDER_MIN}
+                        max={WIRED_FX_STACK_ORDER_MAX}
+                        step={1}
+                        value={params.stackOrder}
+                        onChange={(event) => patch({ stackOrder: Math.max(WIRED_FX_STACK_ORDER_MIN, Math.min(WIRED_FX_STACK_ORDER_MAX, toInt(event.target.value, 0))) })}
+                    />
+                </div>
 
                 {category === WIRED_FX_CATEGORY.LEVELLING_PROGRESS && (
                     <Text small={true}>
