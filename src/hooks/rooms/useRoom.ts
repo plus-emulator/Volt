@@ -8,6 +8,7 @@ import {
     IRoomSession,
     VoltAdjustmentFilter,
     VoltSprite,
+    VoltContainer,
     VoltTexture,
     RoomBackgroundColorEvent,
     RoomEngineEvent,
@@ -36,6 +37,7 @@ import {
     StartRoomSession
 } from '../../api';
 import { useMessageEvent, useVoltEvent, useUiEvent } from '../events';
+import { updateRoomTint } from './updateRoomTint';
 import { useWiredFurniOpacity } from './useWiredFurniOpacity';
 
 const getViewportSize = () => {
@@ -52,6 +54,7 @@ const useRoomState = () => {
     const [isHandItemBlocked, setIsHandItemBlocked] = useState(false);
     const [roomBackground, setRoomBackground] = useState<VoltSprite>(null);
     const [roomFilter, setRoomFilter] = useState<VoltAdjustmentFilter>(null);
+    const [roomMaster, setRoomMaster] = useState<VoltContainer>(null);
     const [originalRoomBackgroundColor, setOriginalRoomBackgroundColor] = useState(0);
 
     useWiredFurniOpacity(roomSession?.roomId ?? 0);
@@ -73,13 +76,7 @@ const useRoomState = () => {
     const updateRoomFilter = (color: number) => {
         if (!roomFilter) return;
 
-        const r = (color >> 16) & 0xff;
-        const g = (color >> 8) & 0xff;
-        const b = color & 0xff;
-
-        roomFilter.red = r / 255;
-        roomFilter.green = g / 255;
-        roomFilter.blue = b / 255;
+        updateRoomTint(roomMaster, roomFilter, color);
     };
 
     useUiEvent<RoomWidgetUpdateBackgroundColorPreviewEvent>(RoomWidgetUpdateBackgroundColorPreviewEvent.PREVIEW, (event) =>
@@ -298,10 +295,11 @@ const useRoomState = () => {
         background.height = height;
 
         master.addChildAt(background, 0);
-        master.filters = [filter];
+        // A white tint is an identity operation; attach only when the mood light changes it.
 
         setRoomBackground(background);
         setRoomFilter(filter);
+        setRoomMaster(master);
 
         const geometry = roomEngine.getRoomInstanceGeometry(roomId, canvasId) as RoomGeometry;
 
@@ -354,6 +352,9 @@ const useRoomState = () => {
         return () => {
             setRoomBackground(null);
             setRoomFilter(null);
+            setRoomMaster(null);
+            updateRoomTint(master, filter, 0xffffff);
+            filter.destroy();
             setOriginalRoomBackgroundColor(0);
 
             window.removeEventListener('resize', resize);

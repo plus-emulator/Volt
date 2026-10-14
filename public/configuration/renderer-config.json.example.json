@@ -40,6 +40,7 @@
 	"system.log.events": false,
 	"system.log.packets": false,
 	"system.fps.animation": 24,
+	"room.planes.direct": true,
 	"system.fps.max": 60,
 	"system.pong.manually": true,
 	"system.pong.interval.ms": 20000,
