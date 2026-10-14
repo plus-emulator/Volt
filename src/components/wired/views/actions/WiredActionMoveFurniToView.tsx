@@ -68,10 +68,6 @@ export const WiredActionMoveFurniToView: FC<{}> = (props) => {
             }
         >
             <div className="flex flex-col gap-1">
-                <Text bold>{LocalizeText('wiredfurni.params.emptytiles', ['tiles'], [spacing.toString()])}</Text>
-                <Slider max={5} min={1} value={spacing} onChange={(event) => setSpacing(event)} />
-            </div>
-            <div className="flex flex-col gap-1">
                 <Text bold>{localizeWithFallback('wiredfurni.params.movefurni', LocalizeText('wiredfurni.params.startdir'))}</Text>
                 <div className="flex gap-1">
                     {directionOptions.map((value) => {
@@ -92,6 +88,10 @@ export const WiredActionMoveFurniToView: FC<{}> = (props) => {
                         );
                     })}
                 </div>
+            </div>
+            <div className="flex flex-col gap-1">
+                <Text bold>{LocalizeText('wiredfurni.params.emptytiles', ['tiles'], [spacing.toString()])}</Text>
+                <Slider max={5} min={1} value={spacing} onChange={(event) => setSpacing(event)} />
             </div>
         </WiredActionBaseView>
     );

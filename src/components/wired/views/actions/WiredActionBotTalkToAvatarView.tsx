@@ -76,17 +76,6 @@ export const WiredActionBotTalkToAvatarView: FC<{}> = (props) => {
             <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-1">
                     <input
-                        checked={talkMode === 0}
-                        className="form-check-input"
-                        id="talkMode1"
-                        name="talkMode"
-                        type="radio"
-                        onChange={(event) => setTalkMode(0)}
-                    />
-                    <Text>{LocalizeText('wiredfurni.params.talk')}</Text>
-                </div>
-                <div className="flex items-center gap-1">
-                    <input
                         checked={talkMode === 1}
                         className="form-check-input"
                         id="talkMode2"
@@ -95,6 +84,17 @@ export const WiredActionBotTalkToAvatarView: FC<{}> = (props) => {
                         onChange={(event) => setTalkMode(1)}
                     />
                     <Text>{LocalizeText('wiredfurni.params.whisper')}</Text>
+                </div>
+                <div className="flex items-center gap-1">
+                    <input
+                        checked={talkMode === 0}
+                        className="form-check-input"
+                        id="talkMode1"
+                        name="talkMode"
+                        type="radio"
+                        onChange={(event) => setTalkMode(0)}
+                    />
+                    <Text>{LocalizeText('wiredfurni.params.talk')}</Text>
                 </div>
             </div>
             <div className="flex items-center gap-1">
