@@ -80,8 +80,8 @@ export const WiredActionSetFurniHighlightView: FC<{}> = () => {
         setEasing(Math.min(EASING_LABELS.length - 1, Math.max(0, trigger.intData?.[5] ?? 0)));
         setTargetUsers(trigger.intData?.[6] === 1);
         setFurniSource(trigger.furniSources?.[0] ?? SOURCE_SELECTED);
-        setUserSource(trigger.userSources?.[0] ?? 0);
-        setAudienceUserSource(trigger.userSources?.[1] ?? 0);
+        setUserSource(trigger.userSources?.[1] ?? 0);
+        setAudienceUserSource(trigger.userSources?.[0] ?? 0);
     }, [trigger]);
 
     const changeType = (next: number) => {
@@ -101,7 +101,8 @@ export const WiredActionSetFurniHighlightView: FC<{}> = () => {
             targetUsers ? 1 : 0
         ]);
         setFurniSources?.([furniSource]);
-        setUserSources?.([userSource, audienceUserSource]);
+        // class_4285.as:99 / class_4214 mergedSelections [[0, 1], [-1, 0]]: user slot 0 is the audience, user slot 1 the target users.
+        setUserSources?.([audienceUserSource, userSource]);
         if (furniSource !== SOURCE_SELECTED) setFurniIds?.([]);
     };
 

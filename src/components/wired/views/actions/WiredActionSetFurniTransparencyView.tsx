@@ -40,14 +40,15 @@ export const WiredActionSetFurniTransparencyView: FC<{}> = () => {
         setEasing(Math.min(EASING_COUNT - 1, Math.max(0, trigger.intData?.[3] ?? 0)));
         setTargetUsers(trigger.intData?.[4] === 1);
         setFurniSource(trigger.furniSources?.[0] ?? SOURCE_SELECTED);
-        setUserSource(trigger.userSources?.[0] ?? 0);
-        setAudienceUserSource(trigger.userSources?.[1] ?? 0);
+        setUserSource(trigger.userSources?.[1] ?? 0);
+        setAudienceUserSource(trigger.userSources?.[0] ?? 0);
     }, [trigger]);
 
     const save = () => {
         setIntParams([audience, visibility, clickThrough ? 1 : 0, easing, targetUsers ? 1 : 0]);
         setFurniSources?.([furniSource]);
-        setUserSources?.([userSource, audienceUserSource]);
+        // class_4285.as:99 / class_4214 mergedSelections [[0, 1], [-1, 0]]: user slot 0 is the audience, user slot 1 the target users.
+        setUserSources?.([audienceUserSource, userSource]);
         if (furniSource !== SOURCE_SELECTED) setFurniIds?.([]);
     };
 

@@ -59,7 +59,7 @@ export interface WiredVisualizationSourcesProps {
     showAudienceSource: boolean;
 }
 
-/** Footer: merged slot 0 is the target (furni or users), slot 1 is the audience users, which is off when everyone sees it. */
+/** Footer: the target pair is furni slot 0 with user slot 1, the audience is user slot 0 (mergedSelections [[0, 1], [-1, 0]]), off when everyone sees it. */
 export const WiredVisualizationSources: FC<WiredVisualizationSourcesProps> = (props) => {
     const {
         targetUsers,
@@ -89,6 +89,7 @@ export const WiredVisualizationSources: FC<WiredVisualizationSourcesProps> = (pr
             <WiredSourcesSelector
                 showFurni={!targetUsers}
                 showUsers={targetUsers}
+                userSlot={1}
                 furniSource={furniSource}
                 userSource={userSource}
                 onChangeFurni={onFurniSourceChange}
@@ -97,7 +98,7 @@ export const WiredVisualizationSources: FC<WiredVisualizationSourcesProps> = (pr
             {showAudienceSource && (
                 <WiredSourcesSelector
                     showUsers={true}
-                    userSlot={1}
+                    userSlot={0}
                     userSource={audienceUserSource}
                     usersTitle="wiredfurni.params.visualization.visibility_audience"
                     onChangeUsers={onAudienceUserSourceChange}
