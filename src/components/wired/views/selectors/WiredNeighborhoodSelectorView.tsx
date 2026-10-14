@@ -2,7 +2,7 @@ import { GetRoomEngine } from '@volt/renderer';
 import { CSSProperties, FC, JSX, MouseEvent as ReactMouseEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { FaMinus, FaPlus, FaTimes } from 'react-icons/fa';
 import { MdGridOn } from 'react-icons/md';
-import { LocalizeText, WiredFurniType } from '../../../../api';
+import { LocalizeText, localizeWithFallback, WiredFurniType } from '../../../../api';
 import sourceFurniIcon from '../../../../assets/images/wired/source_furni.png';
 import sourceUserIcon from '../../../../assets/images/wired/source_user.png';
 import { Button, Text } from '../../../../common';
@@ -341,20 +341,20 @@ export const WiredNeighborhoodSelectorView: FC<{}> = () => {
                             <span className="absolute left-1/2 top-1/2 h-[8px] w-[8px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-current" />
                         </span>
                     </Button>
-                    <Button variant="success" className="px-2 py-1" onClick={addTile} title={LocalizeText('wiredfurni.tooltip.select.tile')}>
+                    <Button variant="success" className="px-2 py-1" onClick={addTile} title={localizeWithFallback('wiredfurni.tooltip.select.tile', 'Add tile')}>
                         <FaPlus />
                     </Button>
-                    <Button variant="danger" className="px-2 py-1" onClick={removeTile} title={LocalizeText('wiredfurni.tooltip.remove.tile')}>
+                    <Button variant="danger" className="px-2 py-1" onClick={removeTile} title={localizeWithFallback('wiredfurni.tooltip.remove.tile', 'Remove tile')}>
                         <FaMinus />
                     </Button>
-                    <Button variant="primary" className="px-2 py-1" onClick={loadDefaultPattern} title={LocalizeText('wiredfurni.tooltip.remove.5x5_tile')}>
+                    <Button variant="primary" className="px-2 py-1" onClick={loadDefaultPattern} title={localizeWithFallback('wiredfurni.tooltip.remove.5x5_tile', 'Reset to the 5x5 area')}>
                         <MdGridOn />
                     </Button>
                     <Button
                         variant="secondary"
                         className="px-2 py-1"
                         onClick={() => setSelectedTiles([])}
-                        title={LocalizeText('wiredfurni.tooltip.remove.clear_tile')}
+                        title={localizeWithFallback('wiredfurni.tooltip.remove.clear_tile', 'Clear all tiles')}
                     >
                         <FaTimes />
                     </Button>

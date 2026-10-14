@@ -94,7 +94,7 @@ export const WiredActionPlaceFurniView: FC<{}> = () => {
     );
     const picker = (selected: string, update: (id: string) => void, options: typeof rows) => (
         <select className="form-select" value={selected} onChange={(event) => update(event.target.value)} disabled={!nativeCatalog?.available}>
-            <option value="n">{LocalizeText('wiredfurni.variable_picker.select_variable')}</option>
+            <option value="n">{LocalizeText('wiredfurni.params.variables.variable_selection.tooltip')}</option>
             {selected !== 'n' && !options.some((row) => row.variableId === selected) && (
                 <option value={selected} disabled>
                     {selected}
@@ -188,7 +188,7 @@ export const WiredActionPlaceFurniView: FC<{}> = () => {
                         {picker(spawnVariable, setSpawnVariable, spawnRows)}
                         <label className="flex items-center gap-2">
                             <input type="checkbox" checked={valueIsVariable} onChange={(event) => setValueIsVariable(event.target.checked)} />
-                            {LocalizeText('wiredfurni.params.value.from_variable')}
+                            {LocalizeText('wiredfurni.params.variables.reference_value.from_variable')}
                         </label>
                         {valueIsVariable ? (
                             <>

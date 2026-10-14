@@ -1,6 +1,6 @@
 import { WiredEditorContext } from '@volt/renderer';
 import { FC, useEffect, useMemo, useState } from 'react';
-import { LocalizeText, WiredFurniType } from '../../../../api';
+import { LocalizeText, localizeWithFallback, WiredFurniType } from '../../../../api';
 import { Text } from '../../../../common';
 import { useWired } from '../../../../hooks';
 import { WIRED_VARIABLE_ABSENT, tokenOfVariableSlot, variableSlotOf } from '../../../../api';
@@ -91,7 +91,7 @@ export const WiredExtraVariableReferenceView: FC<{}> = () => {
                     />
                 </div>
                 <div className="flex flex-col gap-1">
-                    <Text>{LocalizeText('wiredfurni.params.variables.room')}</Text>
+                    <Text>{localizeWithFallback('wiredfurni.params.variables.room_selection', 'Choose room:')}</Text>
                     <select
                         className="form-select form-select-sm"
                         value={selectedRoomId ?? ''}
@@ -109,7 +109,7 @@ export const WiredExtraVariableReferenceView: FC<{}> = () => {
                     </select>
                 </div>
                 <div className="flex flex-col gap-1">
-                    <Text>{LocalizeText('wiredfurni.params.variables.variable')}</Text>
+                    <Text>{LocalizeText('wiredfurni.params.variables.variable_selection')}</Text>
                     <select className="form-select form-select-sm" value={selectedVariableId} onChange={(event) => selectVariable(event.target.value)}>
                         <option value="">-</option>
                         {roomVariables.map((row) => (
@@ -121,7 +121,7 @@ export const WiredExtraVariableReferenceView: FC<{}> = () => {
                 </div>
                 <label className="flex items-center gap-2">
                     <input type="checkbox" className="form-check-input" checked={readOnly} onChange={(event) => setReadOnly(event.target.checked)} />
-                    <Text small>{LocalizeText('wiredfurni.params.variables.read_only')}</Text>
+                    <Text small>{LocalizeText('wiredfurni.params.variables.settings.read_only')}</Text>
                 </label>
             </div>
         </WiredExtraBaseView>

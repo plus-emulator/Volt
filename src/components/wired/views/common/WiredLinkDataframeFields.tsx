@@ -1,5 +1,5 @@
 import { FC, ReactNode, useMemo } from 'react';
-import { IWiredNativeVariableDefinition, LocalizeText } from '../../../../api';
+import { IWiredNativeVariableDefinition, LocalizeText, localizeWithFallback } from '../../../../api';
 import { useWiredNativeVariables } from '../../../../hooks';
 import { WiredDropdown } from '../WiredDropdown';
 import { WiredText } from '../WiredText';
@@ -18,11 +18,12 @@ import {
  * the ValueOrVariableSection and VariablePicker presets do. Scope codes are the AIR variable targets.
  */
 
-export const LINK_DATAFRAME_SCOPES: Array<{ target: number; key: WiredVariablePickerTarget; label: string }> = [
-    { target: 0, key: 'furni', label: 'wiredfurni.params.variables.furni' },
-    { target: 1, key: 'user', label: 'wiredfurni.params.variables.user' },
-    { target: -10, key: 'global', label: 'wiredfurni.params.variables.room' },
-    { target: -20, key: 'context', label: 'wiredfurni.params.variables.context' }
+// Scope names are the AIR source type texts (wiredfurni.params.sourcetype.*, ValueOrVariableInputPreset).
+export const LINK_DATAFRAME_SCOPES: Array<{ target: number; key: WiredVariablePickerTarget; label: string; fallback: string }> = [
+    { target: 0, key: 'furni', label: 'wiredfurni.params.sourcetype.furni', fallback: 'Furni' },
+    { target: 1, key: 'user', label: 'wiredfurni.params.sourcetype.users', fallback: 'User' },
+    { target: -10, key: 'global', label: 'wiredfurni.params.sourcetype.global', fallback: 'Global' },
+    { target: -20, key: 'context', label: 'wiredfurni.params.sourcetype.context', fallback: 'Context' }
 ];
 
 export const LinkDataframeField: FC<{ label: string; children: ReactNode }> = ({ label, children }) => (
@@ -100,7 +101,7 @@ export const LinkDataframeVariableField: FC<LinkDataframeVariableFieldProps> = (
         <>
             {showScope && (
                 <WiredDropdown
-                    options={LINK_DATAFRAME_SCOPES.map((option) => ({ id: option.target, label: LocalizeText(option.label) }))}
+                    options={LINK_DATAFRAME_SCOPES.map((option) => ({ id: option.target, label: localizeWithFallback(option.label, option.fallback) }))}
                     value={scope.target}
                     onChange={(target) => onChange({ target, token: '' })}
                 />
