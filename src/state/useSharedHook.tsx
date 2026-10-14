@@ -67,6 +67,10 @@ const createSharedHookResource = <T,>(useSourceHook: SourceHook<T>): SharedHookR
             if (!resource.ready) {
                 resource.ready = true;
                 resolveReady();
+                // Readiness changes the registry as well as the promise. Notify
+                // its external-store subscribers so dependent hosts can render
+                // together, without a Suspense retry delay for each boot layer.
+                queueRegistryChange();
             }
         }, [snapshot]);
 
