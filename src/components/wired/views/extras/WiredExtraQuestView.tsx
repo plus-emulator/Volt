@@ -1,8 +1,8 @@
 import { FC, useEffect, useState } from 'react';
 import { localizeWithFallback, WiredFurniType } from '../../../../api';
-import { Text } from '../../../../common';
 import { useWired } from '../../../../hooks';
-import { VoltInput } from '../../../../layout';
+import { WiredSection } from '../WiredSection';
+import { WiredTextInput } from '../WiredTextInput';
 import { normalizeWiredVariableName, handleWiredVariableNameKeyDown, WIRED_VARIABLE_NAME_MAX } from '../../../../api';
 import { WiredExtraBaseView } from './WiredExtraBaseView';
 
@@ -34,23 +34,18 @@ export const WiredExtraQuestView: FC<{}> = () => {
     const validate = () => !!normalizeWiredVariableName(variableName).length && !!questName.trim().length;
 
     return (
-        <WiredExtraBaseView hasSpecialInput={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save} validate={validate} cardStyle={{ width: 380 }}>
-            <div className="flex flex-col gap-2">
-                <div className="flex flex-col gap-1">
-                    <Text>{localizeWithFallback('wiredfurni.params.variables.quest_variable_name', 'Variable name')}</Text>
-                    <VoltInput
-                        maxLength={WIRED_VARIABLE_NAME_MAX}
-                        type="text"
-                        value={variableName}
-                        onChange={(event) => setVariableName(normalizeWiredVariableName(event.target.value))}
-                        onKeyDown={(event) => handleWiredVariableNameKeyDown(event, setVariableName)}
-                    />
-                </div>
-                <div className="flex flex-col gap-1">
-                    <Text>{localizeWithFallback('wiredfurni.params.variables.quest_name', 'Quest name')}</Text>
-                    <VoltInput type="text" value={questName} onChange={(event) => setQuestName(event.target.value.replace(/[\t\r\n]/g, ''))} />
-                </div>
-            </div>
+        <WiredExtraBaseView hasSpecialInput={true} nativeLayout={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save} validate={validate}>
+            <WiredSection title={localizeWithFallback('wiredfurni.params.variables.variable_name', 'Variable name:')}>
+                <WiredTextInput
+                    maxLength={WIRED_VARIABLE_NAME_MAX}
+                    value={variableName}
+                    onChange={(value) => setVariableName(normalizeWiredVariableName(value))}
+                    onKeyDown={(event) => handleWiredVariableNameKeyDown(event, setVariableName)}
+                />
+            </WiredSection>
+            <WiredSection title={localizeWithFallback('wiredfurni.params.variables.quest_name', 'Quest name:')}>
+                <WiredTextInput maxLength={500} value={questName} onChange={(value) => setQuestName(value.replace(/[\t\r\n]/g, ''))} />
+            </WiredSection>
         </WiredExtraBaseView>
     );
 };
