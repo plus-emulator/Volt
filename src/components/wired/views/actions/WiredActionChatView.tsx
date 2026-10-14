@@ -5,6 +5,11 @@ import { useWired } from '../../../../hooks';
 import { VoltInput } from '../../../../layout';
 import { getWiredTextPlaceholderNames, WiredMessageEditor, WIRED_MESSAGE_EDITOR_MAX_LENGTH } from '../common/WiredMessageEditor';
 import { WiredTextCounter, WiredTextFormattingHelp } from '../common/WiredTextFormattingHelp';
+import { WiredSection } from '../WiredSection';
+import { WiredCollapsibleSection } from '../WiredCollapsibleSection';
+import { WiredText } from '../WiredText';
+import { WiredRadioGroup } from '../WiredOptions';
+import { WiredDropdown } from '../WiredDropdown';
 import { WiredBubbleWidthSelect } from '../WiredBubbleWidthSelect';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredActionBaseView } from './WiredActionBaseView';
@@ -100,6 +105,26 @@ export const WiredActionChatView: FC<{}> = (props) => {
         else setBubbleStyle(DEFAULT_SHOW_MESSAGE_STYLE_ID);
         setBubbleWidth(trigger.intData.length >= 4 ? trigger.intData[3] : -1);
     }, [trigger, nativeShow]);
+
+    if (nativeShow) return (
+        <WiredActionBaseView hasSpecialInput={true} nativeLayout={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save} validate={validate}
+            footer={<WiredSourcesSelector showUsers={true} userSource={userSource} onChangeUsers={setUserSource} />}>
+            <WiredCollapsibleSection title={LocalizeText('wiredfurni.params.general_box_info')}>
+                <WiredText soft wrap text={LocalizeText('wiredfurni.params.show_message.usage_info')} />
+            </WiredCollapsibleSection>
+            <WiredSection title={LocalizeText('wiredfurni.params.message')}>
+                {validationError && <Text className="text-danger">Use a supported source, style and width, with at most 400 characters and 8 lines.</Text>}
+                <WiredMessageEditor height={40} previewStyle={bubbleStyle} previewWidth={bubbleWidth} placeholderNames={getWiredTextPlaceholderNames(trigger?.contexts)} value={message} onChange={setMessage} />
+            </WiredSection>
+            <WiredCollapsibleSection title={LocalizeText('wiredfurni.params.show_message.visibility_selection.title')}>
+                <WiredRadioGroup name="showMessageVisibilitySelection" value={visibilitySelection} onChange={setVisibilitySelection} options={[0, 1].map(id => ({ id, label: LocalizeText(`wiredfurni.params.show_message.visibility_selection.${id}`) }))} />
+            </WiredCollapsibleSection>
+            <WiredCollapsibleSection title={LocalizeText('wiredfurni.params.show_message.style_selection.title')}>
+                <WiredDropdown value={bubbleStyle} onChange={setBubbleStyle} options={bubbleStyleIds.map(id => ({ id, label: LocalizeText(`wiredfurni.params.show_message.style_selection.${id}`) }))} />
+            </WiredCollapsibleSection>
+            <WiredBubbleWidthSelect value={bubbleWidth} onChange={setBubbleWidth} />
+        </WiredActionBaseView>
+    );
 
     return (
         <WiredActionBaseView

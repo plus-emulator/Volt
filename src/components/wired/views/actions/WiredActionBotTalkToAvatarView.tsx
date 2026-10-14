@@ -1,8 +1,9 @@
 import { FC, useEffect, useState } from 'react';
 import { LocalizeText, localizeWithFallback, WIRED_STRING_DELIMETER, WiredFurniType } from '../../../../api';
-import { Text } from '../../../../common';
 import { useWired } from '../../../../hooks';
-import { VoltInput } from '../../../../layout';
+import { WiredSection } from '../WiredSection';
+import { WiredRadioGroup, WiredCheckboxOption } from '../WiredOptions';
+import { WiredTextInput } from '../WiredTextInput';
 import { getWiredTextPlaceholderNames, WiredMessageEditor } from '../common/WiredMessageEditor';
 import { WiredBubbleWidthSelect } from '../WiredBubbleWidthSelect';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
@@ -35,7 +36,7 @@ export const WiredActionBotTalkToAvatarView: FC<{}> = (props) => {
         const nextBotName = data.length > 0 ? data[0] : '';
 
         if (data.length > 0) setBotName(nextBotName);
-        if (data.length > 1) setMessage(data[1].length > 0 ? data[1] : '');
+        setMessage(data.length > 1 ? data[1] : '');
 
         setTalkMode(trigger.intData.length > 0 ? trigger.intData[0] : 0);
         setUserSource(trigger.userSources.length > 1 ? trigger.userSources[1] : userDefault);
@@ -47,6 +48,7 @@ export const WiredActionBotTalkToAvatarView: FC<{}> = (props) => {
     return (
         <WiredActionBaseView
             hasSpecialInput={true}
+            nativeLayout={true}
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE}
             save={save}
             footer={
@@ -64,43 +66,17 @@ export const WiredActionBotTalkToAvatarView: FC<{}> = (props) => {
             }
         >
             {botSource === WIRED_BOT_NAMED_SOURCE && (
-                <div className="flex flex-col gap-1">
-                    <Text bold>{LocalizeText('wiredfurni.params.bot.name')}</Text>
-                    <VoltInput maxLength={32} type="text" value={botName} onChange={(event) => setBotName(event.target.value)} />
-                </div>
+                <WiredSection title={LocalizeText('wiredfurni.params.bot.name')}>
+                    <WiredTextInput maxLength={32} value={botName} onChange={setBotName} />
+                </WiredSection>
             )}
-            <div className="flex flex-col gap-1">
-                <Text bold>{LocalizeText('wiredfurni.params.message')}</Text>
-                <WiredMessageEditor previewStyle={31} previewWidth={bubbleWidth} previewType={talkMode === 1 ? 1 : 0} previewUsername={hideBotName ? '' : botName} placeholderNames={getWiredTextPlaceholderNames(trigger?.contexts)} value={message} onChange={setMessage} />
-            </div>
-            <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-1">
-                    <input
-                        checked={talkMode === 1}
-                        className="form-check-input"
-                        id="talkMode2"
-                        name="talkMode"
-                        type="radio"
-                        onChange={(event) => setTalkMode(1)}
-                    />
-                    <Text>{LocalizeText('wiredfurni.params.whisper')}</Text>
+            <WiredSection title={LocalizeText('wiredfurni.params.message')}>
+                <div className="flex flex-col gap-[4px]">
+                    <WiredMessageEditor height={40} previewStyle={31} previewWidth={bubbleWidth} previewType={talkMode === 1 ? 1 : 0} previewUsername={hideBotName ? '' : botName} placeholderNames={getWiredTextPlaceholderNames(trigger?.contexts)} value={message} onChange={setMessage} />
+                    <WiredRadioGroup name="talkMode" value={talkMode} onChange={setTalkMode} options={[{ id: 1, label: LocalizeText('wiredfurni.params.whisper') }, { id: 0, label: LocalizeText('wiredfurni.params.talk') }]} />
+                    <WiredCheckboxOption checked={hideBotName} onChange={setHideBotName} label={localizeWithFallback('wiredfurni.params.bot_talk.hide_bot_name', 'Hide bot name')} last />
                 </div>
-                <div className="flex items-center gap-1">
-                    <input
-                        checked={talkMode === 0}
-                        className="form-check-input"
-                        id="talkMode1"
-                        name="talkMode"
-                        type="radio"
-                        onChange={(event) => setTalkMode(0)}
-                    />
-                    <Text>{LocalizeText('wiredfurni.params.talk')}</Text>
-                </div>
-            </div>
-            <div className="flex items-center gap-1">
-                <input checked={hideBotName} className="form-check-input" type="checkbox" onChange={(event) => setHideBotName(event.target.checked)} />
-                <Text>{localizeWithFallback('wiredfurni.params.bot_talk.hide_bot_name', 'Hide bot name')}</Text>
-            </div>
+            </WiredSection>
             <WiredBubbleWidthSelect value={bubbleWidth} onChange={setBubbleWidth} />
         </WiredActionBaseView>
     );
