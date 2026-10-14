@@ -1,16 +1,18 @@
 import { FC, useEffect, useState } from 'react';
-import { LocalizeText, WiredFurniType } from '../../../../api';
+import { LocalizeText, tokenOfVariableSlot, variableSlotOf, WiredFurniType } from '../../../../api';
 import { useWired } from '../../../../hooks';
+import { WiredCollapsibleSection } from '../WiredCollapsibleSection';
+import { WiredNumberInput } from '../WiredNumberInput';
+import { WiredCheckboxOption, WiredRadioGroup } from '../WiredOptions';
+import { WiredText } from '../WiredText';
+import { WiredFurniPickButton } from '../WiredFurniPickButton';
+import { WiredSourceTypeSelector } from '../WiredSourceTypeSelector';
+import { WiredVariablePicker } from '../WiredVariablePicker';
+import { buildWiredVariablePickerEntries, createFallbackVariableEntry, flattenWiredVariablePickerEntries } from '../WiredVariablePickerData';
+import { getWiredValueTargetCode, normalizeWiredValueTarget, WiredActionValueOrVariableSection } from './WiredActionValueOrVariableSection';
 import { WiredSection } from '../WiredSection';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredActionBaseView } from './WiredActionBaseView';
-
-const TARGETS = [
-    { value: 0, label: 'Furniture' },
-    { value: 1, label: 'Users' },
-    { value: -20, label: 'Context' },
-    { value: -10, label: 'Room' }
-];
 
 export const WiredActionPlaceFurniView: FC<{}> = () => {
     const { trigger, nativeCatalog, setIntParams, setStringParam, setFurniSources, setUserSources, setVariableIds, activePickSlot, setActivePickSlot } =
@@ -21,6 +23,8 @@ export const WiredActionPlaceFurniView: FC<{}> = () => {
     const [offsetX, setOffsetX] = useState(0);
     const [offsetY, setOffsetY] = useState(0);
     const [offsetZ, setOffsetZ] = useState(0);
+    const [offsetEnabled, setOffsetEnabled] = useState([false, false, false]);
+    const [validValue, setValidValue] = useState(true);
     const [spawnWithVariable, setSpawnWithVariable] = useState(false);
     const [valueIsVariable, setValueIsVariable] = useState(false);
     const [value, setValue] = useState(0);
@@ -38,6 +42,8 @@ export const WiredActionPlaceFurniView: FC<{}> = () => {
         setOffsetX(p[3] ?? 0);
         setOffsetY(p[4] ?? 0);
         setOffsetZ(p[5] ?? 0);
+        setOffsetEnabled([3, 4, 5].map(index => (p[index] ?? 0) !== 0));
+        setValidValue(true);
         setSpawnWithVariable(p[6] === 1);
         setValueIsVariable(p[7] === 1);
         setValue(p[8] ?? 0);
@@ -49,12 +55,21 @@ export const WiredActionPlaceFurniView: FC<{}> = () => {
     }, [trigger]);
     const rows = nativeCatalog?.available ? [...nativeCatalog.rows.values()].map((row) => row.variable) : [];
     const spawnRows = rows.filter((row) => row.variableTarget === 0 && row.variableType === 0 && row.canCreateAndDelete);
-    const valueRows = rows.filter((row) => row.variableTarget === valueTarget && row.hasValue);
+    const spawnDefinition = spawnRows.find(row => row.variableId === spawnVariable);
+    // Preserve saved references while the catalog loads; a resolved no-value variable disables the initial value.
+    const spawnValueEnabled = spawnWithVariable && spawnVariable !== 'n' && (!spawnDefinition || spawnDefinition.hasValue);
+    const spawnEntries = buildWiredVariablePickerEntries('furni', 'give', spawnRows.map(row => ({ variableId: row.variableId, name: row.variableName,
+        availability: row.availabilityType, hasValue: row.hasValue, canCreateAndDelete: row.canCreateAndDelete })));
+    const spawnToken = tokenOfVariableSlot(spawnVariable);
+    if (spawnToken && !flattenWiredVariablePickerEntries(spawnEntries).some(entry => entry.token === spawnToken)) {
+        const fallback = createFallbackVariableEntry('furni', spawnToken);
+        if (fallback) spawnEntries.unshift(fallback);
+    }
     const setF = (slot: number, source: number) => setFurni((previous) => previous.map((entry, index) => (index === slot ? source : entry)));
     const setU = (slot: number, source: number) => setUsers((previous) => previous.map((entry, index) => (index === slot ? source : entry)));
     const referenceNeeded = location === 1 || altitude === 2;
     const validate = () =>
-        [offsetX, offsetY, offsetZ, value].every(Number.isInteger) &&
+        (!spawnValueEnabled || validValue) && [offsetX, offsetY, offsetZ, value].every(Number.isInteger) &&
         Math.abs(offsetX) <= 64 &&
         Math.abs(offsetY) <= 64 &&
         Math.abs(offsetZ) <= 8000 &&
@@ -65,48 +80,19 @@ export const WiredActionPlaceFurniView: FC<{}> = () => {
             targetIsUser ? 1 : 0,
             location,
             altitude,
-            offsetX,
-            offsetY,
-            offsetZ,
+            offsetEnabled[0] ? offsetX : 0,
+            offsetEnabled[1] ? offsetY : 0,
+            offsetEnabled[2] ? offsetZ : 0,
             spawnWithVariable ? 1 : 0,
-            valueIsVariable ? 1 : 0,
-            value,
+            spawnValueEnabled && valueIsVariable ? 1 : 0,
+            spawnValueEnabled ? value : 0,
             valueTarget
         ]);
         setStringParam('');
         setFurniSources(furni);
         setUserSources(users);
-        setVariableIds([spawnWithVariable ? spawnVariable : 'n', spawnWithVariable && valueIsVariable ? valueVariable : 'n']);
+        setVariableIds([spawnWithVariable ? spawnVariable : 'n', spawnValueEnabled && valueIsVariable ? valueVariable : 'n']);
     };
-    const numberInput = (label: string, input: number, update: (value: number) => void, minimum: number, maximum: number) => (
-        <label className="flex items-center justify-between gap-2">
-            <span>{LocalizeText(label)}</span>
-            <input
-                className="form-control form-control-sm w-24"
-                type="number"
-                step={1}
-                min={minimum}
-                max={maximum}
-                value={input}
-                onChange={(event) => update(Number(event.target.value))}
-            />
-        </label>
-    );
-    const picker = (selected: string, update: (id: string) => void, options: typeof rows) => (
-        <select className="form-select" value={selected} onChange={(event) => update(event.target.value)} disabled={!nativeCatalog?.available}>
-            <option value="n">{LocalizeText('wiredfurni.params.variables.variable_selection.tooltip')}</option>
-            {selected !== 'n' && !options.some((row) => row.variableId === selected) && (
-                <option value={selected} disabled>
-                    {selected}
-                </option>
-            )}
-            {options.map((row) => (
-                <option key={row.variableId} value={row.variableId}>
-                    {row.variableName}
-                </option>
-            ))}
-        </select>
-    );
     return (
         <WiredActionBaseView
             nativeLayout={true}
@@ -114,18 +100,19 @@ export const WiredActionPlaceFurniView: FC<{}> = () => {
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID_BY_TYPE_OR_FROM_CONTEXT}
             save={save}
             validate={validate}
+            selectionPreview={<></>}
+            footerCollapsible={false}
             footer={
                 <>
-                    <WiredSourcesSelector showFurni={true} furniSource={furni[0]} onChangeFurni={(source) => setF(0, source)} />
-                    {referenceNeeded && (
+                    <WiredSourcesSelector showFurni={true} furniTitle="wiredfurni.params.sources.furni.title.place_furni" furniSource={furni[0]} onChangeFurni={(source) => setF(0, source)} />
+                    <fieldset disabled={!referenceNeeded} inert={!referenceNeeded} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
                         <>
-                            <select className="form-select" value={targetIsUser ? 1 : 0} onChange={(event) => setTargetIsUser(event.target.value === '1')}>
-                                <option value={0}>Furniture</option>
-                                <option value={1}>Users</option>
-                            </select>
+                            <WiredSourceTypeSelector types={['furni', 'user']} value={targetIsUser ? 'user' : 'furni'} disabled={!referenceNeeded} onChange={type => setTargetIsUser(type === 'user')} />
                             <WiredSourcesSelector
                                 showFurni={!targetIsUser}
                                 showUsers={targetIsUser}
+                                furniTitle="wiredfurni.params.sources.merged.title.custom_target"
+                                usersTitle="wiredfurni.params.sources.merged.title.custom_target"
                                 furniSlot={1}
                                 userSlot={0}
                                 furniSource={furni[1]}
@@ -134,8 +121,8 @@ export const WiredActionPlaceFurniView: FC<{}> = () => {
                                 onChangeUsers={(source) => setU(0, source)}
                             />
                         </>
-                    )}
-                    {spawnWithVariable && valueIsVariable && (
+                    </fieldset>
+                    {spawnValueEnabled && valueIsVariable && (
                         <WiredSourcesSelector
                             showFurni={valueTarget === 0}
                             showUsers={valueTarget === 1}
@@ -147,73 +134,43 @@ export const WiredActionPlaceFurniView: FC<{}> = () => {
                             onChangeUsers={(source) => setU(1, source)}
                         />
                     )}
-                    <div className="flex gap-2">
-                        {[0, 1].map((slot) => (
-                            <button key={slot} type="button" aria-pressed={activePickSlot === slot} onClick={() => setActivePickSlot(slot as 0 | 1)}>
-                                {LocalizeText(`wiredfurni.params.sources.furni.${slot === 0 ? 100 : 101}`)}
-                            </button>
-                        ))}
+                    <div style={{ display: 'flex', gap: 5 }}>
+                        {[0, 1].map(slot => <WiredFurniPickButton key={slot} kind={slot === 0 ? 'primary' : 'secondary'} active={activePickSlot === slot} onClick={() => setActivePickSlot(slot as 0 | 1)} />)}
                     </div>
                 </>
             }
         >
-            <WiredSection title={LocalizeText('wiredfurni.params.place_furni.target_location')}>
-                {[0, 1].map((option) => (
-                    <label key={option} className="flex items-center gap-2">
-                        <input type="radio" name="placeLocation" checked={location === option} onChange={() => setLocation(option)} />
-                        {LocalizeText(`wiredfurni.params.place_furni.target_location.${option}`)}
-                    </label>
-                ))}
-            </WiredSection>
-            <WiredSection title={LocalizeText('wiredfurni.params.place_furni.target_altitude')}>
-                {[0, 1, 2].map((option) => (
-                    <label key={option} className="flex items-center gap-2">
-                        <input type="radio" name="placeAltitude" checked={altitude === option} onChange={() => setAltitude(option)} />
-                        {LocalizeText(`wiredfurni.params.place_furni.target_altitude.${option}`)}
-                    </label>
-                ))}
-            </WiredSection>
-            <WiredSection title={LocalizeText('wiredfurni.params.place_furni.offsets')}>
-                {numberInput('wiredfurni.params.place_furni.offsets.x', offsetX, setOffsetX, -64, 64)}
-                {numberInput('wiredfurni.params.place_furni.offsets.y', offsetY, setOffsetY, -64, 64)}
-                {numberInput('wiredfurni.params.place_furni.offsets.altitude', offsetZ, setOffsetZ, -8000, 8000)}
-            </WiredSection>
-            <WiredSection title={LocalizeText('wiredfurni.params.place_furni.spawn_with_variable')}>
-                <label className="flex items-center gap-2">
-                    <input type="checkbox" checked={spawnWithVariable} onChange={(event) => setSpawnWithVariable(event.target.checked)} />
-                    {LocalizeText('wiredfurni.params.place_furni.spawn_with_variable')}
-                </label>
-                {spawnWithVariable && (
-                    <>
-                        {picker(spawnVariable, setSpawnVariable, spawnRows)}
-                        <label className="flex items-center gap-2">
-                            <input type="checkbox" checked={valueIsVariable} onChange={(event) => setValueIsVariable(event.target.checked)} />
-                            {LocalizeText('wiredfurni.params.variables.reference_value.from_variable')}
-                        </label>
-                        {valueIsVariable ? (
-                            <>
-                                <select
-                                    className="form-select"
-                                    value={valueTarget}
-                                    onChange={(event) => {
-                                        setValueTarget(Number(event.target.value));
-                                        setValueVariable('n');
-                                    }}
-                                >
-                                    {TARGETS.map((target) => (
-                                        <option key={target.value} value={target.value}>
-                                            {target.label}
-                                        </option>
-                                    ))}
-                                </select>
-                                {picker(valueVariable, setValueVariable, valueRows)}
-                            </>
-                        ) : (
-                            numberInput('wiredfurni.params.place_furni.spawn_with_value', value, setValue, -2147483648, 2147483647)
-                        )}
-                    </>
-                )}
-            </WiredSection>
+            <WiredCollapsibleSection defaultExpanded title={LocalizeText('wiredfurni.params.general_box_info')}>
+                <WiredText soft wrap text={LocalizeText('wiredfurni.params.place_furni.usage_info')} />
+            </WiredCollapsibleSection>
+            <WiredCollapsibleSection defaultExpanded title={LocalizeText('wiredfurni.params.place_furni.target_location')}>
+                <WiredRadioGroup name="place-location" value={location} onChange={setLocation} options={[0, 1].map(id => ({ id,
+                    label: LocalizeText(`wiredfurni.params.place_furni.target_location.${id}`),
+                    extra: id === 0 ? <WiredText soft wrap text={LocalizeText('wiredfurni.params.place_furni.target_location.0.info')} /> : undefined }))} />
+            </WiredCollapsibleSection>
+            <WiredCollapsibleSection defaultExpanded title={LocalizeText('wiredfurni.params.place_furni.target_altitude')}>
+                <WiredRadioGroup name="place-altitude" value={altitude} onChange={setAltitude} options={[0, 1, 2].map(id => ({ id, label: LocalizeText(`wiredfurni.params.place_furni.target_altitude.${id}`) }))} />
+            </WiredCollapsibleSection>
+            <WiredCollapsibleSection title={LocalizeText('wiredfurni.params.place_furni.offsets')}>
+                {[{ suffix: 'x', value: offsetX, update: setOffsetX, max: 64 }, { suffix: 'y', value: offsetY, update: setOffsetY, max: 64 }, { suffix: 'altitude', value: offsetZ, update: setOffsetZ, max: 8000 }].map((input, index) => <div key={input.suffix} style={{ display: 'flex', alignItems: 'flex-start', gap: 3 }}>
+                    <WiredCheckboxOption label={LocalizeText(`wiredfurni.params.place_furni.offsets.${input.suffix}`)} checked={offsetEnabled[index]} last={index === 2}
+                        onChange={selected => setOffsetEnabled(current => current.map((enabled, slot) => slot === index ? selected : enabled))} />
+                    <WiredNumberInput width={45} ariaLabel={LocalizeText(`wiredfurni.params.place_furni.offsets.${input.suffix}`)} value={input.value} onChange={input.update} min={-input.max} max={input.max} disabled={!offsetEnabled[index]} />
+                </div>)}
+            </WiredCollapsibleSection>
+            <WiredCollapsibleSection title={LocalizeText('wiredfurni.params.place_furni.spawn_with_variable')}>
+                <WiredCheckboxOption label={LocalizeText('wiredfurni.params.place_furni.spawn_with_variable')} checked={spawnWithVariable} onChange={setSpawnWithVariable} last />
+                <fieldset disabled={!spawnWithVariable} inert={!spawnWithVariable} style={{ border: 0, padding: 0, margin: '3px 0 0 25px', minWidth: 0 }}>
+                    <WiredSection title={LocalizeText('wiredfurni.params.variables.variable_selection')}>
+                        <WiredVariablePicker entries={spawnEntries} selectedToken={spawnToken} recentScope="place-furni-spawn" onSelect={entry => setSpawnVariable(variableSlotOf(entry.token))} />
+                    </WiredSection>
+                    <WiredActionValueOrVariableSection title={LocalizeText('wiredfurni.params.place_furni.spawn_with_value')}
+                        targetTitle={LocalizeText('wiredfurni.params.variables.reference_value.target')} recentScope="place-furni-value"
+                        min={-2147483648} max={2147483647} option={valueIsVariable ? 1 : 0} onOptionChange={option => setValueIsVariable(option === 1)}
+                        literal={value} onLiteralChange={setValue} target={normalizeWiredValueTarget(valueTarget)} onTargetChange={target => setValueTarget(getWiredValueTargetCode(target))}
+                        variableToken={tokenOfVariableSlot(valueVariable)} onVariableTokenChange={token => setValueVariable(variableSlotOf(token))} disabled={!spawnValueEnabled} onValidityChange={setValidValue} />
+                </fieldset>
+            </WiredCollapsibleSection>
         </WiredActionBaseView>
     );
 };
