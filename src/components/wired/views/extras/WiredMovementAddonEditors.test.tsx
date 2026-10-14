@@ -1,0 +1,40 @@
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { PropsWithChildren, ReactNode } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { WiredNativeContext } from '../WiredNativeContext';
+const state = vi.hoisted(() => ({ trigger: { intData: [0, 0, 0, 0], furniSources: [100, 201], userSources: [200] }, setIntParams: vi.fn(), setStringParam: vi.fn(), setFurniSources: vi.fn(), setUserSources: vi.fn() }));
+vi.mock('../../../../api', async () => ({ ...(await vi.importActual('../../../../api/wired/WiredNativeVariables')), ...(await vi.importActual('../../../../api/wired/WiredNativeSource')), LocalizeText: (key: string) => key, WiredFurniType: { STUFF_SELECTION_OPTION_NONE: 0 } }));
+vi.mock('../../../../hooks', () => ({ useWired: () => state }));
+vi.mock('../../../../common', () => ({ Text: ({ children }: PropsWithChildren) => <span>{children}</span> }));
+vi.mock('../WiredText', () => ({ WiredText: ({ text }: { text: string }) => <span>{text}</span> }));
+vi.mock('./WiredExtraBaseView', () => ({ WiredExtraBaseView: ({ children, footer, save, nativeLayout, footerCollapsible }: PropsWithChildren<{ footer: ReactNode; save: () => void; nativeLayout: boolean; footerCollapsible: boolean }>) => <WiredNativeContext.Provider value={nativeLayout}><div data-testid="editor" data-collapsible={String(footerCollapsible)}>{children}{footer}<button onClick={save}>Save</button></div></WiredNativeContext.Provider> }));
+vi.mock('../WiredSourcesSelector', () => ({ WiredSourcesSelector: ({ furniSlot = 0, showFurni, furniSource, userSource, onChangeFurni, onChangeUsers }: any) => <input aria-label={showFurni ? `Furni ${furniSlot}` : 'Users'} value={showFurni ? furniSource : userSource} onChange={event => (showFurni ? onChangeFurni : onChangeUsers)(Number(event.target.value))} /> }));
+import { WiredExtraMovePhysicsView } from './WiredExtraMovePhysicsView';
+import { WiredExtraMoveCarryUsersView } from './WiredExtraMoveCarryUsersView';
+describe('AIR movement addon editor controls', () => {
+    beforeEach(() => { vi.clearAllMocks(); state.trigger = { intData: [0, 0, 0, 0], furniSources: [100, 201], userSources: [200] }; });
+    afterEach(cleanup);
+    it('keeps all physics sources accessible with flags off and preserves order on save', () => {
+        const { container } = render(<WiredExtraMovePhysicsView />);
+        expect(container.querySelector('.volt-wired__native-section')).not.toBeNull();
+        expect(screen.getByRole('textbox', { name: 'Furni 0' })).toHaveProperty('value', '100');
+        expect(screen.getByRole('textbox', { name: 'Furni 1' })).toHaveProperty('value', '201');
+        expect(screen.getByRole('textbox', { name: 'Users' })).toHaveProperty('value', '200');
+        fireEvent.click(screen.getByRole('checkbox', { name: 'wiredfurni.params.movephysics.keep_altitude' }));
+        fireEvent.click(screen.getByRole('checkbox', { name: 'wiredfurni.params.movephysics.block_by_furni' }));
+        fireEvent.change(screen.getByRole('textbox', { name: 'Furni 1' }), { target: { value: '100' } });
+        fireEvent.click(screen.getByText('Save'));
+        expect(state.setIntParams).toHaveBeenLastCalledWith([1, 0, 0, 1]);
+        expect(state.setFurniSources).toHaveBeenLastCalledWith([100, 100]);
+        expect(state.setUserSources).toHaveBeenLastCalledWith([200]);
+    });
+    it('uses native carry radios and always-visible source while preserving its one int', () => {
+        const { container } = render(<WiredExtraMoveCarryUsersView />);
+        expect(container.querySelector('.volt-wired__options--radio')).not.toBeNull();
+        expect(screen.getByTestId('editor').getAttribute('data-collapsible')).toBe('false');
+        fireEvent.click(screen.getByRole('radio', { name: 'wiredfurni.params.carry_mode.1' }));
+        fireEvent.change(screen.getByRole('textbox', { name: 'Users' }), { target: { value: '201' } });
+        fireEvent.click(screen.getByText('Save'));
+        expect(state.setIntParams).toHaveBeenLastCalledWith([1]); expect(state.setUserSources).toHaveBeenLastCalledWith([201]);
+    });
+});
