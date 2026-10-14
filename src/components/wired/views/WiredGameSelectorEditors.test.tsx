@@ -12,8 +12,9 @@ vi.mock('../../../api',async()=>({
     GetOwnRoomObject:()=>({model:{getValue:()=>999}}),
     WiredFurniType:{STUFF_SELECTION_OPTION_NONE:0,STUFF_SELECTION_OPTION_BY_ID_BY_TYPE_OR_FROM_CONTEXT:2}
 }));
-vi.mock('../../../hooks',()=>({useWired:()=>state}));
+vi.mock('../../../hooks',()=>({useWired:()=>state,useUserGroups:()=>({data:[{groupId:20,groupName:'Group Twenty'},{groupId:30,groupName:'Group Thirty'}]})}));
 vi.mock('../../../common',()=>({Text:({children}:PropsWithChildren)=><span>{children}</span>}));
+vi.mock('../../mod-tools/native/NativeSkinView',()=>({NativeSkinView:()=>null}));
 vi.mock('./WiredText',()=>({WiredText:({text}:{text:string})=><span>{text}</span>}));
 vi.mock('./WiredSourcesSelector',()=>({WiredSourcesSelector:()=>null}));
 vi.mock('./WiredShellHeaderView',()=>({WiredShellButton:({children,onClick}:PropsWithChildren<{onClick:()=>void}>)=><button onClick={onClick}>{children}</button>}));
@@ -71,5 +72,72 @@ describe('Native game selector editors',()=>{
         state.trigger.intData=[3];render(<View/>);fireEvent.click(screen.getByText('Save'));
         expect(screen.getByTestId('editor').getAttribute('data-native')).toBe('true');
         expect(state.setFurniSources).toHaveBeenLastCalledWith([200]);expect(state.setIntParams).toHaveBeenLastCalledWith(ints);
+    });
+});
+
+import { WiredSelectorUsersByNameView } from './selectors/WiredSelectorUsersByNameView';
+
+import { WiredSelectorUsersByTypeView } from './selectors/WiredSelectorUsersByTypeView';
+
+import { WiredSelectorUsersGroupView } from './selectors/WiredSelectorUsersGroupView';
+
+import { WiredSelectorFurniByTypeView } from './selectors/WiredSelectorFurniByTypeView';
+
+import { WiredSelectorFurniPicksView } from './selectors/WiredSelectorFurniPicksView';
+
+import { WiredSelectorFurniSignalView } from './selectors/WiredSelectorFurniSignalView';
+
+import { WiredSelectorUsersSignalView } from './selectors/WiredSelectorUsersSignalView';
+
+import { WiredSelectorRemoteView } from './selectors/WiredSelectorRemoteView';
+
+describe('Remaining simple selector editors',()=>{
+    beforeEach(()=>{vi.clearAllMocks();state.trigger={intData:[1,5],stringData:'Alice\tBob',furniSources:[200],userSources:[201]};});
+    afterEach(cleanup);
+    it('renders saved names as lines and preserves the AIR tab-delimited save contract',()=>{
+        render(<WiredSelectorUsersByNameView/>);
+        const field=screen.getByRole('textbox') as HTMLTextAreaElement;
+        expect(field.value).toBe('Alice\nBob');expect(field.maxLength).toBe(1000);expect(field.parentElement!.style.height).toBe('140px');
+        fireEvent.change(field,{target:{value:'Alice\nCarol'}});fireEvent.click(screen.getByText('Save'));
+        expect(state.setStringParam).toHaveBeenLastCalledWith('Alice\tCarol');expect(state.setIntParams).toHaveBeenLastCalledWith([]);
+        fireEvent.change(field,{target:{value:Array(25).fill('Name').join('\n')}});expect(field.value.split('\n')).toHaveLength(20);
+    });
+    it('keeps the group dropdown visible disabled without choosing an arbitrary group',()=>{
+        state.trigger.stringData='';render(<WiredSelectorUsersGroupView/>);
+        const group=screen.getByRole('combobox',{name:'wiredfurni.tooltip.group'});
+        expect(group.matches(':disabled')).toBe(true);
+        fireEvent.click(screen.getByRole('radio',{name:'wiredfurni.params.grouptype.1'}));
+        expect(group.matches(':disabled')).toBe(false);
+        fireEvent.click(screen.getByText('Save'));expect(state.setStringParam).toHaveBeenLastCalledWith('');
+        fireEvent.change(group,{target:{value:'30'}});fireEvent.click(screen.getByText('Save'));expect(state.setStringParam).toHaveBeenLastCalledWith('30');
+    });
+    it('loads the saved group and retains it while selecting room group',()=>{
+        state.trigger.stringData='20';render(<WiredSelectorUsersGroupView/>);
+        expect(screen.getByRole('combobox')).toHaveProperty('value','20');
+        fireEvent.click(screen.getByRole('radio',{name:'wiredfurni.params.grouptype.0'}));fireEvent.click(screen.getByText('Save'));expect(state.setStringParam).toHaveBeenLastCalledWith('');
+        fireEvent.click(screen.getByRole('radio',{name:'wiredfurni.params.grouptype.1'}));fireEvent.click(screen.getByText('Save'));expect(state.setStringParam).toHaveBeenLastCalledWith('20');
+    });
+    it('restores Remote filter radios and retains disabled inline40px stack count',()=>{
+        render(<WiredSelectorRemoteView/>);
+        const count=screen.getByDisplayValue('5') as HTMLInputElement;
+        expect(count.style.width).toBe('40px');
+        fireEvent.click(screen.getByRole('radio',{name:'wiredfurni.params.remote_selection.filter.0'}));
+        expect(count.matches(':disabled')).toBe(true);
+        fireEvent.click(screen.getByText('Save'));expect(state.setIntParams).toHaveBeenLastCalledWith([1,0]);expect(state.setFurniSources).toHaveBeenLastCalledWith([200]);
+        fireEvent.click(screen.getByRole('radio',{name:'wiredfurni.params.remote_selection.filter.1'}));
+        expect(count.matches(':disabled')).toBe(false);expect(count.value).toBe('5');
+        fireEvent.change(count,{target:{value:'9'}});fireEvent.click(screen.getByText('Save'));expect(state.setIntParams).toHaveBeenLastCalledWith([1,9]);
+    });
+    it('keeps user type codes and furniture state matching distinct from selector flags',()=>{
+        const {unmount}=render(<WiredSelectorUsersByTypeView/>);
+        fireEvent.click(screen.getByRole('radio',{name:'wiredfurni.params.usertype.4'}));fireEvent.click(screen.getByText('Save'));expect(state.setIntParams).toHaveBeenLastCalledWith([4]);
+        unmount();render(<WiredSelectorFurniByTypeView/>);
+        fireEvent.click(screen.getByRole('checkbox',{name:'wiredfurni.params.state_match'}));fireEvent.click(screen.getByText('Save'));
+        expect(state.setIntParams).toHaveBeenLastCalledWith([0]);expect(state.setFurniSources).toHaveBeenLastCalledWith([100]);
+    });
+    it.each([WiredSelectorFurniPicksView,WiredSelectorFurniSignalView,WiredSelectorUsersSignalView])('uses native category options without introducing owned parameters',View=>{
+        render(<View/>);expect(screen.getByTestId('editor').getAttribute('data-width')).toBe('undefined');expect(screen.getByTestId('editor').getAttribute('data-native')).toBe('true');
+        fireEvent.click(screen.getByRole('checkbox',{name:'wiredfurni.params.selector_option.1'}));fireEvent.click(screen.getByText('Save'));
+        expect(state.setInverse).toHaveBeenCalledWith(true);expect(state.setIntParams).toHaveBeenLastCalledWith([]);
     });
 });

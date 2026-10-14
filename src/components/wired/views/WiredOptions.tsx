@@ -5,7 +5,7 @@ import { useWiredNative } from './WiredNativeContext';
 import { WiredSection } from './WiredSection';
 import { WiredText } from './WiredText';
 
-const optionLabel = (label: ReactNode) => (typeof label === 'string' ? <WiredText wrap={true} text={label} /> : <span className="volt-wired__text">{label}</span>);
+const optionLabel = (label: ReactNode, wrap = true) => (typeof label === 'string' ? <WiredText wrap={wrap} text={label} /> : <span className="volt-wired__text">{label}</span>);
 
 export interface WiredRadioOption {
     id: number;
@@ -15,6 +15,8 @@ export interface WiredRadioOption {
     newLine?: boolean;
     /** RadioButtonParam's attached preset, drawn under the option (optionExtraUnderSpacing/LeftMargin). */
     extra?: ReactNode;
+    /** RadioButtonParam.extra1: same-row preset, disabled until this option is selected. */
+    inlineExtra?: ReactNode;
 }
 
 export interface WiredRadioGroupProps {
@@ -35,10 +37,13 @@ export const WiredRadioGroup: FC<WiredRadioGroupProps> = ({ name, options, value
             <div className="flex flex-col gap-1">
                 {options.map((option) => (
                     <div key={option.id} className="flex flex-col gap-1">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                         <label className="flex gap-1">
                             <input checked={value === option.id} className="form-check-input" disabled={option.disabled} name={name} type="radio" onChange={() => onChange(option.id)} />
                             <Text>{option.label}</Text>
                         </label>
+                        {option.inlineExtra && <fieldset disabled={option.disabled || value !== option.id} inert={option.disabled || value !== option.id} style={{ minWidth: 0, border: 0, padding: 0, margin: 0 }}>{option.inlineExtra}</fieldset>}
+                        </div>
                         {option.extra && <fieldset disabled={option.disabled || value !== option.id} inert={option.disabled || value !== option.id} style={{ minWidth: 0, border: 0, padding: 0, margin: 0 }}>{option.extra}</fieldset>}
                     </div>
                 ))}
@@ -50,10 +55,13 @@ export const WiredRadioGroup: FC<WiredRadioGroupProps> = ({ name, options, value
         <div className="volt-wired__options volt-wired__options--radio" style={{ gridTemplateColumns: `repeat(${columns}, round(down, calc((100% - ${(columns - 1) * 5}px) / ${columns}), 1px))` }}>
             {options.map((option, index) => (
                 <div key={option.id} className="volt-wired__option-cell" style={option.newLine ? { gridColumn: '1 / -1' } : undefined}>
+                    <div style={option.inlineExtra ? { display: 'flex', alignItems: 'center', gap: 3 } : undefined}>
                     <label className={`volt-wired__option ${index === options.length - 1 ? 'is-last' : ''} ${option.disabled ? 'is-disabled' : ''}`}>
                         <input checked={value === option.id} disabled={option.disabled} name={name} type="radio" onChange={() => onChange(option.id)} />
-                        {optionLabel(option.label)}
+                        {optionLabel(option.label, !option.inlineExtra)}
                     </label>
+                    {option.inlineExtra && <fieldset disabled={option.disabled || value !== option.id} inert={option.disabled || value !== option.id} style={{ minWidth: 0, border: 0, padding: 0, margin: 0 }}>{option.inlineExtra}</fieldset>}
+                    </div>
                     {option.extra && <fieldset className="volt-wired__option-extra" disabled={option.disabled || value !== option.id} inert={option.disabled || value !== option.id} style={{ minWidth: 0, border: 0, padding: 0, marginTop: 0, marginRight: 0, marginBottom: 0 }}>{option.extra}</fieldset>}
                 </div>
             ))}
