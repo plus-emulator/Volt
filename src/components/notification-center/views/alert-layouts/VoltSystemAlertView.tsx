@@ -8,11 +8,13 @@ interface NotificationDefaultAlertViewProps extends LayoutNotificationAlertViewP
 }
 
 const VOLT_ABOUT_TEXT = [
-    '<b>Volt</b>',
+    'Volt is the web client for Plus++ Emulator.',
+    '',
     '<b>About</b>',
-    'Volt is a fork of Octane, with any custom logic stripped out and only its best parts kept.',
+    'Volt is a fork of Octane. Custom logic has been stripped out and only its best parts are kept. We have fixed a lot ourselves and made sure the UI matches the Habbo AIR UI.',
+    '',
     '<b>Credits</b>',
-    'Thanks to Billsonnn and the Nitro team for the Nitro React and Nitro Renderer work that Octane is built on.'
+    'Thanks to Billsonnn and the Nitro team for the Nitro React and Nitro Renderer work that Volt is built on.'
 ].join('\n');
 
 export const VoltSystemAlertView: FC<NotificationDefaultAlertViewProps> = (props) => {
