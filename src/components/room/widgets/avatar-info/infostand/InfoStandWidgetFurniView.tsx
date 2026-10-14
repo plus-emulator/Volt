@@ -46,6 +46,7 @@ import {
 } from '../../../../../common';
 import { Permission } from '../../../../../api/permissions';
 import { useFurniPickupGuard, useHasPermission, useMessageEvent, useVoltEvent, useRoom, useWiredTools } from '../../../../../hooks';
+import { useWiredLabelsStore } from '../../../../../hooks/rooms/widgets/useWiredLabelsState';
 import { VoltInput } from '../../../../../layout';
 import { ImagePositionEditorView } from './ImagePositionEditorView';
 
@@ -126,7 +127,9 @@ function getValidRoomObjectDirection(roomObject: any, isPositive: boolean) {
 export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (props) => {
     const { avatarInfo = null, onClose = null } = props;
     const { roomSession = null } = useRoom();
-    const { openInspectionForFurni, showInspectButton } = useWiredTools();
+    const { openInspectionForFurni, showInspectButton, roomSettings } = useWiredTools();
+    const hasWiredLabel = useWiredLabelsStore((state) => !!avatarInfo && state.labels[avatarInfo.id] !== undefined);
+    const openWiredLabelSettings = useWiredLabelsStore((state) => state.openSettings);
 
     const externalImagePhotoUrl = useMemo(() => {
         if (!avatarInfo || !roomSession) return null;
@@ -986,6 +989,11 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
                 {showInspectButton && (
                     <Button variant="dark" size={null} className="habbo-btn-black" onClick={() => openInspectionForFurni(avatarInfo.id, avatarInfo.category)}>
                         Inspect
+                    </Button>
+                )}
+                {hasWiredLabel && !avatarInfo.isWallItem && roomSettings.canModify && (
+                    <Button variant="dark" size={null} className="habbo-btn-black" onClick={() => openWiredLabelSettings(avatarInfo.id)}>
+                        {localizeWithFallback('infostand.button.label_settings', 'Settings')}
                     </Button>
                 )}
                 {canMove && (

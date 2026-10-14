@@ -27,6 +27,7 @@ import { WiredConditionTimeElapsedLessView } from './WiredConditionTimeElapsedLe
 import { WiredConditionTimeElapsedMoreView } from './WiredConditionTimeElapsedMoreView';
 import { WiredConditionTriggererMatchView } from './WiredConditionTriggererMatchView';
 import { WiredConditionUserCountInRoomView } from './WiredConditionUserCountInRoomView';
+import { WiredConditionUserLevelNativeView } from './WiredConditionUserLevelNativeView';
 import { WiredConditionUserPerformsActionView } from './WiredConditionUserPerformsActionView';
 import { WiredConditionVariableAgeMatchView } from './WiredConditionVariableAgeMatchView';
 import { WiredConditionVariableValueMatchView } from './WiredConditionVariableValueMatchView';
@@ -120,6 +121,8 @@ export const WiredConditionLayoutView = (code: number) => {
             return <WiredConditionChestHasItemsView />;
         case WiredConditionlayout.CHEST_HAS_ITEM_TYPE:
             return <WiredConditionChestHasItemTypeView />;
+        case WiredConditionlayout.USER_LEVEL_MATCHES:
+            return <WiredConditionUserLevelNativeView />;
     }
 
     return null;

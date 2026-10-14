@@ -106,6 +106,23 @@ import { WiredSelectorUsersOnFurniView } from './selectors/WiredSelectorUsersOnF
 import { WiredSelectorUsersSignalView } from './selectors/WiredSelectorUsersSignalView';
 import { WiredSelectorUsersTeamView } from './selectors/WiredSelectorUsersTeamView';
 import { WiredSelectorUsersWithVariableView } from './selectors/WiredSelectorUsersWithVariableView';
+import { WiredActionGiveEffectView } from './actions/WiredActionGiveEffectView';
+import { WiredActionOverrideHeightNativeView } from './actions/WiredActionOverrideHeightNativeView';
+import { WiredActionProgressAchievementNativeView } from './actions/WiredActionProgressAchievementNativeView';
+import { WiredActionProgressRewardTrackNativeView } from './actions/WiredActionProgressRewardTrackNativeView';
+import { WiredActionResetRewardTrackNativeView } from './actions/WiredActionResetRewardTrackNativeView';
+import { WiredActionSendLinkDataframeView } from './actions/WiredActionSendLinkDataframeView';
+import { WiredActionSendLinkMessageView } from './actions/WiredActionSendLinkMessageView';
+import { WiredActionSetFurniHighlightView } from './actions/WiredActionSetFurniHighlightView';
+import { WiredActionSetFurniTransparencyView } from './actions/WiredActionSetFurniTransparencyView';
+import { WiredExtraAchievementEnablerNativeView } from './extras/WiredExtraAchievementEnablerNativeView';
+import { WiredExtraDailyTaskNativeView } from './extras/WiredExtraDailyTaskNativeView';
+import { WiredExtraGlobalPlaceholderNativeView } from './extras/WiredExtraGlobalPlaceholderNativeView';
+import { WiredExtraLinkSpeakerView } from './extras/WiredExtraLinkSpeakerView';
+import { WiredExtraPointerVariableView } from './extras/WiredExtraPointerVariableView';
+import { WiredExtraVariableAddonImportView, WiredExtraVariableAddonShareView } from './extras/WiredExtraVariableAddonSharingView';
+import { WiredExtraVariableLeaderboardView } from './extras/WiredExtraVariableLeaderboardView';
+import { WiredExtraVariablesWebApiNativeView } from './extras/WiredExtraVariablesWebApiNativeView';
 
 /** Native action codes (registry native code) to their editor window. */
 export const NativeWiredActionLayoutView = (code: number) => {
@@ -159,10 +176,19 @@ export const NativeWiredActionLayoutView = (code: number) => {
         case 48: return <WiredActionCancelTransactionView />;  // wf_act_cancel_transaction
         case 49: return <WiredActionWriteToLogsView />;  // wf_act_log
         case 50: return <WiredActionWriteToLogsView />;  // wf_act_neg_log
+        case 51: return <WiredActionProgressAchievementNativeView />;  // wf_act_progress_ach
+        case 52: return <WiredActionGiveEffectView />;  // give effect (no hhus furni)
+        case 53: return <WiredActionOverrideHeightNativeView />;  // override height (no hhus furni)
         case 54: return <WiredActionClickSettingsView />;  // wf_act_click_conf
         case 55: return <WiredActionPlaceFurniView />;  // wf_act_place_furni
         case 56: return <WiredActionRemoveFurniView />;  // wf_act_remove_furni
         case 57: return <WiredActionMoveFurniAsGroupView />;  // wf_act_move_furni_as_group
+        case 58: return <WiredActionProgressRewardTrackNativeView />;  // progress reward track (no hhus furni)
+        case 59: return <WiredActionResetRewardTrackNativeView />;  // reset reward track (no hhus furni)
+        case 61: return <WiredActionSetFurniTransparencyView />;  // wf_act_set_visibility
+        case 62: return <WiredActionSetFurniHighlightView />;  // wf_act_set_highlight
+        case 63: return <WiredActionSendLinkMessageView />;  // wf_act_send_message
+        case 64: return <WiredActionSendLinkDataframeView />;  // wf_act_send_dataframe
     }
 
     return null;
@@ -225,12 +251,19 @@ export const NativeWiredAddonLayoutView = (code: number) => {
         case 1000: return <WiredExtraVariableTextConnectorView />;  // wf_xtra_var_text_connector
         case 1001: return <WiredExtraVariableLevelUpSystemView />;  // wf_xtra_var_lvlup_system
         case 1002: return <WiredExtraTimeUtilitiesView />;  // wf_xtra_var_time_util
+        case 1003: return <WiredExtraVariableAddonShareView />;  // wf_xtra_var_share
+        case 1004: return <WiredExtraVariableAddonImportView />;  // wf_xtra_var_import
+        case 1005: return <WiredExtraVariableLeaderboardView />;  // wf_xtra_var_leaderboard
         case 1200: return <WiredExtraVariableFxView category={WIRED_FX_CATEGORY.HEALTH_POINTS} />;  // wf_xtra_var_fx_health
         case 1201: return <WiredExtraVariableFxView category={WIRED_FX_CATEGORY.PROGRESS_BAR} />;  // wf_xtra_var_fx_progress
         case 1202: return <WiredExtraVariableFxView category={WIRED_FX_CATEGORY.LEVELLING_PROGRESS} />;  // wf_xtra_var_fx_level
         case 1203: return <WiredExtraVariableFxView category={WIRED_FX_CATEGORY.STATUS_BAR} />;  // wf_xtra_var_fx_status
         case 1204: return <WiredExtraVariableFxView category={WIRED_FX_CATEGORY.BOSS_BAR} />;  // wf_xtra_var_fx_boss
         case 1205: return <WiredExtraVariableFxView category={WIRED_FX_CATEGORY.NUMBER_DISPLAY} />;  // wf_xtra_var_fx_number
+        case 2000: return <WiredExtraGlobalPlaceholderNativeView />;  // global placeholder (no hhus furni)
+        case 2001: return <WiredExtraAchievementEnablerNativeView />;  // wf_xtra_achievement_enabler
+        case 2002: return <WiredExtraVariablesWebApiNativeView />;  // wf_xtra_var_web_api
+        case 2003: return <WiredExtraLinkSpeakerView />;  // wf_xtra_link_speaker
     }
 
     return null;
@@ -248,6 +281,8 @@ export const NativeWiredVariableLayoutView = (code: number) => {
         case 5: return <WiredExtraQuestView />;  // wf_var_quest
         case 6: return <WiredExtraQuestChainView />;  // wf_var_quest_chain
         case 7: return <WiredExtraVariableEchoView />;  // wf_var_echo
+        case 8: return <WiredExtraDailyTaskNativeView />;  // wf_var_dailytask
+        case 9: return <WiredExtraPointerVariableView />;  // wf_var_pointer
     }
 
     return null;

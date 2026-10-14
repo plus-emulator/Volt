@@ -31,4 +31,8 @@ export class WiredTriggerLayout {
      * answers a user's click. The emulator registers it on wf_trg_state_changed.
      */
     public static STATE_CHANGE: number = 20;
+    /** October AIR triggers (WIN63-202610131318 TriggerConfCodes): room initialized and the WIRED Link receivers. */
+    public static INITIALIZATION: number = 28;
+    public static RECEIVE_LINK_MESSAGE: number = 29;
+    public static RECEIVE_LINK_DATAFRAME: number = 30;
 }
