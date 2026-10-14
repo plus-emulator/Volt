@@ -1,15 +1,7 @@
 import {
-    GetAssetManager,
-    GetAvatarRenderManager,
     GetCommunication,
     GetConfiguration,
-    GetFurnitureDataUrl,
-    GetDesiredResolution,
-    GetLocalizationManager,
     GetRoomEngine,
-    GetRoomSessionManager,
-    GetSessionDataManager,
-    GetSoundManager,
     GetStage,
     GetTexturePool,
     GetTicker,
@@ -18,12 +10,11 @@ import {
     LoadGameUrlEvent,
     VoltEventType,
     VoltLogger,
-    VoltVersion,
-    PrepareRenderer
+    VoltVersion
 } from '@volt/renderer';
 import { FC, useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { GetUIVersion } from './api';
-import { loadMarketplaceTexts } from './api/catalog/loadMarketplaceTexts';
+import { startHotelRuntime } from './boot/HotelRuntime';
 import { Base } from './common';
 import { LoadingView } from './components/loading/LoadingView';
 import { MainView } from './components/MainView';
@@ -59,28 +50,6 @@ const takeEarlyCommunicationInit = (): Promise<void> | null => {
     return early ?? null;
 };
 
-const preloadUrl = async (url: string): Promise<void> => {
-    if (!url) return;
-
-    // Split gamedata URLs are directories (end with '/'); fetching them as a
-    // file just 404s and wastes a connection at startup. The real split loader
-    // handles those — only warm up actual file URLs here.
-    if (url.split('?')[0].split('#')[0].endsWith('/')) return;
-
-    try {
-        const response = await fetch(url, { cache: 'force-cache' });
-        await response.arrayBuffer();
-    } catch {}
-};
-
-const asStringArray = (value: unknown): string[] => {
-    if (Array.isArray(value)) return value.filter((item) => typeof item === 'string');
-    if (typeof value === 'string' && value.length) return [value];
-
-    return [];
-};
-
-
 export const App: FC<{}> = (props) => {
     const connectionState = useConnectionState();
     const devicePixelRatio = useDevicePixelRatio();
@@ -90,9 +59,6 @@ export const App: FC<{}> = (props) => {
     const bumpProgress = useCallback((value: number) => {
         setLoadingProgress((prev) => (value > prev ? value : prev));
     }, []);
-    const warmupPromiseRef = useRef<Promise<void>>(null);
-    const rendererPromiseRef = useRef<Promise<any>>(null);
-    const gameInitPromiseRef = useRef<Promise<void> | null>(null);
     const communicationInitRef = useRef<Promise<void> | null>(null);
     const bootstrapDoneRef = useRef(false);
     const prepareStartedRef = useRef(false);
@@ -158,86 +124,6 @@ export const App: FC<{}> = (props) => {
         LegacyExternalInterface.callGame('showGame', parser.url);
     });
 
-    const startRenderer = useCallback((width: number, height: number) => {
-        if (rendererPromiseRef.current) return rendererPromiseRef.current;
-
-        const rawUseBackBuffer = window.VoltConfig?.['renderer.useBackBuffer'];
-        const useBackBuffer = rawUseBackBuffer === undefined ? true : rawUseBackBuffer === true || rawUseBackBuffer === 'true';
-
-        rendererPromiseRef.current = PrepareRenderer({
-            width: Math.floor(width),
-            height: Math.floor(height),
-            resolution: GetDesiredResolution(),
-            autoDensity: true,
-            backgroundAlpha: 0,
-            preference: 'webgl',
-            eventMode: 'none',
-            failIfMajorPerformanceCaveat: false,
-            roundPixels: true,
-            useBackBuffer
-        });
-
-        return rendererPromiseRef.current;
-    }, []);
-
-    const startWarmup = useCallback(
-        (width: number, height: number) => {
-            if (warmupPromiseRef.current) return warmupPromiseRef.current;
-
-            warmupPromiseRef.current = (async () => {
-                await GetConfiguration().init();
-                bumpProgress(25);
-
-                // 0 = the display's refresh rate. A cap (the old 24 default) makes
-                // Pixi skip whole animation frames: on a 60 Hz display it ticks at an
-                // alternating 33/50 ms, so walking judders and the 24 Hz visual
-                // clock (system.fps.animation) is sampled unevenly. Animation cadence
-                // is time based, so a higher tick rate does not speed anything up.
-                GetTicker().maxFPS = GetConfiguration().getValue<number>('system.fps.max', 0);
-                VoltLogger.LOG_DEBUG = GetConfiguration().getValue<boolean>('system.log.debug', true);
-                VoltLogger.LOG_WARN = GetConfiguration().getValue<boolean>('system.log.warn', false);
-                VoltLogger.LOG_ERROR = GetConfiguration().getValue<boolean>('system.log.error', false);
-                VoltLogger.LOG_EVENTS = GetConfiguration().getValue<boolean>('system.log.events', false);
-                VoltLogger.LOG_PACKETS = GetConfiguration().getValue<boolean>('system.log.packets', false);
-
-                startRenderer(width, height).catch((error) => VoltLogger.error('[App] Renderer warmup failed', error));
-
-                const interpolate = (value: string) => GetConfiguration().interpolate(value);
-                const assetUrls = asStringArray(GetConfiguration().getValue<unknown>('preload.assets.urls')).map(interpolate);
-                // LocalizationManager downloads external.texts.url itself, all at once, below.
-                // Furnidata is warmed at the exact URL the session loads it from (its boot version, if known).
-                const gamedataUrls = [
-                    interpolate(GetFurnitureDataUrl(true)),
-                    ...['productdata.url', 'avatar.actions.url', 'avatar.figuredata.url', 'avatar.figuremap.url', 'avatar.effectmap.url']
-                        .map((key) => interpolate(GetConfiguration().getValue<string>(key, '')))
-                ].filter(Boolean);
-                gamedataUrls.forEach((url) => preloadUrl(url));
-
-                const warmupTasks: Promise<any>[] = [
-                    GetAssetManager().downloadAssets(assetUrls),
-                    GetLocalizationManager().init().then(loadMarketplaceTexts),
-                    GetAvatarRenderManager().init(),
-                    GetSoundManager().init()
-                ];
-                let warmupDone = 0;
-                const warmupStart = 25;
-                const warmupSpan = 45;
-                await Promise.all(
-                    warmupTasks.map((task) =>
-                        task.then((value) => {
-                            warmupDone++;
-                            bumpProgress(warmupStart + Math.round((warmupSpan * warmupDone) / warmupTasks.length));
-                            return value;
-                        })
-                    )
-                );
-            })();
-
-            return warmupPromiseRef.current;
-        },
-        [startRenderer, bumpProgress]
-    );
-
     useEffect(() => {
         syncViewportCssVars();
 
@@ -289,26 +175,11 @@ export const App: FC<{}> = (props) => {
                     communicationInitRef.current.catch(() => {});
                 }
 
-                const renderer = await startRenderer(width, height);
-                bumpProgress(20);
-
-                await startWarmup(width, height);
-                bumpProgress(70);
-
-                if (!gameInitPromiseRef.current) {
-                    gameInitPromiseRef.current = (async () => {
-                        await GetSessionDataManager().init();
-                        bumpProgress(78);
-                        await GetRoomSessionManager().init();
-                        bumpProgress(85);
-                        await GetRoomEngine().init();
-                        bumpProgress(92);
-                        await communicationInitRef.current;
-                        bumpProgress(98);
-                    })();
-                }
-
-                await gameInitPromiseRef.current;
+                const [renderer] = await Promise.all([
+                    startHotelRuntime(width, height),
+                    communicationInitRef.current
+                ]);
+                bumpProgress(98);
 
                 if (!bootstrapDoneRef.current) {
                     bootstrapDoneRef.current = true;
@@ -344,7 +215,7 @@ export const App: FC<{}> = (props) => {
         return () => {
             if (heartbeatIntervalRef.current !== null) window.clearInterval(heartbeatIntervalRef.current);
         };
-    }, [startWarmup, startRenderer, bumpProgress]);
+    }, [bumpProgress]);
 
     return (
         <Base fit overflow="hidden" className={`volt-app-root ${!(devicePixelRatio % 1) ? 'image-rendering-pixelated' : ''}`}>

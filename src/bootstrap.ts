@@ -1,4 +1,5 @@
 import { GetCommunication, GetConfiguration } from '@volt/renderer';
+import { startHotelRuntime } from './boot/HotelRuntime';
 import { derivePetConfig, DerivedPetConfig, PetDefinition } from './api/volt/PetData';
 import { parseJsonDocument, UiJsonMode } from './json/JsonDocumentParser';
 import { configFileUrl, getClientMode, installSecureFetch } from './secure-assets';
@@ -287,6 +288,13 @@ if (ssoTicket) {
 if (petConfig) {
     Object.assign((window as any).VoltConfig, petConfig);
     GetConfiguration().parseConfiguration(petConfig, true);
+}
+
+// Start the engine while React and the UI bundle are still loading. App joins
+// this same promise; incoming login packets remain queued until MainView is ready.
+if (ssoTicket) {
+    const viewport = window.visualViewport;
+    startHotelRuntime(viewport?.width ?? window.innerWidth, viewport?.height ?? window.innerHeight).catch(() => {});
 }
 
 appModule

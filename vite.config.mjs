@@ -313,7 +313,8 @@ export default defineConfig({
         }
     },
     build: {
-        assetsInlineLimit: 102400,
+        // Keep tiny icons inline; larger artwork should not inflate every cold boot.
+        assetsInlineLimit: 4096,
         chunkSizeWarningLimit: 200000,
         manifest: true,
         rollupOptions: {
