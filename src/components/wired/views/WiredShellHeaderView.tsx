@@ -21,9 +21,10 @@ interface WiredShellHeaderViewProps {
     title: string;
     onClose: () => void;
     menuItems: Array<WiredShellMenuItem | null>;
+    showMenu?: boolean;
 }
 
-export const WiredShellHeaderView: FC<WiredShellHeaderViewProps> = ({ shellStyle, title, onClose, menuItems }) => {
+export const WiredShellHeaderView: FC<WiredShellHeaderViewProps> = ({ shellStyle, title, onClose, menuItems, showMenu = true }) => {
     const headerPatternId = useId();
     const [menuPosition, setMenuPosition] = useState<{ left: number; top: number } | null>(null);
     const toggleRef = useRef<HTMLButtonElement>(null);
@@ -95,7 +96,7 @@ export const WiredShellHeaderView: FC<WiredShellHeaderViewProps> = ({ shellStyle
                 </svg>
             )}
             <span className="volt-wired__shell-caption">{title}</span>
-            {(shellStyle === 'illumina' || shellStyle === 'volter') && (
+            {showMenu && (shellStyle === 'illumina' || shellStyle === 'volter') && (
                 <button
                     ref={toggleRef}
                     aria-expanded={!!menuPosition}

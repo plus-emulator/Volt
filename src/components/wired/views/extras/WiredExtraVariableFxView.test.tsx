@@ -7,11 +7,12 @@ const setIntParams = vi.fn(), setStringParam = vi.fn(), setVariableIds = vi.fn()
 let trigger: { id: number; stringData: string; intData: number[]; variableIds: string[] };
 let baseProps: { save: () => void; validate?: () => boolean };
 vi.mock('../../../../hooks', () => ({
+    useWiredTools: () => ({ activeWiredStyle: 'illumina' }),
     useWired: () => ({ trigger, setIntParams, setStringParam, setVariableIds }),
-    useWiredNativeVariables: () => ({ userVariableDefinitions: [{ itemId: 300, name: 'max_hp', availability: 0, hasValue: true }], furniVariableDefinitions: [], roomVariableDefinitions: [{ itemId: 500, name: 'boss_max', availability: 0, hasValue: true }] })
+    useWiredNativeVariables: () => ({ userVariableDefinitions: [{ itemId: 300, name: 'max_hp', availability: 0, hasValue: true }, { itemId: 301, name: 'visitor_tag', availability: 0, hasValue: false }], furniVariableDefinitions: [], roomVariableDefinitions: [{ itemId: 500, name: 'boss_max', availability: 0, hasValue: true }] })
 }));
 vi.mock('../../../../api', async importOriginal => ({ ...await importOriginal<object>(), localizeWithFallback: (_key: string, fallback: string) => fallback }));
-vi.mock('../../../../common', () => ({ Text: ({ children }: PropsWithChildren) => <span>{children}</span> }));
+vi.mock('../../../../common', () => ({ VoltCardView: ({ children }: PropsWithChildren) => <div>{children}</div>, Text: ({ children }: PropsWithChildren) => <span>{children}</span> }));
 vi.mock('../WiredText', () => ({ WiredText: ({ text }: { text: string }) => <span>{text}</span> }));
 vi.mock('../WiredDropdown', () => ({ WiredDropdown: (props: { caption: string; value: number; disabled?: boolean; options: {id: number;label: string}[]; onChange: (value: number) => void }) => (
     <select aria-label={props.caption} value={props.value} disabled={props.disabled} onChange={event => props.onChange(Number(event.target.value))}>
@@ -26,6 +27,7 @@ vi.mock('../WiredVariablePicker', () => ({ WiredVariablePicker: (props: { entrie
         {props.entries.flatMap(entry => entry.children?.length ? entry.children : [entry]).map(entry => <button key={entry.token} onClick={() => props.onSelect(entry)}>{entry.token}</button>)}
     </div>
 ) }));
+vi.mock('./WiredVariableFxPreviewView', () => ({ WiredVariableFxPreviewView: () => <div>Preview</div> }));
 import { WiredExtraVariableFxView } from './WiredExtraVariableFxView';
 
 afterEach(cleanup);
@@ -85,5 +87,44 @@ describe('AIR Variable FX sections', () => {
         expect(valid).toBe(false);
         expect(screen.getByText('The maximum has to be above the minimum.')).toBeInTheDocument();
         expect(setIntParams).not.toHaveBeenCalled();
+    });
+});
+
+
+describe('AIR audience popup', () => {
+    it('keeps edits local until Save and cancels without changing the audience', () => {
+        render(<WiredExtraVariableFxView category={WIRED_FX_CATEGORY.PROGRESS_BAR} />);
+        fireEvent.click(screen.getByRole('button', { name: 'Visibility' }));
+        fireEvent.change(screen.getByRole('combobox', { name: 'Audience' }), { target: { value: '3' } });
+        expect(screen.getByRole('dialog', { name: 'Variable audience' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+        fireEvent.click(screen.getByRole('button', { name: 'custom:300' }));
+        fireEvent.click(screen.getByRole('checkbox', { name: 'Select a value' }));
+        fireEvent.change(screen.getByRole('textbox', { name: 'Audience value' }), { target: { value: '42' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+        act(() => baseProps.save());
+        expect(setIntParams.mock.calls.at(-1)[0][1]).toBe(2);
+        fireEvent.change(screen.getByRole('combobox', { name: 'Audience' }), { target: { value: '3' } });
+        fireEvent.click(screen.getByRole('button', { name: 'custom:300' }));
+        fireEvent.click(screen.getByRole('checkbox', { name: 'Select a value' }));
+        fireEvent.change(screen.getByRole('textbox', { name: 'Audience value' }), { target: { value: '42' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+        expect(screen.queryByRole('dialog')).toBeNull();
+        act(() => baseProps.save());
+        expect(setIntParams.mock.calls.at(-1)[0][1]).toBe(4);
+        expect(setIntParams.mock.calls.at(-1)[0].slice(18, 20)).toEqual([0, 42]);
+        expect(setVariableIds.mock.calls.at(-1)[0]).toEqual(['n', 'n', '300']);
+    });
+    it('allows tags but disables value matching for variables without a value', () => {
+        render(<WiredExtraVariableFxView category={WIRED_FX_CATEGORY.PROGRESS_BAR} />);
+        fireEvent.click(screen.getByRole('button', { name: 'Visibility' }));
+        fireEvent.change(screen.getByRole('combobox', { name: 'Audience' }), { target: { value: '3' } });
+        fireEvent.click(screen.getByRole('button', { name: 'custom:301' }));
+        expect(screen.getByRole('checkbox', { name: 'Select a value' })).toBeDisabled();
+        expect(screen.getByRole('textbox', { name: 'Audience value' })).toBeDisabled();
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+        act(() => baseProps.save());
+        expect(setIntParams.mock.calls.at(-1)[0][1]).toBe(3);
+        expect(setVariableIds.mock.calls.at(-1)[0][2]).toBe('301');
     });
 });

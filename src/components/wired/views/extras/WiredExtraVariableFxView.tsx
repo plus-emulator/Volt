@@ -33,18 +33,17 @@ import {
 } from '../../../../api';
 import { Text } from '../../../../common';
 import { useWired } from '../../../../hooks';
-import { VoltInput } from '../../../../layout';
 import { WiredSection, WiredSplitter } from '../WiredSection';
 import { WiredCollapsibleSection } from '../WiredCollapsibleSection';
 import { WiredDropdown } from '../WiredDropdown';
 import { WiredRadioGroup, WiredCheckboxOption } from '../WiredOptions';
 import { WiredNumberInput } from '../WiredNumberInput';
 import { WiredText } from '../WiredText';
-import userIcon from '../../../../assets/images/wired/native/icon_source_users.png';
-import globalIcon from '../../../../assets/images/wired/native/icon_source_global.png';
-import furniIcon from '../../../../assets/images/wired/native/icon_source_furni.png';
+import { WiredSourceTypeSelector } from '../WiredSourceTypeSelector';
+import { WiredVariableFxPreviewView } from './WiredVariableFxPreviewView';
+import { WiredVariableFxAudienceView } from './WiredVariableFxAudienceView';
 import { WiredVariablePicker } from '../WiredVariablePicker';
-import { buildWiredVariablePickerEntries, IWiredVariablePickerEntry, WiredVariablePickerTarget } from '../WiredVariablePickerData';
+import { buildWiredVariablePickerEntries, flattenWiredVariablePickerEntries, IWiredVariablePickerEntry, WiredVariablePickerTarget } from '../WiredVariablePickerData';
 import { tokenOfVariableSlot, variableSlotOf, WIRED_VARIABLE_ABSENT } from '../../../../api';
 import { useWiredNativeVariables } from '../../../../hooks';
 import { WiredExtraBaseView } from './WiredExtraBaseView';
@@ -78,11 +77,6 @@ const SHOW_MODE_OPTIONS: IFxOption[] = [
     { value: WIRED_FX_SHOW_MODE.ALWAYS, key: 'wiredfurni.params.variablefx.show_mode.always', fallback: 'Always visible' },
     { value: WIRED_FX_SHOW_MODE.WHEN_CHANGES, key: 'wiredfurni.params.variablefx.show_mode.when_variable_changes', fallback: 'Visible when the variable updates' },
     { value: WIRED_FX_SHOW_MODE.NEVER, key: 'wiredfurni.params.variablefx.show_mode.never', fallback: 'Never visible' }
-];
-
-const TARGET_OPTIONS: IFxOption[] = [
-    { value: WIRED_FX_OVERRIDE_TARGET.HOLDER, key: 'wiredfurni.params.variablefx.override.holder', fallback: "The holder's own variable" },
-    { value: WIRED_FX_OVERRIDE_TARGET.GLOBAL, key: 'wiredfurni.params.variablefx.override.global', fallback: 'A room variable' }
 ];
 
 /** The bars a segmented renderer or a level badge can be: the labels for the renderer ids the styles offer. */
@@ -156,6 +150,7 @@ export const WiredExtraVariableFxView: FC<WiredExtraVariableFxViewProps> = (prop
     const [variables, setVariables] = useState<IFxVariableTokens>(() => variableTokensFromWire([]));
     const [icon, setIcon] = useState('');
     const [rangeError, setRangeError] = useState(false);
+    const [audienceOpen, setAudienceOpen] = useState(false);
 
     const styles = wiredVariableFxStyles(category);
     const style = wiredVariableFxStyle(category, params.styleId);
@@ -165,8 +160,7 @@ export const WiredExtraVariableFxView: FC<WiredExtraVariableFxViewProps> = (prop
     const segmentsAllowed = wiredVariableFxSegmentsAllowed(category, params.rendererId, params.categoryExtra);
     const holderTarget: WiredVariablePickerTarget = params.source === WIRED_FX_SOURCE.FURNI ? 'furni' : 'user';
     const needsAudience = params.visibility >= WIRED_FX_VISIBILITY.HAS_VARIABLE;
-    const visibilityOptions = [VISIBILITY_OPTIONS[1], VISIBILITY_OPTIONS[2], VISIBILITY_OPTIONS[3], VISIBILITY_OPTIONS[4], VISIBILITY_OPTIONS[0]]
-        .filter((option) => params.source === WIRED_FX_SOURCE.USER || option.value >= WIRED_FX_VISIBILITY.EVERYONE);
+
     const categoryHasColor = styles.some(entry => entry.colorIds.some(id => id !== WIRED_FX_COLOR_NOT_APPLICABLE));
     const categoryHasWidth = styles.some(entry => entry.widthIds.some(id => id !== WIRED_FX_WIDTH_NOT_APPLICABLE));
     const categoryHasRenderer = styles.some(entry => entry.rendererIds.length > 1);
@@ -180,13 +174,23 @@ export const WiredExtraVariableFxView: FC<WiredExtraVariableFxViewProps> = (prop
         [holderTarget, userVariableDefinitions, furniVariableDefinitions]
     );
     const roomEntries = useMemo(() => customOnly(buildWiredVariablePickerEntries('global', 'change-reference', roomVariableDefinitions)), [roomVariableDefinitions]);
-    const audienceEntries = useMemo(() => customOnly(buildWiredVariablePickerEntries('user', 'change-reference', userVariableDefinitions)), [userVariableDefinitions]);
+    const audienceEntries = useMemo(() => customOnly(buildWiredVariablePickerEntries('user', 'echo', userVariableDefinitions)), [userVariableDefinitions]);
+    const selectedAudience = flattenWiredVariablePickerEntries(audienceEntries).find(entry => entry.token === variables.audience);
+    const audienceName = selectedAudience?.displayLabel ?? variables.audience;
+    const audienceLabel = (audienceName ? (params.visibility === WIRED_FX_VISIBILITY.HAS_VARIABLE_WITH_VALUE
+        ? localizeWithFallback('wiredfurni.params.variablefx.visibility.has_variable.value', 'Users with %variable% = %value%')
+        : localizeWithFallback('wiredfurni.params.variablefx.visibility.has_variable.named', 'Users who have %variable%'))
+        : localizeWithFallback('wiredfurni.params.variablefx.visibility.has_variable', 'Users who have variable'))
+        .replace('%variable%', audienceName).replace('%value%', String(params.audienceValue));
+    const visibilityOptions = [VISIBILITY_OPTIONS[1], VISIBILITY_OPTIONS[2], { value: params.visibility === WIRED_FX_VISIBILITY.HAS_VARIABLE_WITH_VALUE ? WIRED_FX_VISIBILITY.HAS_VARIABLE_WITH_VALUE : WIRED_FX_VISIBILITY.HAS_VARIABLE, key: '', fallback: audienceLabel }, VISIBILITY_OPTIONS[0]]
+        .filter(option => params.source === WIRED_FX_SOURCE.USER || option.value >= WIRED_FX_VISIBILITY.EVERYONE);
 
     useEffect(() => {
         setParams(readWiredVariableFxParams(trigger?.intData ?? [], category));
         setVariables(variableTokensFromWire(trigger?.variableIds ?? []));
         setIcon((trigger?.stringData ?? '').trim());
         setRangeError(false);
+        setAudienceOpen(false);
     }, [trigger, category]);
 
     const patch = (changes: Partial<IWiredVariableFxParams>) => setParams((previous) => ({ ...previous, ...changes }));
@@ -249,27 +253,15 @@ export const WiredExtraVariableFxView: FC<WiredExtraVariableFxViewProps> = (prop
             <fieldset className="volt-wired-fx-editor__override-value" disabled={!enabled} inert={!enabled}>
                 <WiredVariablePicker entries={target === WIRED_FX_OVERRIDE_TARGET.GLOBAL ? roomEntries : holderEntries} recentScope={scope} selectedToken={token}
                     onSelect={entry => onChange(enabled, target, entry.token)} />
-                <div className="volt-wired__give-var-targets">
-                    {TARGET_OPTIONS.map(option => <button key={option.value} type="button" disabled={!enabled}
-                        className={`volt-wired__give-var-target ${target === option.value ? 'is-active' : ''}`}
-                        aria-label={localizeWithFallback(option.key, option.fallback)} aria-pressed={target === option.value} onClick={() => onChange(enabled, option.value, '')}>
-                        <img src={option.value === WIRED_FX_OVERRIDE_TARGET.GLOBAL ? globalIcon : params.source === WIRED_FX_SOURCE.FURNI ? furniIcon : userIcon} alt="" />
-                    </button>)}
-                </div>
+                <WiredSourceTypeSelector types={[params.source === WIRED_FX_SOURCE.FURNI ? 'furni' : 'user', 'global']}
+                    value={target === WIRED_FX_OVERRIDE_TARGET.GLOBAL ? 'global' : params.source === WIRED_FX_SOURCE.FURNI ? 'furni' : 'user'} disabled={!enabled}
+                    onChange={type => onChange(enabled, type === 'global' ? WIRED_FX_OVERRIDE_TARGET.GLOBAL : WIRED_FX_OVERRIDE_TARGET.HOLDER, '')} />
             </fieldset>
         </div>
     );
 
-    const sourceControls = (
-        <div className="volt-wired__give-var-targets">
-            {[{ source: WIRED_FX_SOURCE.FURNI, icon: furniIcon, label: 'Furni variables' }, { source: WIRED_FX_SOURCE.USER, icon: userIcon, label: 'User variables' }].map(option => (
-                <button key={option.source} type="button" className={`volt-wired__give-var-target ${params.source === option.source ? 'is-active' : ''}`}
-                    aria-label={option.label} aria-pressed={params.source === option.source} onClick={() => chooseSource(option.source)}>
-                    <img src={option.icon} alt="" />
-                </button>
-            ))}
-        </div>
-    );
+    const sourceControls = <WiredSourceTypeSelector types={['furni', 'user']} value={params.source === WIRED_FX_SOURCE.FURNI ? 'furni' : 'user'}
+        onChange={type => chooseSource(type === 'furni' ? WIRED_FX_SOURCE.FURNI : WIRED_FX_SOURCE.USER)} />;
     const changeControls = (
         <fieldset className="volt-wired-fx-editor__change-settings" disabled={params.showMode !== WIRED_FX_SHOW_MODE.WHEN_CHANGES}>
             <div className="volt-wired-fx-editor__update-mask">
@@ -293,6 +285,7 @@ export const WiredExtraVariableFxView: FC<WiredExtraVariableFxViewProps> = (prop
     );
 
     return (
+        <>
         <WiredExtraBaseView hasSpecialInput={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save} validate={validate} nativeLayout headerControls={sourceControls}>
             {category === WIRED_FX_CATEGORY.LEVELLING_PROGRESS && <WiredSection>
                 <WiredText wrap text={localizeWithFallback('wiredfurni.params.variablefx.levelling_progress.info', 'Levels come from the level-up system addon on the same tile; without one the badge shows level 1.')} />
@@ -300,6 +293,8 @@ export const WiredExtraVariableFxView: FC<WiredExtraVariableFxViewProps> = (prop
             <WiredSection title={localizeWithFallback('wiredfurni.params.variablefx.visualization.style', 'Style')}
                 headerOption={<WiredDropdown caption={localizeWithFallback('wiredfurni.params.variablefx.visualization.style', 'Style')} value={params.styleId}
                     options={styles.map(entry => ({ id: entry.styleId, label: localizeWithFallback(entry.key, entry.fallback) }))} onChange={chooseStyle} />}>
+                <div className="volt-wired-fx-editor__style-content">
+                <WiredVariableFxPreviewView key={`${trigger?.id}-${category}`} params={params} category={category} icon={icon} />
                 <div className="volt-wired-fx-editor__visualization">
                     <WiredText bold text={localizeWithFallback('wiredfurni.params.variablefx.visualization', 'Visualization')} />
                     {categoryHasColor && select(localizeWithFallback('wiredfurni.params.variablefx.visualization.color', 'Colour'), params.colorId, style.colorIds.map(colourOption), colorId => patch({ colorId }), 'fx-color', style.colorIds.length <= 1)}
@@ -320,27 +315,22 @@ export const WiredExtraVariableFxView: FC<WiredExtraVariableFxViewProps> = (prop
                             WIRED_FX_NUMBER_ALIGNMENTS.map((alignment, value) => ({ value, key: `wiredfurni.params.variablefx.icon_alignment.${alignment}`, fallback: alignment })), categoryExtra => patch({ categoryExtra }))}
                     </>}
                 </div>
+                </div>
             </WiredSection>
             {usesRange && <WiredSection title={localizeWithFallback('wiredfurni.params.variablefx.value_range', 'Value range')}>
                 <WiredText wrap text={localizeWithFallback('wiredfurni.params.variablefx.value_range.info', 'Default minimum and maximum values.')} />
                 <div className="volt-wired-fx-editor__range">
-                    <label><WiredText text="Min:" /><VoltInput aria-label="Minimum" type="text" inputMode="numeric" inputSize="sm" data-testid="fx-min" value={params.minValue} onChange={event => patch({ minValue: event.target.value })} /></label>
+                    <label><WiredText text="Min:" /><span className="volt-wired__input-box"><input className="volt-wired__input-field" aria-label="Minimum" type="text" inputMode="numeric" data-testid="fx-min" value={params.minValue} onChange={event => patch({ minValue: event.target.value })} /></span></label>
                     <span>−</span>
-                    <label><WiredText text="Max:" /><VoltInput aria-label="Maximum" type="text" inputMode="numeric" inputSize="sm" data-testid="fx-max" value={params.maxValue} onChange={event => patch({ maxValue: event.target.value })} /></label>
+                    <label><WiredText text="Max:" /><span className="volt-wired__input-box"><input className="volt-wired__input-field" aria-label="Maximum" type="text" inputMode="numeric" data-testid="fx-max" value={params.maxValue} onChange={event => patch({ maxValue: event.target.value })} /></span></label>
                 </div>
                 {rangeError && <Text small className="text-red-500">{localizeWithFallback('wiredfurni.params.variablefx.validation.range', 'The maximum has to be above the minimum.')}</Text>}
             </WiredSection>}
             <WiredCollapsibleSection key={`visibility-${trigger?.id}-${category}`} title={localizeWithFallback('wiredfurni.params.variablefx.visibility', 'Visibility')}>
                 <WiredRadioGroup name="variable-fx-show-mode" value={params.showMode} onChange={showMode => patch({ showMode })}
                     options={SHOW_MODE_OPTIONS.map(option => ({ id: option.value, label: localizeWithFallback(option.key, option.fallback), extra: option.value === WIRED_FX_SHOW_MODE.WHEN_CHANGES ? changeControls : undefined }))} />
-                {select(localizeWithFallback('wiredfurni.params.variablefx.visibility.audience', 'Audience'), params.visibility, visibilityOptions, visibility => patch({ visibility }))}
-                {needsAudience && <div className="volt-wired-fx-editor__audience">
-                    <WiredVariablePicker entries={audienceEntries} recentScope="variable-fx-audience" selectedToken={variables.audience} onSelect={entry => patchVariables({ audience: entry.token })} />
-                    {params.visibility === WIRED_FX_VISIBILITY.HAS_VARIABLE_WITH_VALUE && <label>
-                        <WiredText text={localizeWithFallback('wiredfurni.params.variablefx.audience_value', 'with value')} />
-                        <VoltInput aria-label="Audience value" type="number" inputSize="sm" data-testid="fx-audience-value" value={params.audienceValue} onChange={event => patch({ audienceValue: toInt(event.target.value, 0) })} />
-                    </label>}
-                </div>}
+                {select(localizeWithFallback('wiredfurni.params.variablefx.visibility.audience', 'Audience'), params.visibility, visibilityOptions,
+                    visibility => visibility >= WIRED_FX_VISIBILITY.HAS_VARIABLE ? setAudienceOpen(true) : patch({ visibility }))}
             </WiredCollapsibleSection>
             {usesRange && <WiredCollapsibleSection key={`range-${trigger?.id}-${category}`} title={localizeWithFallback('wiredfurni.params.variablefx.advanced.range', 'Advanced range')}>
                 {overrideRow(localizeWithFallback('wiredfurni.params.variablefx.advanced.override_min', 'Take the minimum from a variable'), params.overrideMinEnabled, params.overrideMinTarget, variables.overrideMin,
@@ -353,5 +343,13 @@ export const WiredExtraVariableFxView: FC<WiredExtraVariableFxViewProps> = (prop
                 <WiredNumberInput ariaLabel="Order in FX stack" width={-1} min={WIRED_FX_STACK_ORDER_MIN} max={WIRED_FX_STACK_ORDER_MAX} value={params.stackOrder} onChange={stackOrder => patch({ stackOrder })} />
             </WiredCollapsibleSection>
         </WiredExtraBaseView>
+        {audienceOpen && <WiredVariableFxAudienceView entries={audienceEntries} initialToken={variables.audience}
+            initialMatchValue={params.visibility === WIRED_FX_VISIBILITY.HAS_VARIABLE_WITH_VALUE} initialValue={params.audienceValue}
+            onClose={() => setAudienceOpen(false)} onSave={(token, matchValue, value) => {
+                patchVariables({ audience: token });
+                patch({ visibility: matchValue ? WIRED_FX_VISIBILITY.HAS_VARIABLE_WITH_VALUE : WIRED_FX_VISIBILITY.HAS_VARIABLE, audienceValue: matchValue ? value : 0 });
+                setAudienceOpen(false);
+            }} />}
+        </>
     );
 };
