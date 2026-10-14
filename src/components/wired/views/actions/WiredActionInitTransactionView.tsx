@@ -3,6 +3,7 @@ import { localizeWithFallback, WiredFurniType } from '../../../../api';
 import { Text } from '../../../../common';
 import { useWired } from '../../../../hooks';
 import { OctaneInput } from '../../../../layout';
+import { FurniPickSlotButtons } from '../conditions/WiredVariableConditionParts';
 import { WiredCheckboxOption, WiredRadioGroup } from '../WiredOptions';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredVariablePicker } from '../WiredVariablePicker';
@@ -32,7 +33,16 @@ const clamp = (value: number, min: number, max: number) => (Number.isFinite(valu
  * furni: [chests, contracts, merged furni]; users: [default, merged user]; variables: [the multiplier variable].
  */
 export const WiredActionInitTransactionView: FC<{}> = () => {
-    const { trigger = null, setIntParams = null, setFurniSources = null, setUserSources = null, setVariableIds = null } = useWired();
+    const {
+        trigger = null,
+        setIntParams = null,
+        setFurniSources = null,
+        setUserSources = null,
+        setVariableIds = null,
+        furniIds = [],
+        secondaryFurniIds = [],
+        setActivePickSlot = null
+    } = useWired();
     const { userVariableDefinitions = [], furniVariableDefinitions = [], roomVariableDefinitions = [], contextVariableDefinitions = [] } = useWiredNativeVariables();
     const [mode, setMode] = useState(0);
     const [multiplier, setMultiplier] = useState(1);
@@ -42,7 +52,7 @@ export const WiredActionInitTransactionView: FC<{}> = () => {
     const [timeoutEnabled, setTimeoutEnabled] = useState(false);
     const [timeoutSeconds, setTimeoutSeconds] = useState(TIMEOUT_DEFAULT);
     const [chestSource, setChestSource] = useState(100);
-    const [contractSource, setContractSource] = useState(100);
+    const [contractSource, setContractSource] = useState(101);
     const [mergedFurniSource, setMergedFurniSource] = useState(0);
     const [defaultUserSource, setDefaultUserSource] = useState(0);
     const [mergedUserSource, setMergedUserSource] = useState(0);
@@ -76,11 +86,12 @@ export const WiredActionInitTransactionView: FC<{}> = () => {
         setTimeoutEnabled(nextTimeout === 1);
         setTimeoutSeconds(clamp(nextSeconds, TIMEOUT_MIN, TIMEOUT_MAX));
         setChestSource(trigger.furniSources[0] ?? 100);
-        setContractSource(trigger.furniSources[1] ?? 100);
+        setContractSource(trigger.furniSources[1] ?? 101);
+        setActivePickSlot?.([trigger.furniSources[0], trigger.furniSources[1]].find((source) => source === 100 || source === 101) === 101 ? 1 : 0);
         setMergedFurniSource(trigger.furniSources[2] ?? 0);
         setDefaultUserSource(trigger.userSources[0] ?? 0);
         setMergedUserSource(trigger.userSources[1] ?? 0);
-    }, [trigger]);
+    }, [setActivePickSlot, trigger]);
 
     const save = () => {
         setIntParams([mode, multiplier, useVariable ? 1 : 0, targetCode, timeoutEnabled ? 1 : 0, clamp(timeoutSeconds, TIMEOUT_MIN, TIMEOUT_MAX)]);
@@ -90,6 +101,14 @@ export const WiredActionInitTransactionView: FC<{}> = () => {
     };
 
     const validate = () => !useVariable || !!variableToken;
+    // AIR disables the multiplier (and the variable's holder sources) in the normal mode, and calls it the limit in the auto mode.
+    const multiplierDisabled = mode === 0;
+    const pick = (source: number, set: (value: number) => void) => {
+        set(source);
+
+        if (source === 100 || source === 101) setActivePickSlot?.(source === 101 ? 1 : 0);
+    };
+    const lists = [0, 1].filter((list) => [chestSource, contractSource].includes(list === 0 ? 100 : 101));
 
     return (
         <WiredActionBaseView
@@ -99,35 +118,48 @@ export const WiredActionInitTransactionView: FC<{}> = () => {
             validate={validate}
             footer={
                 <>
-                    <WiredSourcesSelector showFurni={true} furniSlot={0} furniSource={chestSource} furniTitle="wiredfurni.params.sources.furni.title.chests" onChangeFurni={setChestSource} />
-                    <WiredSourcesSelector showFurni={true} furniSlot={1} furniSource={contractSource} furniTitle="wiredfurni.params.sources.furni.title.contracts" onChangeFurni={setContractSource} />
-                    {useVariable && target === 'furni' && (
+                    <WiredSourcesSelector showFurni={true} furniSlot={0} furniSource={chestSource} furniTitle="wiredfurni.params.sources.furni.title.chests" onChangeFurni={(source) => pick(source, setChestSource)} />
+                    <WiredSourcesSelector showFurni={true} furniSlot={1} furniSource={contractSource} furniTitle="wiredfurni.params.sources.furni.title.contracts" onChangeFurni={(source) => pick(source, setContractSource)} />
+                    <FurniPickSlotButtons slots={lists.map((slot) => ({ slot: slot as 0 | 1, count: slot === 0 ? furniIds.length : secondaryFurniIds.length }))} />
+                    {!multiplierDisabled && useVariable && target === 'furni' && (
                         <WiredSourcesSelector showFurni={true} furniSlot={2} furniSource={mergedFurniSource} furniTitle="wiredfurni.params.sources.merged.title.variables_reference" onChangeFurni={setMergedFurniSource} />
                     )}
-                    {useVariable && target === 'user' && (
+                    {!multiplierDisabled && useVariable && target === 'user' && (
                         <WiredSourcesSelector showUsers={true} userSlot={1} userSource={mergedUserSource} usersTitle="wiredfurni.params.sources.merged.title.variables_reference" onChangeUsers={setMergedUserSource} />
                     )}
                 </>
             }
         >
+            <Text bold>{localizeWithFallback('wiredfurni.params.contract.mode', 'Transaction mode:')}</Text>
             <WiredRadioGroup
                 name="transactionMode"
                 value={mode}
                 onChange={setMode}
                 options={[0, 1, 2].map((value) => ({ id: value, label: localizeWithFallback(`wiredfurni.params.contract.mode.${value}`, `Mode ${value}`) }))}
             />
-            <Text bold>{localizeWithFallback('wiredfurni.params.contract.multiplier_selection', 'Multiplier')}</Text>
+            <Text bold>
+                {mode === 2
+                    ? localizeWithFallback('wiredfurni.params.contract.multiplier_selection2', 'Auto-multiplier limit:')
+                    : localizeWithFallback('wiredfurni.params.contract.multiplier_selection', 'Multiplier selection:')}
+            </Text>
             <WiredRadioGroup
                 name="transactionMultiplierOption"
                 value={useVariable ? 1 : 0}
                 onChange={(value) => setUseVariable(value === 1)}
                 options={[
-                    { id: 0, label: localizeWithFallback('wiredfurni.params.contract.multiplier_value', 'Value') },
-                    { id: 1, label: localizeWithFallback('wiredfurni.params.contract.multiplier_variable', 'Variable') }
+                    { id: 0, label: localizeWithFallback('wiredfurni.params.variables.reference_value.set_value', 'Set value:'), disabled: multiplierDisabled },
+                    { id: 1, label: localizeWithFallback('wiredfurni.params.variables.reference_value.from_variable', 'From Variable:'), disabled: multiplierDisabled }
                 ]}
             />
             {!useVariable && (
-                <OctaneInput type="number" min={MULTIPLIER_MIN} max={MULTIPLIER_MAX} value={multiplier} onChange={(event) => setMultiplier(clamp(Number(event.target.value), MULTIPLIER_MIN, MULTIPLIER_MAX))} />
+                <OctaneInput
+                    type="number"
+                    min={MULTIPLIER_MIN}
+                    max={MULTIPLIER_MAX}
+                    disabled={multiplierDisabled}
+                    value={multiplier}
+                    onChange={(event) => setMultiplier(clamp(Number(event.target.value), MULTIPLIER_MIN, MULTIPLIER_MAX))}
+                />
             )}
             {useVariable && (
                 <>
@@ -143,7 +175,8 @@ export const WiredActionInitTransactionView: FC<{}> = () => {
                     <WiredVariablePicker entries={entries} recentScope="transaction-multiplier" selectedToken={variableToken} onSelect={(entry) => setVariableToken(entry.token)} />
                 </>
             )}
-            <WiredCheckboxOption checked={timeoutEnabled} label={localizeWithFallback('wiredfurni.params.contract.timeout.desc', 'Timeout')} onChange={setTimeoutEnabled} last={true} />
+            <Text bold>{localizeWithFallback('wiredfurni.params.contract.timeout', 'Time-out:')}</Text>
+            <WiredCheckboxOption checked={timeoutEnabled} label={localizeWithFallback('wiredfurni.params.contract.timeout.desc', 'Automatically cancel trade after timeout')} onChange={setTimeoutEnabled} last={true} />
             {timeoutEnabled && (
                 <OctaneInput type="number" min={TIMEOUT_MIN} max={TIMEOUT_MAX} value={timeoutSeconds} onChange={(event) => setTimeoutSeconds(clamp(Number(event.target.value), TIMEOUT_MIN, TIMEOUT_MAX))} />
             )}
