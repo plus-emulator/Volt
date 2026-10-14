@@ -38,6 +38,7 @@ describe('AIR Variable FX sections', () => {
         render(<WiredExtraVariableFxView category={WIRED_FX_CATEGORY.PROGRESS_BAR} />);
         for (const name of ['Visibility', 'Advanced range', 'Order in FX stack']) expect(screen.getByRole('button', { name })).toHaveAttribute('aria-expanded', 'false');
         expect(screen.queryByRole('radio')).toBeNull();
+        expect(screen.getAllByRole('radio', { hidden: true }).length).toBeGreaterThan(0);
         act(() => baseProps.save());
         expect(setIntParams.mock.calls[0][0]).toHaveLength(23);
         expect(setIntParams.mock.calls[0][0].slice(0, 6)).toEqual([1, 2, 0, 7, 0, 3000]);

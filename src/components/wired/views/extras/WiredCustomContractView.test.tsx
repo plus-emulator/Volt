@@ -61,6 +61,7 @@ describe('AIR Custom Contract native sections and packets', () => {
         expect(screen.getByRole('button', { name: 'Payment' }).getAttribute('aria-expanded')).toBe('false');
         expect(screen.getByRole('button', { name: 'Reward' }).getAttribute('aria-expanded')).toBe('false');
         expect(screen.queryByRole('textbox')).toBeNull();
+        expect(screen.getAllByRole('textbox', { hidden: true })).toHaveLength(2);
         expect(screen.getByTestId('editor').getAttribute('data-native')).toBe('true');
         expect(screen.getByTestId('editor').getAttribute('data-width')).toBe('undefined');
         save();
@@ -97,6 +98,28 @@ describe('AIR Custom Contract native sections and packets', () => {
         fireEvent.change(amount(), { target: { value: '0b11' } });
         save();
         expect(state.setIntParams.mock.lastCall![0][3]).toBe(3);
+    });
+
+    it('retains an invalid amount draft and Save rejection when folded and reopened', () => {
+        render(<WiredCustomContractView />);
+        open('Payment');
+        const input = amount();
+        fireEvent.change(input, { target: { value: '100001' } });
+        expect(screen.getByRole('button', { name: 'Save' })).toHaveProperty('disabled', true);
+        open('Payment');
+        expect(screen.queryByRole('textbox')).toBeNull();
+        expect(input.isConnected).toBe(true);
+        expect(input.value).toBe('100001');
+        expect(screen.getByRole('button', { name: 'Save' })).toHaveProperty('disabled', true);
+        save();
+        expect(state.setIntParams).not.toHaveBeenCalled();
+        open('Payment');
+        expect(amount()).toBe(input);
+        expect(amount().value).toBe('100001');
+        expect(screen.getByRole('button', { name: 'Save' })).toHaveProperty('disabled', true);
+        fireEvent.change(amount(), { target: { value: '100000' } });
+        save();
+        expect(state.setIntParams.mock.lastCall![0][3]).toBe(100000);
     });
 
     it('switches back to a named variable and the chooser changes target without mixing side fields', () => {
