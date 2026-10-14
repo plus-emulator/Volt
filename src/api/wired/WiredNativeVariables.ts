@@ -17,6 +17,7 @@ export interface IWiredNativeVariableDefinition {
     availability: number;
     hasValue: boolean;
     isReadOnly: boolean;
+    requiresExecutionContext: boolean;
     isTextConnected: boolean;
     textConnector: Array<{ key: number; value: string }>;
     /** The official WiredVariable flags the October editors filter their pickers by. */
@@ -57,6 +58,7 @@ export const nativeVariableDefinitions = (
             availability: variable.availabilityType,
             hasValue: variable.hasValue,
             isReadOnly: !variable.canWriteValue,
+            requiresExecutionContext: variable.requiresExecutionContext,
             isTextConnected: !!variable.textConnector?.length,
             textConnector: variable.textConnector ?? [],
             canCreateAndDelete: variable.canCreateAndDelete,

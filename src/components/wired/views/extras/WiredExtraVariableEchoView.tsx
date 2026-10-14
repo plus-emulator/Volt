@@ -9,8 +9,7 @@ import { useWired } from '../../../../hooks';
 import { VoltInput } from '../../../../layout';
 import { WiredVariablePicker } from '../WiredVariablePicker';
 import { buildWiredVariablePickerEntries, createFallbackVariableEntry, flattenWiredVariablePickerEntries } from '../WiredVariablePickerData';
-import { createNativeVariableToken, getNativeVariableId } from '../../../../api';
-import { WIRED_VARIABLE_ABSENT, tokenOfVariableSlot, variableSlotOf } from '../../../../api';
+import { tokenOfVariableSlot, variableSlotOf } from '../../../../api';
 import { useWiredNativeVariables } from '../../../../hooks';
 import { WiredExtraBaseView } from './WiredExtraBaseView';
 
@@ -111,7 +110,8 @@ export const WiredExtraVariableEchoView: FC<{}> = () => {
 
         setVariableName(normalizeVariableName(trigger.stringData));
         setSourceTargetType(owner ? owner[0] : 'user');
-        setSourceVariableToken(variableId ? createNativeVariableToken(variableId) : '');
+        // An unpicked echo stores the absent id "n"; it reads as no selection, never as a variable "#n".
+        setSourceVariableToken(tokenOfVariableSlot(variableId));
     }, [contextVariableDefinitions, furniVariableDefinitions, roomVariableDefinitions, trigger, userVariableDefinitions]);
 
     const save = () => {
