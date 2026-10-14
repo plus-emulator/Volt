@@ -14,6 +14,8 @@ import {
 } from '../../../../api';
 import { IWiredVariableFxStatusEntry } from '../../../../hooks';
 import { classNames } from '../../../../layout';
+import { WiredMaskedHeartView, WiredStackedHeartsView } from './WiredNativeHeartsView';
+import { stackedHeartCount } from './WiredStackedHearts';
 import { wiredVariableFxIconGlyph, wiredVariableFxSegmentFills } from './WiredVariableFxOverlay.helpers';
 
 export interface WiredVariableFxStatusViewProps {
@@ -45,7 +47,7 @@ const Bar: FC<{ rendererId: number; progress: number; segments: number; color: s
                   ? 'mini'
                   : rendererId === WIRED_FX_RENDERER.THERMOMETER
                     ? 'thermometer'
-                    : rendererId === WIRED_FX_RENDERER.HEALTH_BAR || rendererId === WIRED_FX_RENDERER.HEALTH_CROSS
+                    : rendererId === WIRED_FX_RENDERER.HEALTH_BAR
                       ? 'health'
                       : 'plain';
     const style = { width: widthPx, ['--fx-color' as string]: color ?? undefined } as CSSProperties;
@@ -93,29 +95,17 @@ export const WiredVariableFxStatusView: FC<WiredVariableFxStatusViewProps> = (pr
     const icon = config.extra?.[WIRED_FX_CONFIG_EXTRA.ICON] ?? '';
     const metallic = config.extra?.[WIRED_FX_CONFIG_EXTRA.METALLIC] === 'true';
     const changed = entry.previousValue !== null && entry.previousValue !== status.value && !status.initialize;
-    const rootClass = classNames('volt-wired-fx', `volt-wired-fx--renderer-${config.rendererId}`, changed ? 'volt-wired-fx--changed' : '');
+    const nativeHeart = config.rendererId === WIRED_FX_RENDERER.MASKED_HEART_FILL || config.rendererId === WIRED_FX_RENDERER.STACKED_HEALTH_POINTS;
+    const rootClass = classNames('volt-wired-fx', `volt-wired-fx--renderer-${config.rendererId}`, changed && !nativeHeart ? 'volt-wired-fx--changed' : '');
 
     switch (config.rendererId) {
-        case WIRED_FX_RENDERER.HEARTS: {
-            const hearts = segments > 0 ? segments : 5;
-
-            return (
-                <div className={rootClass} style={{ ['--fx-color' as string]: color ?? undefined } as CSSProperties} data-testid="fx-status">
-                    {wiredVariableFxSegmentFills(progress, hearts).map((fill, index) => (
-                        <span key={index} className="volt-wired-fx__heart" style={{ ['--fx-fill' as string]: fill } as CSSProperties}>
-                            ♥
-                        </span>
-                    ))}
-                </div>
-            );
-        }
-        case WIRED_FX_RENDERER.HEALTH_CROSS:
-            return (
-                <div className={rootClass} data-testid="fx-status">
-                    <span className="volt-wired-fx__cross">✚</span>
-                    <Bar rendererId={config.rendererId} progress={progress} segments={segments} color={color ?? '#e04b4b'} widthPx={widthPx} />
-                </div>
-            );
+        case WIRED_FX_RENDERER.STACKED_HEALTH_POINTS:
+            return <div className={rootClass} data-testid="fx-status"><WiredStackedHeartsView
+                count={stackedHeartCount(status.value, range.min, range.max, config.widthId)} widthId={config.widthId}
+                color={color ?? '#df291e'} metallic={config.colorId >= 100 && config.colorId <= 104} initialize={status.initialize} /></div>;
+        case WIRED_FX_RENDERER.MASKED_HEART_FILL:
+            return <div className={rootClass} data-testid="fx-status"><WiredMaskedHeartView progress={progress}
+                color={color ?? '#df291e'} metallic={config.colorId >= 100 && config.colorId <= 104} /></div>;
         case WIRED_FX_RENDERER.LEVEL_WITH_PROGRESS: {
             const level = wiredVariableFxLevel(status);
             const subRenderer = parseInt(config.extra?.[WIRED_FX_CONFIG_EXTRA.SUB_RENDERER] ?? '', 10) || WIRED_FX_RENDERER.BLOCK;

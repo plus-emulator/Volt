@@ -107,6 +107,7 @@ const colourOption = (value: number): IFxOption => {
 };
 
 const widthOption = (value: number): IFxOption => {
+    if (value === WIRED_FX_WIDTH_NOT_APPLICABLE) return { value, key: 'wiredfurni.params.variablefx.width.not_applicable', fallback: 'Not applicable' };
     const width = WIRED_FX_WIDTHS.find((entry) => entry.id === value);
 
     return { value, key: width?.key ?? '', fallback: width?.fallback ?? String(value) };

@@ -56,7 +56,8 @@ export const WiredVariableFxPreviewView: FC<{ params: IWiredVariableFxParams; ca
         const theme = WIRED_FX_STATUS_BAR_THEMES[params.styleId];
         if (theme) Object.assign(extra, { icon: theme.icon, color: theme.color ?? '', metallic: String(theme.metallic) });
     }
-    if (category === WIRED_FX_CATEGORY.BOSS_BAR) extra.icon = params.styleId === 0 ? 'skull' : '';
+    if (category === WIRED_FX_CATEGORY.HEALTH_POINTS && params.styleId === 0) extra.icon = 'misc_heart';
+    if (category === WIRED_FX_CATEGORY.BOSS_BAR && params.styleId === 0) Object.assign(extra, { icon: 'misc_skull', icon_alignment: 'double' });
     if (category === WIRED_FX_CATEGORY.NUMBER_DISPLAY) extra.design = ['freeze_style', 'shalimar', 'blocky'][params.styleId] ?? 'freeze_style';
     const config: IWiredVariableFxConfig = { configId: 0, userFx: params.source === 1, showMode: 0, updateMask: 15, showOnMouseHover: false, showDurationMs: 0,
         category, styleId: params.styleId, colorId: params.colorId, widthId: params.widthId, rendererId: params.rendererId,
