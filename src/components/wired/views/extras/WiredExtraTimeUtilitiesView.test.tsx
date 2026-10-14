@@ -61,7 +61,7 @@ describe('WiredExtraTimeUtilitiesView', () => {
     it('shows the saved selection and mode', () => {
         render(<WiredExtraTimeUtilitiesView />);
 
-        expect((screen.getByRole('radio', { name: 'Creation time' }) as HTMLInputElement).checked).toBe(true);
+        expect((screen.getByRole('combobox', { name: 'Read the variable as:' }) as HTMLSelectElement).value).toBe('1');
         expect((screen.getByRole('checkbox', { name: 'Hour of the day' }) as HTMLInputElement).checked).toBe(true);
         expect((screen.getByRole('checkbox', { name: 'Year' }) as HTMLInputElement).checked).toBe(false);
         expect(screen.getByDisplayValue('hour_of_day')).toBeTruthy();
@@ -75,7 +75,7 @@ describe('WiredExtraTimeUtilitiesView', () => {
         fireEvent.click(screen.getByRole('button', { name: /Advanced sub-variables/ }));
         fireEvent.click(screen.getByRole('checkbox', { name: 'Days' }));
         fireEvent.click(screen.getByRole('checkbox', { name: 'Months' }));
-        fireEvent.click(screen.getByRole('radio', { name: 'Last update time' }));
+        fireEvent.change(screen.getByRole('combobox', { name: 'Read the variable as:' }), { target: { value: '2' } });
         fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
         expect(setIntParams).toHaveBeenCalledWith([(1 << 4) | (1 << 10) | (1 << 26), 2]);
