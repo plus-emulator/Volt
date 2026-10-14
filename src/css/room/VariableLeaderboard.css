@@ -1,0 +1,151 @@
+/* Variable leaderboards drawn over the room: one board per published overlay, anchored to its tile. */
+
+.volt-variable-leaderboard-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 4;
+    overflow: hidden;
+}
+
+.volt-variable-leaderboard-anchor {
+    position: absolute;
+    transform: translate(-50%, -100%);
+}
+
+.volt-variable-leaderboard {
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 180px;
+    padding: 6px 8px;
+    border: 1px solid #7a7a7a;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+    color: #222;
+    font-size: 11px;
+    line-height: 1.25;
+}
+
+.volt-variable-leaderboard__title {
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.volt-variable-leaderboard__description {
+    color: #555;
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
+.volt-variable-leaderboard__select {
+    align-self: center;
+    max-width: 100%;
+    font-size: 11px;
+}
+
+.volt-variable-leaderboard__header,
+.volt-variable-leaderboard__row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.volt-variable-leaderboard__header {
+    border-bottom: 1px solid #c4c4c4;
+    font-weight: 700;
+    padding-bottom: 2px;
+}
+
+.volt-variable-leaderboard__rank {
+    width: 22px;
+    flex: 0 0 22px;
+    text-align: right;
+}
+
+.volt-variable-leaderboard__face {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    overflow: hidden;
+    position: relative;
+}
+
+.volt-variable-leaderboard__cell {
+    flex: 0 0 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.volt-variable-leaderboard__cell--name {
+    font-weight: 700;
+}
+
+.volt-variable-leaderboard__body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-height: 40px;
+}
+
+.volt-variable-leaderboard__state {
+    padding: 10px 0;
+    text-align: center;
+    color: #555;
+}
+
+.volt-variable-leaderboard__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    border-top: 1px solid #c4c4c4;
+    padding-top: 3px;
+}
+
+.volt-variable-leaderboard__pager {
+    min-width: 22px;
+    height: 20px;
+    border: 1px solid #8a8a8a;
+    border-radius: 3px;
+    background: #f1f1f1;
+    line-height: 1;
+}
+
+.volt-variable-leaderboard__pager:disabled {
+    opacity: 0.4;
+}
+
+.volt-variable-leaderboard__page {
+    white-space: nowrap;
+}
+
+/* Editor (WiredExtraVariableLeaderboardView): sections that collapse, a column row and a stacked-variable name row. */
+
+.volt-wired-leaderboard__toggle {
+    border: 0;
+    background: none;
+    padding: 0;
+    font: inherit;
+    text-align: left;
+}
+
+.volt-wired-leaderboard__column,
+.volt-wired-leaderboard__choice {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 3px;
+}
+
+.volt-wired-leaderboard__suggest {
+    margin-top: 4px;
+    font-size: 11px;
+}
