@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { PropsWithChildren } from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const state = vi.hoisted(() => ({
     trigger: { intData: [2, 3], furniSources: [100, 101] },
@@ -17,6 +17,8 @@ vi.mock('../../../api', () => ({
     WIRED_SLIDER_ECHO: { precision: 0, endsWithFive: false, toString: String }
 }));
 vi.mock('../../../common', () => ({ Text: ({ children }: PropsWithChildren) => <span>{children}</span>, Slider: () => null }));
+vi.mock('../../../common/native-text/NativeText', () => ({ NativeText: ({ text }: { text: string }) => <span>{text}</span> }));
+vi.mock('../../mod-tools/native/NativeSkinView', () => ({ NativeSkinView: () => null }));
 vi.mock('./WiredText', async () => ({ WiredText: ({ text }: { text: string }) => <span>{text}</span>, WiredSurfaceContext: (await import('react')).createContext(0xffffff) }));
 vi.mock('./WiredShellHeaderView', () => ({ WiredShellButton: ({ children, onClick }: PropsWithChildren<{ onClick: () => void }>) => <button onClick={onClick}>{children}</button> }));
 vi.mock('./WiredSourcesSelector', () => ({ WiredSourcesSelector: () => null }));
@@ -32,7 +34,10 @@ import { WiredNativeContext } from './WiredNativeContext';
 import { WiredTextInput } from './WiredTextInput';
 
 describe('AIR editor native controls', () => {
-    afterEach(() => { cleanup(); vi.clearAllMocks(); });
+    beforeEach(() => {
+        vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({ measureText: (text: string) => ({ width: text.length * 6 }) } as unknown as ReturnType<HTMLCanvasElement['getContext']>);
+    });
+    afterEach(() => { cleanup(); vi.clearAllMocks(); vi.restoreAllMocks(); });
 
     it('lets the user type a level and preserves the comparison when saving', () => {
         state.trigger.intData = [12, 2];
@@ -62,9 +67,10 @@ describe('AIR editor native controls', () => {
         state.trigger.intData = [2, 1];
         render(<WiredNativeContext.Provider value={true}><WiredExtraTimeUtilitiesView /></WiredNativeContext.Provider>);
         const dropdown = screen.getByRole('combobox', { name: 'Read the variable as:' });
-        expect((dropdown as HTMLSelectElement).value).toBe('1');
-        expect(Array.from(dropdown.querySelectorAll('option')).map((option) => option.textContent)).toEqual(['Variable value', 'Creation time', 'Last update time']);
-        fireEvent.change(dropdown, { target: { value: '2' } });
+        expect(dropdown.textContent).toBe('Creation time');
+        fireEvent.click(dropdown);
+        expect(screen.getAllByRole('option').map(option => option.textContent)).toEqual(['Variable value', 'Creation time', 'Last update time']);
+        fireEvent.pointerDown(screen.getByRole('option', { name: 'Last update time' }), { button: 0 });
         fireEvent.click(screen.getByText('Save'));
         expect(state.setIntParams).toHaveBeenLastCalledWith([2, 2]);
     });

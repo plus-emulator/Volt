@@ -111,7 +111,7 @@ export const HabboDropMenuView = <T extends string | number,>({ label, options, 
         const bounds = triggerRef.current.getBoundingClientRect();
         const canvas = canvasRef.current ?? (canvasRef.current = document.createElement('canvas'));
         const context = canvas.getContext('2d');
-        context.font = skinStyle !== 0 ? '12px HabboAirUbuntu, UbuntuRegular, sans-serif' : '9px Volter';
+        context.font = skinStyle === 100 ? '11px HabboAirUbuntu, UbuntuRegular, sans-serif' : skinStyle === 3 ? '12px HabboAirUbuntu, UbuntuRegular, sans-serif' : '9px Volter';
         context.fontKerning = skinStyle !== 0 ? 'normal' : 'none';
         let width = bounds.width;
         for (const option of options) {
