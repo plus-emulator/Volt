@@ -47,4 +47,23 @@ describe('Leaderboard AIR general controls', () => {
         expect(saved.columns).toEqual(config.columns);
         expect(saved.location).toEqual(config.location);
     });
+    it('keeps the four location fields in the AIR row and saves coordinate edits', () => {
+        const config = createUnpublishedVariableLeaderboardConfig();
+        config.title = 'Leaderboard';
+        config.location = { tileX: 4, tileY: 5, offsetX: 2, altitude: 100 };
+        const payload = encodeVariableLeaderboardConfig(config)!;
+        state.trigger = { intData: payload.intParams, stringData: payload.stringParam, variableIds: payload.variableIds, contexts: [] };
+        const { container } = render(<WiredExtraVariableLeaderboardView />);
+        const row = container.querySelector('.volt-wired-leaderboard__location') as HTMLElement;
+        expect(row.style.display).toBe('flex'); expect(row.style.gap).toBe('4px');
+        const inputs = [...row.querySelectorAll('input')];
+        expect(inputs.map(input => input.style.width)).toEqual(['32px','32px','32px','32px']);
+        fireEvent.change(inputs[0], {target:{value:'9'}});
+        fireEvent.change(inputs[2], {target:{value:'-32'}});
+        fireEvent.click(screen.getByText('Save'));
+        const saved = decodeVariableLeaderboardConfig(state.setIntParams.mock.lastCall![0],state.setVariableIds.mock.lastCall![0],state.setStringParam.mock.lastCall![0])!;
+        expect(saved.location).toEqual({tileX:9,tileY:5,offsetX:-32,altitude:100});
+        expect(saved.columns).toEqual(config.columns);
+    });
+
 });
