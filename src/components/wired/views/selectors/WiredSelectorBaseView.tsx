@@ -8,6 +8,7 @@ export interface WiredSelectorBaseViewProps {
     save: () => void;
     validate?: () => boolean;
     cardStyle?: CSSProperties;
+    widthMultiplier?: number;
     hideDelay?: boolean;
     footer?: ReactNode;
     footerCollapsible?: boolean;
@@ -23,6 +24,7 @@ export const WiredSelectorBaseView: FC<PropsWithChildren<WiredSelectorBaseViewPr
         hasSpecialInput = false,
         children = null,
         cardStyle = undefined,
+        widthMultiplier = 1,
         footer = null,
         footerCollapsible = true,
         selectionPreview = null,
@@ -37,6 +39,7 @@ export const WiredSelectorBaseView: FC<PropsWithChildren<WiredSelectorBaseViewPr
             validate={validate}
             wiredType="selector"
             cardStyle={cardStyle}
+            widthMultiplier={widthMultiplier}
             footer={footer}
             footerCollapsible={footerCollapsible}
             selectionPreview={selectionPreview}
