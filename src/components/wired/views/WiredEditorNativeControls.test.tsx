@@ -5,7 +5,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 const state = vi.hoisted(() => ({
     trigger: { intData: [2, 3], furniSources: [100, 101] },
     setIntParams: vi.fn(),
-    setFurniSources: vi.fn()
+    setFurniSources: vi.fn(),
+    setStringParam: vi.fn()
 }));
 
 vi.mock('../../../hooks', () => ({ useWired: () => state }));
@@ -16,12 +17,15 @@ vi.mock('../../../api', () => ({
     WIRED_SLIDER_ECHO: { precision: 0, endsWithFive: false, toString: String }
 }));
 vi.mock('../../../common', () => ({ Text: ({ children }: PropsWithChildren) => <span>{children}</span>, Slider: () => null }));
-vi.mock('./WiredText', () => ({ WiredText: ({ text }: { text: string }) => <span>{text}</span> }));
+vi.mock('./WiredText', async () => ({ WiredText: ({ text }: { text: string }) => <span>{text}</span>, WiredSurfaceContext: (await import('react')).createContext(0xffffff) }));
 vi.mock('./WiredShellHeaderView', () => ({ WiredShellButton: ({ children, onClick }: PropsWithChildren<{ onClick: () => void }>) => <button onClick={onClick}>{children}</button> }));
 vi.mock('./WiredSourcesSelector', () => ({ WiredSourcesSelector: () => null }));
 vi.mock('./actions/WiredActionBaseView', () => ({ WiredActionBaseView: ({ children, save }: PropsWithChildren<{ save: () => void }>) => <div>{children}<button onClick={save}>Save</button></div> }));
 vi.mock('./conditions/WiredConditionBaseView', () => ({ WiredConditionBaseView: ({ children, save }: PropsWithChildren<{ save: () => void }>) => <div>{children}<button onClick={save}>Save</button></div> }));
 
+vi.mock('./extras/WiredExtraBaseView', () => ({ WiredExtraBaseView: ({ children, save }: PropsWithChildren<{ save: () => void }>) => <div>{children}<button onClick={save}>Save</button></div> }));
+
+import { WiredExtraTimeUtilitiesView } from './extras/WiredExtraTimeUtilitiesView';
 import { WiredActionMoveFurniToView } from './actions/WiredActionMoveFurniToView';
 import { WiredConditionUserLevelNativeView } from './conditions/WiredConditionUserLevelNativeView';
 import { WiredNativeContext } from './WiredNativeContext';
@@ -52,6 +56,17 @@ describe('AIR editor native controls', () => {
         fireEvent.click(screen.getByText('Save'));
         expect(state.setIntParams).toHaveBeenLastCalledWith([4, 5]);
         expect(state.setFurniSources).toHaveBeenLastCalledWith([100, 101]);
+    });
+
+    it('uses the AIR Time Utilities dropdown and preserves selected subvariables', () => {
+        state.trigger.intData = [2, 1];
+        render(<WiredNativeContext.Provider value={true}><WiredExtraTimeUtilitiesView /></WiredNativeContext.Provider>);
+        const dropdown = screen.getByRole('combobox', { name: 'Read the variable as:' });
+        expect((dropdown as HTMLSelectElement).value).toBe('1');
+        expect(Array.from(dropdown.querySelectorAll('option')).map((option) => option.textContent)).toEqual(['Variable value', 'Creation time', 'Last update time']);
+        fireEvent.change(dropdown, { target: { value: '2' } });
+        fireEvent.click(screen.getByText('Save'));
+        expect(state.setIntParams).toHaveBeenLastCalledWith([2, 2]);
     });
 
     it.each([true, false])('preserves variable-name keyboard handlers in the native text input (native=%s)', (native) => {
