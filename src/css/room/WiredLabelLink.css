@@ -66,13 +66,7 @@
     cursor: default;
 }
 
-.volt-furni-label-settings__swatch {
-    display: inline-block;
-    width: 22px;
-    height: 22px;
-    border-radius: 4px;
-    border: 1px solid rgba(0, 0, 0, 0.4);
-}
+
 
 .volt-wired-link__row {
     padding: 2px 0;
@@ -130,3 +124,64 @@
     font-weight: 600;
     border-bottom-width: 2px;
 }
+
+/* AIR package 25 furniture_label_settings_xml; style 100 frame content origin (1,30). */
+.volt-furni-label-settings {
+    position: relative;
+    width: 320px;
+    height: 220px;
+    color: #000;
+    font-family: HabboAirUbuntu, UbuntuRegular, sans-serif;
+    font-size: 12px;
+    filter: drop-shadow(0 0 10px rgb(0 0 0 / 35%));
+}
+.volt-furni-label-settings *, .volt-furni-label-settings *::before, .volt-furni-label-settings *::after { box-sizing: border-box; }
+.volt-furni-label-settings__chrome {
+    position: absolute;
+    inset: 0;
+    border-image: url('../../assets/images/friends/swf/illumina_light_border_frame.png') 4 4 7 4 fill / 4px 4px 7px 4px stretch;
+    image-rendering: pixelated;
+    pointer-events: none;
+}
+.volt-furni-label-settings__titlebar { position: absolute; inset: 0 0 auto; height: 30px; cursor: move; user-select: none; }
+.volt-furni-label-settings__title { position: absolute; left: 8px; top: 11px; line-height: 0; }
+.volt-furni-label-settings__close {
+    position: absolute; top: 9px; right: 8px; width: 20px; height: 20px;
+    padding: 0; margin: 0; border: 0; cursor: pointer;
+    background: url('../../assets/images/friends/swf/illumina_light_button_frame_close.png') 0 0 no-repeat;
+    image-rendering: pixelated;
+}
+.volt-furni-label-settings__close:hover { background-position: -52px 0; }
+.volt-furni-label-settings__close:active { background-position: -26px 0; }
+.volt-furni-label-settings__content { position: absolute; left: 1px; top: 30px; width: 318px; height: 189px; }
+.volt-furni-label-settings__content > * { position: absolute; margin: 0; }
+.volt-furni-label-settings__color-label { left: 12px; top: 8px; width: 290px; height: 16px; }
+.volt-furni-label-settings__color { left: 12px; top: 28px; width: 226px; }
+.volt-furni-label-settings__preview { left: 250px; top: 21px; width: 52px; height: 35px; }
+.volt-furni-label-settings__visibility-label { left: 12px; top: 68px; width: 290px; height: 16px; }
+.volt-furni-label-settings__visibility { left: 12px; top: 88px; width: 290px; }
+
+.volt-furni-label-settings__always-open { left: 12px; top: 123px; width: 290px; height: 22px; cursor: pointer; }
+.volt-furni-label-settings__always-open[aria-disabled='true'] { cursor: default; }
+.volt-furni-label-settings__always-open > span { position: absolute; left: 22px; top: 2px; width: 268px; height: 18px; }
+.volt-furni-label-settings__always-open input {
+    appearance: none; position: absolute; left: 0; top: 1px; width: 18px; height: 18px;
+    padding: 0; margin: 0; border: 0; border-radius: 0; box-shadow: none;
+    background: url('../../assets/images/habbo-skin/slices/checkbox-default.png') 0 0 no-repeat;
+    image-rendering: pixelated;
+}
+.volt-furni-label-settings__always-open input:checked { background-image: url('../../assets/images/habbo-skin/slices/checkbox-checked.png'); }
+.volt-furni-label-settings__always-open input:disabled { opacity: .5; }
+.volt-furni-label-settings__cancel { left: 12px; top: 151px; width: 61px; height: 28px; }
+.volt-furni-label-settings__save { left: 186px; top: 151px; width: 119px; height: 28px; }
+
+/* Higher specificity than the shared dropdown's sizing rules, regardless of CSS import order. */
+.volt-furni-label-settings .habbo-dropmenu.habbo-dropmenu--ubuntu { position: absolute; height: 25px; }
+.volt-furni-label-settings .habbo-dropmenu.volt-furni-label-settings__color { width: 226px; }
+.volt-furni-label-settings .habbo-dropmenu.volt-furni-label-settings__visibility { width: 290px; }
+
+/* button_thick style5 multiplies the source bitmap by the XML colour 0x3f9f3f. */
+.volt-furni-label-settings__save.fnd-button.fnd-button-green { border-image-source: url('../../assets/images/wired/label/button-ready-default.png'); }
+.volt-furni-label-settings__save.fnd-button.fnd-button-green:hover { border-image-source: url('../../assets/images/wired/label/button-ready-hover.png'); }
+.volt-furni-label-settings__save.fnd-button.fnd-button-green:active { border-image-source: url('../../assets/images/wired/label/button-ready-pressed.png'); }
+.volt-furni-label-settings .fnd-button canvas { mix-blend-mode: multiply; }
