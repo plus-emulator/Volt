@@ -1,7 +1,9 @@
 import { FC, useEffect, useState } from 'react';
-import { LocalizeText, localizeWithFallback, WiredFurniType } from '../../../../api';
+import { LocalizeText, localizeWithFallback, WiredFurniType, WIRED_SLIDER_HUNDREDTH } from '../../../../api';
 import { Text } from '../../../../common';
-import { WiredLegacySlider as Slider } from '../WiredSlider';
+import { WiredLegacySlider as Slider, WiredSliderSection } from '../WiredSlider';
+import { WiredRadioGroup } from '../WiredOptions';
+import { WiredSection } from '../WiredSection';
 import { useWired } from '../../../../hooks';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredConditionBaseView } from './WiredConditionBaseView';
@@ -142,6 +144,7 @@ export const WiredConditionHasAltitudeView: FC<WiredConditionHasAltitudeViewProp
     return (
         <WiredConditionBaseView
             hasSpecialInput={true}
+            nativeLayout={variant === 'altitude'}
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID_BY_TYPE_OR_FROM_CONTEXT}
             save={save}
             footerCollapsible={false}
@@ -180,7 +183,15 @@ export const WiredConditionHasAltitudeView: FC<WiredConditionHasAltitudeViewProp
                 </div>
             }
         >
-            {spec.comparison && (
+            {variant === 'altitude' && (
+                <>
+                    <WiredSection title={LocalizeText('wiredfurni.params.comparison_selection')}>
+                        <WiredRadioGroup name="altitudeComparison" options={[0, 1, 2].map((id) => ({ id, label: LocalizeText(`wiredfurni.params.comparison.${id}`) }))} value={comparison} onChange={setComparison} />
+                    </WiredSection>
+                    <WiredSliderSection converter={WIRED_SLIDER_HUNDREDTH} min={0} max={8000} step={1} titleKey="wiredfurni.params.setaltitude" value={Math.round(altitude * 100)} onChange={(value) => setAltitude(value / 100)} />
+                </>
+            )}
+            {variant !== 'altitude' && spec.comparison && (
                 <div className="flex flex-col gap-2">
                     {[0, 1, 2].map((value) => {
                         return (
@@ -203,7 +214,7 @@ export const WiredConditionHasAltitudeView: FC<WiredConditionHasAltitudeViewProp
                     })}
                 </div>
             )}
-            {spec.value && (
+            {variant !== 'altitude' && spec.value && (
                 <>
                     <div className="flex flex-col gap-1">
                         <Text bold>{localizeWithFallback(VALUE_LABELS[spec.value].key, VALUE_LABELS[spec.value].fallback)}</Text>
