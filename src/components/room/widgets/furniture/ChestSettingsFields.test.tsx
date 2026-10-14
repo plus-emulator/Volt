@@ -5,7 +5,7 @@ vi.mock('../../../../api', () => ({ LocalizeText: (key: string) => key }));
 vi.mock('../../../../common', () => ({ Text: ({ children }: PropsWithChildren) => <span>{children}</span> }));
 vi.mock('../../../../common/native-text/NativeText', () => ({ NativeText: ({ text }: { text: string }) => <span>{text}</span> }));
 import { ChestAppearanceFields } from './ChestSettingsFields';
-beforeEach(() => { vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({ measureText: (text: string) => ({ width: text.length * 6 }) } as CanvasRenderingContext2D); });
+beforeEach(() => { vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation((() => ({ measureText: (text: string) => ({ width: text.length * 6 }) })) as unknown as HTMLCanvasElement['getContext']); });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 const previewLabel = 'wiredchests.settings.appearance.preview';
 const countLabel = 'wiredchests.settings.appearance.preview_amount';

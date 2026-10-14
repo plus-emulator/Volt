@@ -1,3 +1,4 @@
+import { WiredFurniSelectorSection } from '../WiredFurniSelectorView';
 import { FC, useEffect, useMemo, useState } from 'react';
 import { LocalizeText, tokenOfVariableSlot, variableSlotOf, WIRED_VARIABLE_ABSENT, WiredFurniType } from '../../../../api';
 import {
@@ -178,7 +179,7 @@ export const WiredTriggerReceiveLinkDataframeView: FC<{}> = () => {
     };
 
     return (
-        <WiredTriggerBaseView hasSpecialInput={true} nativeLayout={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID} save={save}>
+        <WiredTriggerBaseView hasSpecialInput={true} nativeLayout={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID} selectionPreview={<WiredFurniSelectorSection title={LocalizeText('wiredfurni.params.link.endpoints')} hideInstructions />} save={save}>
             <WiredSection>
                 <WiredText soft={true} wrap={true} text={LocalizeText('wiredfurni.params.link.Receive_info')} />
             </WiredSection>

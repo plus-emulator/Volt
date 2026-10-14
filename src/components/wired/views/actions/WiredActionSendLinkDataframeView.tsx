@@ -1,3 +1,4 @@
+import { WiredFurniSelectorSection } from '../WiredFurniSelectorView';
 import { FC, useEffect, useMemo, useState } from 'react';
 import { LocalizeText, tokenOfVariableSlot, variableSlotOf, WIRED_VARIABLE_ABSENT, WiredFurniType } from '../../../../api';
 import {
@@ -248,6 +249,7 @@ export const WiredActionSendLinkDataframeView: FC<{}> = () => {
             hasSpecialInput={true}
             nativeLayout={true}
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID}
+            selectionPreview={<WiredFurniSelectorSection title={LocalizeText('wiredfurni.params.link.endpoints')} hideInstructions />}
             save={save}
             validate={() => error === null && !Array.from(invalidRows).some(index => index < count && rows[index].mode !== LINK_SOURCE_MESSAGE)}
             footer={
