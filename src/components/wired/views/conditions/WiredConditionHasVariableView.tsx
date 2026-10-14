@@ -1,12 +1,11 @@
 import { FC, useEffect, useState } from 'react';
 import { LocalizeText, WiredFurniType, WiredNativeVariableScope, tokenOfVariableSlot, variableSlotOf } from '../../../../api';
-import { Text } from '../../../../common';
+import { WiredSection } from '../WiredSection';
 import { useWired } from '../../../../hooks';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredVariablePicker } from '../WiredVariablePicker';
-import { FurniPickSlotButtons, VariableQuantifierRadios, VariableScopeButtons } from './WiredVariableConditionParts';
+import { FurniPickSlotButtons, VariableQuantifierRadios, VariableScopeButtons, useConditionVariableEntries } from './WiredVariableConditionParts';
 import { scopeOfTargetCode, targetCodeOfScope } from '../../../../api';
-import { useVariableScopeEntries } from '../../../../hooks';
 import { WiredConditionBaseView } from './WiredConditionBaseView';
 
 interface WiredConditionHasVariableViewProps {
@@ -40,7 +39,7 @@ export const WiredConditionHasVariableView: FC<WiredConditionHasVariableViewProp
     const [variableToken, setVariableToken] = useState('');
     const [furniSource, setFurniSource] = useState(0);
     const [userSource, setUserSource] = useState(0);
-    const entries = useVariableScopeEntries(scope, 'condition', variableToken);
+    const entries = useConditionVariableEntries(scope, variableToken, 'exists');
 
     const picksFurni = scope === 'furni' && (furniSource === FURNI_SOURCE_SELECTED || furniSource === FURNI_SOURCE_SECONDARY_SELECTED);
     useEffect(() => {
@@ -77,6 +76,7 @@ export const WiredConditionHasVariableView: FC<WiredConditionHasVariableViewProp
 
     return (
         <WiredConditionBaseView
+            nativeLayout
             hasSpecialInput={true}
             requiresFurni={requiresFurni}
             save={save}
@@ -95,14 +95,9 @@ export const WiredConditionHasVariableView: FC<WiredConditionHasVariableViewProp
                 </div>
             }
         >
-            <div className="volt-wired__give-var">
-                <div className="volt-wired__give-var-heading">
-                    <Text>{LocalizeText('wiredfurni.params.variables.variable_selection')}</Text>
-                    <VariableScopeButtons scopes={SCOPES} value={scope} onChange={handleScopeChange} />
-                </div>
-
-                <WiredVariablePicker entries={entries} recentScope="variable-conditions" selectedToken={variableToken} onSelect={(entry) => setVariableToken(entry.token)} />
-            </div>
+            <WiredSection title={LocalizeText('wiredfurni.params.variables.variable_selection')} headerOptionsRight={<VariableScopeButtons scopes={SCOPES} value={scope} onChange={handleScopeChange} />}>
+                <WiredVariablePicker entries={entries} recentScope="variable-conditions" selectedToken={variableToken} onSelect={entry => setVariableToken(entry.token)} />
+            </WiredSection>
         </WiredConditionBaseView>
     );
 };

@@ -1,11 +1,17 @@
+import { IWiredVariableData } from '@volt/renderer';
+import { IWiredVariablePickerEntry } from '../WiredVariablePickerData';
+import { WiredSourceTypeSelector } from '../WiredSourceTypeSelector';
+import { WiredSection } from '../WiredSection';
+import { WiredRadioGroup } from '../WiredOptions';
+import { useWiredNative } from '../WiredNativeContext';
 import { FC } from 'react';
-import { localizeWithFallback, LocalizeText, WiredNativeVariableScope } from '../../../../api';
+import { getNativeVariableId, localizeWithFallback, LocalizeText, WiredNativeVariableScope } from '../../../../api';
 import contextVariableIcon from '../../../../assets/images/wired/var/icon_source_context_clean.png';
 import furniVariableIcon from '../../../../assets/images/wired/var/icon_source_furni.png';
 import globalVariableIcon from '../../../../assets/images/wired/var/icon_source_global.png';
 import userVariableIcon from '../../../../assets/images/wired/var/icon_source_user.png';
 import { Button, Text } from '../../../../common';
-import { useWired } from '../../../../hooks';
+import { useVariableScopeEntries, useWired } from '../../../../hooks';
 
 const SCOPE_ICONS: Record<WiredNativeVariableScope, string> = {
     user: userVariableIcon,
@@ -19,7 +25,7 @@ export const VariableScopeButtons: FC<{ scopes: WiredNativeVariableScope[]; valu
     scopes,
     value,
     onChange
-}) => (
+}) => useWiredNative() ? <WiredSourceTypeSelector types={scopes} value={value} onChange={onChange} /> : (
     <div className="volt-wired__give-var-targets">
         {scopes.map((scope) => (
             <button
@@ -35,7 +41,7 @@ export const VariableScopeButtons: FC<{ scopes: WiredNativeVariableScope[]; valu
 );
 
 /** Quantifier radios of the variable conditions: all or any of the holders. */
-export const VariableQuantifierRadios: FC<{ name: string; value: number; onChange: (value: number) => void }> = ({ name, value, onChange }) => (
+export const VariableQuantifierRadios: FC<{ name: string; value: number; onChange: (value: number) => void }> = ({ name, value, onChange }) => useWiredNative() ? <WiredSection title={LocalizeText('wiredfurni.params.quantifier_selection')}><WiredRadioGroup name={name} value={value} onChange={onChange} options={[0, 1].map(id => ({ id, label: LocalizeText(`wiredfurni.params.quantifier.variables.${id}`) }))} /></WiredSection> : (
     <div className="flex flex-col gap-1">
         <Text bold>{LocalizeText('wiredfurni.params.quantifier_selection')}</Text>
         {[0, 1].map((option) => (
@@ -55,7 +61,7 @@ export const FurniPickSlotButtons: FC<{ slots: Array<{ slot: 0 | 1; count: numbe
 
     return (
         <div className="flex gap-2">
-            {slots.map(({ slot, count }) => (
+            {slots.filter((entry, index) => slots.findIndex(other => other.slot === entry.slot) === index).map(({ slot, count }) => (
                 <Button key={slot} disabled={activePickSlot === slot} onClick={() => setActivePickSlot(slot)}>
                     {slot === 0
                         ? localizeWithFallback('wiredfurni.params.picks.primary', 'Primary picks ({count})', ['count'], [String(count)])
@@ -64,4 +70,19 @@ export const FurniPickSlotButtons: FC<{ slots: Array<{ slot: 0 | 1; count: numbe
             ))}
         </div>
     );
+};
+
+/** Keep saved unavailable IDs visible; picker choices use the native AIR capability flags. */
+export const useConditionVariableEntries = (scope: WiredNativeVariableScope, token: string, kind: 'exists' | 'age' | 'value') => {
+    const entries = useVariableScopeEntries(scope, 'condition', token);
+    const { nativeCatalog } = useWired();
+    if (!nativeCatalog?.rows) return entries;
+    const allowed = (variable: IWiredVariableData) => kind === 'exists' ? !variable.alwaysAvailable : kind === 'age' ? variable.canReadCreationTime || variable.canReadLastUpdateTime : variable.hasValue;
+    const filter = (list: IWiredVariablePickerEntry[]): IWiredVariablePickerEntry[] => list.flatMap(entry => {
+        if (entry.children) return [{ ...entry, children: filter(entry.children) }];
+        const variable = nativeCatalog.rows.get(getNativeVariableId(entry.token))?.variable;
+        if (variable && allowed(variable)) return [entry];
+        return entry.token === token ? [{ ...entry, selectable: false }] : [];
+    });
+    return filter(entries);
 };

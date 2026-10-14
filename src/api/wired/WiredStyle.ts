@@ -47,6 +47,7 @@ export const wiredWidthMultiplier = (wiredType: string, code: number): number =>
         if (code === WiredActionLayoutCode.CUSTOM_CONTRACT) return 1.2; // hAe:414180
         if (code >= WiredActionLayoutCode.VARIABLE_FX_HEALTH_POINTS_EXTRA && code <= WiredActionLayoutCode.VARIABLE_FX_NUMBER_DISPLAY_EXTRA) return 1.45; // Cb:414466
     }
+    if (wiredType === 'condition' && code === 43) return 1.4; // VariableAge widthModifier (WIN63-202610131318)
     if (wiredType === 'trigger') {
         if (code === 28) return 1.5; // RoomInitialized widthModifier (WIN63-202610131318)
         if (code === 30) return 1.4; // ReceiveLinkDataframe widthModifier (WIN63-202610131318)

@@ -1,6 +1,7 @@
 import { FC, useEffect, useState } from 'react';
 import { LocalizeText, WiredFurniType } from '../../../../api';
-import { Text } from '../../../../common';
+import { WiredSection } from '../WiredSection';
+import { WiredCheckboxGroup, WiredCheckboxOption, WiredQuantifierSection } from '../WiredOptions';
 import { useWired } from '../../../../hooks';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredConditionBaseView } from './WiredConditionBaseView';
@@ -39,75 +40,25 @@ export const WiredConditionFurniMatchesSnapshotView: FC<WiredConditionFurniMatch
 
     return (
         <WiredConditionBaseView
+            nativeLayout
             hasSpecialInput={true}
             requiresFurni={requiresFurni}
             save={save}
             footer={
                 <div className="flex flex-col gap-2">
-                    <div className="flex flex-col gap-1">
-                        <Text bold>{LocalizeText('wiredfurni.params.quantifier_selection')}</Text>
-                        {[0, 1].map((value) => {
-                            return (
-                                <label key={value} className="flex items-center gap-1">
-                                    <input
-                                        checked={quantifier === value}
-                                        className="form-check-input"
-                                        name="snapshotQuantifier"
-                                        type="radio"
-                                        onChange={() => setQuantifier(value)}
-                                    />
-                                    <Text>{LocalizeText(`wiredfurni.params.quantifier.furni${negative ? '.neg' : ''}.${value}`)}</Text>
-                                </label>
-                            );
-                        })}
-                    </div>
+                    <WiredQuantifierSection name="snapshotQuantifier" kind="furni" negative={negative} value={quantifier} onChange={setQuantifier} />
                     <WiredSourcesSelector showFurni={true} furniSource={furniSource} onChangeFurni={onChangeFurniSource} />
                 </div>
             }
         >
-            <div className="flex flex-col gap-1">
-                <Text bold>{LocalizeText('wiredfurni.params.conditions')}</Text>
-                <div className="flex items-center gap-1">
-                    <input
-                        checked={!!stateFlag}
-                        className="form-check-input"
-                        id="stateFlag"
-                        type="checkbox"
-                        onChange={(event) => setStateFlag(event.target.checked ? 1 : 0)}
-                    />
-                    <Text>{LocalizeText('wiredfurni.params.condition.state')}</Text>
-                </div>
-                <div className="flex items-center gap-1">
-                    <input
-                        checked={!!directionFlag}
-                        className="form-check-input"
-                        id="directionFlag"
-                        type="checkbox"
-                        onChange={(event) => setDirectionFlag(event.target.checked ? 1 : 0)}
-                    />
-                    <Text>{LocalizeText('wiredfurni.params.condition.direction')}</Text>
-                </div>
-                <div className="flex items-center gap-1">
-                    <input
-                        checked={!!positionFlag}
-                        className="form-check-input"
-                        id="positionFlag"
-                        type="checkbox"
-                        onChange={(event) => setPositionFlag(event.target.checked ? 1 : 0)}
-                    />
-                    <Text>{LocalizeText('wiredfurni.params.condition.position')}</Text>
-                </div>
-                <div className="flex items-center gap-1">
-                    <input
-                        checked={!!altitudeFlag}
-                        className="form-check-input"
-                        id="altitudeFlag"
-                        type="checkbox"
-                        onChange={(event) => setAltitudeFlag(event.target.checked ? 1 : 0)}
-                    />
-                    <Text>{LocalizeText('wiredfurni.params.condition.altitude')}</Text>
-                </div>
-            </div>
+            <WiredSection title={LocalizeText('wiredfurni.params.conditions')}>
+                <WiredCheckboxGroup>
+                    <WiredCheckboxOption checked={!!stateFlag} onChange={value => setStateFlag(value ? 1 : 0)} label={LocalizeText('wiredfurni.params.condition.state')} />
+                    <WiredCheckboxOption checked={!!directionFlag} onChange={value => setDirectionFlag(value ? 1 : 0)} label={LocalizeText('wiredfurni.params.condition.direction')} />
+                    <WiredCheckboxOption checked={!!positionFlag} onChange={value => setPositionFlag(value ? 1 : 0)} label={LocalizeText('wiredfurni.params.condition.position')} />
+                    <WiredCheckboxOption checked={!!altitudeFlag} onChange={value => setAltitudeFlag(value ? 1 : 0)} label={LocalizeText('wiredfurni.params.condition.altitude')} last />
+                </WiredCheckboxGroup>
+            </WiredSection>
         </WiredConditionBaseView>
     );
 };
