@@ -45,7 +45,7 @@ interface WiredComparisonOperatorProps {
 
 export const WiredComparisonOperator: FC<WiredComparisonOperatorProps> = ({ name, value, onChange, title }) => (
     <div className="flex flex-col gap-1">
-        <Text bold>{title ?? localizeWithFallback('wiredfurni.chest.comparison', 'Comparison')}</Text>
+        {title !== '' && <Text bold>{title ?? localizeWithFallback('wiredfurni.chest.comparison', 'Comparison')}</Text>}
         <div className="flex flex-wrap gap-2">
             {OPTIONS.map((option) => (
                 <label key={option.value} className="flex items-center gap-1">
