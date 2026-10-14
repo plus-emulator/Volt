@@ -1,4 +1,5 @@
 import { FC } from 'react';
+import { WiredContractView } from '../../../wired-contracts/WiredContractView';
 import { WidgetErrorBoundary } from '../../../../common';
 import { FurnitureContextMenuView } from './context-menu/FurnitureContextMenuView';
 import { FurnitureAreaHideView } from './FurnitureAreaHideView';
@@ -39,6 +40,9 @@ export const FurnitureWidgetsView: FC<{}> = (props) => {
             <WidgetErrorBoundary name="FurnitureChest">
                 <FurnitureChestView />
                 <FurnitureWiredChestRewardView />
+            </WidgetErrorBoundary>
+            <WidgetErrorBoundary name="WiredContract">
+                <WiredContractView />
             </WidgetErrorBoundary>
             <WidgetErrorBoundary name="FurnitureCrafting">
                 <FurnitureCraftingView />
