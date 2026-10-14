@@ -2,7 +2,8 @@ import { FC, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { localizeWithFallback } from '../../../../api';
 import { Text, VoltCardView } from '../../../../common';
-import { WiredNativeContext } from '../WiredNativeContext';
+import { WiredTextArea } from '../WiredTextArea';
+import { useWiredNative, WiredNativeContext } from '../WiredNativeContext';
 import { WiredShellHeaderView } from '../WiredShellHeaderView';
 import { WiredText } from '../WiredText';
 import { WiredMessagePreview } from './WiredMessagePreview';
@@ -62,6 +63,7 @@ interface WiredMessageEditorProps {
  * and a character counter.
  */
 export const WiredMessageEditor: FC<WiredMessageEditorProps> = ({ value, onChange, placeholderNames = [], rows = 4, previewStyle = 34, previewUsername = '', previewType = 0, previewWidth = 0, maxLength = WIRED_MESSAGE_EDITOR_MAX_LENGTH, maxLines = WIRED_MESSAGE_EDITOR_MAX_LINES, height, disabled = false, showCompactCounter = true }) => {
+    const native = useWiredNative();
     const [open, setOpen] = useState(false);
     const [paletteOpen, setPaletteOpen] = useState(false);
     const [placeholderOpen, setPlaceholderOpen] = useState(false);
@@ -194,8 +196,8 @@ export const WiredMessageEditor: FC<WiredMessageEditorProps> = ({ value, onChang
 
     return (
         <div className="flex flex-col gap-1">
-            <div className="flex items-start gap-1">
-                <textarea
+            <div className="flex items-center gap-1">
+                {native ? <div className="min-w-0 flex-1"><WiredTextArea value={value} onChange={change} height={height ?? 40} maxLength={maxLength} disabled={disabled} /></div> : <textarea
                     className={`form-control form-control-sm flex-1${height === undefined ? ' volt-wired__resizable-textarea' : ''}`}
                     style={height === undefined ? undefined : { height, resize: 'none' }}
                     disabled={disabled}
@@ -203,10 +205,10 @@ export const WiredMessageEditor: FC<WiredMessageEditorProps> = ({ value, onChang
                     rows={rows}
                     value={value}
                     onChange={(event) => change(event.target.value)}
-                />
+                />}
                 <button
                     type="button"
-                    className="px-1"
+                    className={native ? "shrink-0 p-0" : "px-1"}
                     disabled={disabled}
                     aria-label={localizeWithFallback('wiredfurni.params.message_editor.open.tooltip', 'Open the message editor')}
                     title={localizeWithFallback('wiredfurni.params.message_editor.open.tooltip', 'Open the message editor')}
@@ -215,7 +217,7 @@ export const WiredMessageEditor: FC<WiredMessageEditorProps> = ({ value, onChang
                     <img src={popoutIcon} width={15} height={15} alt="" draggable={false} />
                 </button>
             </div>
-            {showCompactCounter && <Text small>{`${value.length}/${maxLength}`}</Text>}
+            {showCompactCounter && !native && <Text small>{`${value.length}/${maxLength}`}</Text>}
             {popup}
         </div>
     );

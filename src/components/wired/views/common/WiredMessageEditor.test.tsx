@@ -53,7 +53,7 @@ describe('message editor limits and Send Link save contract', () => {
     it('uses the 60px Send Link field, permits more than eight lines and caps both editors at 1000 characters', () => {
         render(<WiredActionSendLinkMessageView />);
         const compact = screen.getByRole('textbox') as HTMLTextAreaElement;
-        expect(compact.style.height).toBe('60px');
+        expect(compact.closest('.volt-wired__textarea')).toHaveStyle({ height: '60px' });
         expect(compact.classList.contains('volt-wired__resizable-textarea')).toBe(false);
         const lines = Array.from({ length: 12 }, () => 'x'.repeat(50)).join('\n');
         fireEvent.change(compact, { target: { value: lines } });
