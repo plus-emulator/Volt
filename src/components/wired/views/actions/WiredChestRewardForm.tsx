@@ -1,15 +1,15 @@
-import { FC, useEffect, useMemo, useState } from 'react';
+import { FC, useEffect, useState } from 'react';
 import { localizeWithFallback, WiredFurniType } from '../../../../api';
-import { Text } from '../../../../common';
 import { useWired } from '../../../../hooks';
-import { VoltInput } from '../../../../layout';
 import { WiredCheckboxOption, WiredRadioGroup } from '../WiredOptions';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
-import { WiredVariablePicker } from '../WiredVariablePicker';
-import { buildWiredVariablePickerEntries, WiredVariablePickerTarget } from '../WiredVariablePickerData';
+import { WiredVariablePickerTarget } from '../WiredVariablePickerData';
 import { tokenOfVariableSlot, variableSlotOf, WIRED_VARIABLE_ABSENT } from '../../../../api';
-import { useWiredNativeVariables } from '../../../../hooks';
 import { WiredActionBaseView } from './WiredActionBaseView';
+import { WiredActionValueOrVariableSection } from './WiredActionValueOrVariableSection';
+import { WiredSection } from '../WiredSection';
+import { WiredCollapsibleSection } from '../WiredCollapsibleSection';
+import { WiredDropdown } from '../WiredDropdown';
 
 /** AIR's merged targets for the amount: furni 0, user 1, room -10, context -20. */
 export const AMOUNT_TARGETS: { target: WiredVariablePickerTarget; code: number; label: string }[] = [
@@ -33,7 +33,7 @@ const clampAmount = (value: number) => (Number.isFinite(value) ? Math.min(MAX_AM
  */
 export const WiredChestRewardForm: FC<{ kind: 'currency' | 'furni' }> = ({ kind }) => {
     const { trigger = null, setIntParams = null, setStringParam = null, setVariableIds = null, setFurniSources = null, setUserSources = null } = useWired();
-    const { userVariableDefinitions = [], furniVariableDefinitions = [], roomVariableDefinitions = [], contextVariableDefinitions = [] } = useWiredNativeVariables();
+    const [amountValid, setAmountValid] = useState(true);
     const [mode, setMode] = useState(0);
     const [amount, setAmount] = useState(1);
     const [useVariable, setUseVariable] = useState(false);
@@ -47,20 +47,6 @@ export const WiredChestRewardForm: FC<{ kind: 'currency' | 'furni' }> = ({ kind 
     const [mergedFurniSource, setMergedFurniSource] = useState(0);
     const [rewardUserSource, setRewardUserSource] = useState(0);
     const [mergedUserSource, setMergedUserSource] = useState(0);
-
-    const definitions = useMemo(() => {
-        switch (target) {
-            case 'furni':
-                return furniVariableDefinitions;
-            case 'global':
-                return roomVariableDefinitions;
-            case 'context':
-                return contextVariableDefinitions;
-            default:
-                return userVariableDefinitions;
-        }
-    }, [contextVariableDefinitions, furniVariableDefinitions, roomVariableDefinitions, target, userVariableDefinitions]);
-    const entries = useMemo(() => buildWiredVariablePickerEntries(target, 'give', definitions), [definitions, target]);
 
     useEffect(() => {
         if (!trigger) return;
@@ -93,11 +79,13 @@ export const WiredChestRewardForm: FC<{ kind: 'currency' | 'furni' }> = ({ kind 
         setUserSources([rewardUserSource, useVariable && target === 'user' ? mergedUserSource : 0]);
     };
 
-    const validate = () => !useVariable || !!variableToken;
+    const validate = () => mode === 1 || (amountValid && (!useVariable || !!variableToken));
 
     return (
         <WiredActionBaseView
             hasSpecialInput={true}
+            nativeLayout={true}
+            footerCollapsible={false}
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID}
             save={save}
             validate={validate}
@@ -114,63 +102,36 @@ export const WiredChestRewardForm: FC<{ kind: 'currency' | 'furni' }> = ({ kind 
                 </>
             }
         >
-            <Text bold>{localizeWithFallback('wiredfurni.params.rewarding_mode', 'Rewarding mode')}</Text>
-            <WiredRadioGroup
-                name="chestRewardMode"
-                value={mode}
-                onChange={setMode}
-                options={[
+            <WiredSection title={localizeWithFallback('wiredfurni.params.rewarding_mode', 'Rewarding mode')}>
+                <WiredRadioGroup name="chestRewardMode" value={mode} onChange={setMode} options={[
                     { id: 0, label: localizeWithFallback('wiredfurni.params.rewarding_mode.0', 'Amount per trigger') },
                     { id: 1, label: localizeWithFallback('wiredfurni.params.rewarding_mode.1', 'All of the chest') }
-                ]}
+                ]} />
+            </WiredSection>
+            <WiredActionValueOrVariableSection
+                title={localizeWithFallback('wiredfurni.params.amount_to_give', 'Amount')}
+                targetTitle={localizeWithFallback('wiredfurni.params.variables.reference_value.target', 'Variable target:')}
+                recentScope="chest-reward-amount" min={1} max={MAX_AMOUNT} disabled={mode === 1}
+                option={useVariable ? 1 : 0} onOptionChange={value => setUseVariable(value === 1)}
+                literal={amount} onLiteralChange={setAmount} target={target} onTargetChange={setTarget}
+                variableToken={variableToken} onVariableTokenChange={setVariableToken} onValidityChange={setAmountValid}
             />
-            {mode === 0 && (
-                <>
-                    <WiredRadioGroup
-                        name="chestRewardAmountOption"
-                        value={useVariable ? 1 : 0}
-                        onChange={(value) => setUseVariable(value === 1)}
-                        options={[
-                            { id: 0, label: localizeWithFallback('wiredfurni.params.amount_to_give', 'Amount') },
-                            { id: 1, label: localizeWithFallback('wiredfurni.params.variables.reference_value.from_variable', 'From variable') }
-                        ]}
-                    />
-                    {!useVariable && (
-                        <VoltInput type="number" min={1} max={MAX_AMOUNT} value={amount} onChange={(event) => setAmount(clampAmount(Number(event.target.value)))} />
-                    )}
-                    {useVariable && (
-                        <>
-                            <WiredRadioGroup
-                                name="chestRewardAmountTarget"
-                                value={AMOUNT_TARGETS.findIndex((entry) => entry.target === target)}
-                                onChange={(index) => {
-                                    setTarget(AMOUNT_TARGETS[index].target);
-                                    setVariableToken('');
-                                }}
-                                options={AMOUNT_TARGETS.map((entry, index) => ({ id: index, label: localizeWithFallback(entry.label, entry.target) }))}
-                            />
-                            <WiredVariablePicker entries={entries} recentScope="chest-reward-amount" selectedToken={variableToken} onSelect={(entry) => setVariableToken(entry.token)} />
-                        </>
-                    )}
-                </>
-            )}
-            {/* class_4173: the pop-up text area comes first, then the "show by default" checkbox. */}
-            <textarea className="form-control form-control-sm" maxLength={POPUP_TEXT_MAX} rows={3} value={popupText} onChange={(event) => setPopupText(event.target.value)} />
-            <WiredCheckboxOption checked={showByDefault} label={localizeWithFallback('wiredfurni.params.reward_contract.reward_popup.show_by_default', 'Show by default')} onChange={setShowByDefault} />
+            <WiredSection title={localizeWithFallback('wiredfurni.reward_contract.reward_popup', 'Reward popup')}>
+                <textarea className="form-control form-control-sm" aria-label={localizeWithFallback('wiredfurni.reward_contract.reward_popup', 'Reward popup')} title={localizeWithFallback('wiredfurni.reward_contract.reward_popup.text.tooltip', 'Reward popup text')}
+                    style={{ height: 45, resize: 'none' }} maxLength={POPUP_TEXT_MAX} rows={3} value={popupText}
+                    onChange={event => setPopupText(event.target.value.replace(/\r\n?/g, '\n').split('\n').slice(0, 3).join('\n').slice(0, POPUP_TEXT_MAX))} />
+                <WiredCheckboxOption checked={showByDefault} label={localizeWithFallback('wiredfurni.reward_contract.reward_popup.show_by_default', 'Show by default')} onChange={setShowByDefault} />
+            </WiredSection>
             {kind === 'currency' ? (
-                <WiredRadioGroup
-                    name="chestRewardCategory"
-                    value={category}
-                    onChange={setCategory}
-                    options={CURRENCY_CATEGORIES.map((value) => ({ id: value, label: localizeWithFallback(`wiredfurni.params.earnings_category.${value}`, `Category ${value}`) }))}
-                />
+                <WiredCollapsibleSection title={localizeWithFallback('wiredfurni.params.earnings_category', 'Earnings category')}>
+                    <WiredDropdown caption={localizeWithFallback('wiredfurni.params.earnings_category', 'Earnings category')} value={category} onChange={setCategory}
+                        options={CURRENCY_CATEGORIES.map(value => ({ id: value, label: localizeWithFallback(`wiredfurni.params.earnings_category.${value}`, `Category ${value}`) }))} />
+                </WiredCollapsibleSection>
             ) : (
-                <WiredRadioGroup
-                    name="chestRewardIteration"
-                    value={iteration}
-                    onChange={setIteration}
-                    options={ITERATION_TYPES.map((value) => ({ id: value, label: localizeWithFallback(`wiredfurni.params.chest_iteration_type.${value}`, `Iteration ${value}`) }))}
-                />
+                <WiredCollapsibleSection title={localizeWithFallback('wiredfurni.params.chest_iteration_type', 'Chest iteration type')}>
+                    <WiredRadioGroup name="chestRewardIteration" value={iteration} onChange={setIteration}
+                        options={ITERATION_TYPES.map(value => ({ id: value, disabled: mode === 1, label: localizeWithFallback(`wiredfurni.params.chest_iteration_type.${value}`, `Iteration ${value}`) }))} />
+                </WiredCollapsibleSection>
             )}
         </WiredActionBaseView>
     );
