@@ -1,5 +1,5 @@
 import { IWiredVariableFxConfig } from '@octane/renderer';
-import { WIRED_FX_CATEGORY } from '../../../../api';
+import { WIRED_FX_CATEGORY, WIRED_FX_CONFIG_EXTRA } from '../../../../api';
 import { IWiredVariableFxStatusEntry } from '../../../../hooks';
 
 export interface IWiredVariableFxDrawn {
@@ -19,6 +19,13 @@ export interface IWiredVariableFxGroups {
     entities: IWiredVariableFxEntityGroup[];
     bosses: IWiredVariableFxDrawn[];
 }
+
+/** The "Order in FX stack" the server sent in the config extra; 0 when absent, as the official renderer reads it. */
+export const wiredVariableFxStackOrder = (config: IWiredVariableFxConfig): number => {
+    const order = parseInt(config.extra?.[WIRED_FX_CONFIG_EXTRA.STACK_ORDER] ?? '', 10);
+
+    return Number.isFinite(order) ? order : 0;
+};
 
 /**
  * Pairs each status with its config and sorts them by where they draw: boss bars go to the top
@@ -55,8 +62,11 @@ export const groupWiredVariableFxStatuses = (
         group.drawn.push(drawn);
     }
 
+    // The official stack sorts a higher order first (lower in the pile), then by config; the pile stays stable between flushes.
     const byConfig = (left: IWiredVariableFxDrawn, right: IWiredVariableFxDrawn) =>
-        left.config.configId - right.config.configId || left.entry.status.variableId.localeCompare(right.entry.status.variableId);
+        wiredVariableFxStackOrder(right.config) - wiredVariableFxStackOrder(left.config) ||
+        left.config.configId - right.config.configId ||
+        left.entry.status.variableId.localeCompare(right.entry.status.variableId);
 
     for (const group of entities.values()) group.drawn.sort(byConfig);
 

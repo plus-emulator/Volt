@@ -20,6 +20,8 @@ interface RewardEntry {
 const DEFAULT_PROBABILITY = 100;
 const MAX_REWARDS = 20;
 const MAX_BADGE_CODE_LENGTH = 35;
+/** class_4199 (validateReward): product and badge codes hold up to 100 characters and no ',' or ';'. */
+const MAX_PRODUCT_CODE_LENGTH = 100;
 const MAX_LIMIT = 1000;
 
 const REWARD_TYPES: { value: RewardType; key: string; label: string }[] = [
@@ -31,15 +33,22 @@ const clampInt = (value: number, min: number, max: number) => (Number.isFinite(v
 
 const createReward = (): RewardEntry => ({ rewardType: 'furni', rewardValue: '', probability: DEFAULT_PROBABILITY });
 
-const getRewardValueLabel = (rewardType: RewardType) => (rewardType === 'badge' ? 'Badge code' : 'Furni base item id');
+const getRewardValueLabel = (rewardType: RewardType) => (rewardType === 'badge' ? 'Badge code' : 'Furni name or base item id');
 
-/** The code of one prize as the server reads it: "badge" or "furni#<base item id>"; null when the server would refuse it. */
+/**
+ * The code of one prize as the server reads it: a badge code, or for furni the furniture name (what the official editor takes)
+ * or "furni#<base item id>" (a plain number is read as an id); null when the server would refuse it.
+ */
 const rewardCodeOf = (reward: RewardEntry): string | null => {
     const value = reward.rewardValue.trim();
 
     if (reward.rewardType === 'badge') return value.length > 0 && value.length <= MAX_BADGE_CODE_LENGTH && !/[,;\s]/.test(value) ? value : null;
 
-    return /^\d+$/.test(value) && Number(value) > 0 ? `furni#${value}` : null;
+    if (/^\d+$/.test(value)) return Number(value) > 0 ? `furni#${value}` : null;
+
+    if (/^furni#\d+$/.test(value)) return Number(value.slice('furni#'.length)) > 0 ? value : null;
+
+    return value.length > 0 && value.length <= MAX_PRODUCT_CODE_LENGTH && !/[,;#\s]/.test(value) ? value : null;
 };
 
 /** Reads one "type,code,chance" entry of the text; entries the server never writes are dropped. */
@@ -49,7 +58,7 @@ const parseRewardEntry = (rawType: string, rawCode: string, rawChance: string): 
 
     if (rawType === '0') return { rewardType: 'badge', rewardValue: rawCode, probability };
 
-    if (rawType === '1' && rawCode.startsWith('furni#')) return { rewardType: 'furni', rewardValue: rawCode.slice('furni#'.length), probability };
+    if (rawType === '1') return { rewardType: 'furni', rewardValue: rawCode.startsWith('furni#') ? rawCode.slice('furni#'.length) : rawCode, probability };
 
     return null;
 };
@@ -67,6 +76,10 @@ export const WiredActionGiveRewardView: FC<{}> = (props) => {
     const filledRewards = rewards.filter((reward) => reward.rewardValue.trim().length > 0);
     const invalidRewards = filledRewards.some((reward) => rewardCodeOf(reward) === null);
     const tooManyRewards = filledRewards.length > MAX_REWARDS;
+    // class_4199 validate(): without unique mode every prize needs a chance of 1 to 100 and the chances may not add up to more than 100.
+    const badChances = !uniqueRewards && filledRewards.some((reward) => reward.probability < 1 || reward.probability > 100);
+    const chanceTotal = filledRewards.reduce((total, reward) => total + reward.probability, 0);
+    const chancesTooHigh = !uniqueRewards && chanceTotal > 100;
 
     const addReward = () => setRewards((prevValue) => [...prevValue, createReward()]);
 
@@ -76,7 +89,7 @@ export const WiredActionGiveRewardView: FC<{}> = (props) => {
         setRewards((prevValue) => prevValue.map((reward, rewardIndex) => (rewardIndex === index ? updater(reward) : reward)));
     };
 
-    const validate = () => !invalidRewards && !tooManyRewards;
+    const validate = () => !invalidRewards && !tooManyRewards && !badChances && !chancesTooHigh;
 
     // Always saved, so an empty list clears the text and the counted fields instead of keeping the last save.
     const save = () => {
@@ -129,15 +142,20 @@ export const WiredActionGiveRewardView: FC<{}> = (props) => {
                 <Text>{LocalizeText('wiredfurni.params.prizelimit', ['amount'], [limitEnabled ? rewardsLimit.toString() : ''])}</Text>
             </div>
             {limitEnabled && <Slider max={MAX_LIMIT} min={1} value={rewardsLimit} onChange={(event) => setRewardsLimit(event)} />}
+            {!limitEnabled && (
+                <Text small className="p-1 rounded bg-muted">
+                    Reward limit not set. Make sure rewards are badges or non-tradeable items.
+                </Text>
+            )}
             <hr className="m-0 bg-dark" />
             <div className="flex flex-col gap-1">
                 <Text bold>How often can a user be rewarded?</Text>
                 <div className="flex gap-1">
                     <select className="w-full form-select form-select-sm" value={rewardTime} onChange={(event) => setRewardTime(Number(event.target.value))}>
                         <option value="0">Once</option>
-                        <option value="3">Once every {limitationInterval} minutes</option>
-                        <option value="2">Once every {limitationInterval} hours</option>
                         <option value="1">Once every {limitationInterval} days</option>
+                        <option value="2">Once every {limitationInterval} hours</option>
+                        <option value="3">Once every {limitationInterval} minutes</option>
                     </select>
                     {rewardTime > 0 && (
                         <OctaneInput type="number" min={1} max={MAX_LIMIT} value={limitationInterval} onChange={(event) => setLimitationInterval(Number(event.target.value))} />
@@ -191,7 +209,7 @@ export const WiredActionGiveRewardView: FC<{}> = (props) => {
                             <OctaneInput
                                 aria-label={getRewardValueLabel(reward.rewardType)}
                                 placeholder={getRewardValueLabel(reward.rewardType)}
-                                type={reward.rewardType === 'badge' ? 'text' : 'number'}
+                                type="text"
                                 value={reward.rewardValue}
                                 onChange={(event) => updateReward(index, (prevValue) => ({ ...prevValue, rewardValue: event.target.value }))}
                             />
@@ -220,7 +238,17 @@ export const WiredActionGiveRewardView: FC<{}> = (props) => {
             </div>
             {invalidRewards && (
                 <Text center small className="p-1 rounded bg-muted">
-                    A badge needs a code of up to 35 characters without spaces or commas; furni needs a base item id.
+                    A badge needs a code of up to 35 characters without spaces or commas; furni needs a furniture name or a base item id.
+                </Text>
+            )}
+            {badChances && (
+                <Text center small className="p-1 rounded bg-muted">
+                    Make sure all probabilities are numbers between 1 and 100.
+                </Text>
+            )}
+            {chancesTooHigh && (
+                <Text center small className="p-1 rounded bg-muted">
+                    The sum of probabilities cannot exceed 100. You now have {chanceTotal}.
                 </Text>
             )}
             {tooManyRewards && (

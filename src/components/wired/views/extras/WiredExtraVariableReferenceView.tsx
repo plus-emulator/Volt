@@ -33,7 +33,8 @@ export const WiredExtraVariableReferenceView: FC<{}> = () => {
 
         for (const row of sharedRows) if (!byId.has(row.roomId)) byId.set(row.roomId, row.roomName);
 
-        return [...byId.entries()].map(([roomId, roomName]) => ({ roomId, roomName }));
+        // The official editor lists the rooms by name.
+        return [...byId.entries()].map(([roomId, roomName]) => ({ roomId, roomName })).sort((left, right) => left.roomName.localeCompare(right.roomName));
     }, [sharedRows]);
 
     const roomVariables = useMemo(() => sharedRows.filter((row) => row.roomId === selectedRoomId), [selectedRoomId, sharedRows]);
@@ -55,6 +56,18 @@ export const WiredExtraVariableReferenceView: FC<{}> = () => {
         setSelectedVariableId(variableId);
         setSelectedRoomId(row?.roomId ?? null);
     }, [sharedRows, trigger]);
+
+    // Picking a variable names the reference after it while the name is empty or still the previous pick's name (the official editor does the same).
+    const selectVariable = (variableId: string) => {
+        const previous = sharedRows.find((row) => row.variable.variableId === selectedVariableId);
+        const next = sharedRows.find((row) => row.variable.variableId === variableId);
+
+        if (!variableName.length || (previous && variableName === normalizeWiredVariableName(previous.variable.variableName))) {
+            setVariableName(normalizeWiredVariableName(next?.variable.variableName ?? ''));
+        }
+
+        setSelectedVariableId(variableId);
+    };
 
     const save = () => {
         setIntParams([readOnly ? 1 : 0]);
@@ -84,7 +97,7 @@ export const WiredExtraVariableReferenceView: FC<{}> = () => {
                         value={selectedRoomId ?? ''}
                         onChange={(event) => {
                             setSelectedRoomId(event.target.value === '' ? null : Number(event.target.value));
-                            setSelectedVariableId('');
+                            selectVariable('');
                         }}
                     >
                         <option value="">-</option>
@@ -97,7 +110,7 @@ export const WiredExtraVariableReferenceView: FC<{}> = () => {
                 </div>
                 <div className="flex flex-col gap-1">
                     <Text>{LocalizeText('wiredfurni.params.variables.variable')}</Text>
-                    <select className="form-select form-select-sm" value={selectedVariableId} onChange={(event) => setSelectedVariableId(event.target.value)}>
+                    <select className="form-select form-select-sm" value={selectedVariableId} onChange={(event) => selectVariable(event.target.value)}>
                         <option value="">-</option>
                         {roomVariables.map((row) => (
                             <option key={row.variable.variableId} value={row.variable.variableId}>

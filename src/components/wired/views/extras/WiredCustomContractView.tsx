@@ -3,6 +3,7 @@ import { localizeWithFallback, WiredFurniType } from '../../../../api';
 import { Text } from '../../../../common';
 import { useWired } from '../../../../hooks';
 import { OctaneInput } from '../../../../layout';
+import { FurniPickSlotButtons } from '../conditions/WiredVariableConditionParts';
 import { WiredCheckboxOption, WiredRadioGroup } from '../WiredOptions';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredVariablePicker } from '../WiredVariablePicker';
@@ -13,7 +14,7 @@ import { AMOUNT_TARGETS } from '../actions/WiredChestRewardForm';
 import { WiredExtraBaseView } from './WiredExtraBaseView';
 
 const MAX_AMOUNT = 100000;
-const FURNI_DEFAULT = 100;
+const FURNI_DEFAULTS = [100, 101];
 const USER_DEFAULT = 0;
 const TARGET_FURNI = 0;
 const TARGET_USER = 1;
@@ -31,10 +32,10 @@ interface IContractSide {
     holderUserSource: number;
 }
 
-const emptySide = (): IContractSide => ({
+const emptySide = (index = 0): IContractSide => ({
     enabled: false,
     furni: false,
-    furniSource: FURNI_DEFAULT,
+    furniSource: FURNI_DEFAULTS[index],
     fromVariable: false,
     amount: 1,
     target: TARGET_USER,
@@ -76,13 +77,16 @@ const readsHolder = (side: IContractSide, target: number) => side.enabled && sid
 
 interface IContractSideFormProps {
     title: string;
+    enableLabel: string;
+    furniTitle: string;
+    holderTitle: string;
     side: IContractSide;
     index: number;
     onChange: (changes: Partial<IContractSide>) => void;
 }
 
 /** One half of the contract: its activity, its element, its amount and the sources the variable reads. */
-const ContractSideForm: FC<IContractSideFormProps> = ({ title, side, index, onChange }) => {
+const ContractSideForm: FC<IContractSideFormProps> = ({ title, enableLabel, furniTitle, holderTitle, side, index, onChange }) => {
     const { userVariableDefinitions = [], furniVariableDefinitions = [], roomVariableDefinitions = [], contextVariableDefinitions = [] } = useWiredNativeVariables();
     const pickerTarget: WiredVariablePickerTarget = AMOUNT_TARGETS.find((entry) => entry.code === side.target)?.target ?? 'user';
     const targetIndex = Math.max(0, AMOUNT_TARGETS.findIndex((entry) => entry.code === side.target));
@@ -100,11 +104,7 @@ const ContractSideForm: FC<IContractSideFormProps> = ({ title, side, index, onCh
     return (
         <div className="flex flex-col gap-2">
             <Text bold>{title}</Text>
-            <WiredCheckboxOption
-                checked={side.enabled}
-                label={localizeWithFallback('wiredfurni.params.custom_contract.active', 'Active')}
-                onChange={(enabled) => onChange({ enabled })}
-            />
+            <WiredCheckboxOption checked={side.enabled} label={enableLabel} onChange={(enabled) => onChange({ enabled })} />
 
             {side.enabled && (
                 <>
@@ -113,21 +113,22 @@ const ContractSideForm: FC<IContractSideFormProps> = ({ title, side, index, onCh
                         value={side.furni ? 1 : 0}
                         onChange={(value) => onChange({ furni: value === 1 })}
                         options={[
-                            { id: 0, label: localizeWithFallback('wiredfurni.params.custom_contract.currency', 'Currency') },
-                            { id: 1, label: localizeWithFallback('wiredfurni.params.custom_contract.furni', 'Furni') }
+                            { id: 0, label: localizeWithFallback('wiredfurni.params.custom_contract.element_type_selection.0', 'Credits') },
+                            { id: 1, label: localizeWithFallback('wiredfurni.params.custom_contract.element_type_selection.1', 'Furni') }
                         ]}
                     />
                     {side.furni && (
-                        <WiredSourcesSelector showFurni={true} furniSlot={index} furniSource={side.furniSource} onChangeFurni={(furniSource) => onChange({ furniSource })} />
+                        <WiredSourcesSelector showFurni={true} furniSlot={index} furniSource={side.furniSource} furniTitle={furniTitle} onChangeFurni={(furniSource) => onChange({ furniSource })} />
                     )}
 
+                    <Text bold>{localizeWithFallback('wiredfurni.params.custom_contract.amount_selection', 'Amount selection:')}</Text>
                     <WiredRadioGroup
                         name={`contractOption${index}`}
                         value={side.fromVariable ? 1 : 0}
                         onChange={(value) => onChange({ fromVariable: value === 1, variableToken: '' })}
                         options={[
-                            { id: 0, label: localizeWithFallback('wiredfurni.params.amount_to_give', 'Amount') },
-                            { id: 1, label: localizeWithFallback('wiredfurni.params.variables.reference_value.from_variable', 'From variable') }
+                            { id: 0, label: localizeWithFallback('wiredfurni.params.variables.reference_value.set_value', 'Set value:') },
+                            { id: 1, label: localizeWithFallback('wiredfurni.params.variables.reference_value.from_variable', 'From Variable:') }
                         ]}
                     />
 
@@ -154,7 +155,7 @@ const ContractSideForm: FC<IContractSideFormProps> = ({ title, side, index, onCh
                                     showFurni={true}
                                     furniSlot={index + 2}
                                     furniSource={side.holderFurniSource}
-                                    furniTitle="wiredfurni.params.sources.merged.title.variables_reference"
+                                    furniTitle={holderTitle}
                                     onChangeFurni={(holderFurniSource) => onChange({ holderFurniSource })}
                                 />
                             )}
@@ -163,7 +164,7 @@ const ContractSideForm: FC<IContractSideFormProps> = ({ title, side, index, onCh
                                     showUsers={true}
                                     userSlot={index}
                                     userSource={side.holderUserSource}
-                                    usersTitle="wiredfurni.params.sources.merged.title.variables_reference"
+                                    usersTitle={holderTitle}
                                     onChangeUsers={(holderUserSource) => onChange({ holderUserSource })}
                                 />
                             )}
@@ -182,9 +183,9 @@ const ContractSideForm: FC<IContractSideFormProps> = ({ title, side, index, onCh
  * variables: [payment amount variable, reward amount variable].
  */
 export const WiredCustomContractView: FC<{}> = () => {
-    const { trigger = null, setIntParams = null, setFurniSources = null, setUserSources = null, setVariableIds = null } = useWired();
-    const [payment, setPayment] = useState<IContractSide>(emptySide);
-    const [reward, setReward] = useState<IContractSide>(emptySide);
+    const { trigger = null, setIntParams = null, setFurniSources = null, setUserSources = null, setVariableIds = null, furniIds = [], secondaryFurniIds = [], setActivePickSlot = null } = useWired();
+    const [payment, setPayment] = useState<IContractSide>(() => emptySide(0));
+    const [reward, setReward] = useState<IContractSide>(() => emptySide(1));
 
     useEffect(() => {
         if (!trigger) return;
@@ -194,9 +195,13 @@ export const WiredCustomContractView: FC<{}> = () => {
         const variables = trigger.variableIds ?? [];
         const ints = trigger.intData ?? [];
 
-        setPayment(sideFromWire(ints, 0, furni[0] ?? FURNI_DEFAULT, furni[2] ?? 0, users[0] ?? USER_DEFAULT, variables[0] ?? WIRED_VARIABLE_ABSENT));
-        setReward(sideFromWire(ints, 5, furni[1] ?? FURNI_DEFAULT, furni[3] ?? 0, users[1] ?? USER_DEFAULT, variables[1] ?? WIRED_VARIABLE_ABSENT));
+        setPayment(sideFromWire(ints, 0, furni[0] ?? FURNI_DEFAULTS[0], furni[2] ?? 0, users[0] ?? USER_DEFAULT, variables[0] ?? WIRED_VARIABLE_ABSENT));
+        setReward(sideFromWire(ints, 5, furni[1] ?? FURNI_DEFAULTS[1], furni[3] ?? 0, users[1] ?? USER_DEFAULT, variables[1] ?? WIRED_VARIABLE_ABSENT));
     }, [trigger]);
+
+    // The pick buttons offer the lists the active furni sides read from.
+    const picked = [payment, reward].flatMap((side) => (side.enabled && side.furni ? [side.furniSource] : []));
+    const lists = [0, 1].filter((list) => picked.includes(list === 0 ? 100 : 101));
 
     // A contract needs a side to act on, and every active side that reads a variable needs one picked.
     const validate = () => (payment.enabled || reward.enabled) && [payment, reward].every((side) => !(side.enabled && side.fromVariable) || !!side.variableToken);
@@ -204,8 +209,8 @@ export const WiredCustomContractView: FC<{}> = () => {
     const save = () => {
         setIntParams([...intsOf(payment), ...intsOf(reward)]);
         setFurniSources([
-            payment.enabled && payment.furni ? payment.furniSource : FURNI_DEFAULT,
-            reward.enabled && reward.furni ? reward.furniSource : FURNI_DEFAULT,
+            payment.enabled && payment.furni ? payment.furniSource : FURNI_DEFAULTS[0],
+            reward.enabled && reward.furni ? reward.furniSource : FURNI_DEFAULTS[1],
             readsHolder(payment, TARGET_FURNI) ? payment.holderFurniSource : 0,
             readsHolder(reward, TARGET_FURNI) ? reward.holderFurniSource : 0
         ]);
@@ -222,25 +227,40 @@ export const WiredCustomContractView: FC<{}> = () => {
     return (
         <WiredExtraBaseView hasSpecialInput={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID} save={save} validate={validate} cardStyle={{ width: 420 }}>
             <div className="flex flex-col gap-2">
+                <Text className="whitespace-pre-line">
+                    {localizeWithFallback(
+                        'wiredfurni.params.custom_contract.usage_warning',
+                        'This is a contract that can act as a Payment, Trade, or Reward contract depending on the configuration.'
+                    )}
+                </Text>
                 <ContractSideForm
-                    title={localizeWithFallback('wiredfurni.params.custom_contract.pays', 'The user PAYS')}
+                    title={localizeWithFallback('wiredfurni.params.custom_contract.payment', 'Payment')}
+                    enableLabel={localizeWithFallback('wiredfurni.params.custom_contract.enable_payment', 'Enable payment')}
+                    furniTitle="wiredfurni.params.sources.furni.title.payment"
+                    holderTitle="wiredfurni.params.sources.merged.title.variables_reference_payment"
                     side={payment}
                     index={0}
-                    onChange={(changes) => setPayment((previous) => ({ ...previous, ...changes }))}
+                    onChange={(changes) => {
+                        setPayment((previous) => ({ ...previous, ...changes }));
+
+                        if (changes.furniSource === 100 || changes.furniSource === 101) setActivePickSlot?.(changes.furniSource === 101 ? 1 : 0);
+                    }}
                 />
                 <div className="octane-wired__divider" />
                 <ContractSideForm
-                    title={localizeWithFallback('wiredfurni.params.custom_contract.receives', 'The user RECEIVES')}
+                    title={localizeWithFallback('wiredfurni.params.custom_contract.reward', 'Reward')}
+                    enableLabel={localizeWithFallback('wiredfurni.params.custom_contract.enable_reward', 'Enable reward')}
+                    furniTitle="wiredfurni.params.sources.furni.title.reward"
+                    holderTitle="wiredfurni.params.sources.merged.title.variables_reference_reward"
                     side={reward}
                     index={1}
-                    onChange={(changes) => setReward((previous) => ({ ...previous, ...changes }))}
+                    onChange={(changes) => {
+                        setReward((previous) => ({ ...previous, ...changes }));
+
+                        if (changes.furniSource === 100 || changes.furniSource === 101) setActivePickSlot?.(changes.furniSource === 101 ? 1 : 0);
+                    }}
                 />
-                <Text small>
-                    {localizeWithFallback(
-                        'wiredfurni.params.custom_contract.hint',
-                        'Leave one side inactive for a contract that only takes or only gives. At least one side has to be active.'
-                    )}
-                </Text>
+                <FurniPickSlotButtons slots={lists.map((slot) => ({ slot: slot as 0 | 1, count: slot === 0 ? furniIds.length : secondaryFurniIds.length }))} />
             </div>
         </WiredExtraBaseView>
     );

@@ -21,10 +21,18 @@ interface IVariableDefinition {
 const DISPLAY_NUMERIC = 1;
 const DISPLAY_TEXTUAL = 2;
 const DEFAULT_CAPTURER_NAME = '';
-const MAX_CAPTURER_NAME_LENGTH = 40;
+// AS3 PlaceholderNameSection: a TextInputParam of 32 characters that lets "a-zA-Z_0-9 " through, turns spaces into "_" and lower-cases.
+const MAX_CAPTURER_NAME_LENGTH = 32;
 const PLACEHOLDER_WRAPPER_PATTERN = /^#(.*)#$/;
 
 const normalizeDisplayType = (value: number) => (value === DISPLAY_TEXTUAL ? DISPLAY_TEXTUAL : DISPLAY_NUMERIC);
+const typedCapturerName = (value: string) =>
+    (value ?? '')
+        .replace(/[^a-zA-Z0-9_ ]/g, '')
+        .split(' ')
+        .join('_')
+        .toLowerCase()
+        .slice(0, MAX_CAPTURER_NAME_LENGTH);
 const normalizeCapturerName = (value: string) => {
     let normalizedValue = (value ?? '').trim().replace(/[\t\r\n]/g, '');
 
@@ -32,7 +40,7 @@ const normalizeCapturerName = (value: string) => {
         normalizedValue = normalizedValue.substring(1, normalizedValue.length - 1).trim();
     }
 
-    return normalizedValue.slice(0, MAX_CAPTURER_NAME_LENGTH);
+    return typedCapturerName(normalizedValue);
 };
 
 const escapeHtml = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -44,7 +52,11 @@ export const WiredExtraTextInputVariableView: FC<{}> = () => {
     const [capturerName, setCapturerName] = useState(DEFAULT_CAPTURER_NAME);
     const [displayType, setDisplayType] = useState(DISPLAY_NUMERIC);
 
-    const targetDefinitions = useMemo(() => contextVariableDefinitions.filter((definition) => !!definition.hasValue), [contextVariableDefinitions]);
+    // AS3 VariableCapturerAddon.variableSelectionFilter: hasValue && canCreateAndDelete && canWriteValue.
+    const targetDefinitions = useMemo(
+        () => contextVariableDefinitions.filter((definition) => !!definition.hasValue && !definition.isReadOnly && definition.canCreateAndDelete !== false),
+        [contextVariableDefinitions]
+    );
     const variableEntries = useMemo(
         () => buildWiredVariablePickerEntries('context', 'change-reference', targetDefinitions).filter((entry) => entry.kind === 'custom'),
         [targetDefinitions]
@@ -85,7 +97,8 @@ export const WiredExtraTextInputVariableView: FC<{}> = () => {
     const previewToken = useMemo(() => {
         const effectiveName = normalizeCapturerName(capturerName) || 'capturer';
 
-        return `#${effectiveName}#`;
+        // The capturer is typed into a "User says keyword" text as #(name), as the editor's own preview tells the player.
+        return `#(${effectiveName})`;
     }, [capturerName]);
 
     const previewHtml = useMemo(() => LocalizeText('wiredfurni.params.texts.placeholder_preview', ['placeholder'], [escapeHtml(previewToken)]), [previewToken]);
@@ -113,7 +126,7 @@ export const WiredExtraTextInputVariableView: FC<{}> = () => {
                         maxLength={MAX_CAPTURER_NAME_LENGTH}
                         type="text"
                         value={capturerName}
-                        onChange={(event) => setCapturerName(normalizeCapturerName(event.target.value))}
+                        onChange={(event) => setCapturerName(typedCapturerName(event.target.value))}
                     />
                 </div>
 
