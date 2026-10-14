@@ -29,14 +29,10 @@ export const TURBO_REFERENCE_ONLY_WIRED: ReadonlySet<string> = new Set([
     'wf_trg_game_ends', // AS3 wired_setup/triggerconfs/class_4066.as
     'wf_trg_at_time_long', // AS3 wired_setup/triggerconfs/TriggerOnce.as (code 3)
     'wf_act_move_furni_to', // AS3 wired_setup/actiontypes/class_4162.as
-    'wf_act_init_transaction', // AS3 wired_setup/actiontypes/chests/class_4180.as
-    'wf_act_cancel_transaction', // AS3 wired_setup/actiontypes/chests/class_4182.as
     'wf_trg_transaction_complete', // AS3 wired_setup/triggerconfs/class_4226.as
-    'wf_trg_transaction_fail', // AS3 wired_setup/triggerconfs/class_4009.as
     'wf_cnd_chest_has_items', // AS3 wired_setup/conditions/chests/ChestHasAmount.as
     'wf_cnd_chest_has_item_type', // AS3 wired_setup/conditions/chests/class_4163.as
     'wf_xtra_scan_chest_furni_by_type', // AS3 wired_setup/addons/chests/class_3960.as
-    'wf_xtra_custom_contract', // AS3 wired_setup/addons/chests/class_4265.as
     'wf_act_give_currency', // AS3 wired_setup/actiontypes/chests/class_4174.as
     'wf_act_give_furni', // AS3 wired_setup/actiontypes/chests/class_4292.as
     'wf_act_give_reward', // AS3 wired_setup/actiontypes/class_4199.as
