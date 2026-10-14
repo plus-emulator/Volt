@@ -10,13 +10,10 @@ import {
     WIRED_VARIABLE_NAME_MAX,
     WiredFurniType
 } from '../../../../api';
-import contextVariableIcon from '../../../../assets/images/wired/native/icon_source_context.png';
-import furniVariableIcon from '../../../../assets/images/wired/native/icon_source_furni.png';
-import globalVariableIcon from '../../../../assets/images/wired/native/icon_source_global.png';
-import userVariableIcon from '../../../../assets/images/wired/native/icon_source_users.png';
 import { Text } from '../../../../common';
 import { useWired } from '../../../../hooks';
 import { WiredSection } from '../WiredSection';
+import { WiredSourceTypeSelector, WiredSourceType } from '../WiredSourceTypeSelector';
 import { WiredTextInput } from '../WiredTextInput';
 import { WiredVariablePicker } from '../WiredVariablePicker';
 import {
@@ -30,15 +27,7 @@ import { WiredExtraBaseView } from './WiredExtraBaseView';
 /** class_4027.var_3924 (package_223/class_4027.as:6): the variable type the accessor must have. */
 const ACCESSOR_VARIABLE_TYPE = 0;
 
-type PointerSourceScope = 'furni' | 'user' | 'global' | 'context';
-
-/** SourceTypeSelectorParam order (PointerVariable.as L47): class_4254 FURNI, USER, var_5827 (room), var_4327 (context). */
-const SOURCE_BUTTONS: Array<{ key: PointerSourceScope; icon: string }> = [
-    { key: 'furni', icon: furniVariableIcon },
-    { key: 'user', icon: userVariableIcon },
-    { key: 'global', icon: globalVariableIcon },
-    { key: 'context', icon: contextVariableIcon }
-];
+type PointerSourceScope = WiredSourceType;
 
 const SOURCE_TYPE_BY_SCOPE: Record<PointerSourceScope, number> = {
     furni: WIRED_NATIVE_VARIABLE_TARGET.furni,
@@ -120,22 +109,7 @@ export const WiredExtraPointerVariableView: FC<{}> = () => {
             nativeLayout={true}
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE}
             save={save}
-            headerControls={
-                <div className="volt-wired__give-var-targets" role="group" aria-label={localizeWithFallback('wiredfurni.params.variables.variable_selection', 'Variable selection:')}>
-                    {SOURCE_BUTTONS.map((button) => (
-                        <button
-                            key={button.key}
-                            type="button"
-                            aria-label={button.key}
-                            aria-pressed={sourceScope === button.key}
-                            className={`volt-wired__give-var-target volt-wired__give-var-target--${button.key} ${sourceScope === button.key ? 'is-active' : ''}`}
-                            onClick={() => setSourceScope(button.key)}
-                        >
-                            <img src={button.icon} alt="" />
-                        </button>
-                    ))}
-                </div>
-            }
+            headerControls={<WiredSourceTypeSelector types={['furni', 'user', 'global', 'context']} value={sourceScope} onChange={setSourceScope} />}
         >
             <WiredSection>
                 <Text className="whitespace-pre-line" small>

@@ -37,9 +37,9 @@ describe('Pointer Variable AIR header controls', () => {
     it('changes the source from the header while preserving the variable name and accessor id', () => {
         render(<WiredExtraPointerVariableView />);
         const header = screen.getByRole('banner');
-        expect(within(header).getByRole('button', { name: 'furni' }).getAttribute('aria-pressed')).toBe('true');
-        expect(within(screen.getByRole('main')).queryByRole('button', { name: 'context' })).toBeNull();
-        fireEvent.click(within(header).getByRole('button', { name: 'context' }));
+        expect(within(header).getByRole('button', { name: 'Furniture' }).getAttribute('aria-pressed')).toBe('true');
+        expect(within(screen.getByRole('main')).queryByRole('button', { name: 'Context' })).toBeNull();
+        fireEvent.click(within(header).getByRole('button', { name: 'Context' }));
         fireEvent.click(screen.getByText('Save'));
         expect(state.setIntParams).toHaveBeenLastCalledWith([-20]);
         expect(state.setStringParam).toHaveBeenLastCalledWith('my_pointer');

@@ -290,7 +290,7 @@ export const WiredBaseView: FC<PropsWithChildren<WiredBaseViewProps>> = (props) 
                 menuItems={shellMenuItems}
             />
             <VoltCardContentView classNames={['volt-wired__content']} gap={0}>
-                <div className="volt-wired__section volt-wired__summary">
+                <div className="volt-wired__section volt-wired__summary" style={headerControls ? { gap: 5, alignItems: 'center' } : undefined}>
                     {shellStyle === 'illumina' && (
                         <div className="volt-wired__banner" aria-hidden="true">
                             <WiredBannerCanvas />
@@ -301,7 +301,7 @@ export const WiredBaseView: FC<PropsWithChildren<WiredBaseViewProps>> = (props) 
                             <image href={volterAtlas} width={490} height={360} />
                         </svg>
                     )}
-                    <div className="volt-wired__summary-copy">
+                    <div className="volt-wired__summary-copy" style={headerControls ? { flex: 1 } : undefined}>
                         {shellStyle === 'illumina' ? (
                             <>
                                 <span className="volt-wired__summary-kind">{summaryKind.toUpperCase()}</span>
