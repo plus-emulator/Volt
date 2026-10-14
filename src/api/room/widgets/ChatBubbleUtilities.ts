@@ -11,13 +11,14 @@ import {
 import { GetConfigurationValue } from '../../volt/GetConfigurationValue';
 
 export class ChatBubbleUtilities {
-    private static MAX_CACHE_SIZE: number = 200;
+    private static MAX_CACHE_SIZE: number = 1024;
     // Rows of the face icon a one-line bubble shows, in CSS pixels.
     private static FACE_WINDOW_HEIGHT: number = 28;
 
     public static AVATAR_COLOR_CACHE: Map<string, number> = new Map();
     public static AVATAR_IMAGE_CACHE: Map<string, string> = new Map();
     public static PET_IMAGE_CACHE: Map<string, string> = new Map();
+    private static AVATAR_IMAGE_PENDING_CACHE: Map<string, Promise<string>> = new Map();
     private static PET_IMAGE_PENDING_CACHE: Map<string, Promise<string>> = new Map();
 
     private static PLACEHOLDER_IMAGE_CACHE: Map<string, string> = new Map();
@@ -71,7 +72,7 @@ export class ChatBubbleUtilities {
         const imageUrl = this.focusFace(source, (zoom ? 25 : 50) * (highResolution ? 2 : 1), highResolution ? 2 : 1).toDataURL('image/png');
         if (isPlaceholder) this.PLACEHOLDER_IMAGE_CACHE.set(placeholderKey, imageUrl);
 
-        this.AVATAR_IMAGE_CACHE.set(this.getAvatarImageCacheKey(figure, zoom, highResolution), imageUrl);
+        this.AVATAR_IMAGE_CACHE.set(this.getAvatarImageCacheKey(requestedFigure, zoom, highResolution), imageUrl);
 
         this.pruneCache(this.AVATAR_IMAGE_CACHE);
 
@@ -126,18 +127,39 @@ export class ChatBubbleUtilities {
 
     public static async getUserImage(figure: string, highResolution: boolean = false): Promise<string> {
         const zoom = GetConfigurationValue<boolean>('zoom.enabled', false);
-        let existing = this.AVATAR_IMAGE_CACHE.get(this.getAvatarImageCacheKey(figure, zoom, highResolution));
-
-        if (!existing) existing = await this.setFigureImage(figure, zoom, highResolution);
-
-        return existing;
+        const key = this.getAvatarImageCacheKey(figure, zoom, highResolution);
+        const existing = this.AVATAR_IMAGE_CACHE.get(key);
+        if (existing) {
+            // Reading a hot speaker must keep their head and colour near the end of the LRU.
+            this.AVATAR_IMAGE_CACHE.delete(key);
+            this.AVATAR_IMAGE_CACHE.set(key, existing);
+            const color = this.AVATAR_COLOR_CACHE.get(figure);
+            if (color !== undefined) {
+                this.AVATAR_COLOR_CACHE.delete(figure);
+                this.AVATAR_COLOR_CACHE.set(figure, color);
+            }
+            return existing;
+        }
+        const pending = this.AVATAR_IMAGE_PENDING_CACHE.get(key);
+        if (pending) return pending;
+        const request = this.setFigureImage(figure, zoom, highResolution);
+        this.AVATAR_IMAGE_PENDING_CACHE.set(key, request);
+        try {
+            return await request;
+        } finally {
+            if (this.AVATAR_IMAGE_PENDING_CACHE.get(key) === request) this.AVATAR_IMAGE_PENDING_CACHE.delete(key);
+        }
     }
 
     public static async getPetImage(figure: string, direction: number, headOnly: boolean, scale: number = 64, posture: string = null) {
         const cacheKey = `${figure}-${posture || 'std'}-${direction}-${scale}-${headOnly ? 'head' : 'full'}`;
         let existing = this.PET_IMAGE_CACHE.get(cacheKey);
 
-        if (existing) return existing;
+        if (existing) {
+            this.PET_IMAGE_CACHE.delete(cacheKey);
+            this.PET_IMAGE_CACHE.set(cacheKey, existing);
+            return existing;
+        }
 
         const pending = this.PET_IMAGE_PENDING_CACHE.get(cacheKey);
 
