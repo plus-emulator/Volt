@@ -2,6 +2,7 @@ import { FC, useEffect, useState } from 'react';
 import { localizeWithFallback, WiredFurniType } from '../../../../api';
 import { Text } from '../../../../common';
 import { useWired } from '../../../../hooks';
+import { WiredDropdown } from '../WiredDropdown';
 import {
     isTimeUtilSubVariableSelected,
     ITimeUtilSubVariable,
@@ -61,20 +62,12 @@ export const WiredExtraTimeUtilitiesView: FC<{}> = () => {
             <div className="volt-wired__levelup">
                 <div className="volt-wired__levelup-section">
                     <Text bold>{localizeWithFallback('wiredfurni.params.choose_type', 'Read the variable as:')}</Text>
-                    <div className="flex flex-col gap-1">
-                        {TIME_UTIL_MODES.map((option) => (
-                            <label key={option} className="flex items-center gap-2">
-                                <input
-                                    checked={mode === option}
-                                    className="form-check-input"
-                                    name="wiredTimeUtilMode"
-                                    type="radio"
-                                    onChange={() => setMode(option)}
-                                />
-                                <Text>{localizeWithFallback(`wiredfurni.params.time_util.mode.${option}`, MODE_FALLBACKS[option])}</Text>
-                            </label>
-                        ))}
-                    </div>
+                    <WiredDropdown
+                        caption={localizeWithFallback('wiredfurni.params.choose_type', 'Read the variable as:')}
+                        options={TIME_UTIL_MODES.map((id) => ({ id, label: localizeWithFallback(`wiredfurni.params.time_util.mode.${id}`, MODE_FALLBACKS[id]) }))}
+                        value={mode}
+                        onChange={setMode}
+                    />
                 </div>
 
                 <div className="volt-wired__divider" />
