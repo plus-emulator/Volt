@@ -42,7 +42,7 @@ export const WiredActionMuteUserView: FC<{}> = (props) => {
             <WiredSliderSection
                 converter={WIRED_SLIDER_ECHO}
                 max={10}
-                min={1}
+                min={0}
                 titleKey="wiredfurni.params.length.minutes"
                 unit="minutes"
                 value={time}

@@ -19,7 +19,7 @@ export const WiredTriggeScoreAchievedView: FC<{}> = (props) => {
     ];
 
     useEffect(() => {
-        setPoints(trigger.intData.length > 0 ? trigger.intData[0] : 0);
+        setPoints(trigger.intData.length > 0 ? Math.max(1, trigger.intData[0]) : 1);
         setTeamType(trigger.intData.length > 1 ? trigger.intData[1] : 0);
     }, [trigger]);
 
