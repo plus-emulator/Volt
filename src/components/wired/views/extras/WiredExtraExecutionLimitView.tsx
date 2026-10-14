@@ -1,7 +1,6 @@
 import { FC, useEffect, useState } from 'react';
-import { LocalizeText, WiredFurniType } from '../../../../api';
-import { Text } from '../../../../common';
-import { WiredLegacySlider as Slider } from '../WiredSlider';
+import { WiredFurniType, WIRED_SLIDER_PULSES } from '../../../../api';
+import { WiredSliderSection } from '../WiredSlider';
 import { useWired } from '../../../../hooks';
 import { WiredExtraBaseView } from './WiredExtraBaseView';
 
@@ -12,7 +11,6 @@ const DEFAULT_EXECUTIONS = 1;
 const MIN_PULSES = 1;
 const MAX_PULSES = 20;
 const DEFAULT_PULSES = 2;
-const MS_PER_PULSE = 500;
 
 const normalizeExecutions = (value: number) => {
     if (isNaN(value)) return DEFAULT_EXECUTIONS;
@@ -25,8 +23,6 @@ const normalizePulses = (value: number) => {
 
     return Math.max(MIN_PULSES, Math.min(MAX_PULSES, Math.round(value)));
 };
-
-const formatWindow = (pulses: number) => (pulses * MS_PER_PULSE / 1000).toFixed(1);
 
 export const WiredExtraExecutionLimitView: FC<{}> = () => {
     const { trigger = null, setIntParams = null, setStringParam = null } = useWired();
@@ -47,31 +43,9 @@ export const WiredExtraExecutionLimitView: FC<{}> = () => {
     };
 
     return (
-        <WiredExtraBaseView hasSpecialInput={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save} cardStyle={{ width: 380 }}>
-            <div className="flex flex-col gap-2">
-                <div className="flex flex-col gap-2">
-                    <Text>{LocalizeText('wiredfurni.params.setexecutions', ['amount'], [executions.toString()])}</Text>
-                    <Slider
-                        min={MIN_EXECUTIONS}
-                        max={MAX_EXECUTIONS}
-                        step={1}
-                        value={executions}
-                        onChange={(value) => setExecutions(normalizeExecutions(Array.isArray(value) ? value[0] : Number(value)))}
-                    />
-                    <Text small>{executions}</Text>
-                </div>
-                <div className="flex flex-col gap-2">
-                    <Text>{LocalizeText('wiredfurni.params.settimewindow', ['timewindow'], [formatWindow(pulses)])}</Text>
-                    <Slider
-                        min={MIN_PULSES}
-                        max={MAX_PULSES}
-                        step={1}
-                        value={pulses}
-                        onChange={(value) => setPulses(normalizePulses(Array.isArray(value) ? value[0] : Number(value)))}
-                    />
-                    <Text small>{formatWindow(pulses)}s</Text>
-                </div>
-            </div>
+        <WiredExtraBaseView hasSpecialInput={true} nativeLayout={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save}>
+            <WiredSliderSection titleKey="wiredfurni.params.setexecutions" unit="amount" min={MIN_EXECUTIONS} max={MAX_EXECUTIONS} step={1} withInput={false} value={executions} onChange={setExecutions} />
+            <WiredSliderSection titleKey="wiredfurni.params.settimewindow" unit="timewindow" converter={WIRED_SLIDER_PULSES} min={MIN_PULSES} max={MAX_PULSES} step={1} withInput={false} value={pulses} onChange={setPulses} />
         </WiredExtraBaseView>
     );
 };

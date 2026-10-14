@@ -138,3 +138,87 @@ describe('AIR slider editor header inputs and wire values', () => {
         expect(state.setIntParams).toHaveBeenLastCalledWith([345, 1]);
     });
 });
+
+vi.mock('./extras/WiredExtraBaseView', () => ({ WiredExtraBaseView: (props: Parameters<typeof Base>[0]) => <Base {...props} /> }));
+vi.mock('./triggers/WiredTriggerBaseView', () => ({ WiredTriggerBaseView: (props: Parameters<typeof Base>[0]) => <Base {...props} /> }));
+
+import { WiredActionAdjustClockView } from './actions/WiredActionAdjustClockView';
+import { WiredActionRelativeMoveView } from './actions/WiredActionRelativeMoveView';
+import { WiredConditionCounterTimeMatchesView } from './conditions/WiredConditionCounterTimeMatchesView';
+import { WiredExtraExecutionLimitView } from './extras/WiredExtraExecutionLimitView';
+import { WiredExtraRandomView } from './extras/WiredExtraRandomView';
+import { WiredTriggerClockCounterView } from './triggers/WiredTriggerClockCounterView';
+
+const incrementSlider = (index: number) => fireEvent.click(document.querySelectorAll('.volt-wired__slider-row button:last-child')[index]);
+const decrementSlider = (index: number) => fireEvent.click(document.querySelectorAll('.volt-wired__slider-row button:first-child')[index]);
+
+// AIR25 class_4082, class_4064, class_4224, class_4171, ClockTimeMatches and ClockReachTime.
+// These intentionally omit NumberInput: change arrows and verify the existing signed/pulse wire values.
+describe('AIR movement and clock slider layouts', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        state.trigger = { intData: [], furniSources: [200], userSources: [201], selectedItems: [], maximumItemSelectionCount: 20 };
+    });
+    afterEach(cleanup);
+
+    it('maps AIR axis bitmap order to signed distances and preserves the selected source', () => {
+        state.trigger.intData = [-3, 7];
+        render(<WiredActionRelativeMoveView />);
+        expect(screen.getByRole('radio', { name: '−X' })).toHaveProperty('checked', true);
+        expect(screen.getByRole('radio', { name: '+Y' })).toHaveProperty('checked', true);
+        expect(screen.getAllByRole('img').map((image) => image.getAttribute('src')?.split('/').pop())).toEqual(['move_2.png', 'move_6.png', 'move_4.png', 'move_0.png']);
+        fireEvent.click(screen.getByRole('radio', { name: '+X' }));
+        fireEvent.click(screen.getByRole('radio', { name: '−Y' }));
+        incrementSlider(0);
+        decrementSlider(1);
+        save();
+        expect(state.setIntParams).toHaveBeenLastCalledWith([4, -6]);
+        expect(state.setFurniSources).toHaveBeenLastCalledWith([200]);
+        expect(document.querySelector('input[type="text"]')).toBeNull();
+    });
+
+    it('keeps execution count first and half-second time window second, including AIR bounds', () => {
+        state.trigger.intData = [100, 1];
+        render(<WiredExtraExecutionLimitView />);
+        incrementSlider(0);
+        decrementSlider(1);
+        save();
+        expect(state.setIntParams).toHaveBeenLastCalledWith([100, 1]);
+        decrementSlider(0);
+        incrementSlider(1);
+        save();
+        expect(state.setIntParams).toHaveBeenLastCalledWith([99, 2]);
+        expect(document.querySelector('input[type="text"]')).toBeNull();
+        expect(screen.getByTestId('editor').getAttribute('data-native-layout')).toBe('true');
+    });
+
+    it('displays pick before skip but saves skip before pick', () => {
+        state.trigger.intData = [8, 3];
+        render(<WiredExtraRandomView />);
+        incrementSlider(0);
+        decrementSlider(1);
+        save();
+        expect(state.setIntParams).toHaveBeenLastCalledWith([7, 4]);
+        expect(document.querySelector('input[type="text"]')).toBeNull();
+    });
+
+    it.each<[string, ComponentType, boolean]>([
+        ['adjust action', WiredActionAdjustClockView, true],
+        ['clock condition', WiredConditionCounterTimeMatchesView, true],
+        ['clock trigger', WiredTriggerClockCounterView, false]
+    ])('%s preserves half-second carry and caps at 59.5 seconds without affecting minutes', (_name, Editor, hasMode) => {
+        state.trigger.intData = [58, 12, 1, 2];
+        render(<Editor />);
+        incrementSlider(0);
+        incrementSlider(1);
+        save();
+        expect(state.setIntParams).toHaveBeenLastCalledWith(hasMode ? [59, 13, 0, 2] : [59, 13, 0]);
+        incrementSlider(1);
+        incrementSlider(1);
+        save();
+        expect(state.setIntParams).toHaveBeenLastCalledWith(hasMode ? [59, 13, 1, 2] : [59, 13, 1]);
+        expect(state.setFurniSources).toHaveBeenLastCalledWith([200]);
+        expect(document.querySelector('input[type="text"]')).toBeNull();
+        expect(screen.getByTestId('editor').getAttribute('data-native-layout')).toBe('true');
+    });
+});
