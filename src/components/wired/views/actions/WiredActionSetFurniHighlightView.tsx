@@ -150,15 +150,15 @@ export const WiredActionSetFurniHighlightView: FC<{}> = () => {
                 />
             </WiredSection>
             <WiredSection title={localizeWithFallback('wiredfurni.params.set_furni_highlight.color', 'Highlight color:')}>
-                <div className="flex flex-wrap gap-1">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 18px)', gap: 3, width: 'max-content' }}>
                     {colors.map((swatch) => (
                         <button
                             key={swatch}
                             type="button"
                             disabled={!colorEnabled}
                             aria-label={hexOf(swatch)}
-                            className={`h-4 w-4 border ${color === swatch && colorEnabled ? 'border-black' : 'border-gray-400'}`}
-                            style={{ backgroundColor: hexOf(swatch) }}
+                            aria-pressed={color === swatch}
+                            style={{ width: 18, height: 18, padding: 0, border: `1px solid ${color === swatch ? '#ffffff' : '#555555'}`, boxShadow: color === swatch ? 'inset 0 0 0 1px #000000' : undefined, backgroundColor: hexOf(swatch) }}
                             onClick={() => setColor(swatch)}
                         />
                     ))}

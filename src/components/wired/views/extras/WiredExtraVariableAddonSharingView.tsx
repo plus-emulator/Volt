@@ -5,6 +5,7 @@ import { Button, Text } from '../../../../common';
 import { useWired, useWiredTools } from '../../../../hooks';
 import { WiredCheckboxGroup, WiredCheckboxOption } from '../WiredOptions';
 import { WiredSection } from '../WiredSection';
+import { WiredText } from '../WiredText';
 import { WiredExtraBaseView } from './WiredExtraBaseView';
 
 /**
@@ -53,7 +54,9 @@ const WiredExtraVariableAddonView: FC<{ kind: 'share' | 'import' }> = ({ kind })
 
     return (
         <WiredExtraBaseView hasSpecialInput={true} nativeLayout={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save}>
-            <Text className="whitespace-pre-line">{usageInfo}</Text>
+            <WiredSection title={localizeWithFallback('wiredfurni.params.general_box_info', 'Usage information:')}>
+                <WiredText soft wrap text={usageInfo} />
+            </WiredSection>
             <WiredSection title={localizeWithFallback('wiredfurni.params.variables.addon_sharing.categories', 'Categories')}>
                 <WiredCheckboxGroup>
                     {CATEGORIES.map((category, index) => (
