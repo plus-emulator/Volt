@@ -15,6 +15,8 @@ import './HabboDropMenuView.css';
 interface DropMenuOption<T> {
     value: T;
     label: string;
+    advanced?: boolean;
+    expandsAdvanced?: boolean;
 }
 
 interface HabboDropMenuViewProps<T> {
@@ -25,6 +27,8 @@ interface HabboDropMenuViewProps<T> {
     disabled?: boolean;
     /** Caption when no option is selected. */
     caption?: string;
+    /** AIR ExpandableDropdown: reveal advanced options without committing a selection. */
+    advancedCaption?: string;
     /** AIR window-manager skin: Volter (0), Ubuntu (3), or Illumina (100). */
     skinStyle?: 0 | 3 | 100;
     className?: string;
@@ -73,8 +77,15 @@ const ThumbSkin = ({ pressed, patternId }: { pressed: boolean; patternId: string
 };
 
 /** Native style-0 dropmenu; feature adapters own preference/domain values and saves. */
-export const HabboDropMenuView = <T extends string | number,>({ label, options, value, onSelect, disabled = false, caption = '', skinStyle = 0, className = '', popupClassName = '', style }: HabboDropMenuViewProps<T>): ReactNode => {
+export const HabboDropMenuView = <T extends string | number,>({ label, options: allOptions, value, onSelect, disabled = false, caption = '', advancedCaption, skinStyle = 0, className = '', popupClassName = '', style }: HabboDropMenuViewProps<T>): ReactNode => {
     const id = useId();
+    const [advancedExpanded, setAdvancedExpanded] = useState(false);
+    const expandingRef = useRef(false);
+    const expansionPointerRef = useRef(false);
+    const selectedIsAdvanced = allOptions.some(option => option.value === value && option.advanced);
+    const options: readonly DropMenuOption<T>[] = advancedCaption && !advancedExpanded && !selectedIsAdvanced && allOptions.some(option => option.advanced)
+        ? [...allOptions.filter(option => !option.advanced), { value: allOptions[0].value, label: advancedCaption, expandsAdvanced: true }]
+        : allOptions;
     const itemHeight = skinStyle === 100 ? 19 : skinStyle === 3 ? 20 : VOLTER_ITEM_HEIGHT;
     const skinClass = skinStyle === 100 ? ' habbo-dropmenu--illumina' : skinStyle === 3 ? ' habbo-dropmenu--ubuntu' : '';
     const triggerRef = useRef<HTMLButtonElement>(null);
@@ -93,7 +104,7 @@ export const HabboDropMenuView = <T extends string | number,>({ label, options, 
     const [hoverIndex, setHoverIndex] = useState(-1);
     const [scrollTop, setScrollTop] = useState(0);
     const [dragging, setDragging] = useState(false);
-    const selectedIndex = options.findIndex((option) => option.value === value);
+    const selectedIndex = options.findIndex((option) => !option.expandsAdvanced && option.value === value);
     const isOpen = popup !== null && !disabled;
     const contentHeight = options.length * itemHeight + 3;
     const viewportHeight = popup ? popup.height - 4 : 0;
@@ -102,6 +113,7 @@ export const HabboDropMenuView = <T extends string | number,>({ label, options, 
 
     const close = useCallback(() => {
         setPopup(null);
+        setAdvancedExpanded(false);
         openingPointerRef.current = null;
         dragRef.current = null;
         setDragging(false);
@@ -144,9 +156,15 @@ export const HabboDropMenuView = <T extends string | number,>({ label, options, 
         setPopup(measurePopup());
     };
 
-    const select = (index: number) => {
+    const select = (index: number, pointer = false) => {
         const option = options[index];
         if (disabled || !option || committedRef.current) return;
+        if (option.expandsAdvanced) {
+            expandingRef.current = true;
+            expansionPointerRef.current = pointer;
+            setAdvancedExpanded(true);
+            return;
+        }
         committedRef.current = true;
         triggerRef.current?.focus();
         close();
@@ -161,6 +179,7 @@ export const HabboDropMenuView = <T extends string | number,>({ label, options, 
         };
         const onPointerUp = (event: globalThis.PointerEvent) => {
             if (event.pointerId === openingPointerRef.current) openingPointerRef.current = null;
+            expansionPointerRef.current = false;
         };
         const onFocusIn = (event: FocusEvent) => {
             if (!isInside(event.target)) close();
@@ -188,12 +207,21 @@ export const HabboDropMenuView = <T extends string | number,>({ label, options, 
     useLayoutEffect(() => {
         if (previousOptionContentRef.current === optionContent) return;
         previousOptionContentRef.current = optionContent;
+        if (expandingRef.current) {
+            expandingRef.current = false;
+            setPopup(measurePopup());
+            setActiveIndex(Math.max(0, selectedIndex));
+            setKeyboardActive(false);
+            setHoverIndex(-1);
+            setScrollTop(0);
+            return;
+        }
         close();
         setActiveIndex(0);
         setKeyboardActive(false);
         setScrollTop(0);
         typeAheadRef.current = { text: '', time: 0 };
-    }, [close, optionContent]);
+    }, [close, optionContent, measurePopup, selectedIndex]);
 
     // A closed-menu typeahead match can only be revealed after its portal mounts.
     useLayoutEffect(() => {
@@ -308,8 +336,8 @@ export const HabboDropMenuView = <T extends string | number,>({ label, options, 
                                 role="option"
                                 aria-selected={index === selectedIndex}
                                 className={'habbo-dropmenu-item' + (index === selectedIndex ? ' is-selected' : '') + (keyboardActive && index === activeIndex ? ' is-active' : '')}
-                                onPointerDown={(event) => { if (event.button === 0) select(index); }}
-                                onPointerUp={(event) => { if (event.button === 0 && openingPointerRef.current === null) select(index); }}
+                                onPointerDown={(event) => { if (event.button === 0) select(index, true); }}
+                                onPointerUp={(event) => { if (expansionPointerRef.current) { expansionPointerRef.current = false; return; } if (event.button === 0 && openingPointerRef.current === null) select(index); }}
                                 onPointerMove={() => setHoverIndex(index)}
                             >
                                 <span>{skinStyle === 100 ? <NativeText text={menuCaption(option.label)} textStyle="il_regular"

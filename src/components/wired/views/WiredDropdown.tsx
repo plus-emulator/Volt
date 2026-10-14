@@ -5,6 +5,7 @@ import { useWiredNative } from './WiredNativeContext';
 export interface WiredDropdownOption {
     id: number;
     label: string;
+    advanced?: boolean;
 }
 
 export interface WiredDropdownProps {
@@ -12,12 +13,13 @@ export interface WiredDropdownProps {
     /** -1 shows the caption, like an ExpandableDropdown without a selection. */
     value: number;
     caption?: string;
+    advancedCaption?: string;
     disabled?: boolean;
     onChange: (id: number) => void;
 }
 
 /** DropdownPreset: the Illumina dropmenu frame (22px) with the selected option or the caption as its text. */
-export const WiredDropdown: FC<WiredDropdownProps> = ({ options, value, caption = '', disabled = false, onChange }) =>
+export const WiredDropdown: FC<WiredDropdownProps> = ({ options, value, caption = '', advancedCaption, disabled = false, onChange }) =>
 {
     const isNative = useWiredNative();
     const selected = options.find((option) => option.id === value) ?? null;
@@ -32,7 +34,7 @@ export const WiredDropdown: FC<WiredDropdownProps> = ({ options, value, caption 
 
     return (
         <HabboDropMenuView label={caption} caption={caption} skinStyle={100} disabled={disabled}
-            options={options.map(option => ({ value: option.id, label: option.label }))}
-            value={selected ? value : null} onSelect={onChange} />
+            options={options.map(option => ({ value: option.id, label: option.label, advanced: option.advanced }))}
+            advancedCaption={advancedCaption} value={selected ? value : null} onSelect={onChange} />
     );
 };
