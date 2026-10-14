@@ -78,6 +78,7 @@ export const MainView: FC<{}> = (props) =>
         GetRoomSessionManager().tryRestoreSession();
 
         GetCommunication().connection.ready();
+        performance.mark('volt:hotel-ready');
     }, []);
 
     useEffect(() =>

@@ -1,9 +1,30 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import { useEffect, useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { registerSharedHook, SharedHookRegistry, useSharedHook } from './useSharedHook';
 
 describe('useSharedHook', () => {
+    it('publishes a nested dependency chain without waiting for Suspense retry timers', async () => {
+        vi.useFakeTimers();
+        try {
+            const useFirst = () => ({ value: 7 });
+            const useSecond = () => ({ value: useSharedHook(useFirst).value + 1 });
+            const useThird = () => ({ value: useSharedHook(useSecond).value + 1 });
+            registerSharedHook(useThird);
+            registerSharedHook(useSecond);
+            registerSharedHook(useFirst);
+            const Consumer = () => <span data-testid="chain">{useSharedHook(useThird).value}</span>;
+
+            await act(async () => {
+                render(<SharedHookRegistry fallback={<span>waiting</span>}><Consumer /></SharedHookRegistry>);
+            });
+            expect(screen.getByTestId('chain')).toHaveTextContent('9');
+        } finally {
+            cleanup();
+            vi.useRealTimers();
+        }
+    });
+
     it('runs the source hook once and shares its Zustand-backed snapshot', async () => {
         const mounted = vi.fn();
 
