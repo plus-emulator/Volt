@@ -1,6 +1,5 @@
 import { FC, useEffect, useMemo, useState } from 'react';
 import {
-    GLOBAL_PLACEHOLDER_NAME_MAX_LENGTH,
     GLOBAL_PLACEHOLDER_VALUE_MAX_LENGTH,
     LocalizeText,
     localizeWithFallback,
@@ -10,10 +9,11 @@ import {
 } from '../../../../api';
 import { Text } from '../../../../common';
 import { useNotification, useWired } from '../../../../hooks';
-import { VoltInput } from '../../../../layout';
 import { WiredDropdown } from '../WiredDropdown';
 import { WiredRadioGroup } from '../WiredOptions';
 import { WiredSection } from '../WiredSection';
+import { WiredTextInput } from '../WiredTextInput';
+import { WiredPlaceholderNameSection } from './WiredTextPlaceholderSections';
 import { WiredExtraBaseView } from './WiredExtraBaseView';
 
 const FROM_VALUE = 0;
@@ -127,16 +127,8 @@ export const WiredExtraGlobalPlaceholderNativeView: FC<{}> = () => {
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE}
             save={save}
             validate={validate}
-            cardStyle={{ width: 400 }}
         >
-            <WiredSection title={localizeWithFallback('wiredfurni.params.texts.placeholder_name', 'Placeholder name:')}>
-                <VoltInput
-                    maxLength={GLOBAL_PLACEHOLDER_NAME_MAX_LENGTH}
-                    type="text"
-                    value={placeholderName}
-                    onChange={(event) => setPlaceholderName(normalizeGlobalPlaceholderName(event.target.value))}
-                />
-            </WiredSection>
+            <WiredPlaceholderNameSection name={placeholderName} onChange={setPlaceholderName} />
             <WiredSection title={localizeWithFallback('wiredfurni.params.choose_type', 'Choose type:')}>
                 <WiredRadioGroup
                     name="wiredGlobalPlaceholderSource"
@@ -147,11 +139,10 @@ export const WiredExtraGlobalPlaceholderNativeView: FC<{}> = () => {
                             disabled: valueDisabled,
                             extra:
                                 mode === FROM_VALUE ? (
-                                    <VoltInput
+                                    <WiredTextInput
                                         maxLength={GLOBAL_PLACEHOLDER_VALUE_MAX_LENGTH}
-                                        type="text"
                                         value={customText}
-                                        onChange={(event) => setCustomText(normalizeGlobalPlaceholderValue(event.target.value))}
+                                        onChange={(value) => setCustomText(normalizeGlobalPlaceholderValue(value))}
                                     />
                                 ) : null
                         },
