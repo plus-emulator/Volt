@@ -15,6 +15,7 @@ export interface WiredTextProps {
     text: string;
     bold?: boolean;
     soft?: boolean;
+    color?: number;
     underline?: boolean;
     /** TextParam wrap mode: lines break at the width the layout gives the text field. */
     wrap?: boolean;
@@ -22,7 +23,7 @@ export interface WiredTextProps {
 }
 
 /** The il_regular text_view / text_bold_view of wired_style_illumina, drawn by the native glyph renderer. */
-export const WiredText: FC<WiredTextProps> = ({ text, bold = false, soft = false, underline = false, wrap = false, className = '' }) =>
+export const WiredText: FC<WiredTextProps> = ({ text, bold = false, soft = false, color, underline = false, wrap = false, className = '' }) =>
 {
     const isNative = useWiredNative();
     const background = useContext(WiredSurfaceContext);
@@ -50,7 +51,7 @@ export const WiredText: FC<WiredTextProps> = ({ text, bold = false, soft = false
             className={wrap ? '' : `volt-wired__native-text ${className}`}
             background={background}
             maxWidth={wrap ? width : undefined}
-            overrides={{ bold, underline, ...(soft ? { color: WIRED_SOFT_TEXT_COLOR } : null) }}
+            overrides={{ bold, underline, ...(color !== undefined ? { color } : soft ? { color: WIRED_SOFT_TEXT_COLOR } : null) }}
             text={text}
             textStyle="il_regular"
         />

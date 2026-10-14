@@ -1,6 +1,6 @@
 import { FC, useEffect, useState } from 'react';
-import { LocalizeText, WiredFurniType } from '../../../../api';
-import { Text } from '../../../../common';
+import { WiredFurniType } from '../../../../api';
+import { WiredQuantifierSection } from '../WiredOptions';
 import { useWired } from '../../../../hooks';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredConditionBaseView } from './WiredConditionBaseView';
@@ -49,25 +49,12 @@ export const WiredConditionActorIsOnFurniView: FC<WiredConditionActorIsOnFurniVi
     return (
         <WiredConditionBaseView
             hasSpecialInput={true}
+            nativeLayout={true}
             requiresFurni={requiresFurni}
             save={save}
             footer={
                 <div className="flex flex-col gap-2">
-                    <div className="flex flex-col gap-1">
-                        <Text bold>{LocalizeText('wiredfurni.params.quantifier_selection')}</Text>
-                        {[0, 1].map((value) => (
-                            <label key={value} className="flex items-center gap-1">
-                                <input
-                                    checked={quantifier === value}
-                                    className="form-check-input"
-                                    name="triggerOnFurniQuantifier"
-                                    type="radio"
-                                    onChange={() => setQuantifier(value)}
-                                />
-                                <Text>{LocalizeText(`wiredfurni.params.quantifier.users${negative ? '.neg' : ''}.${value}`)}</Text>
-                            </label>
-                        ))}
-                    </div>
+                    <WiredQuantifierSection kind="users" name="triggerOnFurniQuantifier" negative={negative} value={quantifier} onChange={setQuantifier} />
                     <WiredSourcesSelector
                         showFurni={true}
                         showUsers={true}

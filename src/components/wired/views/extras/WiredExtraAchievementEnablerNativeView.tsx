@@ -1,6 +1,7 @@
 import { FC, useEffect, useState } from 'react';
 import { LocalizeText, WiredFurniType } from '../../../../api';
 import { useWired } from '../../../../hooks';
+import { WiredTextArea } from '../WiredTextArea';
 import { WiredSection } from '../WiredSection';
 import { WiredExtraBaseView } from './WiredExtraBaseView';
 
@@ -29,14 +30,9 @@ export const WiredExtraAchievementEnablerNativeView: FC<{}> = () => {
     return (
         <WiredExtraBaseView hasSpecialInput={true} nativeLayout={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save}>
             <WiredSection title={LocalizeText('wiredfurni.params.achievement_enabler')}>
-                <textarea
-                    className="form-control form-control-sm"
-                    maxLength={ACHIEVEMENT_ENABLER_MAX_LENGTH}
+                <WiredTextArea height={60} maxLength={ACHIEVEMENT_ENABLER_MAX_LENGTH}
                     placeholder={LocalizeText('wiredfurni.params.achievement_enabler.placeholder')}
-                    rows={4}
-                    value={text}
-                    onChange={(event) => setText(event.target.value)}
-                />
+                    value={text} onChange={setText} />
             </WiredSection>
         </WiredExtraBaseView>
     );
