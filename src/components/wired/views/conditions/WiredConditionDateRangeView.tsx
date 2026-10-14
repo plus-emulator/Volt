@@ -24,19 +24,11 @@ export const WiredConditionDateRangeView: FC<{}> = (props) => {
     };
 
     useEffect(() => {
-        // Seed both inputs (default "now") even for a never-configured furni so
-        // the first save can't send new Date('') → NaN.
-        let startDate = new Date();
-        let endDate = new Date();
+        if (!trigger) return;
 
-        if (trigger.intData.length >= 2) {
-            if (trigger.intData[0] > 0) startDate = new Date(trigger.intData[0] * 1000);
-
-            if (trigger.intData[1] > 0) endDate = new Date(trigger.intData[1] * 1000);
-        }
-
-        setStartDate(WiredDateToString(startDate));
-        setEndDate(WiredDateToString(endDate));
+        // AIR leaves each absent endpoint empty; zero is a configured Unix timestamp.
+        setStartDate(trigger.intData.length > 0 ? WiredDateToString(new Date(trigger.intData[0] * 1000)) : '');
+        setEndDate(trigger.intData.length > 1 ? WiredDateToString(new Date(trigger.intData[1] * 1000)) : '');
     }, [trigger]);
 
     return (

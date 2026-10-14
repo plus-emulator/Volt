@@ -507,33 +507,17 @@ export const WiredExtraVariableLeaderboardView: FC<{}> = () => {
             </CollapsibleSection>
 
             <WiredSection title={localizeWithFallback('wiredfurni.params.variable_leaderboard.section.location', 'Leaderboard location')}>
-                <WiredText text={localizeWithFallback('wiredfurni.params.variable_leaderboard.location.tile', 'Tile:')} />
-                <WiredNumberInput
-                    min={INT32.min}
-                    max={INT32.max}
-                    value={config.location.tileX}
-                    onChange={(tileX) => update({ location: { ...config.location, tileX } })}
-                />
-                <WiredNumberInput
-                    min={INT32.min}
-                    max={INT32.max}
-                    value={config.location.tileY}
-                    onChange={(tileY) => update({ location: { ...config.location, tileY } })}
-                />
-                <WiredText text={localizeWithFallback('wiredfurni.params.variable_leaderboard.location.offset', 'Offset:')} />
-                <WiredNumberInput
-                    min={VARIABLE_LEADERBOARD_OFFSET_MIN}
-                    max={VARIABLE_LEADERBOARD_OFFSET_MAX}
-                    value={config.location.offsetX}
-                    onChange={(offsetX) => update({ location: { ...config.location, offsetX } })}
-                />
-                <WiredText text={localizeWithFallback('wiredfurni.params.variable_leaderboard.location.altitude', 'Altitude:')} />
-                <WiredNumberInput
-                    min={INT32.min}
-                    max={INT32.max}
-                    value={config.location.altitude}
-                    onChange={(altitude) => update({ location: { ...config.location, altitude } })}
-                />
+                <div className="volt-wired-leaderboard__location" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <WiredText text={localizeWithFallback('wiredfurni.params.variable_leaderboard.location.tile', 'Tile:')} />
+                    <WiredNumberInput width={32} min={INT32.min} max={INT32.max} value={config.location.tileX} onChange={(tileX) => update({ location: { ...config.location, tileX } })} />
+                    <WiredText text="-" />
+                    <WiredNumberInput width={32} min={INT32.min} max={INT32.max} value={config.location.tileY} onChange={(tileY) => update({ location: { ...config.location, tileY } })} />
+                    <span style={{ flex: 1 }} />
+                    <WiredText text={localizeWithFallback('wiredfurni.params.variable_leaderboard.location.offset', 'Offset:')} />
+                    <WiredNumberInput width={32} min={VARIABLE_LEADERBOARD_OFFSET_MIN} max={VARIABLE_LEADERBOARD_OFFSET_MAX} value={config.location.offsetX} onChange={(offsetX) => update({ location: { ...config.location, offsetX } })} />
+                    <WiredText text="-" />
+                    <WiredNumberInput width={32} min={INT32.min} max={INT32.max} value={config.location.altitude} onChange={(altitude) => update({ location: { ...config.location, altitude } })} />
+                </div>
             </WiredSection>
         </WiredExtraBaseView>
     );

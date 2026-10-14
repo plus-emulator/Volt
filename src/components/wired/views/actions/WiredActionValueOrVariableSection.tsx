@@ -17,7 +17,7 @@ import { useWiredNativeVariables } from '../../../../hooks';
 import { WiredNumberInput } from '../WiredNumberInput';
 import { WiredSection } from '../WiredSection';
 import { WiredVariablePicker } from '../WiredVariablePicker';
-import { buildWiredVariablePickerEntries, createFallbackVariableEntry, flattenWiredVariablePickerEntries } from '../WiredVariablePickerData';
+import { buildWiredVariablePickerEntries, createFallbackVariableEntry, flattenWiredVariablePickerEntries, WiredVariablePickerUsage } from '../WiredVariablePickerData';
 
 /**
  * The ValueOrVariable section of the official editors (AIR uiBuilder/presets/sections/ValueOrVariableSection.as:
@@ -56,6 +56,7 @@ export interface WiredActionValueOrVariableSectionProps {
     title: string;
     targetTitle: string;
     recentScope: string;
+    variableUsage?: WiredVariablePickerUsage;
     min: number;
     max: number;
     option: number;
@@ -76,6 +77,7 @@ export const WiredActionValueOrVariableSection: FC<WiredActionValueOrVariableSec
         title,
         targetTitle,
         recentScope,
+        variableUsage = 'change-reference',
         min,
         max,
         option,
@@ -107,7 +109,7 @@ export const WiredActionValueOrVariableSection: FC<WiredActionValueOrVariableSec
                 return userVariableDefinitions;
         }
     }, [contextVariableDefinitions, furniVariableDefinitions, roomVariableDefinitions, target, userVariableDefinitions]);
-    const variableEntries = useMemo(() => buildWiredVariablePickerEntries(target, 'change-reference', definitions), [definitions, target]);
+    const variableEntries = useMemo(() => buildWiredVariablePickerEntries(target, variableUsage, definitions), [definitions, target, variableUsage]);
     const resolvedEntries = useMemo(() => {
         if (!variableToken) return variableEntries;
         if (flattenWiredVariablePickerEntries(variableEntries).some((entry) => entry.token === variableToken)) return variableEntries;
