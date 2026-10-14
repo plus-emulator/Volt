@@ -19,6 +19,7 @@ vi.mock('../../../mod-tools/native/NativeSkinView', () => ({ NativeSkinView: () 
 vi.mock('../WiredText', () => ({ WiredText: ({ text }: { text: string }) => <span>{text}</span> }));
 vi.mock('../WiredNumberInput', () => ({ WiredNumberInput: () => null }));
 vi.mock('../conditions/WiredVariableConditionParts', () => ({ FurniPickSlotButtons: () => null }));
+vi.mock('../WiredDropdown', () => ({ WiredDropdown: ({ options, value, caption, onChange }: any) => <select aria-label={caption} value={value} onChange={event => onChange(Number(event.target.value))}>{options.map((option: any) => <option key={option.id} value={option.id}>{option.label}</option>)}</select> }));
 vi.mock('../WiredVariablePicker', () => ({ WiredVariablePicker: ({ entries, selectedToken, onSelect }: any) => <select aria-label="Variable picker" value={selectedToken} onChange={event => onSelect(entries.find((entry: any) => entry.token === event.target.value))}>{entries.filter((entry: any) => entry.selectable).map((entry: any) => <option key={entry.token} value={entry.token}>{entry.displayLabel}</option>)}</select> }));
 vi.mock('../WiredSourcesSelector', () => ({
     WiredSourcesSelector: ({ showFurni, furniSource, userSource, onChangeFurni, onChangeUsers }: any) => <input aria-label="Reference source" value={showFurni ? furniSource : userSource} onChange={event => (showFurni ? onChangeFurni : onChangeUsers)(Number(event.target.value))} />,
@@ -31,6 +32,7 @@ vi.mock('../WiredFurniSelectionSourceRow', () => ({ WiredFurniSelectionSourceRow
 vi.mock('./WiredExtraBaseView', () => ({ WiredExtraBaseView: ({ children, save, validate, nativeLayout }: PropsWithChildren<{ save: () => void; validate: () => boolean; nativeLayout: boolean }>) => <WiredNativeContext.Provider value={nativeLayout}>{children}<button disabled={!validate()} onClick={save}>Save</button></WiredNativeContext.Provider> }));
 import { WiredExtraMovementCurveView } from './WiredExtraMovementCurveView';
 import { WiredExtraFilterCountView } from './WiredExtraFilterCountView';
+import { WiredExtraFilterByVariableView } from './WiredExtraFilterByVariableView';
 const choose = () => fireEvent.click(screen.getByRole('button', { name: 'wiredfurni.params.variables.reference_value.popup' }));
 const save = () => fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 describe('Native compact variable addon fields', () => {
@@ -70,6 +72,17 @@ describe('Native compact variable addon fields', () => {
         fireEvent.change(input, { target: { value: '1000' } }); save();
         expect(state.setIntParams).toHaveBeenLastCalledWith([1000, 0, 0]); expect(state.setVariableIds).toHaveBeenLastCalledWith(['n']);
         fireEvent.change(input, { target: { value: '1001' } }); expect(screen.getByRole('button', { name: 'Save' })).toHaveProperty('disabled', true);
+    });
+    it.each([['user', 1], ['furni', 0], ['global', -10], ['context', -20]] as const)('roundtrips FilterByVariable native %s target without converting it to a legacy scope', (target, code) => {
+        state.trigger.intData = [9, 3, 1, code]; state.trigger.variableIds = ['destination', 'reference'];
+        render(<WiredExtraFilterByVariableView target="furni" />); save();
+        expect(state.setIntParams).toHaveBeenLastCalledWith([1, 3, 1, code]);
+        expect(state.setVariableIds).toHaveBeenLastCalledWith(['destination', 'reference']);
+        expect(state.setUserSources).toHaveBeenLastCalledWith([201]); expect(state.setFurniSources).toHaveBeenLastCalledWith([100]);
+        const input = screen.getByRole('textbox', { name: 'wiredfurni.params.setfilter' });
+        fireEvent.change(input, { target: { value: '1001' } }); expect(screen.getByRole('button', { name: 'Save' })).toHaveProperty('disabled', true);
+        fireEvent.change(input, { target: { value: '27' } }); save();
+        expect(state.setIntParams).toHaveBeenLastCalledWith([27, 3, 0, code]); expect(state.setVariableIds).toHaveBeenLastCalledWith(['destination', 'n']);
     });
     it('does not discard saved references while definitions are loading', () => {
         state.hideDefinitions = true; state.trigger.intData = [3, 1, 1]; render(<WiredExtraFilterCountView furni />); save();
