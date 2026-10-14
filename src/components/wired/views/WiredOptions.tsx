@@ -39,7 +39,7 @@ export const WiredRadioGroup: FC<WiredRadioGroupProps> = ({ name, options, value
                             <input checked={value === option.id} className="form-check-input" disabled={option.disabled} name={name} type="radio" onChange={() => onChange(option.id)} />
                             <Text>{option.label}</Text>
                         </label>
-                        {option.extra}
+                        {option.extra && <fieldset disabled={option.disabled || value !== option.id} inert={option.disabled || value !== option.id} style={{ minWidth: 0, border: 0, padding: 0, margin: 0 }}>{option.extra}</fieldset>}
                     </div>
                 ))}
             </div>
@@ -54,7 +54,7 @@ export const WiredRadioGroup: FC<WiredRadioGroupProps> = ({ name, options, value
                         <input checked={value === option.id} disabled={option.disabled} name={name} type="radio" onChange={() => onChange(option.id)} />
                         {optionLabel(option.label)}
                     </label>
-                    {option.extra && <div className="volt-wired__option-extra">{option.extra}</div>}
+                    {option.extra && <fieldset className="volt-wired__option-extra" disabled={option.disabled || value !== option.id} inert={option.disabled || value !== option.id} style={{ minWidth: 0, border: 0, padding: 0, marginTop: 0, marginRight: 0, marginBottom: 0 }}>{option.extra}</fieldset>}
                 </div>
             ))}
         </div>
