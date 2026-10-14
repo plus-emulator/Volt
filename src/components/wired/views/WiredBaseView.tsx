@@ -32,6 +32,8 @@ export interface WiredBaseViewProps {
     save: () => void;
     validate?: () => boolean;
     cardStyle?: CSSProperties;
+    /** Runtime AIR width modifier, e.g. neighborhood small/large drawing mode. */
+    widthMultiplier?: number;
     footer?: ReactNode;
     /** Source-type controls placed beside the AIR summary header. */
     headerControls?: ReactNode;
@@ -55,6 +57,7 @@ export const WiredBaseView: FC<PropsWithChildren<WiredBaseViewProps>> = (props) 
         children = null,
         hasSpecialInput = false,
         cardStyle = undefined,
+        widthMultiplier = 1,
         footer = null,
         headerControls = null,
         footerCollapsible = true,
@@ -210,7 +213,7 @@ export const WiredBaseView: FC<PropsWithChildren<WiredBaseViewProps>> = (props) 
 
     const resolvedCardStyle: CSSProperties = { ...cardStyle };
 
-    const cardWidth = Math.trunc(wiredStyleWidth(shellStyle) * wiredWidthMultiplier(wiredType, trigger?.code));
+    const cardWidth = Math.trunc(wiredStyleWidth(shellStyle) * wiredWidthMultiplier(wiredType, trigger?.code) * widthMultiplier);
     resolvedCardStyle.width = cardWidth;
     resolvedCardStyle.minWidth = cardWidth;
     resolvedCardStyle.maxWidth = cardWidth;
