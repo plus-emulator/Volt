@@ -134,32 +134,32 @@ export const WIRED_FX_STATUS_BAR_THEMES: { icon: string; color: string | null; m
     { icon: 'droplet', color: '#4aabf5', metallic: false }
 ];
 
-/** The fixed palette, by the server's colour ids; the hex is what the overlay paints. */
+/** The fixed palette, by the server's colour ids; the hex is the official renderer's own RGB (VariableFxColorType.resolve). */
 const PALETTE_ROWS: [number, string, string][] = [
-    [1, 'green', '#5fd35f'],
-    [2, 'lime_green', '#9be33b'],
+    [1, 'green', '#36b24a'],
+    [2, 'lime_green', '#8ddc35'],
     [3, 'yellow', '#ffd83d'],
     [4, 'orange', '#ff9f24'],
-    [5, 'red', '#e04b4b'],
-    [6, 'cyan', '#4fd6e0'],
+    [5, 'red', '#df291e'],
+    [6, 'cyan', '#42d4e8'],
     [7, 'blue', '#3b7de3'],
     [8, 'purple', '#8751d1'],
-    [9, 'pink', '#ff6fb5'],
-    [10, 'brown', '#a0663a'],
-    [11, 'beige', '#e8d3a8'],
-    [12, 'teal', '#1f9e95'],
-    [13, 'indigo', '#4b4bc4'],
-    [14, 'magenta', '#d63ec7'],
-    [15, 'light_blue', '#8fd3ff'],
+    [9, 'pink', '#ff6fb3'],
+    [10, 'brown', '#8a533a'],
+    [11, 'beige', '#d6c28c'],
+    [12, 'teal', '#2fb7a8'],
+    [13, 'indigo', '#4d5bd7'],
+    [14, 'magenta', '#d64bc1'],
+    [15, 'light_blue', '#82cfff'],
     [16, 'fire_orange', '#ff5a1f'],
-    [17, 'dark_green', '#2e7d32'],
-    [18, 'dark_blue', '#1d3f8f'],
-    [19, 'white', '#f4f4f4'],
+    [17, 'dark_green', '#1f6f3a'],
+    [18, 'dark_blue', '#1f3d8f'],
+    [19, 'white', '#d8d8d8'],
     [100, 'bronze', '#cd7f32'],
     [101, 'silver', '#c0c0c0'],
     [102, 'gold', '#ffc83d'],
-    [103, 'diamond', '#b9f2ff'],
-    [104, 'emerald', '#50c878']
+    [103, 'diamond', '#8eeaff'],
+    [104, 'emerald', '#27c46b']
 ];
 
 export const WIRED_FX_PALETTE: { id: number; key: string; fallback: string; hex: string }[] = PALETTE_ROWS.map(([id, name, hex]) => ({
