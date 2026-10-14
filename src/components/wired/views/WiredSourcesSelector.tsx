@@ -366,7 +366,7 @@ const SOURCE_BUTTON_HEIGHT = 20;
  * InputSourceSection's LR row: the centred list puts every item at int((height - itemHeight) / 2), the label wraps
  * in its centre column (TextParam wrap, align centre) and a two-line label makes the row taller than 23px.
  */
-const WiredSourceRow: FC<{ label: string; onPrevious: () => void; onNext: () => void }> = ({ label, onPrevious, onNext }) =>
+export const WiredSourceRow: FC<{ label: string; onPrevious: () => void; onNext: () => void; disabled?: boolean }> = ({ label, onPrevious, onNext, disabled = false }) =>
 {
     const labelRef = useRef<HTMLSpanElement>(null);
     const [labelHeight, setLabelHeight] = useState(16);
@@ -389,7 +389,7 @@ const WiredSourceRow: FC<{ label: string; onPrevious: () => void; onNext: () => 
 
     return (
         <div className="volt-wired__slider-row volt-wired__source-row" style={{ height: rowHeight + 8 }}>
-            <WiredShellButton className="volt-wired__icon-button" shellStyle="illumina" style={{ marginTop: buttonTop }} onClick={onPrevious}>
+            <WiredShellButton className="volt-wired__icon-button" shellStyle="illumina" style={{ marginTop: buttonTop }} disabled={disabled} onClick={onPrevious}>
                 <img alt="" draggable={false} src={arrowLeft} />
             </WiredShellButton>
             <span className="volt-wired__source-label" style={{ marginTop: Math.trunc((rowHeight - labelHeight) / 2) }}>
@@ -397,7 +397,7 @@ const WiredSourceRow: FC<{ label: string; onPrevious: () => void; onNext: () => 
                     <WiredText text={label} wrap={true} />
                 </span>
             </span>
-            <WiredShellButton className="volt-wired__icon-button" shellStyle="illumina" style={{ marginTop: buttonTop }} onClick={onNext}>
+            <WiredShellButton className="volt-wired__icon-button" shellStyle="illumina" style={{ marginTop: buttonTop }} disabled={disabled} onClick={onNext}>
                 <img alt="" draggable={false} src={arrowRight} />
             </WiredShellButton>
         </div>
