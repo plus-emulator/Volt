@@ -10,7 +10,7 @@ import {
 import { FC } from 'react';
 import { DispatchUiEvent, LocalizeText, NotificationAlertType, RoomWidgetUpdateRoomObjectEvent } from '../../../api';
 import { WidgetErrorBoundary } from '../../../common';
-import { useVoltEvent, useNotification, usePollSubscriptions, useRoom } from '../../../hooks';
+import { useNotification, useObjectRemoveConfirm, usePollSubscriptions, useRoom, useVoltEvent } from '../../../hooks';
 import { AvatarInfoWidgetView } from './avatar-info/AvatarInfoWidgetView';
 import { BuildHeightWidgetView } from './BuildHeightWidgetView';
 import { ChatWidgetView } from './chat/ChatWidgetView';
@@ -19,17 +19,17 @@ import { FurniChooserWidgetView } from './choosers/FurniChooserWidgetView';
 import { UserChooserWidgetView } from './choosers/UserChooserWidgetView';
 import { DoorbellWidgetView } from './doorbell/DoorbellWidgetView';
 import { FriendRequestWidgetView } from './friend-request/FriendRequestWidgetView';
+import { FurnitureWidgetsView } from './furniture/FurnitureWidgetsView';
 import { FurnitureLabelSettingsView } from './furniture-label/FurnitureLabelSettingsView';
 import { FurnitureLabelWidgetView } from './furniture-label/FurnitureLabelWidgetView';
-import { FurnitureWidgetsView } from './furniture/FurnitureWidgetsView';
 import { PetPackageWidgetView } from './pet-package/PetPackageWidgetView';
 import { RoomKeybindView } from './RoomKeybindView';
 import { RoomFilterWordsWidgetView } from './room-filter-words/RoomFilterWordsWidgetView';
 import { RoomThumbnailWidgetView } from './room-thumbnail/RoomThumbnailWidgetView';
 import { RoomToolsWidgetView } from './room-tools/RoomToolsWidgetView';
+import { applyRoomZoom } from './room-tools/roomZoom.helpers';
 import { VariableLeaderboardOverlayView } from './variable-leaderboard/VariableLeaderboardOverlayView';
 import { WiredLinkWidgetView } from './wired-link/WiredLinkWidgetView';
-import { applyRoomZoom } from './room-tools/roomZoom.helpers';
 import { WordQuizWidgetView } from './word-quiz/WordQuizWidgetView';
 
 // Level 5 is 16x, the top AIR zoom step (RoomDesktop ROOM_ZOOM_SCALES), as on the zoom buttons.
@@ -40,10 +40,11 @@ export const RoomWidgetsView: FC<{}> = (props) => {
     const { simpleAlert = null } = useNotification();
 
     usePollSubscriptions();
+    useObjectRemoveConfirm();
 
     useVoltEvent<RoomZoomEvent>(RoomZoomEvent.ROOM_ZOOM, (event) => {
         const level = Number.isFinite(event.level) ? Math.floor(event.level) : 1;
-        const logicalScale = level < 1 ? 0.5 : (1 << Math.min(level - 1, MAX_ZOOM_SHIFT));
+        const logicalScale = level < 1 ? 0.5 : 1 << Math.min(level - 1, MAX_ZOOM_SHIFT);
         // A ctrl+alt(+shift) click zooms around the pointer (AIR handleRoomCanvasMouseEvent).
         applyRoomZoom(event.roomId, logicalScale, event.isFlipForced, event.point ?? null);
     });
