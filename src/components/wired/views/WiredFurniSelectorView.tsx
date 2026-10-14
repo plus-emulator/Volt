@@ -30,7 +30,7 @@ export const WiredFurniSelectorView: FC<{}> = () => {
 };
 
 /** The native "pick furnis" section: the caption is the section title, the explanation the soft body text. */
-export const WiredFurniSelectorSection: FC<{}> = () => {
+export const WiredFurniSelectorSection: FC<{ title?: string; hideInstructions?: boolean }> = ({ title, hideInstructions = false }) => {
     const { trigger = null, furniIds = [], secondaryFurniIds = [], activePickSlot = 0 } = useWired();
 
     const count = (activePickSlot === 1 ? secondaryFurniIds : furniIds).length;
@@ -39,8 +39,8 @@ export const WiredFurniSelectorSection: FC<{}> = () => {
     const caption = /\d+\s*\/\s*\d+/.test(rawCaption) ? rawCaption : rawCaption.replace(/\[\s*\//, `[${count}/`);
 
     return (
-        <WiredSection className="volt-wired__section--selector" title={caption}>
-            <WiredText soft={true} wrap={true} text={LocalizeText('wiredfurni.pickfurnis.desc')} />
+        <WiredSection className="volt-wired__section--selector" title={title ?? caption}>
+            {!hideInstructions && <WiredText soft={true} wrap={true} text={LocalizeText('wiredfurni.pickfurnis.desc')} />}
         </WiredSection>
     );
 };

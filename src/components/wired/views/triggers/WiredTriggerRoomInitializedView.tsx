@@ -19,8 +19,8 @@ export const WiredTriggerRoomInitializedView: FC<{}> = () => {
                 setStringParam('');
             }}
         >
-            <WiredSection>
-                <WiredText className="whitespace-pre-line" wrap={true} text={LocalizeText('wiredfurni.params.room_initialized.usage_info')} />
+            <WiredSection title={LocalizeText('wiredfurni.params.general_box_info')}>
+                <WiredText soft className="whitespace-pre-line" wrap={true} text={LocalizeText('wiredfurni.params.room_initialized.usage_info')} />
             </WiredSection>
         </WiredTriggerBaseView>
     );
