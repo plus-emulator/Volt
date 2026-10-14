@@ -1,8 +1,10 @@
 import { FC, useEffect, useState } from 'react';
 import { LocalizeText, WiredFurniType } from '../../../../api';
-import { Text } from '../../../../common';
 import { useWired } from '../../../../hooks';
 import { WIRED_DIRECTION_GRID, WiredDirectionIcon, WiredMoveIconName } from '../WiredDirectionIcon';
+import { WiredRadioGroup } from '../WiredOptions';
+import { WiredSection } from '../WiredSection';
+import { WiredText } from '../WiredText';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredActionBaseView } from './WiredActionBaseView';
 
@@ -18,22 +20,10 @@ const NORMAL_DIRECTION_VALUE_MAP: Record<number, number> = {
     7: 11
 };
 
+// AIR class_4131: fixed direction values, then diagonal, straight and random.
 const extraDirectionOptions: { value: number; icon: WiredMoveIconName }[] = [
-    {
-        value: 1,
-        icon: 'rnd'
-    },
-    {
-        value: 2,
-        icon: 'diag'
-    },
-    {
-        value: 3,
-        icon: 'vrt'
-    }
+    { value: 2, icon: 'diag' }, { value: 3, icon: 'vrt' }, { value: 1, icon: 'rnd' }
 ];
-
-const rotationOptions: number[] = [0, 1, 2, 3];
 
 export const WiredActionMoveFurniView: FC<{}> = (props) => {
     const [movement, setMovement] = useState(0);
@@ -67,91 +57,23 @@ export const WiredActionMoveFurniView: FC<{}> = (props) => {
     return (
         <WiredActionBaseView
             hasSpecialInput={true}
+            nativeLayout={true}
             requiresFurni={requiresFurni}
             save={save}
             footer={<WiredSourcesSelector showFurni={true} furniSource={furniSource} onChangeFurni={onChangeFurniSource} />}
         >
-            <div className="flex flex-col gap-1">
-                <Text bold>{LocalizeText('wiredfurni.params.movefurni')}</Text>
-                <div className="flex items-center gap-1">
-                    <input
-                        checked={movement === 0}
-                        className="form-check-input"
-                        id="movement0"
-                        name="selectedTeam"
-                        type="radio"
-                        onChange={(event) => setMovement(0)}
-                    />
-                    <Text>{LocalizeText('wiredfurni.params.movefurni.0')}</Text>
-                </div>
-                <div className="grid grid-cols-4 gap-2 max-w-[240px]">
-                    {WIRED_DIRECTION_GRID.flatMap((row, rowIndex) =>
-                        row.map((direction, columnIndex) => {
-                            if (direction === null) {
-                                return <div key={`move-furni-empty-${rowIndex}-${columnIndex}`} />;
-                            }
-
-                            const value = NORMAL_DIRECTION_VALUE_MAP[direction];
-
-                            return (
-                                <label key={`move-furni-${direction}`} className="flex items-center justify-center gap-[2px] cursor-pointer">
-                                    <input
-                                        checked={movement === value}
-                                        className="form-check-input"
-                                        id={`movement${value}`}
-                                        name="movement"
-                                        type="radio"
-                                        onChange={(event) => setMovement(value)}
-                                    />
-                                    <span className="inline-flex items-center justify-center">
-                                        <WiredDirectionIcon direction={direction} selected={movement === value} />
-                                    </span>
-                                </label>
-                            );
-                        })
-                    )}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                    {extraDirectionOptions.map((option) => {
-                        return (
-                            <label key={`extra-${option.value}`} className="flex items-center gap-[2px] cursor-pointer">
-                                <input
-                                    checked={movement === option.value}
-                                    className="form-check-input"
-                                    id={`movement${option.value}`}
-                                    name="movement"
-                                    type="radio"
-                                    onChange={(event) => setMovement(option.value)}
-                                />
-                                <span className="inline-flex items-center justify-center">
-                                    <WiredDirectionIcon direction={option.value} icon={option.icon} selected={movement === option.value} />
-                                </span>
-                            </label>
-                        );
-                    })}
-                </div>
-            </div>
-            <div className="flex flex-col gap-1">
-                <Text bold>{LocalizeText('wiredfurni.params.rotatefurni')}</Text>
-                {rotationOptions.map((option) => {
-                    return (
-                        <div key={option} className="flex items-center gap-1">
-                            <input
-                                checked={rotation === option}
-                                className="form-check-input"
-                                id={`rotation${option}`}
-                                name="rotation"
-                                type="radio"
-                                onChange={(event) => setRotation(option)}
-                            />
-                            <Text>
-                                {[1, 2].includes(option) && <i className={`volt-icon icon-rot-${option}`} />}
-                                {LocalizeText(`wiredfurni.params.rotatefurni.${option}`)}
-                            </Text>
-                        </div>
-                    );
-                })}
-            </div>
+            <WiredSection title={LocalizeText('wiredfurni.params.movefurni')}>
+                <WiredRadioGroup name="movement" columns={4} value={movement} onChange={setMovement} options={[
+                    { id: 0, label: LocalizeText('wiredfurni.params.movefurni.0'), newLine: true },
+                    ...WIRED_DIRECTION_GRID.flat().map(direction => ({ id: NORMAL_DIRECTION_VALUE_MAP[direction], label: <WiredDirectionIcon direction={direction} selected={movement === NORMAL_DIRECTION_VALUE_MAP[direction]} /> })),
+                    ...extraDirectionOptions.map(option => ({ id: option.value, label: <WiredDirectionIcon direction={option.value} icon={option.icon} selected={movement === option.value} /> }))
+                ]} />
+            </WiredSection>
+            <WiredSection title={LocalizeText('wiredfurni.params.rotatefurni')}>
+                <WiredRadioGroup name="rotation" value={rotation} onChange={setRotation} options={[0, 1, 2, 3].map(id => ({ id, label: (id === 1 || id === 2)
+                    ? <span className="inline-flex items-center gap-[3px]"><WiredDirectionIcon direction={id} icon={id === 1 ? 'rotate_cw' : 'rotate_ccw'} /><WiredText text={LocalizeText(`wiredfurni.params.rotatefurni.${id}`)} /></span>
+                    : LocalizeText(`wiredfurni.params.rotatefurni.${id}`) }))} />
+            </WiredSection>
         </WiredActionBaseView>
     );
 };
