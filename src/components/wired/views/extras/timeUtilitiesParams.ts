@@ -15,7 +15,7 @@ export interface ITimeUtilSubVariable {
 }
 
 export const TIME_UTIL_SUB_VARIABLES: ITimeUtilSubVariable[] = [
-    { id: 1, name: 'millisecond_of_second', label: 'Millisecond of the second' },
+    { id: 1, name: 'milliseconds_of_seconds', label: 'Millisecond of the second' },
     { id: 2, name: 'seconds_of_minute', label: 'Second of the minute' },
     { id: 3, name: 'minute_of_hour', label: 'Minute of the hour' },
     { id: 4, name: 'hour_of_day', label: 'Hour of the day' },

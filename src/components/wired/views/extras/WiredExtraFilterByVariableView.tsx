@@ -45,6 +45,17 @@ const TARGET_BUTTONS: Array<{ key: VariableTargetType; icon: string; disabled?: 
 
 const SORT_OPTIONS = [0, 1, 2, 3, 4, 5];
 
+// AS3 VariableFilter: the picker lists variables that hold a value or can tell their creation or update time, and the sort list only
+// offers the orders the picked variable supports (0 and 1 by value, 2 and 3 by creation, 4 and 5 by update).
+const filterable = (definition: IVariableDefinition) => definition.hasValue || definition.canReadCreationTime !== false || definition.canReadLastUpdateTime !== false;
+const supportsSort = (definition: IVariableDefinition | null, option: number) => {
+    if (!definition) return true;
+    if (option < 2) return definition.hasValue;
+    if (option < 4) return definition.canReadCreationTime !== false;
+
+    return definition.canReadLastUpdateTime !== false;
+};
+
 
 const GLOBAL_SOURCE_OPTIONS: WiredSourceOption[] = [{ value: SOURCE_TRIGGER, label: 'wiredfurni.params.sources.global' }];
 const CONTEXT_SOURCE_OPTIONS: WiredSourceOption[] = [
@@ -119,11 +130,18 @@ export const WiredExtraFilterByVariableView: FC<WiredExtraFilterByVariableViewPr
     const [referenceFurniSource, setReferenceFurniSource] = useState(SOURCE_TRIGGER);
 
     const orderedFurniSources = nativeSourceOptions(trigger?.inputSources?.furniAllowed[0], 'furni');
-    const availableUserSources = useAvailableUserSources(trigger, USER_SOURCES);
+    // The hotel sends the sources it offers for the amount reference (users 0 and 201); the full list is only the fallback.
+    const nativeUserSources = nativeSourceOptions(trigger?.inputSources?.usersAllowed[0], 'users');
+    const availableUserSources = useAvailableUserSources(trigger, nativeUserSources.length ? nativeUserSources : USER_SOURCES, 'wiredfurni.params.sources.users.title', !nativeUserSources.length);
     const orderedUserSources = useMemo(() => sortWiredSourceOptions(availableUserSources, 'users'), [availableUserSources]);
     const userSourceFallbackOptions = useMemo(() => sortWiredSourceOptions([...USER_SOURCES, CLICKED_USER_SOURCE], 'users'), []);
 
-    const mainDefinitions = target === 'user' ? userVariableDefinitions : furniVariableDefinitions;
+    const mainDefinitions = useMemo(
+        () => (target === 'user' ? userVariableDefinitions : furniVariableDefinitions).filter(filterable),
+        [furniVariableDefinitions, target, userVariableDefinitions]
+    );
+    const mainDefinition = useMemo(() => mainDefinitions.find((definition) => createNativeVariableToken(definition.variableId) === variableToken) ?? null, [mainDefinitions, variableToken]);
+    const sortOptions = SORT_OPTIONS.filter((option) => supportsSort(mainDefinition, option));
     const mainEntries = useMemo(
         () => buildWiredVariablePickerEntries(target as WiredVariablePickerTarget, 'filter-main', mainDefinitions),
         [mainDefinitions, target]
@@ -192,6 +210,10 @@ export const WiredExtraFilterByVariableView: FC<WiredExtraFilterByVariableViewPr
     }, [trigger]);
 
     useEffect(() => {
+        if (sortOptions.length && !sortOptions.includes(sortBy)) setSortBy(sortOptions[0]);
+    }, [sortBy, sortOptions]);
+
+    useEffect(() => {
         if (referenceSelectionEnabled) setActivePickSlot(referenceFurniSource === SOURCE_SECONDARY_SELECTED ? 1 : 0);
     }, [referenceFurniSource, referenceSelectionEnabled, setActivePickSlot]);
 
@@ -207,7 +229,8 @@ export const WiredExtraFilterByVariableView: FC<WiredExtraFilterByVariableViewPr
 
         setStringParam('');
         // owned: [count, sort order, amount option (1 variable), amount target].
-        setIntParams([Number.isFinite(parsedAmount) ? parsedAmount : 0, sortBy, amountMode === 'variable' ? AMOUNT_VARIABLE : AMOUNT_CONSTANT, getTargetValue(referenceTargetType)]);
+        // The amount rides as 1 whenever it comes from a variable, as the hotel's own editor reopens it.
+        setIntParams([amountMode === 'variable' ? 1 : Number.isFinite(parsedAmount) ? parsedAmount : 0, sortBy, amountMode === 'variable' ? AMOUNT_VARIABLE : AMOUNT_CONSTANT, getTargetValue(referenceTargetType)]);
         setVariableIds([variableSlotOf(variableToken), amountMode === 'variable' ? variableSlotOf(referenceVariableToken) : WIRED_VARIABLE_ABSENT]);
         setUserSources([referenceUserSource]);
         setFurniSources([referenceFurniSource]);
@@ -247,7 +270,7 @@ export const WiredExtraFilterByVariableView: FC<WiredExtraFilterByVariableViewPr
                 <div className="flex flex-col gap-1">
                     <Text>{LocalizeText('wiredfurni.params.variables.sort_by')}</Text>
                     <select className="form-select form-select-sm" value={sortBy} onChange={(event) => setSortBy(parseInt(event.target.value, 10) || 0)}>
-                        {SORT_OPTIONS.map((option) => (
+                        {sortOptions.map((option) => (
                             <option key={option} value={option}>
                                 {LocalizeText(`wiredfurni.params.variables.sort_by.${option}`)}
                             </option>
