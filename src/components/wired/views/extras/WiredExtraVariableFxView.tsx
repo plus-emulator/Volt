@@ -19,6 +19,8 @@ import {
     WIRED_FX_SHOW_DURATION_MIN_MS,
     WIRED_FX_SHOW_MODE,
     WIRED_FX_SOURCE,
+    WIRED_FX_STACK_ORDER_MAX,
+    WIRED_FX_STACK_ORDER_MIN,
     WIRED_FX_VISIBILITY,
     WIRED_FX_WIDTH_NOT_APPLICABLE,
     WIRED_FX_WIDTHS,
@@ -499,6 +501,21 @@ export const WiredExtraVariableFxView: FC<WiredExtraVariableFxViewProps> = (prop
                         )}
                     </>
                 )}
+
+                <div className="flex flex-col gap-1">
+                    <Text bold>{localizeWithFallback('wiredfurni.params.variablefx.stack_order', 'Order in FX stack')}</Text>
+                    <Text small={true}>{localizeWithFallback('wiredfurni.params.variablefx.stack_order.info', "Higher values place this FX lower in the object's FX stack.")}</Text>
+                    <OctaneInput
+                        type="number"
+                        inputSize="sm"
+                        data-testid="fx-stack-order"
+                        min={WIRED_FX_STACK_ORDER_MIN}
+                        max={WIRED_FX_STACK_ORDER_MAX}
+                        step={1}
+                        value={params.stackOrder}
+                        onChange={(event) => patch({ stackOrder: Math.max(WIRED_FX_STACK_ORDER_MIN, Math.min(WIRED_FX_STACK_ORDER_MAX, toInt(event.target.value, 0))) })}
+                    />
+                </div>
 
                 {category === WIRED_FX_CATEGORY.LEVELLING_PROGRESS && (
                     <Text small={true}>
