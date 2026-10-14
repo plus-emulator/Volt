@@ -2,6 +2,7 @@ import { FC, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { localizeWithFallback } from '../../../../api';
 import { Text } from '../../../../common';
+import popoutIcon from '../../../../assets/images/wired/native/message_editor_popout.png';
 
 /** The editor's limits come from the boxes' TextAreaParam(40, -1, 8, -1, 400): eight lines, 400 characters. */
 export const WIRED_MESSAGE_EDITOR_MAX_LENGTH = 400;
@@ -26,7 +27,11 @@ const DEFAULT_COLOR_INDICATOR = 9115929;
 
 const hex = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
 
-const clampLines = (value: string) => value.replace(/\r\n?/g, '\n').split('\n').slice(0, WIRED_MESSAGE_EDITOR_MAX_LINES).join('\n').slice(0, WIRED_MESSAGE_EDITOR_MAX_LENGTH);
+const clampText = (value: string, maxLines: number, maxLength: number) => {
+    let text = value.replace(/\r\n?/g, '\n');
+    if (maxLines >= 0) text = text.split('\n').slice(0, maxLines).join('\n');
+    return maxLength > 0 ? text.slice(0, maxLength) : text;
+};
 
 interface WiredMessageEditorProps {
     value: string;
@@ -34,14 +39,20 @@ interface WiredMessageEditorProps {
     /** `TextPlaceholders.placeholderNames` of the box's context; "Add placeholder" is disabled without any. */
     placeholderNames?: readonly string[];
     rows?: number;
+    maxLength?: number;
+    /** AIR uses -1 for no line limit. */
+    maxLines?: number;
+    height?: number;
+    disabled?: boolean;
+    showCompactCounter?: boolean;
 }
 
 /**
  * MessageEditorPreset: a compact text field with a button that pops out the full editor - bold / italic /
  * underline / colour tags around the selection, "Align" (`[a]`) and "Add placeholder" (`$(name)`) at the caret,
- * and an n/400 counter.
+ * and a character counter.
  */
-export const WiredMessageEditor: FC<WiredMessageEditorProps> = ({ value, onChange, placeholderNames = [], rows = 4 }) => {
+export const WiredMessageEditor: FC<WiredMessageEditorProps> = ({ value, onChange, placeholderNames = [], rows = 4, maxLength = WIRED_MESSAGE_EDITOR_MAX_LENGTH, maxLines = WIRED_MESSAGE_EDITOR_MAX_LINES, height, disabled = false, showCompactCounter = true }) => {
     const [open, setOpen] = useState(false);
     const [paletteOpen, setPaletteOpen] = useState(false);
     const [placeholderOpen, setPlaceholderOpen] = useState(false);
@@ -55,15 +66,22 @@ export const WiredMessageEditor: FC<WiredMessageEditorProps> = ({ value, onChang
         }
     }, [open]);
 
-    const change = (next: string) => onChange(clampLines(next));
+    useEffect(() => {
+        if (disabled) setOpen(false);
+    }, [disabled]);
+
+    const change = (next: string) => {
+        if (!disabled) onChange(clampText(next, maxLines, maxLength));
+    };
 
     /** Puts `replacement` over the selection and leaves the caret/selection where the editor wants it. */
     const edit = (build: (before: string, selected: string, after: string) => { text: string; start: number; end: number }) => {
+        if (disabled) return false;
         const area = popupArea.current;
         const start = area?.selectionStart ?? value.length;
         const end = area?.selectionEnd ?? value.length;
         const result = build(value.slice(0, start), value.slice(start, end), value.slice(end));
-        const next = clampLines(result.text);
+        const next = clampText(result.text, maxLines, maxLength);
 
         if (next !== result.text) return false;
 
@@ -92,7 +110,7 @@ export const WiredMessageEditor: FC<WiredMessageEditorProps> = ({ value, onChang
     const insertAtCaret = (text: string) =>
         edit((before, _selected, after) => ({ text: `${before}${text}${after}`, start: before.length + text.length, end: before.length + text.length }));
 
-    const popup = open
+    const popup = open && !disabled
         ? createPortal(
               <div
                   className="fixed left-1/2 top-1/2 z-[10000] -translate-x-1/2 -translate-y-1/2 rounded border border-black bg-[#e9e9e1] p-2 shadow-lg"
@@ -141,7 +159,7 @@ export const WiredMessageEditor: FC<WiredMessageEditorProps> = ({ value, onChang
                               {localizeWithFallback('wiredfurni.params.message_editor.add_placeholder', 'Add placeholder')}
                           </button>
                       </div>
-                      <Text small>{`${value.length}/${WIRED_MESSAGE_EDITOR_MAX_LENGTH}`}</Text>
+                      <Text small>{`${value.length}/${maxLength}`}</Text>
                       {paletteOpen && (
                           <div className="absolute left-0 top-full z-10 flex gap-1 rounded border border-black bg-white p-1">
                               {WIRED_MESSAGE_EDITOR_COLORS.map(([name, color]) => (
@@ -182,6 +200,7 @@ export const WiredMessageEditor: FC<WiredMessageEditorProps> = ({ value, onChang
                       ref={popupArea}
                       className="form-control form-control-sm w-full"
                       style={{ height: EDITOR_HEIGHT }}
+                      maxLength={maxLength > 0 ? maxLength : undefined}
                       value={value}
                       onChange={(event) => change(event.target.value)}
                   />
@@ -194,7 +213,10 @@ export const WiredMessageEditor: FC<WiredMessageEditorProps> = ({ value, onChang
         <div className="flex flex-col gap-1">
             <div className="flex items-start gap-1">
                 <textarea
-                    className="form-control form-control-sm volt-wired__resizable-textarea flex-1"
+                    className={`form-control form-control-sm flex-1${height === undefined ? ' volt-wired__resizable-textarea' : ''}`}
+                    style={height === undefined ? undefined : { height, resize: 'none' }}
+                    disabled={disabled}
+                    maxLength={maxLength > 0 ? maxLength : undefined}
                     rows={rows}
                     value={value}
                     onChange={(event) => change(event.target.value)}
@@ -202,13 +224,15 @@ export const WiredMessageEditor: FC<WiredMessageEditorProps> = ({ value, onChang
                 <button
                     type="button"
                     className="px-1"
+                    disabled={disabled}
+                    aria-label={localizeWithFallback('wiredfurni.params.message_editor.open.tooltip', 'Open the message editor')}
                     title={localizeWithFallback('wiredfurni.params.message_editor.open.tooltip', 'Open the message editor')}
                     onClick={() => setOpen((current) => !current)}
                 >
-                    ...
+                    <img src={popoutIcon} width={15} height={15} alt="" draggable={false} />
                 </button>
             </div>
-            <Text small>{`${value.length}/${WIRED_MESSAGE_EDITOR_MAX_LENGTH}`}</Text>
+            {showCompactCounter && <Text small>{`${value.length}/${maxLength}`}</Text>}
             {popup}
         </div>
     );
