@@ -1,0 +1,52 @@
+/* Package25 wired_link_view_xml / wired_link_connections_view_xml, frame3 client margin33. */
+.volt-wired-link-air.volt-card-shell.volt-card-frame-3 {
+    padding: 0 !important;
+    min-height: 380px;
+    max-height: 800px;
+    width: 620px;
+    min-width: 620px;
+    max-width: 620px;
+    height: 467px;
+    font: 12px/17px HabboAirUbuntu, Ubuntu, sans-serif;
+    color: #000;
+}
+.volt-wired-link-air--connections.volt-card-shell.volt-card-frame-3 {
+    width: 660px;
+    min-width: 660px;
+    max-width: 660px;
+    height: 328px;
+    min-height: 270px;
+    max-height: 700px;
+}
+.volt-wired-link-air > .volt-card-header-shell .volt-card-title { display: none; }
+.volt-wired-link-air__client { position: absolute; inset: 45px 14px 4px; display: flex; flex-direction: column; gap: 10px; }
+.volt-wired-link-air__border { position: relative; min-width: 0; }
+.volt-wired-link-air__border > :not(canvas) { position: relative; z-index: 1; }
+.volt-wired-link-air__summary { flex: none; height: 48px; }
+.volt-wired-link-air__summary > .volt-wired-link-air__selected { position: absolute; left: 14px; top: 15px; width: 420px; height: 22px; overflow: hidden; white-space: nowrap; }
+.volt-wired-link-air__summary > .volt-wired-link-air__clear { position: absolute; right: 14px; top: 12px; width: 104px; height: 24px; text-align: left; padding-left: 2px; }
+.volt-wired-link-air__action { padding: 0; border: 0; background: none; border-radius: 0; cursor: pointer; white-space: nowrap; }
+.volt-wired-link-air__action:disabled { cursor: default; opacity: .5; }
+.volt-wired-link-air__networks { display: flex; flex-direction: column; gap: 9px; flex: 1; min-height: 0; }
+.volt-wired-link-air__table { flex: 1; min-height: 30px; padding: 5px; display: flex; flex-direction: column; background: #fff; border-radius: 5px; }
+.volt-wired-link-air__table-heading { display: grid; flex: none; height: 24px; padding-right: 22px; border-bottom: 1px solid #b0b0b0; }
+.volt-wired-link-air__table-heading > div { padding: 2px 4px 0; min-width: 0; overflow: hidden; white-space: nowrap; }
+.volt-wired-link-air__table-scroll { flex: 1; min-height: 0; overflow-y: scroll; overflow-x: hidden; padding-right: 5px; }
+.volt-wired-link-air__table-row { display: grid; height: 20px; }
+.volt-wired-link-air__table-row > div { height: 20px; padding: 1px 4px 0; min-width: 0; overflow: hidden; white-space: nowrap; }
+.volt-wired-link-air__create { flex: none; width: 380px; height: 45px; }
+.volt-wired-link-air__create > .volt-wired-link-air__new-label { position: absolute; left: 8px; top: 13px; width: 80px; height: 17px; }
+.volt-wired-link-air__create > .volt-wired-link-air__new-input { position: absolute; left: 100px; top: 8px; width: 152px; height: 28px; }
+.volt-wired-link-air__create > .volt-wired-link-air__create-button { position: absolute; left: 264px; top: 7px; width: 106px; height: 30px; }
+.volt-wired-link-air input:not([type='checkbox']) { position: absolute; inset: 5px 6px 3px; width: calc(100% - 12px); height: 20px; padding: 0; margin: 0; border: 0; outline: none; background: transparent; color: #000; font: 12px/17px HabboAirUbuntu, Ubuntu, sans-serif; }
+.volt-wired-link-air__receive { flex: none; height: 44px; }
+.volt-wired-link-air__receive > label { position: absolute; left: 14px; top: 12px; display: flex; align-items: flex-start; gap: 7px; width: 564px; height: 20px; cursor: pointer; }
+.volt-wired-link-air__receive input { appearance: none; flex: none; margin: 0; padding: 0; border: 0; width: 17px; height: 17px; background: url('../../assets/images/habbo-skin/slices/checkbox-default.png') no-repeat; }
+.volt-wired-link-air__receive input:checked { background-image: url('../../assets/images/habbo-skin/slices/checkbox-checked.png'); }
+.volt-wired-link-air__status { flex: none; min-height: 32px; padding: 0 14px; overflow: hidden; }
+.volt-wired-link-air__rename { position: relative; display: flex; flex: none; height: 30px; align-items: center; gap: 10px; }
+.volt-wired-link-air__rename > :first-child { width: 87px; }
+.volt-wired-link-air__rename-input { width: 210px; height: 28px; }
+.volt-wired-link-air__rename > .fnd-button { width: 65px; height: 30px; flex: none; }
+.volt-wired-link-air__rename > .volt-wired-link-air__delete { margin-left: auto; width: 96px; height: 24px; text-align: left; padding-left: 2px; }
+.volt-wired-link-air--connections .volt-wired-link-air__status { min-height: 34px; padding-left: 4px; }
