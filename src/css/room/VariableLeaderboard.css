@@ -149,3 +149,18 @@
     margin-top: 4px;
     font-size: 11px;
 }
+
+/* VariableLeaderboardAddon.buildInputs: equal label widths, then two sorting columns. */
+.volt-wired-leaderboard__information {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    align-items: center;
+    gap: 5px;
+}
+
+.volt-wired-leaderboard__sorting {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(80px, max-content);
+    align-items: center;
+    gap: 2px 5px;
+}

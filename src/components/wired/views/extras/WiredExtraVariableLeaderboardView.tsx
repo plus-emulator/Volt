@@ -338,27 +338,33 @@ export const WiredExtraVariableLeaderboardView: FC<{}> = () => {
     const operandIsLiteral = config.operandKind === VARIABLE_LEADERBOARD_OPERAND.LITERAL;
 
     return (
-        <WiredExtraBaseView hasSpecialInput={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save} validate={validate}>
+        <WiredExtraBaseView hasSpecialInput={true} nativeLayout={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save} validate={validate}>
             {warning && <WiredText text={warning} wrap={true} soft={true} />}
             {validationError && <WiredText text={localizeWithFallback(...SAVE_ERROR_TEXTS[validationError])} wrap={true} bold={true} />}
 
             <WiredSection title={localizeWithFallback('wiredfurni.params.variable_leaderboard.section.general', 'General')}>
-                <WiredText text={localizeWithFallback('wiredfurni.params.variable_leaderboard.title', 'Title:')} />
-                <WiredTextInput value={config.title} maxLength={50} onChange={(title) => update({ title })} />
-                <WiredText text={localizeWithFallback('wiredfurni.params.variable_leaderboard.description', 'Description:')} />
-                <WiredTextInput value={config.description} maxLength={80} onChange={(description) => update({ description })} />
-                <WiredDropdown
-                    caption={localizeWithFallback('wiredfurni.params.variable_leaderboard.section.sorting', 'Sorting:')}
-                    options={sortOptions}
-                    value={config.sortMode}
-                    onChange={(sortMode) => update({ sortMode })}
-                />
-                <WiredDropdown
-                    caption={localizeWithFallback('wiredfurni.params.variable_leaderboard.entries_per_page', 'Page size:')}
-                    options={PAGE_SIZE_OPTIONS}
-                    value={config.pageSizeOption}
-                    onChange={(pageSizeOption) => update({ pageSizeOption })}
-                />
+                <div className="volt-wired-leaderboard__information">
+                    <WiredText text={localizeWithFallback('wiredfurni.params.variable_leaderboard.title', 'Title:')} />
+                    <WiredTextInput value={config.title} maxLength={50} onChange={(title) => update({ title })} />
+                    <WiredText text={localizeWithFallback('wiredfurni.params.variable_leaderboard.description', 'Description:')} />
+                    <WiredTextInput value={config.description} maxLength={80} onChange={(description) => update({ description })} />
+                </div>
+                <div className="volt-wired-leaderboard__sorting">
+                    <WiredText bold text={localizeWithFallback('wiredfurni.params.variable_leaderboard.section.sorting', 'Sorting:')} />
+                    <WiredText text={localizeWithFallback('wiredfurni.params.variable_leaderboard.entries_per_page', 'Page size:')} />
+                    <WiredDropdown
+                        caption={localizeWithFallback('wiredfurni.params.variable_leaderboard.section.sorting', 'Sorting:')}
+                        options={sortOptions}
+                        value={config.sortMode}
+                        onChange={(sortMode) => update({ sortMode })}
+                    />
+                    <WiredDropdown
+                        caption={localizeWithFallback('wiredfurni.params.variable_leaderboard.entries_per_page', 'Page size:')}
+                        options={PAGE_SIZE_OPTIONS}
+                        value={config.pageSizeOption}
+                        onChange={(pageSizeOption) => update({ pageSizeOption })}
+                    />
+                </div>
                 {!hasValueChoice && (
                     <WiredText
                         text={localizeWithFallback(
