@@ -20,9 +20,9 @@ import {
     writeLinkDataframeSendString
 } from '../../../../api/wired/WiredLinkDataframe';
 import { useWired } from '../../../../hooks';
-import { LinkDataframeField, LinkDataframeVariableField } from '../common/WiredLinkDataframeFields';
+import { LinkDataframeField } from '../common/WiredLinkDataframeFields';
 import { WiredDropdown } from '../WiredDropdown';
-import { WiredNumberInput } from '../WiredNumberInput';
+import { getWiredValueTargetCode, normalizeWiredValueTarget, WiredActionValueOrVariableSection } from './WiredActionValueOrVariableSection';
 import { WiredSection } from '../WiredSection';
 import { FURNI_SOURCES, nativeSourceOptions, USER_SOURCES, WiredSourceOption, WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredText } from '../WiredText';
@@ -61,7 +61,6 @@ const sourceDropdownOptions = (allowed: number[] | undefined, kind: 'furni' | 'u
 
 const SOURCE_OPTIONS = [
     { id: LINK_SOURCE_NUMBER, label: 'wiredfurni.params.link.source.number' },
-    { id: LINK_SOURCE_VARIABLE_VALUE, label: 'wiredfurni.params.link.source.variable_value' },
     { id: LINK_SOURCE_VARIABLE_TEXT, label: 'wiredfurni.params.link.source.variable_text' },
     { id: LINK_SOURCE_MESSAGE, label: 'wiredfurni.params.link.source.message' }
 ].map((option) => ({ id: option.id, label: LocalizeText(option.label) }));
@@ -151,40 +150,34 @@ const sendFrameError = (loadError: string | null, state: ILinkDataframeSendState
 interface SendRowProps {
     index: number;
     row: ISendDraftRow;
-    onChange: (row: ISendDraftRow) => void;
+    onChange: (row: Partial<ISendDraftRow>) => void;
+    onValidityChange: (valid: boolean) => void;
     /** The merged source of the row's variable target: furni slot index + 1 or user slot index. */
     source: { kind: 'furni' | 'users'; value: number; allowed: number[] | undefined } | null;
     onChangeSource: (value: number) => void;
 }
 
-const SendRow: FC<SendRowProps> = ({ index, row, onChange, source, onChangeSource }) => (
-    <WiredSection title={LocalizeText('wiredfurni.params.link.row', ['number'], [`${index + 1}`])}>
+const SendRow: FC<SendRowProps> = ({ index, row, onChange, source, onChangeSource, onValidityChange }) => (
+    <WiredSection title={LocalizeText('wiredfurni.params.link.row', ['number'], [`${index + 1}`])} className="volt-wired__dataframe-row">
         <LinkDataframeField label={LocalizeText('wiredfurni.params.link.key')}>
-            <WiredTextInput maxLength={LINK_DATAFRAME_KEY_MAX_LENGTH} value={row.key} onChange={(key) => onChange({ ...row, key })} />
+            <WiredTextInput maxLength={LINK_DATAFRAME_KEY_MAX_LENGTH} value={row.key} onChange={(key) => onChange({ key })} />
+            <WiredDropdown caption={LocalizeText('wiredfurni.params.link.source')} options={SOURCE_OPTIONS} value={row.mode === LINK_SOURCE_VARIABLE_VALUE ? LINK_SOURCE_NUMBER : row.mode} onChange={(mode) => onChange({ mode })} />
         </LinkDataframeField>
-        <LinkDataframeField label={LocalizeText('wiredfurni.params.link.source')}>
-            <WiredDropdown options={SOURCE_OPTIONS} value={row.mode} onChange={(mode) => onChange({ ...row, mode })} />
-        </LinkDataframeField>
-        {row.mode === LINK_SOURCE_NUMBER && (
+        {row.mode !== LINK_SOURCE_MESSAGE && (
             <LinkDataframeField label={LocalizeText('wiredfurni.params.link.value')}>
-                <WiredNumberInput max={INT_MAX} min={INT_MIN} value={row.literal} width={100} onChange={(literal) => onChange({ ...row, literal })} />
+                <WiredActionValueOrVariableSection inline title={LocalizeText('wiredfurni.params.link.value')} targetTitle={LocalizeText('wiredfurni.params.link.variable')}
+                    recentScope={`wired-link-dataframe-send-${index}`} min={INT_MIN} max={INT_MAX}
+                    variableOnlyOrEmpty={row.mode === LINK_SOURCE_VARIABLE_TEXT} textConnectedOnly={row.mode === LINK_SOURCE_VARIABLE_TEXT}
+                    variableUsage={row.mode === LINK_SOURCE_VARIABLE_TEXT ? 'condition' : 'change-reference'}
+                    option={isVariableMode(row.mode) ? 1 : 0} literal={row.literal} variableToken={row.token} target={normalizeWiredValueTarget(row.target)}
+                    onOptionChange={option => onChange({ mode: row.mode === LINK_SOURCE_VARIABLE_TEXT ? LINK_SOURCE_VARIABLE_TEXT : option ? LINK_SOURCE_VARIABLE_VALUE : LINK_SOURCE_NUMBER })}
+                    onLiteralChange={literal => onChange({ literal })} onTargetChange={target => onChange({ target: getWiredValueTargetCode(target) })}
+                    onVariableTokenChange={token => onChange({ token })} onValidityChange={onValidityChange} />
             </LinkDataframeField>
         )}
         {row.mode === LINK_SOURCE_MESSAGE && (
             <LinkDataframeField label={LocalizeText('wiredfurni.params.link.message')}>
-                <WiredTextInput maxLength={LINK_DATAFRAME_MAX_MESSAGE_BYTES} value={row.text} onChange={(text) => onChange({ ...row, text })} />
-            </LinkDataframeField>
-        )}
-        {isVariableMode(row.mode) && (
-            <LinkDataframeField label={LocalizeText('wiredfurni.params.link.variable')}>
-                <LinkDataframeVariableField
-                    showScope={true}
-                    textOnly={row.mode === LINK_SOURCE_VARIABLE_TEXT}
-                    usage="give"
-                    recentScope="wired-link-dataframe-send"
-                    value={{ target: row.target, token: row.token }}
-                    onChange={(next) => onChange({ ...row, target: next.target, token: next.token })}
-                />
+                <WiredTextInput maxLength={LINK_DATAFRAME_MAX_MESSAGE_BYTES} value={row.text} onChange={(text) => onChange({ text })} />
             </LinkDataframeField>
         )}
         {isVariableMode(row.mode) && source && (
@@ -199,6 +192,7 @@ export const WiredActionSendLinkDataframeView: FC<{}> = () => {
     const { trigger = null, setIntParams = null, setStringParam = null, setVariableIds = null, setFurniSources = null, setUserSources = null } = useWired();
     const [loadError, setLoadError] = useState<string | null>(null);
     const [count, setCount] = useState(0);
+    const [invalidRows, setInvalidRows] = useState<Set<number>>(() => new Set());
     const [rows, setRows] = useState<ISendDraftRow[]>(emptyDraftRows);
     const [furniSources, setFurniSourceSlots] = useState<number[]>(() => sourceArray(undefined, undefined, FURNI_SOURCE_COUNT));
     const [userSources, setUserSourceSlots] = useState<number[]>(() => sourceArray(undefined, undefined, USER_SOURCE_COUNT));
@@ -208,6 +202,7 @@ export const WiredActionSendLinkDataframeView: FC<{}> = () => {
 
         const state = readLinkDataframeSend(trigger.intData ?? [], trigger.stringData ?? '', trigger.variableIds ?? []);
 
+        setInvalidRows(new Set());
         setLoadError(state ? null : 'wiredfurni.error.link.invalid_dataframe');
         setCount(state?.count ?? 0);
         setRows(state ? state.rows.map(toDraftRow) : emptyDraftRows());
@@ -218,7 +213,13 @@ export const WiredActionSendLinkDataframeView: FC<{}> = () => {
     const state = useMemo<ILinkDataframeSendState>(() => ({ count, rows: rows.map(toRowState) }), [count, rows]);
     const error = useMemo(() => sendFrameError(loadError, state), [loadError, state]);
 
-    const updateRow = (index: number, row: ISendDraftRow) => setRows((current) => current.map((item, itemIndex) => (itemIndex === index ? row : item)));
+    const updateRow = (index: number, row: Partial<ISendDraftRow>) => setRows((current) => current.map((item, itemIndex) => (itemIndex === index ? { ...item, ...row } : item)));
+    const updateValidity = (index: number, valid: boolean) => setInvalidRows(current => {
+        if (current.has(index) === !valid) return current;
+        const next = new Set(current);
+        if (valid) next.delete(index); else next.add(index);
+        return next;
+    });
     const setSlot = (setter: (update: (current: number[]) => number[]) => void, slot: number, value: number) =>
         setter((current) => current.map((item, index) => (index === slot ? value : item)));
 
@@ -248,7 +249,7 @@ export const WiredActionSendLinkDataframeView: FC<{}> = () => {
             nativeLayout={true}
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID}
             save={save}
-            validate={() => error === null}
+            validate={() => error === null && !Array.from(invalidRows).some(index => index < count && rows[index].mode !== LINK_SOURCE_MESSAGE)}
             footer={
                 <WiredSourcesSelector
                     showFurni={true}
@@ -271,6 +272,7 @@ export const WiredActionSendLinkDataframeView: FC<{}> = () => {
                     row={row}
                     source={rowSource(index, row)}
                     onChange={(next) => updateRow(index, next)}
+                    onValidityChange={valid => updateValidity(index, valid)}
                     onChangeSource={(value) => onChangeRowSource(index, row, value)}
                 />
             ))}

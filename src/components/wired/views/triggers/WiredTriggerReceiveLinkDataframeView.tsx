@@ -123,12 +123,10 @@ interface ReceiveRowProps {
 }
 
 const ReceiveRow: FC<ReceiveRowProps> = ({ index, row, onChange }) => (
-    <WiredSection title={LocalizeText('wiredfurni.params.link.row', ['number'], [`${index + 1}`])}>
+    <WiredSection title={LocalizeText('wiredfurni.params.link.row', ['number'], [`${index + 1}`])} className="volt-wired__dataframe-row">
         <LinkDataframeField label={LocalizeText('wiredfurni.params.link.key')}>
             <WiredTextInput maxLength={LINK_DATAFRAME_KEY_MAX_LENGTH} value={row.key} onChange={(key) => onChange({ ...row, key })} />
-        </LinkDataframeField>
-        <LinkDataframeField label={LocalizeText('wiredfurni.params.link.destination')}>
-            <WiredDropdown options={DESTINATION_OPTIONS} value={row.kind} onChange={(kind) => onChange({ ...row, kind })} />
+            <WiredDropdown caption={LocalizeText('wiredfurni.params.link.destination')} options={DESTINATION_OPTIONS} value={row.kind} onChange={(kind) => onChange({ ...row, kind })} />
         </LinkDataframeField>
         {row.kind === LINK_DESTINATION_PLACEHOLDER && (
             <LinkDataframeField label={LocalizeText('wiredfurni.params.link.placeholder')}>

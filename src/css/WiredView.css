@@ -2905,3 +2905,16 @@
 .volt-wired-message-editor [role='dialog'] { pointer-events: auto; }
 .volt-wired-message-editor__body { position: relative; z-index: 1; }
 .volt-wired.volt-wired-message-editor textarea.volt-wired-message-editor__textarea { background: #fff !important; border: 1px solid #919191 !important; border-radius: 0 !important; box-shadow: none !important; }
+
+/* AIR LinkDataframe row: equally sized key/mode controls and aligned named labels. */
+.volt-wired__dataframe-row .volt-wired__native-section-inner {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    column-gap: 5px;
+    row-gap: 5px;
+}
+.volt-wired__dataframe-row .volt-wired__native-section-header { grid-column: 1 / -1; }
+.volt-wired__dataframe-field { display: contents; }
+.volt-wired__dataframe-field > .volt-wired__native-text { margin-top: 2px; }
+.volt-wired__dataframe-controls { display: flex; min-width: 0; gap: 5px; }
+.volt-wired__dataframe-controls > * { flex: 1 1 0; min-width: 0; width: 0 !important; }

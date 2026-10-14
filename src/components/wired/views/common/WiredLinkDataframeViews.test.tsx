@@ -1,0 +1,66 @@
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { PropsWithChildren, ReactNode } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { WiredNativeContext } from '../WiredNativeContext';
+const state = vi.hoisted(() => ({ trigger: { intData: [] as number[], stringData: '', variableIds: [] as string[], furniSources: [] as number[], userSources: [] as number[] }, setIntParams: vi.fn(), setStringParam: vi.fn(), setVariableIds: vi.fn(), setFurniSources: vi.fn(), setUserSources: vi.fn() }));
+let base: { save: () => void; validate?: () => boolean };
+vi.mock('../../../../api', async () => ({ ...await vi.importActual('../../../../api/wired/WiredNativeVariables'), LocalizeText: (key: string) => key, localizeWithFallback: (_key: string, fallback: string) => fallback, WiredFurniType: { STUFF_SELECTION_OPTION_BY_ID: 1 } }));
+vi.mock('../../../../hooks', () => ({ useWired: () => state, useWiredNativeVariables: () => ({ furniVariableDefinitions: [{ variableId: 'amount', name: 'Amount', availability: 0, hasValue: true }], contextVariableDefinitions: [{ variableId: 'capture', name: 'Captured', availability: 0, hasValue: true, canCreateAndDelete: true }] }) }));
+vi.mock('../../../../common', () => ({ Text: ({ children }: PropsWithChildren) => <span>{children}</span> }));
+vi.mock('../WiredText', () => ({ WiredText: ({ text }: { text: string }) => <span>{text}</span> }));
+vi.mock('../WiredSourcesSelector', () => ({ FURNI_SOURCES: [], USER_SOURCES: [], nativeSourceOptions: () => [], WiredSourcesSelector: () => null }));
+vi.mock('../WiredSourceTypeSelector', () => ({ WiredSourceTypeSelector: () => null }));
+vi.mock('../WiredDropdown', () => ({ WiredDropdown: ({ options, value, onChange, caption }: { options: { id: number; label: string }[]; value: number; onChange: (id: number) => void; caption?: string }) => <select aria-label={caption} value={value} onChange={event => onChange(Number(event.target.value))}>{options.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}</select> }));
+vi.mock('../WiredVariablePicker', () => ({ WiredVariablePicker: ({ entries, selectedToken, onSelect }: { entries: { token: string; displayLabel: string }[]; selectedToken: string; onSelect: (entry: unknown) => void }) => <select aria-label="Variable" value={selectedToken} onChange={event => onSelect(entries.find(entry => entry.token === event.target.value))}><option value="" />{entries.map(entry => <option key={entry.token} value={entry.token}>{entry.displayLabel}</option>)}</select> }));
+vi.mock('../actions/WiredActionBaseView', () => ({ WiredActionBaseView: (props: PropsWithChildren<typeof base & { footer?: ReactNode }>) => { base = props; return <WiredNativeContext.Provider value={true}>{props.children}</WiredNativeContext.Provider>; } }));
+vi.mock('../triggers/WiredTriggerBaseView', () => ({ WiredTriggerBaseView: (props: PropsWithChildren<typeof base>) => { base = props; return <WiredNativeContext.Provider value={true}>{props.children}</WiredNativeContext.Provider>; } }));
+import { WiredActionSendLinkDataframeView } from '../actions/WiredActionSendLinkDataframeView';
+import { WiredTriggerReceiveLinkDataframeView } from '../triggers/WiredTriggerReceiveLinkDataframeView';
+afterEach(cleanup);
+beforeEach(() => { vi.clearAllMocks(); state.trigger = { intData: [1, ...Array.from({ length: 12 }, () => [0, 7, 0]).flat()], stringData: '[["score",""]]', variableIds: Array(12).fill('n'), furniSources: Array.from({ length: 13 }, (_, i) => i), userSources: Array.from({ length: 12 }, (_, i) => i + 10) }; });
+describe('AIR dataframe native rows', () => {
+    it('shares the key row with exactly three source modes and saves literal edits with all source slots intact', () => {
+        render(<WiredActionSendLinkDataframeView />);
+        const mode = screen.getByRole('combobox', { name: 'wiredfurni.params.link.source' });
+        expect(mode.querySelectorAll('option')).toHaveLength(3);
+        expect(mode.parentElement?.querySelector('input')?.value).toBe('score');
+        fireEvent.change(screen.getByRole('textbox', { name: 'wiredfurni.params.link.value' }), { target: { value: '0x2a' } });
+        expect(base.validate!()).toBe(true); act(() => base.save());
+        expect(state.setIntParams.mock.lastCall![0].slice(0, 4)).toEqual([1, 0, 42, 0]);
+        expect(state.setFurniSources).toHaveBeenCalledWith(state.trigger.furniSources);
+        expect(state.setUserSources).toHaveBeenCalledWith(state.trigger.userSources);
+        expect(state.setVariableIds.mock.lastCall![0]).toHaveLength(12);
+    });
+    it('selects variable values through the same number input without losing mode in batched callbacks', () => {
+        render(<WiredActionSendLinkDataframeView />);
+        fireEvent.change(screen.getByRole('textbox', { name: 'wiredfurni.params.link.value' }), { target: { value: 'Amount' } });
+        expect(base.validate!()).toBe(true); act(() => base.save());
+        expect(state.setIntParams.mock.lastCall![0].slice(0, 4)).toEqual([1, 1, 7, 0]);
+        expect(state.setVariableIds.mock.lastCall![0][0]).toBe('amount');
+        expect(screen.getByRole('combobox', { name: 'wiredfurni.params.link.source' })).toHaveValue('0');
+    });
+    it('rejects out-of-range drafts, allows empty text variables and shows message instead of a value control', () => {
+        render(<WiredActionSendLinkDataframeView />);
+        fireEvent.change(screen.getByRole('textbox', { name: 'wiredfurni.params.link.value' }), { target: { value: '2147483648' } }); expect(base.validate!()).toBe(false);
+        fireEvent.change(screen.getByRole('combobox', { name: 'wiredfurni.params.link.source' }), { target: { value: '2' } });
+        fireEvent.change(screen.getByRole('textbox', { name: 'wiredfurni.params.link.value' }), { target: { value: '' } }); expect(base.validate!()).toBe(true);
+        act(() => base.save()); expect(state.setIntParams.mock.lastCall![0][1]).toBe(2); expect(state.setVariableIds.mock.lastCall![0][0]).toBe('n');
+        fireEvent.change(screen.getByRole('combobox', { name: 'wiredfurni.params.link.source' }), { target: { value: '3' } });
+        expect(screen.queryByRole('textbox', { name: 'wiredfurni.params.link.value' })).toBeNull();
+        fireEvent.change(screen.getAllByRole('textbox')[1], { target: { value: 'hello' } }); act(() => base.save());
+        expect(state.setStringParam).toHaveBeenLastCalledWith('[["score","hello"]]');
+    });
+    it('puts receive destination beside the key and preserves both destination forms on save', () => {
+        state.trigger.intData = [1, ...Array(12).fill(0)]; state.trigger.stringData = '[["score","points"]]';
+        render(<WiredTriggerReceiveLinkDataframeView />);
+        const destination = screen.getByRole('combobox', { name: 'wiredfurni.params.link.destination' });
+        expect(destination.parentElement?.querySelector('input')?.value).toBe('score');
+        fireEvent.change(screen.getAllByRole('textbox')[1], { target: { value: 'total' } }); act(() => base.save());
+        expect(state.setStringParam).toHaveBeenLastCalledWith('[["score","total"]]');
+        fireEvent.change(destination, { target: { value: '1' } });
+        expect(screen.getAllByRole('textbox')).toHaveLength(1);
+        fireEvent.change(screen.getByRole('combobox', { name: 'Variable' }), { target: { value: 'custom:capture' } }); act(() => base.save());
+        expect(state.setIntParams.mock.lastCall![0]).toEqual([1, 1, ...Array(11).fill(0)]);
+        expect(state.setVariableIds.mock.lastCall![0][0]).toBe('capture');
+    });
+});

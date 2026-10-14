@@ -1,4 +1,4 @@
-import { FC, useEffect, useMemo, useRef, useState } from 'react';
+import { FC, Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import variableIcon from '../../../../assets/images/wired/native/icon_variable_reference.png';
 import nativeFurniIcon from '../../../../assets/images/wired/native/icon_source_furni.png';
 import nativeUserIcon from '../../../../assets/images/wired/native/icon_source_users.png';
@@ -54,6 +54,10 @@ const TARGET_BUTTONS: Array<{ key: WiredValueTargetType; icon: string }> = [
 
 export interface WiredActionValueOrVariableSectionProps {
     title: string;
+    /** AIR dataframe embeds this input in a named row rather than its own section. */
+    inline?: boolean;
+    variableOnlyOrEmpty?: boolean;
+    textConnectedOnly?: boolean;
     targetTitle: string;
     recentScope: string;
     variableUsage?: WiredVariablePickerUsage;
@@ -109,7 +113,7 @@ export const WiredActionValueOrVariableSection: FC<WiredActionValueOrVariableSec
                 return userVariableDefinitions;
         }
     }, [contextVariableDefinitions, furniVariableDefinitions, roomVariableDefinitions, target, userVariableDefinitions]);
-    const variableEntries = useMemo(() => buildWiredVariablePickerEntries(target, variableUsage, definitions), [definitions, target, variableUsage]);
+    const variableEntries = useMemo(() => buildWiredVariablePickerEntries(target, variableUsage, props.textConnectedOnly ? definitions.filter(definition => definition.isTextConnected) : definitions), [definitions, target, variableUsage, props.textConnectedOnly]);
     const resolvedEntries = useMemo(() => {
         if (!variableToken) return variableEntries;
         if (flattenWiredVariablePickerEntries(variableEntries).some((entry) => entry.token === variableToken)) return variableEntries;
@@ -178,7 +182,7 @@ const NativeValueOrVariable: FC<WiredActionValueOrVariableSectionProps & { entri
     const { title, targetTitle, recentScope, option, literal, min, max, target, variableToken, entries, disabled = false, onOptionChange, onLiteralChange, onTargetChange, onVariableTokenChange, onValidityChange } = props;
     const flatEntries = flattenWiredVariablePickerEntries(entries);
     const selected = flatEntries.find(entry => entry.token === variableToken);
-    const shown = option === WIRED_VALUE_OPTION_VARIABLE ? selected?.displayLabel ?? variableToken : String(literal);
+    const shown = props.variableOnlyOrEmpty || option === WIRED_VALUE_OPTION_VARIABLE ? selected?.displayLabel ?? variableToken : String(literal);
     const wireKey = `${option}:${literal}:${target}:${variableToken}`;
     const publishedKey = useRef(wireKey);
     const [text, setText] = useState(shown);
@@ -196,7 +200,7 @@ const NativeValueOrVariable: FC<WiredActionValueOrVariableSectionProps & { entri
     const edit = (next: string) => {
         setText(next);
         // These three forms are accepted by AIR ValueOrVariableSection.isNumericText.
-        if (/^-?\d+$/.test(next) || /^0x[0-9a-fA-F]+$/.test(next) || /^0b[01]+$/.test(next)) {
+        if (!props.variableOnlyOrEmpty && (/^-?\d+$/.test(next) || /^0x[0-9a-fA-F]+$/.test(next) || /^0b[01]+$/.test(next))) {
             const value = Number(next);
             const accepted = Number.isInteger(value) && value >= min && value <= max && value >= -2147483648 && value <= 2147483647;
             setValid(accepted);
@@ -205,10 +209,16 @@ const NativeValueOrVariable: FC<WiredActionValueOrVariableSectionProps & { entri
             if (accepted) onLiteralChange(value);
             return;
         }
-        if (next === '-' || next === '+') {
+        if (!props.variableOnlyOrEmpty && (next === '-' || next === '+')) {
             publishedKey.current = `0:${literal}:${target}:${variableToken}`;
             onOptionChange(WIRED_VALUE_OPTION_LITERAL);
             setValid(false);
+            return;
+        }
+        if (props.variableOnlyOrEmpty && !next) {
+            setValid(true);
+            onOptionChange(WIRED_VALUE_OPTION_VARIABLE);
+            onVariableTokenChange('');
             return;
         }
         const matches = flatEntries.filter(entry => entry.selectable && entry.displayLabel === next);
@@ -218,8 +228,9 @@ const NativeValueOrVariable: FC<WiredActionValueOrVariableSectionProps & { entri
         if (matches.length === 1) onVariableTokenChange(matches[0].token);
     };
 
+    const Container = props.inline ? Fragment : WiredSection;
     return (
-        <WiredSection title={title}>
+        <Container {...(props.inline ? {} : { title })}>
             <div style={{ position: 'relative' }}>
                 <div className={`volt-wired__input-box ${valid ? '' : 'is-invalid'}`} style={{ display: 'flex', width: '100%' }}>
                     <input className="volt-wired__input-field volt-wired__input-field--stretch" type="text" style={{ minWidth: 0, flex: '1 1 0', width: 0 }} aria-label={title} disabled={disabled} value={text} onChange={event => edit(event.target.value)} />
@@ -244,6 +255,6 @@ const NativeValueOrVariable: FC<WiredActionValueOrVariableSectionProps & { entri
                     </div>
                 )}
             </div>
-        </WiredSection>
+        </Container>
     );
 };
