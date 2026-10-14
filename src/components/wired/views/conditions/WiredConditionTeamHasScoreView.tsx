@@ -1,7 +1,9 @@
 import { FC, useEffect, useState } from 'react';
 import { LocalizeText, localizeWithFallback, WiredFurniType } from '../../../../api';
 import { Text } from '../../../../common';
-import { WiredLegacySlider as Slider } from '../WiredSlider';
+import { WiredSliderSection } from '../WiredSlider';
+import { WiredRadioGroup } from '../WiredOptions';
+import { WiredSection } from '../WiredSection';
 import { useWired } from '../../../../hooks';
 import { normalizeWiredComparison, WIRED_CMP_GREATER_EQUAL, WiredComparisonOperator } from '../WiredComparisonOperator';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
@@ -88,6 +90,7 @@ export const WiredConditionTeamHasScoreView: FC<WiredConditionTeamHasScoreViewPr
     return (
         <WiredConditionBaseView
             hasSpecialInput={true}
+            nativeLayout={scoped}
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE}
             save={save}
             footerCollapsible={false}
@@ -125,59 +128,26 @@ export const WiredConditionTeamHasScoreView: FC<WiredConditionTeamHasScoreViewPr
             {!scoped && <WiredComparisonOperator name="userAmountComparison" value={comparison} onChange={setComparison} />}
             {scoped && (
                 <>
-                    <div className="flex flex-col gap-1">
-                        <Text bold>{LocalizeText('wiredfurni.params.team')}</Text>
-                        {TEAM_OPTIONS.map((value) => {
-                            return (
-                                <div key={value} className="flex items-center gap-1">
-                                    <input
-                                        checked={team === value}
-                                        className="form-check-input"
-                                        id={`teamHasScore${value}`}
-                                        name="teamHasScore"
-                                        type="radio"
-                                        onChange={() => setTeam(value)}
-                                    />
-                                    <Text>{LocalizeText(value === 0 ? 'wiredfurni.params.team.triggerer' : `wiredfurni.params.team.${value}`)}</Text>
-                                </div>
-                            );
-                        })}
-                    </div>
-                    <div className="flex flex-col gap-1">
-                        <Text bold>{LocalizeText('wiredfurni.params.comparison_selection')}</Text>
-                        {COMPARISON_OPTIONS.map((value) => {
-                            return (
-                                <div key={value} className="flex items-center gap-1">
-                                    <input
-                                        checked={comparison === value}
-                                        className="form-check-input"
-                                        id={`teamScoreComparison${value}`}
-                                        name="teamScoreComparison"
-                                        type="radio"
-                                        onChange={() => setComparison(value)}
-                                    />
-                                    <Text>{LocalizeText(`wiredfurni.params.comparison.${value}`)}</Text>
-                                </div>
-                            );
-                        })}
-                    </div>
+                    <WiredSection title={LocalizeText('wiredfurni.params.team')}>
+                        <WiredRadioGroup name="teamHasScore" columns={2} options={TEAM_OPTIONS.map((id) => ({ id, newLine: id === 0, label: LocalizeText(id === 0 ? 'wiredfurni.params.team.triggerer' : `wiredfurni.params.team.${id}`) }))} value={team} onChange={setTeam} />
+                    </WiredSection>
+                    <WiredSection title={LocalizeText('wiredfurni.params.comparison_selection')}>
+                        <WiredRadioGroup name="teamScoreComparison" options={COMPARISON_OPTIONS.map((id) => ({ id, label: LocalizeText(`wiredfurni.params.comparison.${id}`) }))} value={comparison} onChange={setComparison} />
+                    </WiredSection>
+                    <WiredSliderSection min={MIN_SCORE} max={MAX_SCORE} step={1} titleKey="wiredfurni.params.setscore2" value={score} onChange={setScore} />
                 </>
             )}
-            <div className="flex flex-col gap-1">
-                <Text bold>{scoped ? LocalizeText('wiredfurni.params.setscore2') : localizeWithFallback('wiredfurni.params.user_amount', 'Amount:')}</Text>
-                <input
-                    className="form-control form-control-sm"
-                    inputMode="numeric"
-                    type="text"
-                    value={scoreInput}
-                    onBlur={() => setScoreInput(clampScore(score, ceiling).toString())}
-                    onChange={(event) => updateScoreInput(event.target.value)}
-                />
-            </div>
-            {scoped && (
+            {!scoped && (
                 <div className="flex flex-col gap-1">
-                    <Slider max={MAX_SCORE} min={MIN_SCORE} step={1} value={score} onChange={(event) => updateScore(event as number)} />
-                    <Text small>{score}</Text>
+                    <Text bold>{localizeWithFallback('wiredfurni.params.user_amount', 'Amount:')}</Text>
+                    <input
+                        className="form-control form-control-sm"
+                        inputMode="numeric"
+                        type="text"
+                        value={scoreInput}
+                        onBlur={() => setScoreInput(clampScore(score, ceiling).toString())}
+                        onChange={(event) => updateScoreInput(event.target.value)}
+                    />
                 </div>
             )}
         </WiredConditionBaseView>
