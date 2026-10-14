@@ -1,3 +1,4 @@
+import { CreateLinkEvent } from '@volt/renderer';
 import { FC } from 'react';
 import { localizeWithFallback, WiredFurniType } from '../../../../api';
 import { WiredSection } from '../WiredSection';
@@ -17,6 +18,9 @@ export const WiredTriggerTransactionFailView: FC = () => {
                     'This box will trigger when a user has failed to complete a transaction (select the contract).\n\nAdditionally, the failure reason is provided through an internal variable'
                 )} />
             </WiredSection>
+            <button type="button" className="volt-wired__advanced-toggle self-center" onClick={() => CreateLinkEvent('wiredmenu/open/variable_overview/@event.transaction_failed.reason')}>
+                <WiredText underline text={localizeWithFallback('wiredfurni.view_in_menu', 'View in menu')} />
+            </button>
         </WiredTriggerBaseView>
     );
 };

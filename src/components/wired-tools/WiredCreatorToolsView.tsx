@@ -140,7 +140,7 @@ import { HOLDER_TYPE_FURNI, HOLDER_TYPE_USER, WiredHolderDescription, WiredVaria
 import { useVariablesExplorerStore } from '../../state/variablesExplorer';
 import { WiredVariableHolderPanelView } from './WiredVariableHolderPanelView';
 import { WiredVariablesTabView } from './WiredVariablesTabView';
-import { useWiredCreatorToolsUiStore } from './wiredCreatorToolsUiStore';
+import { openWiredMenuLink, useWiredCreatorToolsUiStore } from './wiredCreatorToolsUiStore';
 
 const WIRED_FURNI_GRAVITY_MODEL_KEY = 'wired_furni_gravity';
 
@@ -1735,6 +1735,16 @@ export const WiredCreatorToolsView: FC<{}> = () => {
         };
     }, [contextVariableDefinitions, userVariableDefinitions, furniVariableDefinitions, roomVariableDefinitions]);
     const variablePickerDefinitions = variableDefinitionsByType[variablesType];
+
+    useEffect(() => {
+        const nativeLinkTracker: ILinkEventTracker = {
+            eventUrlPrefix: 'wiredmenu/',
+            linkReceived: url => { openWiredMenuLink(url, variableDefinitionsByType); }
+        };
+        AddLinkEventTracker(nativeLinkTracker);
+        return () => RemoveLinkEventTracker(nativeLinkTracker);
+    }, [variableDefinitionsByType]);
+
 
     useEffect(() => {
         setSelectedVariableKeys((prevValue) => {
