@@ -1,22 +1,17 @@
-import { FC, useEffect, useMemo, useState } from 'react';
+import { FC, useEffect, useState } from 'react';
 import { localizeWithFallback, WiredFurniType } from '../../../../api';
-import { Text } from '../../../../common';
 import { useWired } from '../../../../hooks';
-import { VoltInput } from '../../../../layout';
-import { WiredRadioGroup } from '../WiredOptions';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
-import { WiredVariablePicker } from '../WiredVariablePicker';
-import { buildWiredVariablePickerEntries, WiredVariablePickerTarget } from '../WiredVariablePickerData';
 import { tokenOfVariableSlot, variableSlotOf, WIRED_VARIABLE_ABSENT } from '../../../../api';
-import { useWiredNativeVariables } from '../../../../hooks';
 import { FurniPickSlotButtons } from '../conditions/WiredVariableConditionParts';
+import { WiredActionValueOrVariableSection, WiredValueTargetType } from '../actions/WiredActionValueOrVariableSection';
 import { WiredExtraBaseView } from './WiredExtraBaseView';
 
 const MIN_FILTER = 1;
 const MAX_FILTER = 1000;
 
 /** AIR variable targets of the count: furni 0, user 1, room -10, context -20. */
-const COUNT_TARGETS: { target: WiredVariablePickerTarget; code: number; label: string }[] = [
+const COUNT_TARGETS: { target: WiredValueTargetType; code: number; label: string }[] = [
     { target: 'user', code: 1, label: 'wiredfurni.params.sources.users.title' },
     { target: 'furni', code: 0, label: 'wiredfurni.params.sources.furni.title' },
     { target: 'global', code: -10, label: 'wiredfurni.params.sources.global' },
@@ -26,32 +21,19 @@ const COUNT_TARGETS: { target: WiredVariablePickerTarget; code: number; label: s
 const clampCount = (value: number) => (Number.isFinite(value) ? Math.min(MAX_FILTER, Math.max(MIN_FILTER, Math.trunc(value))) : MIN_FILTER);
 
 /**
+ * AIR addons/SelectorFilter.as:69-72 uses ValueOrVariableSection with range 1..1000.
  * The filter cards: owned [count, option (0 value, 1 variable), variable target]; the source groups select the reference-variable holder; the count variable is the one variable slot.
  */
 export const WiredExtraFilterCountView: FC<{ furni: boolean }> = ({ furni }) => {
     const { trigger = null, setIntParams = null, setStringParam = null, setVariableIds = null, setFurniSources = null, setUserSources = null, furniIds = [], secondaryFurniIds = [] } = useWired();
-    const { userVariableDefinitions = [], furniVariableDefinitions = [], roomVariableDefinitions = [], contextVariableDefinitions = [] } = useWiredNativeVariables();
+    const [valueValid, setValueValid] = useState(true);
     const [count, setCount] = useState(MIN_FILTER);
     const [useVariable, setUseVariable] = useState(false);
-    const [target, setTarget] = useState<WiredVariablePickerTarget>('user');
+    const [target, setTarget] = useState<WiredValueTargetType>('user');
     const [variableToken, setVariableToken] = useState('');
     const [furniSource, setFurniSource] = useState(100);
     const [userSource, setUserSource] = useState(0);
     const userDefault = trigger?.inputSources?.userDefaults[0] ?? 0;
-
-    const definitions = useMemo(() => {
-        switch (target) {
-            case 'furni':
-                return furniVariableDefinitions;
-            case 'global':
-                return roomVariableDefinitions;
-            case 'context':
-                return contextVariableDefinitions;
-            default:
-                return userVariableDefinitions;
-        }
-    }, [contextVariableDefinitions, furniVariableDefinitions, roomVariableDefinitions, target, userVariableDefinitions]);
-    const entries = useMemo(() => buildWiredVariablePickerEntries(target, 'filter-main', definitions), [definitions, target]);
 
     useEffect(() => {
         if (!trigger) return;
@@ -77,50 +59,29 @@ export const WiredExtraFilterCountView: FC<{ furni: boolean }> = ({ furni }) => 
         setUserSources([useVariable && target === 'user' ? userSource : 0]);
     };
 
-    const validate = () => !useVariable || !!variableToken;
+    const validate = () => valueValid && (!useVariable || !!variableToken);
+
+    const sources = <>
+        {target === 'furni' && <WiredSourcesSelector showFurni furniSlot={0} furniSource={furniSource} onChangeFurni={setFurniSource} />}
+        {target === 'user' && <WiredSourcesSelector showUsers userSlot={0} userSource={userSource} onChangeUsers={setUserSource} />}
+    </>;
 
     return (
-        <WiredExtraBaseView
-            hasSpecialInput={true}
+        <WiredExtraBaseView nativeLayout hasSpecialInput
             requiresFurni={useVariable && target === 'furni' && (furniSource === 100 || furniSource === 101) ? WiredFurniType.STUFF_SELECTION_OPTION_BY_ID : WiredFurniType.STUFF_SELECTION_OPTION_NONE}
-            save={save}
-            validate={validate}
-            cardStyle={{ width: 360 }}
-            footer={useVariable ? <>
-                {target === 'furni' && <><WiredSourcesSelector showFurni={true} furniSlot={0} furniSource={furniSource} onChangeFurni={setFurniSource} />
-                    <FurniPickSlotButtons slots={furniSource === 100 ? [{ slot: 0, count: furniIds.length }] : furniSource === 101 ? [{ slot: 1, count: secondaryFurniIds.length }] : []} /></>}
-                {target === 'user' && <WiredSourcesSelector showUsers={true} userSlot={0} userSource={userSource} onChangeUsers={setUserSource} />}
-            </> : null}
-        >
-            <div className="flex flex-col gap-1">
-                <Text bold>{localizeWithFallback('wiredfurni.params.setfilter', 'Amount')}</Text>
-                <WiredRadioGroup
-                    name={furni ? 'filterFurniCountOption' : 'filterUserCountOption'}
-                    value={useVariable ? 1 : 0}
-                    onChange={(value) => setUseVariable(value === 1)}
-                    options={[
-                        { id: 0, label: localizeWithFallback('wiredfurni.params.filter.count.value', 'Value') },
-                        { id: 1, label: localizeWithFallback('wiredfurni.params.filter.count.variable', 'Variable') }
-                    ]}
-                />
-                {!useVariable && (
-                    <VoltInput type="number" min={MIN_FILTER} max={MAX_FILTER} value={count} onChange={(event) => setCount(clampCount(Number(event.target.value)))} />
-                )}
-                {useVariable && (
-                    <>
-                        <WiredRadioGroup
-                            name={furni ? 'filterFurniCountTarget' : 'filterUserCountTarget'}
-                            value={COUNT_TARGETS.findIndex((entry) => entry.target === target)}
-                            onChange={(index) => {
-                                setTarget(COUNT_TARGETS[index].target);
-                                setVariableToken('');
-                            }}
-                            options={COUNT_TARGETS.map((entry, index) => ({ id: index, label: localizeWithFallback(entry.label, entry.target) }))}
-                        />
-                        <WiredVariablePicker entries={entries} recentScope={furni ? 'filter-furni-count' : 'filter-user-count'} selectedToken={variableToken} onSelect={(entry) => setVariableToken(entry.token)} />
-                    </>
-                )}
-            </div>
+            save={save} validate={validate}>
+            {useVariable && target === 'furni' && <FurniPickSlotButtons slots={furniSource === 100 ? [{ slot: 0, count: furniIds.length }] : furniSource === 101 ? [{ slot: 1, count: secondaryFurniIds.length }] : []} />}
+            <WiredActionValueOrVariableSection
+                title={localizeWithFallback('wiredfurni.params.setfilter', 'Amount')}
+                targetTitle={localizeWithFallback('wiredfurni.params.sources.merged.title.variables_reference', 'Variable source')}
+                recentScope={furni ? 'filter-furni-count' : 'filter-user-count'} variableUsage="filter-main"
+                min={MIN_FILTER} max={MAX_FILTER} option={useVariable ? 1 : 0}
+                onOptionChange={option => setUseVariable(option === 1)}
+                literal={count} onLiteralChange={setCount}
+                target={target} onTargetChange={next => { setTarget(next); setVariableToken(''); }}
+                variableToken={variableToken} onVariableTokenChange={setVariableToken}
+                onValidityChange={setValueValid} popupSources={sources}
+            />
         </WiredExtraBaseView>
     );
 };
