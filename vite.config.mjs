@@ -99,7 +99,7 @@ const preloadAppBundle = () =>
 
                 const tags = [
                     ...[ ...scripts ].filter(file => !html.includes(file)).map(file => ({ tag: 'link', attrs: { rel: 'modulepreload', crossorigin: true, href: base + file }, injectTo: 'head' })),
-                    ...[ ...styles ].map(file => ({ tag: 'link', attrs: { rel: 'preload', as: 'style', href: base + file }, injectTo: 'head' }))
+                    ...[ ...styles ].map(file => ({ tag: 'link', attrs: { rel: 'preload', as: 'style', crossorigin: true, href: base + file }, injectTo: 'head' }))
                 ];
 
                 return { html, tags };
