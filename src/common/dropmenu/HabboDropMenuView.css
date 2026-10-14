@@ -172,3 +172,28 @@
 .habbo-dropmenu--ubuntu .habbo-dropmenu-item.is-active { background: #ebebeb; }
 .habbo-dropmenu--ubuntu .habbo-dropmenu-item.is-selected,
 .habbo-dropmenu--ubuntu .habbo-dropmenu-item:active { background: #ddd; }
+
+/* WiredStyle Illumina dropmenu_100: 22px frame, 19px rows, native font and atlas. */
+.habbo-dropmenu.habbo-dropmenu--illumina,
+.habbo-dropmenu-popup.habbo-dropmenu--illumina {
+    border-image: none !important;
+    font: 400 12px/14px HabboAirUbuntu, UbuntuRegular, sans-serif !important;
+    font-kerning: normal;
+}
+.habbo-dropmenu.habbo-dropmenu--illumina {
+    height: 22px;
+    background: url('../../assets/images/wired/native/dropdown_left.png') 0 0 no-repeat,
+        url('../../assets/images/wired/native/dropdown_right.png') 100% 0 no-repeat,
+        url('../../assets/images/wired/native/dropdown_mid.png') 0 0 repeat-x !important;
+}
+.habbo-dropmenu.habbo-dropmenu--illumina:not(:disabled):hover {
+    background: url('../../assets/images/wired/native/dropdown_left_hover.png') 0 0 no-repeat,
+        url('../../assets/images/wired/native/dropdown_right_hover.png') 100% 0 no-repeat,
+        url('../../assets/images/wired/native/dropdown_mid_hover.png') 0 0 repeat-x !important;
+}
+.habbo-dropmenu--illumina .habbo-dropmenu-caption { left: 10px; top: 3px; right: 30px; height: 14px; padding: 0; }
+.habbo-dropmenu--illumina .habbo-dropmenu-item { height: 19px; padding: 1px 4px 0; }
+.habbo-dropmenu--illumina .habbo-dropmenu-item > span { padding: 0; }
+.habbo-dropmenu--illumina .habbo-dropmenu-item.is-selected { background: #ddd; }
+.habbo-dropmenu--illumina .habbo-dropmenu-item:hover,
+.habbo-dropmenu--illumina .habbo-dropmenu-item.is-active { background: #ebebeb; }

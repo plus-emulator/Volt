@@ -1,5 +1,10 @@
 import { CSSProperties, KeyboardEvent, PointerEvent, ReactNode, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import illuminaAtlas from '../../assets/mod-tools/skins/habbo-illumina-light-skin.png';
+import illuminaXml from '../../assets/mod-tools/skins/skin-illumina-dropmenu.xml?raw';
+import { parseNativeSkin } from '../../components/mod-tools/native/NativeSkin';
+import { NativeSkinView } from '../../components/mod-tools/native/NativeSkinView';
+import { NativeText } from '../native-text/NativeText';
 import ubuntuArrow from '../../assets/images/habbo-skin/slices/dropmenu-arrow.png';
 import arrow from '../../assets/images/habbo-skin/slices/dropmenu-default-arrow.png';
 import thumbDefault from '../../assets/images/habbo-skin/slices/scroll-thumb-v.png';
@@ -18,8 +23,10 @@ interface HabboDropMenuViewProps<T> {
     value: T | null;
     onSelect: (value: T) => void;
     disabled?: boolean;
-    /** AIR window-manager skin: default Volter (0), or Ubuntu (3). */
-    skinStyle?: 0 | 3;
+    /** Caption when no option is selected. */
+    caption?: string;
+    /** AIR window-manager skin: Volter (0), Ubuntu (3), or Illumina (100). */
+    skinStyle?: 0 | 3 | 100;
     className?: string;
     popupClassName?: string;
     style?: CSSProperties;
@@ -34,6 +41,14 @@ interface PopupBounds {
 
 // T1e/P7: style-0 label field floor(13.95) + top/bottom margins 1/2.
 const VOLTER_ITEM_HEIGHT = 16;
+const ILLUMINA_SKIN = parseNativeSkin(illuminaXml);
+const ILLUMINA_LIST_SKIN = {
+    ...ILLUMINA_SKIN,
+    layouts: { ...ILLUMINA_SKIN.layouts, illumina_light_dropmenu_frame: {
+        ...ILLUMINA_SKIN.layouts.illumina_light_dropmenu_frame,
+        entities: ILLUMINA_SKIN.layouts.illumina_light_dropmenu_frame.entities.filter(entity => entity.name !== 'arrow')
+    } }
+};
 const menuCaption = (label: string) => label.length > 200 ? label.slice(0, 200) + '...' : label;
 
 const ThumbSkin = ({ pressed, patternId }: { pressed: boolean; patternId: string }) => {
@@ -58,10 +73,10 @@ const ThumbSkin = ({ pressed, patternId }: { pressed: boolean; patternId: string
 };
 
 /** Native style-0 dropmenu; feature adapters own preference/domain values and saves. */
-export const HabboDropMenuView = <T extends string | number,>({ label, options, value, onSelect, disabled = false, skinStyle = 0, className = '', popupClassName = '', style }: HabboDropMenuViewProps<T>): ReactNode => {
+export const HabboDropMenuView = <T extends string | number,>({ label, options, value, onSelect, disabled = false, caption = '', skinStyle = 0, className = '', popupClassName = '', style }: HabboDropMenuViewProps<T>): ReactNode => {
     const id = useId();
-    const itemHeight = skinStyle === 3 ? 20 : VOLTER_ITEM_HEIGHT;
-    const skinClass = skinStyle === 3 ? ' habbo-dropmenu--ubuntu' : '';
+    const itemHeight = skinStyle === 100 ? 19 : skinStyle === 3 ? 20 : VOLTER_ITEM_HEIGHT;
+    const skinClass = skinStyle === 100 ? ' habbo-dropmenu--illumina' : skinStyle === 3 ? ' habbo-dropmenu--ubuntu' : '';
     const triggerRef = useRef<HTMLButtonElement>(null);
     const popupRef = useRef<HTMLDivElement>(null);
     const viewportRef = useRef<HTMLDivElement>(null);
@@ -75,6 +90,7 @@ export const HabboDropMenuView = <T extends string | number,>({ label, options, 
     const [popup, setPopup] = useState<PopupBounds>(null);
     const [activeIndex, setActiveIndex] = useState(0);
     const [keyboardActive, setKeyboardActive] = useState(false);
+    const [hoverIndex, setHoverIndex] = useState(-1);
     const [scrollTop, setScrollTop] = useState(0);
     const [dragging, setDragging] = useState(false);
     const selectedIndex = options.findIndex((option) => option.value === value);
@@ -95,8 +111,8 @@ export const HabboDropMenuView = <T extends string | number,>({ label, options, 
         const bounds = triggerRef.current.getBoundingClientRect();
         const canvas = canvasRef.current ?? (canvasRef.current = document.createElement('canvas'));
         const context = canvas.getContext('2d');
-        context.font = skinStyle === 3 ? '12px HabboAirUbuntu, UbuntuRegular, sans-serif' : '9px Volter';
-        context.fontKerning = skinStyle === 3 ? 'normal' : 'none';
+        context.font = skinStyle !== 0 ? '12px HabboAirUbuntu, UbuntuRegular, sans-serif' : '9px Volter';
+        context.fontKerning = skinStyle !== 0 ? 'normal' : 'none';
         let width = bounds.width;
         for (const option of options) {
             // Native field gutter 4, item margins 8, popup list insets 12.
@@ -122,6 +138,7 @@ export const HabboDropMenuView = <T extends string | number,>({ label, options, 
         openingPointerRef.current = pointerId;
         committedRef.current = false;
         setKeyboardActive(false);
+        setHoverIndex(-1);
         setScrollTop(0);
         setActiveIndex(Math.max(0, selectedIndex));
         setPopup(measurePopup());
@@ -260,8 +277,10 @@ export const HabboDropMenuView = <T extends string | number,>({ label, options, 
                 }}
                 onClick={(event) => { if (event.detail === 0 && !isOpen) open(); }}
             >
-                <span className="habbo-dropmenu-caption">{options[selectedIndex]?.label ?? ''}</span>
-                <img className="habbo-dropmenu-arrow" src={skinStyle === 3 ? ubuntuArrow : arrow} alt="" />
+                <span className="habbo-dropmenu-caption">{skinStyle === 100
+                    ? <NativeText text={options[selectedIndex]?.label ?? caption} textStyle="il_regular" background={0xffffff} />
+                    : options[selectedIndex]?.label ?? caption}</span>
+                {skinStyle !== 100 && <img className="habbo-dropmenu-arrow" src={skinStyle === 3 ? ubuntuArrow : arrow} alt="" />}
             </button>
             {isOpen && createPortal(
                 <div
@@ -271,6 +290,8 @@ export const HabboDropMenuView = <T extends string | number,>({ label, options, 
                     onKeyDown={onKeyDown}
                     onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); }}
                 >
+                    {skinStyle === 100 && <NativeSkinView atlas={illuminaAtlas} skin={ILLUMINA_LIST_SKIN}
+                        layout="illumina_light_dropmenu_frame" width={popup.width} height={popup.height} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />}
                     <div
                         ref={viewportRef}
                         id={id}
@@ -278,6 +299,7 @@ export const HabboDropMenuView = <T extends string | number,>({ label, options, 
                         aria-label={label}
                         className={'habbo-dropmenu-list' + (metrics.overflow ? ' has-scrollbar' : '')}
                         onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
+                        onPointerLeave={() => setHoverIndex(-1)}
                     >
                         {options.map((option, index) => (
                             <div
@@ -288,8 +310,11 @@ export const HabboDropMenuView = <T extends string | number,>({ label, options, 
                                 className={'habbo-dropmenu-item' + (index === selectedIndex ? ' is-selected' : '') + (keyboardActive && index === activeIndex ? ' is-active' : '')}
                                 onPointerDown={(event) => { if (event.button === 0) select(index); }}
                                 onPointerUp={(event) => { if (event.button === 0 && openingPointerRef.current === null) select(index); }}
+                                onPointerMove={() => setHoverIndex(index)}
                             >
-                                <span>{menuCaption(option.label)}</span>
+                                <span>{skinStyle === 100 ? <NativeText text={menuCaption(option.label)} textStyle="il_regular"
+                                    background={hoverIndex === index || (keyboardActive && index === activeIndex) ? 0xebebeb : index === selectedIndex ? 0xdddddd : 0xffffff} />
+                                    : menuCaption(option.label)}</span>
                             </div>
                         ))}
                         <div className="habbo-dropmenu-padding" />
