@@ -247,10 +247,7 @@ export const InventoryView: FC<{}> = () => {
         previewer.centerWallItems = true;
         setRoomPreviewer(previewer);
         return () => {
-            setRoomPreviewer((prevValue) => {
-                prevValue.dispose();
-                return null;
-            });
+            previewer.dispose();
         };
     }, []);
 
