@@ -58,6 +58,13 @@
     max-width: 346px;
     padding: 5px;
     background: rgba(51, 51, 51, 0.5);
+    /* border style 3 is border_slot: 3px corners with the outer 2 and 1 pixels cut. */
+    clip-path: polygon(
+        2px 0, calc(100% - 2px) 0, calc(100% - 2px) 1px, calc(100% - 1px) 1px, calc(100% - 1px) 2px, 100% 2px,
+        100% calc(100% - 2px), calc(100% - 1px) calc(100% - 2px), calc(100% - 1px) calc(100% - 1px), calc(100% - 2px) calc(100% - 1px), calc(100% - 2px) 100%,
+        2px 100%, 2px calc(100% - 1px), 1px calc(100% - 1px), 1px calc(100% - 2px), 0 calc(100% - 2px),
+        0 2px, 1px 2px, 1px 1px, 2px 1px
+    );
 }
 
 /* ubuntu_condensed_title: UbuntuCondensed 18, #ffffff. The card shell styles every
@@ -124,6 +131,8 @@
     line-height: 17px;
 }
 
+/* The input sits in a border style 0 (border_white: white, thin grey rounded edge). The
+   9-slice is drawn with border-image-width alone so the input keeps its (4, 4) offset. */
 .volt-cfp-voucher-input {
     position: absolute;
     top: 25px;
@@ -131,42 +140,60 @@
     box-sizing: border-box;
     width: 216px;
     height: 25px;
-    border: 1px solid #c8c8c0;
-    background: #fff;
+    border: 0;
+    border-image: var(--habbo-skin-border-white) 6 fill / 6px stretch;
+    image-rendering: var(--volt-pixel-art, pixelated);
 }
 
-.volt-cfp-voucher-input input {
+/* voucher_code is a bare input (style 3) inside that border. The catalog-wide input skin
+   in CatalogView.css is !important, so it has to be undone here. */
+.volt-cfp-voucher-input input,
+.volt-cfp-voucher-input input:focus {
+    box-sizing: border-box;
     width: 206px;
+    min-height: 0;
     height: 15px;
     margin: 4px;
     padding: 0;
-    border: 0;
-    background: transparent;
-    color: #000;
-    font-size: 12px;
+    border: 0 !important;
+    border-radius: 0 !important;
+    outline: 0;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #000 !important;
+    font-size: 12px !important;
     line-height: 15px;
 }
 
+/* redeem is button style 3 (button_shiny): 5px shiny slices, caption in button_shiny_regular
+   (Ubuntu 12) with margins 8/2/8/3. params accommodate the caption up to width_max 100. */
 .volt-cfp-voucher-button {
     position: absolute;
     top: 25px;
     left: 274px;
-    width: 62px;
+    box-sizing: border-box;
+    min-width: 62px;
+    max-width: 100px;
     height: 22px;
-    padding: 0;
-    border: 3px solid transparent;
-    border-image: var(--habbo-skin-button) 3 fill / 3px stretch;
+    margin: 0;
+    padding: 2px 8px 3px;
+    border: 0;
+    border-image: var(--habbo-skin-shiny) 5 fill / 5px stretch;
+    border-radius: 0;
     background: transparent;
     color: #000;
-    font-size: 11px;
-    line-height: 16px;
+    font-family: Ubuntu, sans-serif;
+    font-size: 12px;
+    line-height: 17px;
+    white-space: nowrap;
     cursor: pointer;
+    image-rendering: var(--volt-pixel-art, pixelated);
 }
 
 .volt-cfp-voucher-button:hover {
-    border-image-source: var(--habbo-skin-button-hover);
+    border-image-source: var(--habbo-skin-shiny-hover);
 }
 
 .volt-cfp-voucher-button:active {
-    border-image-source: var(--habbo-skin-button-pressed);
+    border-image-source: var(--habbo-skin-shiny-pressed);
 }
