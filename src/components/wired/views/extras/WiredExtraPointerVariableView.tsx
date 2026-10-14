@@ -10,13 +10,14 @@ import {
     WIRED_VARIABLE_NAME_MAX,
     WiredFurniType
 } from '../../../../api';
-import contextVariableIcon from '../../../../assets/images/wired/var/icon_source_context_clean.png';
-import furniVariableIcon from '../../../../assets/images/wired/var/icon_source_furni.png';
-import globalVariableIcon from '../../../../assets/images/wired/var/icon_source_global.png';
-import userVariableIcon from '../../../../assets/images/wired/var/icon_source_user.png';
+import contextVariableIcon from '../../../../assets/images/wired/native/icon_source_context.png';
+import furniVariableIcon from '../../../../assets/images/wired/native/icon_source_furni.png';
+import globalVariableIcon from '../../../../assets/images/wired/native/icon_source_global.png';
+import userVariableIcon from '../../../../assets/images/wired/native/icon_source_users.png';
 import { Text } from '../../../../common';
 import { useWired } from '../../../../hooks';
-import { VoltInput } from '../../../../layout';
+import { WiredSection } from '../WiredSection';
+import { WiredTextInput } from '../WiredTextInput';
 import { WiredVariablePicker } from '../WiredVariablePicker';
 import {
     buildWiredVariablePickerEntries,
@@ -114,8 +115,29 @@ export const WiredExtraPointerVariableView: FC<{}> = () => {
     };
 
     return (
-        <WiredExtraBaseView hasSpecialInput={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save} cardStyle={{ width: 244 }}>
-            <div className="flex flex-col gap-2">
+        <WiredExtraBaseView
+            hasSpecialInput={true}
+            nativeLayout={true}
+            requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE}
+            save={save}
+            headerControls={
+                <div className="volt-wired__give-var-targets" role="group" aria-label={localizeWithFallback('wiredfurni.params.variables.variable_selection', 'Variable selection:')}>
+                    {SOURCE_BUTTONS.map((button) => (
+                        <button
+                            key={button.key}
+                            type="button"
+                            aria-label={button.key}
+                            aria-pressed={sourceScope === button.key}
+                            className={`volt-wired__give-var-target volt-wired__give-var-target--${button.key} ${sourceScope === button.key ? 'is-active' : ''}`}
+                            onClick={() => setSourceScope(button.key)}
+                        >
+                            <img src={button.icon} alt="" />
+                        </button>
+                    ))}
+                </div>
+            }
+        >
+            <WiredSection>
                 <Text className="whitespace-pre-line" small>
                     {expandLocalizedText(
                         localizeWithFallback(
@@ -125,41 +147,23 @@ export const WiredExtraPointerVariableView: FC<{}> = () => {
                         () => null
                     )}
                 </Text>
-                <div className="flex flex-col gap-1">
-                    <Text>{localizeWithFallback('wiredfurni.params.variables.variable_name', 'Variable name:')}</Text>
-                    <VoltInput
-                        maxLength={WIRED_VARIABLE_NAME_MAX}
-                        type="text"
-                        value={variableName}
-                        onChange={(event) => setVariableName(normalizeWiredVariableName(event.target.value))}
-                        onKeyDown={(event) => handleWiredVariableNameKeyDown(event, setVariableName)}
-                    />
-                </div>
-                <div className="volt-wired__give-var-heading">
-                    <Text>{localizeWithFallback('wiredfurni.params.variables.variable_selection', 'Variable selection:')}</Text>
-                    <div className="volt-wired__give-var-targets">
-                        {SOURCE_BUTTONS.map((button) => (
-                            <button
-                                key={button.key}
-                                type="button"
-                                className={`volt-wired__give-var-target volt-wired__give-var-target--${button.key} ${sourceScope === button.key ? 'is-active' : ''}`}
-                                onClick={() => setSourceScope(button.key)}
-                            >
-                                <img src={button.icon} alt={button.key} />
-                            </button>
-                        ))}
-                    </div>
-                </div>
-                <div className="flex flex-col gap-1">
-                    <Text>{localizeWithFallback('wiredfurni.params.variables.pointer.accessor', 'Context accessor variable:')}</Text>
-                    <WiredVariablePicker
-                        entries={resolvedAccessorEntries}
-                        recentScope="variable-pointer"
-                        selectedToken={accessorToken}
-                        onSelect={(entry) => setAccessorToken(entry.token)}
-                    />
-                </div>
-            </div>
+            </WiredSection>
+            <WiredSection title={localizeWithFallback('wiredfurni.params.variables.variable_name', 'Variable name:')}>
+                <WiredTextInput
+                    maxLength={WIRED_VARIABLE_NAME_MAX}
+                    value={variableName}
+                    onChange={(value) => setVariableName(normalizeWiredVariableName(value))}
+                    onKeyDown={(event) => handleWiredVariableNameKeyDown(event, setVariableName)}
+                />
+            </WiredSection>
+            <WiredSection title={localizeWithFallback('wiredfurni.params.variables.pointer.accessor', 'Context accessor variable:')}>
+                <WiredVariablePicker
+                    entries={resolvedAccessorEntries}
+                    recentScope="variable-pointer"
+                    selectedToken={accessorToken}
+                    onSelect={(entry) => setAccessorToken(entry.token)}
+                />
+            </WiredSection>
         </WiredExtraBaseView>
     );
 };
