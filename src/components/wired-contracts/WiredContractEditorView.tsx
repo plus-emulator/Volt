@@ -6,7 +6,25 @@ import { HabboDropMenuView } from '../../common/dropmenu/HabboDropMenuView';
 import { NativeText } from '../../common/native-text/NativeText';
 import { ChestButton } from '../room/widgets/furniture/ChestButton';
 import creditsIcon from '../../assets/images/inventory/trading/credits-icon.png';
+import { parseNativeSkin } from '../mod-tools/native/NativeSkin';
+import { NativeSkinView } from '../mod-tools/native/NativeSkinView';
+import blueAtlas from '../../assets/mod-tools/skins/habbo-blue-skin.png';
+import ubuntuAtlas from '../../assets/mod-tools/skins/habbo-ubuntu-skin.png';
+import ruleXml from '../../assets/images/wired/native/contracts/border-5.xml?raw';
+import nodeXml from '../../assets/images/wired/native/link/border-4.xml?raw';
+import closeXml from '../../assets/images/wired/native/contracts/border-12.xml?raw';
+import tableXml from '../../assets/images/wired/native/contracts/border-white.xml?raw';
+import plusXml from '../../assets/images/wired/native/contracts/plus.xml?raw';
+import closeIcon from '../../assets/images/wired/native/contracts/close.png';
 import './WiredContractEditorView.css';
+
+const SKINS = { rule: parseNativeSkin(ruleXml), node: parseNativeSkin(nodeXml), close: parseNativeSkin(closeXml), table: parseNativeSkin(tableXml), plus: parseNativeSkin(plusXml) };
+const Skin: FC<{ type: keyof typeof SKINS; width: number; height: number; color?: number; state?: string }> = ({ type, width, height, color, state }) => <NativeSkinView skin={SKINS[type]} layout={{ rule: 'border_5', node: 'border_4', close: 'border_12', table: 'border_white', plus: 'button_plus_3' }[type]} atlas={type === 'plus' ? ubuntuAtlas : blueAtlas} width={width} height={height} color={color} state={state} className="wired-contract__skin" />;
+const CloseIcon = () => <><Skin type="close" width={15} height={15} color={0xdddddd} /><img src={closeIcon} alt="" /></>;
+const AddNode: FC<{ onClick: () => void }> = ({ onClick }) => {
+    const [state, setState] = useState('default');
+    return <button type="button" className="wired-contract__add-node" aria-label={localizeWithFallback('wiredcontracts.add_element.title', 'Add element')} onMouseEnter={() => setState('hovering')} onMouseLeave={() => setState('default')} onMouseDown={() => setState('pressed')} onMouseUp={() => setState('hovering')} onClick={onClick}><Skin type="plus" width={23} height={22} state={state} /></button>;
+};
 
 const L = LocalizeText;
 const T: FC<{ text: string; bold?: boolean; background?: number }> = ({ text, bold, background = 0xe9e9e1 }) => <NativeText text={text} background={background} textStyle={bold ? 'u_bold' : 'u_regular'} />;
@@ -26,15 +44,15 @@ interface RuleViewProps {
     onRemove?: () => void;
 }
 const RuleView: FC<RuleViewProps> = ({ title, rule, onEdit, onChange, onRemove }) => <div className="wired-contract__rule">
-    <T text={title} background={0xdadada} />
-    {onRemove && <button className="wired-contract__remove-rule" type="button" aria-label={localizeWithFallback('wiredcontracts.remove_rule', 'Remove option')} onClick={onRemove}>×</button>}
+    <Skin type="rule" width={246} height={68} color={0xdadada} /><T text={title} background={0xdadada} />
+    {onRemove && <button className="wired-contract__remove-rule" type="button" aria-label={localizeWithFallback('wiredcontracts.remove_rule', 'Remove option')} onClick={onRemove}><CloseIcon /></button>}
     <div className="wired-contract__nodes">{rule.nodes.map((node, index) => <div className="wired-contract__node" key={index}>
         <button type="button" className="wired-contract__node-edit" aria-label={localizeWithFallback('wiredcontracts.edit_element.title', 'Edit element')} onClick={() => onEdit(index)}>
-            {node.type === 0 ? <img src={creditsIcon} alt={localizeWithFallback('wiredcontracts.element.type.0', 'Credits')} /> : node.itemType && <LayoutFurniImageView productType={node.itemType.isWallItem ? FurnitureType.WALL : FurnitureType.FLOOR} productClassId={node.itemType.typeId} extraData={node.itemType.legacyPosterId} direction={2} />}
+            <Skin type="node" width={42} height={42} color={0xeeeeee} />{node.type === 0 ? <img src={creditsIcon} alt={localizeWithFallback('wiredcontracts.element.type.0', 'Credits')} /> : node.itemType && <LayoutFurniImageView productType={node.itemType.isWallItem ? FurnitureType.WALL : FurnitureType.FLOOR} productClassId={node.itemType.typeId} extraData={node.itemType.legacyPosterId} direction={2} />}
             {(node.type === 0 || node.amount !== 1) && <span className="wired-contract__quantity">{node.amount}</span>}
         </button>
-        <button type="button" className="wired-contract__remove-node" aria-label={localizeWithFallback('wiredcontracts.remove_element', 'Remove element')} onClick={() => onChange({ nodes: rule.nodes.filter((_, position) => position !== index) })}>×</button>
-    </div>)}{rule.nodes.length < 5 && <button type="button" className="wired-contract__add-node" aria-label={localizeWithFallback('wiredcontracts.add_element.title', 'Add element')} onClick={() => onEdit(null)}>+</button>}</div>
+        <button type="button" className="wired-contract__remove-node" aria-label={localizeWithFallback('wiredcontracts.remove_element', 'Remove element')} onClick={() => onChange({ nodes: rule.nodes.filter((_, position) => position !== index) })}><CloseIcon /></button>
+    </div>)}{rule.nodes.length < 5 && <AddNode onClick={() => onEdit(null)} />}</div>
 </div>;
 
 export interface WiredContractEditorViewProps {
@@ -105,7 +123,7 @@ export const ContractElementEditor: FC<{ initial: IWiredContractNode | null; can
     const filtered = useMemo(() => query.length < 2 ? candidates : candidates.filter(candidate => `${candidate.name} ${candidate.code}`.toLowerCase().includes(query.toLowerCase())), [candidates, query]);
     const number = Number(amount);
     const valid = /^\d+$/.test(amount) && Number.isInteger(number) && number >= 1 && number <= (type === 0 ? 100000 : 500) && (type === 0 || !!selectedCandidate?.tradeable);
-    const first = Math.max(0, Math.floor(scrollTop / 22) - 2);
+    const first = Math.max(0, Math.floor(scrollTop / 20) - 2);
     const visible = filtered.slice(first, first + 18);
     return <Frame width={420} className="wired-contract--element" title={L(initial ? 'wiredcontracts.edit_element.title' : 'wiredcontracts.add_element.title')} onClose={onClose} footer={<Footer disabled={!canWrite || !valid} onClose={onClose} onSave={() => { if (canWrite && valid) onSave({ type, amount: number, itemType: type === 1 ? selected : null }); }} />}>
         <fieldset disabled={!canWrite} className="wired-contract__editable">
@@ -113,9 +131,9 @@ export const ContractElementEditor: FC<{ initial: IWiredContractNode | null; can
             <Section title={L('wiredcontracts.element.itemtype.selection')} disabled={type !== 1} headerOption={selected && <span className="wired-contract__selected-icon"><LayoutFurniImageView productType={selected.isWallItem ? FurnitureType.WALL : FurnitureType.FLOOR} productClassId={selected.typeId} extraData={selected.legacyPosterId} direction={2} /></span>}>
                 <label className="wired-contract__named"><T text={L('wiredcontracts.element.itemtype.furni_code')} /><input className="wired-contract__input" style={{ width: 158 }} aria-label={L('wiredcontracts.element.itemtype.furni_code')} readOnly value={selectedCandidate?.code ?? ''} /></label>
                 <label className="wired-contract__named"><T text={L('wiredcontracts.element.itemtype.search')} /><input className="wired-contract__input" style={{ width: 158 }} aria-label={L('wiredcontracts.element.itemtype.search')} maxLength={220} value={query} onChange={event => { setQuery(event.target.value); setScrollTop(0); }} /></label>
-                <div className="wired-contract__item-table" onScroll={event => setScrollTop(event.currentTarget.scrollTop)}>
-                    <div className="wired-contract__item-heading">{['furni_name', 'furni_code', 'furni_type'].map(key => <span key={key}><T text={L(`wiredcontracts.element.itemtype.col.${key}`)} /></span>)}</div>
-                    <div role="listbox" aria-label={L('wiredcontracts.element.itemtype.selection')} style={{ height: filtered.length * 22, position: 'relative' }}>{visible.map((candidate, index) => <button role="option" aria-selected={itemKey(candidate.itemType) === itemKey(selected)} key={itemKey(candidate.itemType)} type="button" className="wired-contract__item-row" style={{ top: (first + index) * 22 }} onClick={() => setSelected(candidate.itemType)}><span>{candidate.name}</span><span>{candidate.code}</span><span>{L(candidate.itemType.isWallItem ? 'inventory.furni.tab.wall' : 'inventory.furni.tab.floor')}</span></button>)}</div>
+                <div className="wired-contract__item-table"><Skin type="table" width={404} height={234} />
+                    <div className="wired-contract__item-heading">{['furni_name', 'furni_code', 'furni_type'].map(key => <span key={key}><T text={L(`wiredcontracts.element.itemtype.col.${key}`)} bold background={0xffffff} /></span>)}</div>
+                    <div className="wired-contract__item-scroll" onScroll={event => setScrollTop(event.currentTarget.scrollTop)}><div role="listbox" aria-label={L('wiredcontracts.element.itemtype.selection')} style={{ height: filtered.length * 20, position: 'relative' }}>{visible.map((candidate, index) => <button role="option" aria-selected={itemKey(candidate.itemType) === itemKey(selected)} key={itemKey(candidate.itemType)} type="button" className="wired-contract__item-row" data-even={(first + index) % 2 === 0} style={{ top: (first + index) * 20 }} onClick={() => setSelected(candidate.itemType)}><span>{candidate.name}</span><span>{candidate.code}</span><span>{L(candidate.itemType.isWallItem ? 'inventory.furni.tab.wall' : 'inventory.furni.tab.floor')}</span></button>)}</div></div>
                 </div>
                 <T text={L('wiredcontracts.element.show_count', ['amount'], [String(filtered.length)])} />
             </Section>

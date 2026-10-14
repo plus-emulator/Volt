@@ -1,6 +1,6 @@
 .wired-contract .volt-card-content-shell { padding: 0 7px 7px; gap: 7px; color: #000; background: #e9e9e1; }
 .wired-contract__editable { border: 0; margin: 0; padding: 0; min-width: 0; }
-.wired-contract__section { display: flex; flex-direction: column; gap: 5px; margin: 7px 0 0; padding: 7px 0 0; min-width: 0; border: 0; border-top: 1px solid #a6a6a0; }
+.wired-contract__section { display: flex; flex-direction: column; gap: 5px; margin: 7px 0 0; padding: 7px 0 0; min-width: 0; border: 0; border-top: 1px solid #b5b5b5; }
 .wired-contract__section:disabled { opacity: 0.5; }
 .wired-contract__section-title { margin-bottom: 0; }
 .wired-contract__choice { display: flex; align-items: center; gap: 5px; min-height: 20px; margin: 0; }
@@ -8,26 +8,33 @@
 .wired-contract__input { border: 1px solid #777; border-radius: 3px; padding: 3px; width: 100%; min-width: 0; font: 12px Ubuntu, sans-serif; background: white; color: black; resize: none; }
 .wired-contract__input:disabled { opacity: 0.5; }
 .wired-contract__fold { display: flex; gap: 5px; padding: 0; border: 0; background: transparent; text-align: left; }
-.wired-contract__footer { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding-top: 7px; margin-top: 7px; border-top: 1px solid #a6a6a0; }
-.wired-contract__rule { min-height: 68px; padding: 3px 6px 5px; position: relative; border-image: url('../../assets/images/habbo-skin/slices/border-5.png') 5 fill / 5px stretch; }
-.wired-contract__nodes { display: flex; align-items: center; gap: 6px; min-height: 42px; margin-top: 1px; }
+.wired-contract__footer { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding-top: 7px; margin-top: 7px; border-top: 1px solid #b5b5b5; }
+.wired-contract__rule { min-height: 68px; padding: 3px 6px 5px; position: relative; isolation: isolate; }
+.wired-contract__nodes { display: flex; align-items: center; gap: 6px; height: 42px; margin-top: 1px; position: absolute; top: 20px; left: 6px; right: 6px; }
 .wired-contract__node { flex: 0 0 42px; position: relative; width: 42px; height: 42px; }
-.wired-contract__node-edit { position: relative; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 1px; border: 0; border-image: url('../../assets/images/habbo-skin/slices/border-4.png') 3 fill / 3px stretch; }
+.wired-contract__node-edit { position: relative; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 1px; border: 0; background: transparent; isolation: isolate; }
 .wired-contract__node-edit > img { image-rendering: pixelated; }
-.wired-contract__quantity { position: absolute; bottom: 2px; right: 2px; padding: 0 3px; min-width: 16px; height: 13px; border-radius: 3px; background: #cccccccc; color: #222; font: bold 10px Ubuntu, sans-serif; }
-.wired-contract__remove-node, .wired-contract__remove-rule { position: absolute; right: 0; top: 0; width: 15px; height: 15px; padding: 0; line-height: 13px; color: #777; background: #ddd; border: 1px solid #aaa; border-radius: 3px; visibility: hidden; }
+.wired-contract__quantity { position: absolute; bottom: 2px; right: 3px; padding: 0 3px; min-width: 16px; height: 13px; border-radius: 3px; background: #cccccccc; color: #222; font: bold 10px Ubuntu, sans-serif; }
+.wired-contract__remove-node, .wired-contract__remove-rule { position: absolute; right: 0; top: 0; width: 15px; height: 15px; padding: 0; background: transparent; border: 0; isolation: isolate; visibility: hidden; }
 .wired-contract__remove-rule { top: 3px; right: 4px; }
 .wired-contract__node:hover .wired-contract__remove-node, .wired-contract__node:focus-within .wired-contract__remove-node, .wired-contract__rule:hover > .wired-contract__remove-rule, .wired-contract__rule:focus-within > .wired-contract__remove-rule { visibility: visible; }
-.wired-contract__add-node { width: 23px; height: 22px; margin-left: 2px; padding: 0; border: 1px solid #999; border-radius: 3px; background: #ddd; font-size: 19px; line-height: 18px; }
+.wired-contract__add-node { flex: 0 0 23px; width: 23px; height: 22px; margin-left: 2px; padding: 0; border: 0; background: transparent; position: relative; isolation: isolate; }
 .wired-contract__element-top { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .wired-contract__named { display: flex; justify-content: space-between; gap: 5px; align-items: center; }
-.wired-contract__item-table { height: 234px; overflow: auto; background: #fff; border: 1px solid #aaa; }
+/* AIR table_view_xml: border0, 5px margins, 23px header + 1px splitter, 20px rows. */
+.wired-contract__item-table { height: 234px; position: relative; padding: 5px; isolation: isolate; }
 .wired-contract__item-heading, .wired-contract__item-row { display: grid; grid-template-columns: 50% 30% 20%; width: 100%; }
-.wired-contract__item-heading { position: sticky; top: 0; z-index: 1; background: #eee; height: 22px; }
-.wired-contract__item-row { position: absolute; height: 22px; border: 0; padding: 0; background: white; font: 12px Ubuntu, sans-serif; text-align: left; }
-.wired-contract__item-row > span, .wired-contract__item-heading > span { overflow: hidden; white-space: nowrap; padding: 2px 3px; }
-.wired-contract__item-row[aria-selected="true"] { background: #d5e6f0; }
-.wired-contract__item-row:hover { background: #e6eef2; }
+.wired-contract__item-heading { height: 24px; border-bottom: 1px solid #00000050; background: white; }
+.wired-contract__item-heading > span { padding-top: 2px; }
+.wired-contract__item-scroll { height: 200px; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; }
+.wired-contract__item-row { position: absolute; height: 20px; border: 0; padding: 0; background: #f9f9f9; font: 12px Ubuntu, sans-serif; text-align: left; }
+.wired-contract__item-row > span, .wired-contract__item-heading > span { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding-left: 4px; padding-right: 4px; }
+.wired-contract__item-row > span { padding-top: 1px; }
+.wired-contract__item-row[data-even="true"] { background: #eaeaea; }
+.wired-contract__item-row[aria-selected="true"] { background: #d1d1d1; }
+.wired-contract__item-row[aria-selected="true"]:focus { background: #b8e2fc; }
+.wired-contract__skin { position: absolute; top: 0; left: 0; z-index: -1; pointer-events: none; }
+.wired-contract__remove-node > img, .wired-contract__remove-rule > img { position: absolute; left: 3px; top: 3px; width: 9px; height: 9px; filter: brightness(0) invert(46.666667%); image-rendering: pixelated; }
 .wired-contract__error { margin: 7px 0; color: #aa0000; }
 .wired-contract .habbo-dropmenu { width: 100%; }
 
@@ -37,9 +44,6 @@
 .wired-contract .volt-chest__btn:disabled { opacity: 0.5; }
 .wired-contract__section-title { display: flex; align-items: center; justify-content: space-between; }
 .wired-contract__selected-icon { width: 40px; height: 20px; display: flex; align-items: center; justify-content: center; overflow: visible; }
-.wired-contract__rule { background: #dadada; border-image: none; isolation: isolate; }
-.wired-contract__rule::before { content: ''; position: absolute; inset: 0; z-index: -1; border: 5px solid transparent; border-image: url('../../assets/images/habbo-skin/slices/border-5.png') 5 fill / 5px stretch; filter: brightness(0.855); pointer-events: none; }
-
 /* wired_style_ubuntu frame margins: left/right1, top33, bottom8. */
 .wired-contract.volt-card-shell.volt-card-frame-3 { padding: 33px 1px 8px !important; }
 .wired-contract .volt-card-content-shell { padding-bottom: 0; gap: 0; }

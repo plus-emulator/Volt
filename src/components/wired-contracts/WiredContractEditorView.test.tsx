@@ -71,6 +71,11 @@ describe('AIR native contract editors', () => {
         const prior = store.items; store.items = Array.from({ length: 2000 }, (_, id) => ({ id, className: `item${id}`, name: `Item ${id}`, type: 's', tradeable: true }));
         render(<ContractElementEditor initial={{ type: 1, amount: 1, itemType: null }} canWrite onSave={vi.fn()} onClose={vi.fn()} />);
         expect(screen.getAllByRole('option').length).toBeLessThan(20);
+        const list = screen.getByRole('listbox');
+        expect(list).toHaveStyle({ height: '40000px' });
+        fireEvent.scroll(list.parentElement!, { target: { scrollTop: 200 } });
+        expect(screen.getAllByRole('option')[0]).toHaveStyle({ top: '160px' });
+        expect(screen.getAllByRole('option')[1]).toHaveStyle({ top: '180px' });
         fireEvent.change(screen.getByRole('textbox', { name: 'wiredcontracts.element.itemtype.search' }), { target: { value: 'item1999' } });
         expect(within(screen.getByRole('listbox')).getByRole('option')).toHaveTextContent('Item 1999'); store.items = prior;
     });
