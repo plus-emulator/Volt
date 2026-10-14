@@ -154,8 +154,9 @@ export const WiredChestRewardForm: FC<{ kind: 'currency' | 'furni' }> = ({ kind 
                     )}
                 </>
             )}
-            <WiredCheckboxOption checked={showByDefault} label={localizeWithFallback('wiredfurni.params.reward_contract.reward_popup.show_by_default', 'Show by default')} onChange={setShowByDefault} />
+            {/* class_4173: the pop-up text area comes first, then the "show by default" checkbox. */}
             <textarea className="form-control form-control-sm" maxLength={POPUP_TEXT_MAX} rows={3} value={popupText} onChange={(event) => setPopupText(event.target.value)} />
+            <WiredCheckboxOption checked={showByDefault} label={localizeWithFallback('wiredfurni.params.reward_contract.reward_popup.show_by_default', 'Show by default')} onChange={setShowByDefault} />
             {kind === 'currency' ? (
                 <WiredRadioGroup
                     name="chestRewardCategory"
