@@ -1,3 +1,4 @@
+import { WIRED_WALL_INSPECTION_TOKENS, parseWiredInt64 } from '@volt/renderer';
 import {
     AddLinkEventTracker,
     AvatarExpressionEnum,
@@ -65,7 +66,7 @@ import {
     VoltCardView,
     Text
 } from '../../common';
-import { useInventoryTrade, useMessageEvent, useNotification, useObjectSelectedEvent, useRoom, useWiredTools } from '../../hooks';
+import { useInventoryTrade, useMessageEvent, useNotification, useObjectSelectedEvent, useRoom, useWiredTools, useWiredFurniInspection } from '../../hooks';
 import { WiredChestsTabView } from './WiredChestsTabView';
 import {
     DIRECTION_NAMES,
@@ -1060,6 +1061,22 @@ export const WiredCreatorToolsView: FC<{}> = () => {
     }, [isVisible, roomSession?.roomId, roomSettings.isLoaded, roomSettings.canInspect]);
 
     const [selectedRoomObject, setSelectedRoomObject] = useState<ReturnType<ReturnType<typeof GetRoomEngine>['getRoomObject']> | null>(null);
+    const isCurrentWallSelection = useCallback(() => {
+        const current = useWiredCreatorToolsUiStore.getState();
+        return current.isVisible && current.activeTab === 'inspection' && current.inspectionType === 'furni'
+            && current.selectedFurni === selectedFurni && selectedFurni?.category === RoomObjectCategory.WALL;
+    }, [selectedFurni]);
+    const wallInspection = useWiredFurniInspection(roomSession, selectedFurni?.objectId ?? 0, selectedRoomObject,
+        isVisible && activeTab === 'inspection' && inspectionType === 'furni' && selectedFurni?.category === RoomObjectCategory.WALL && roomSettings.canInspect,
+        roomSettings.canModify, isCurrentWallSelection);
+
+    useEffect(() => {
+        if (selectedFurni?.category !== RoomObjectCategory.WALL || wallInspection.canEdit
+            || !['@rotation', '@altitude', '@wallitem_offset'].includes(editingVariable)) return;
+        setEditingVariable(null);
+        setEditingValue('');
+    }, [selectedFurni, wallInspection.canEdit, editingVariable, setEditingVariable, setEditingValue]);
+
     const [selectedUserRoomObject, setSelectedUserRoomObject] = useState<ReturnType<ReturnType<typeof GetRoomEngine>['getRoomObject']> | null>(null);
 
     useEffect(() => {
@@ -1311,6 +1328,22 @@ export const WiredCreatorToolsView: FC<{}> = () => {
             };
         });
 
+        if (selectedFurni.category === RoomObjectCategory.WALL) {
+            return [
+                ...customVariables,
+                { key: 'Server inspection', value: 'Server values', valueClassName: 'volt-wired-menu__text--bold' },
+                ...WIRED_WALL_INSPECTION_TOKENS.map(key => ({
+                    key,
+                    value: wallInspection.values?.get(key)?.toString() ?? 'Unavailable',
+                    editable: wallInspection.canEdit && ['@rotation', '@altitude', '@wallitem_offset'].includes(key)
+                })),
+                { key: 'Furniture controls', value: 'Client state / opacity local preview', valueClassName: 'volt-wired-menu__text--bold' },
+                { key: '@state', value: String(liveState?.state ?? 0), editable: canEditInspection },
+                { key: '@opacity', value: String(opacity), editable: canEditInspection },
+                { key: '@gravity', value: 'Unavailable' }
+            ];
+        }
+
         const variables: InspectionVariable[] = [
             ...customVariables,
             ...(Number(selectedFurni.info?.teleportTargetId ?? 0) > 0
@@ -1353,7 +1386,9 @@ export const WiredCreatorToolsView: FC<{}> = () => {
         selectedFurniCustomVariableDefinitions,
         selectedFurniAssignmentMap,
         selectedFurniRuntimeState,
-        furniInternalRevision
+        furniInternalRevision,
+        wallInspection.values,
+        wallInspection.canEdit
     ]);
     const canEditSelectedUser = useMemo(() => {
         return !!selectedUser && !!roomSession && roomSettings.canModify;
@@ -2135,7 +2170,7 @@ export const WiredCreatorToolsView: FC<{}> = () => {
                             name: definition.name,
                             hasValue: definition.hasValue,
                             isReadOnly: !!definition.isReadOnly,
-                            value: assignment?.value ?? 0,
+                            value: assignment?.value ?? 0n,
                             availability: getVariableAvailabilityLabel(definition.availability, 'global'),
                             createdAt: 0,
                             updatedAt: Number(assignment?.updatedAt ?? 0)
@@ -2339,14 +2374,21 @@ export const WiredCreatorToolsView: FC<{}> = () => {
             localizeWithFallback('wiredmenu.variable_overview.delete_all.title', 'Clear this variable')
         );
     };
+    const parseScalarInput = (input: string): bigint | null => {
+        try { return parseWiredInt64(input); }
+        catch (error) {
+            simpleAlert?.(String(error instanceof Error ? error.message : error));
+            return null;
+        }
+    };
     const commitManagedHolderValueEdit = useCallback(() => {
         if (!selectedManagedVariableEntry || !selectedManagedHolderVariableEntry || !roomSettings.canModify || selectedManagedHolderVariableEntry.isReadOnly)
             return;
         if (!selectedManagedHolderVariableEntry.hasValue) return;
         if (variablesType === 'context') return;
 
-        const parsedValue = Number(editingManagedHolderValue.trim());
-        const nextValue = Number.isFinite(parsedValue) ? Math.trunc(parsedValue) : 0;
+        const nextValue = parseScalarInput(editingManagedHolderValue);
+        if (nextValue === null) return;
 
         switch (variablesType) {
             case 'user':
@@ -2375,8 +2417,8 @@ export const WiredCreatorToolsView: FC<{}> = () => {
         if (!selectedManagedVariableEntry || !selectedManagedGiveDefinition || !roomSettings.canModify) return;
         if (variablesType === 'global' || variablesType === 'context') return;
 
-        const parsedValue = Number(managedGiveValue.trim());
-        const nextValue = Number.isFinite(parsedValue) ? Math.trunc(parsedValue) : 0;
+        const nextValue = parseScalarInput(managedGiveValue);
+        if (nextValue === null) return;
 
         if (variablesType === 'user') assignUserVariable(selectedManagedVariableEntry.entityId, selectedManagedGiveDefinition.itemId, nextValue);
         else assignFurniVariable(selectedManagedVariableEntry.entityId, selectedManagedGiveDefinition.itemId, nextValue);
@@ -2420,6 +2462,13 @@ export const WiredCreatorToolsView: FC<{}> = () => {
     const beginVariableEdit = (variable: InspectionVariable) => {
         if (!variable.editable) return;
 
+        if (inspectionType === 'furni' && selectedFurni?.category === RoomObjectCategory.WALL
+            && WIRED_WALL_INSPECTION_TOKENS.includes(variable.key)) {
+            if (!wallInspection.canEdit || !['@rotation', '@altitude', '@wallitem_offset'].includes(variable.key)) return;
+            setEditingVariable(variable.key);
+            setEditingValue(variable.value);
+            return;
+        }
         if (inspectionType === 'furni') {
             const isEditableBuiltIn = EDITABLE_FURNI_VARIABLES.includes(variable.key);
             const customDefinition = selectedFurniCustomVariableDefinitionMap.get(variable.key);
@@ -2454,14 +2503,10 @@ export const WiredCreatorToolsView: FC<{}> = () => {
                 return;
             }
 
-            const parsed = parseInt(editingValue.trim(), 10);
+            const parsed = parseScalarInput(editingValue);
+            if (parsed === null) return;
 
-            if (Number.isNaN(parsed)) {
-                cancelVariableEdit();
-                return;
-            }
-
-            const currentValue = roomVariableAssignmentMap.get(customDefinition.itemId)?.value ?? 0;
+            const currentValue = roomVariableAssignmentMap.get(customDefinition.itemId)?.value ?? 0n;
 
             if (currentValue === parsed) {
                 cancelVariableEdit();
@@ -2478,12 +2523,8 @@ export const WiredCreatorToolsView: FC<{}> = () => {
             const customDefinition = selectedUserCustomVariableDefinitionMap.get(editingVariable);
 
             if (customDefinition?.hasValue && !customDefinition.isReadOnly) {
-                const parsed = parseInt(editingValue.trim(), 10);
-
-                if (Number.isNaN(parsed)) {
-                    cancelVariableEdit();
-                    return;
-                }
+                const parsed = parseScalarInput(editingValue);
+                if (parsed === null) return;
 
                 const assignment = selectedUserAssignmentMap.get(customDefinition.itemId);
 
@@ -2600,12 +2641,8 @@ export const WiredCreatorToolsView: FC<{}> = () => {
         const customFurniDefinition = selectedFurniCustomVariableDefinitionMap.get(editingVariable);
 
         if (customFurniDefinition?.hasValue && !customFurniDefinition.isReadOnly) {
-            const parsed = parseInt(editingValue.trim(), 10);
-
-            if (Number.isNaN(parsed)) {
-                cancelVariableEdit();
-                return;
-            }
+            const parsed = parseScalarInput(editingValue);
+            if (parsed === null) return;
 
             const assignment = selectedFurniAssignmentMap.get(customFurniDefinition.itemId);
 
@@ -2620,7 +2657,25 @@ export const WiredCreatorToolsView: FC<{}> = () => {
             return;
         }
 
+        if (selectedFurni?.category === RoomObjectCategory.WALL && WIRED_WALL_INSPECTION_TOKENS.includes(editingVariable)) {
+            try {
+                if (!wallInspection.write(editingVariable, editingValue)) {
+                    simpleAlert?.('Wall inspection is unavailable. Select the current wall and wait for its server values.');
+                    return;
+                }
+                setEditingVariable(null);
+                setEditingValue('');
+            } catch (error) {
+                simpleAlert?.(String(error instanceof Error ? error.message : error));
+            }
+            return;
+        }
+
         if (editingVariable === '@gravity') {
+            if (selectedFurni?.category === RoomObjectCategory.WALL) {
+                cancelVariableEdit();
+                return;
+            }
             const parsed = parseInt(editingValue.trim(), 10);
             if (!selectedFurni || !roomSession || (parsed !== 0 && parsed !== 1)) {
                 cancelVariableEdit();
@@ -2770,7 +2825,11 @@ export const WiredCreatorToolsView: FC<{}> = () => {
             }
 
             selectedRoomObject.model.setValue(RoomObjectVariable.FURNITURE_ALPHA_MULTIPLIER, nextOpacity / 100);
-            SendMessageComposer(new WiredFurniRuntimeStateRequestComposer(selectedFurni.objectId, WIRED_FURNI_RUNTIME_ACTION_WRITE, '@opacity', nextOpacity));
+            if (selectedFurni.category === RoomObjectCategory.WALL) {
+                setFurniInternalRevision((previousValue) => previousValue + 1);
+            } else {
+                SendMessageComposer(new WiredFurniRuntimeStateRequestComposer(selectedFurni.objectId, WIRED_FURNI_RUNTIME_ACTION_WRITE, '@opacity', nextOpacity));
+            }
             setEditingVariable(null);
             setEditingValue('');
             return;
@@ -2956,8 +3015,8 @@ export const WiredCreatorToolsView: FC<{}> = () => {
     const giveInspectionVariable = useCallback(() => {
         if (!canManageInspectionVariableAssignments || !selectedInspectionGiveDefinition) return;
 
-        const parsedValue = Number(inspectionGiveValue.trim());
-        const nextValue = Number.isFinite(parsedValue) ? parsedValue : 0;
+        const nextValue = parseScalarInput(inspectionGiveValue);
+        if (nextValue === null) return;
 
         if (inspectionType === 'user' && selectedUser) {
             assignUserVariable(selectedUserHolderKey, selectedInspectionGiveDefinition.itemId, nextValue);
@@ -3006,18 +3065,19 @@ export const WiredCreatorToolsView: FC<{}> = () => {
 
     const onVariableInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
         event.stopPropagation();
+        const input = event.currentTarget;
 
         switch (event.key) {
             case 'Enter':
             case 'NumpadEnter':
                 event.preventDefault();
                 commitVariableEdit();
-                window.requestAnimationFrame(() => event.currentTarget.blur());
+                window.requestAnimationFrame(() => input.blur());
                 return;
             case 'Escape':
                 event.preventDefault();
                 cancelVariableEdit();
-                window.requestAnimationFrame(() => event.currentTarget.blur());
+                window.requestAnimationFrame(() => input.blur());
                 return;
         }
     };

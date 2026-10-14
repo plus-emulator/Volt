@@ -1,17 +1,13 @@
 import { FC, useEffect, useMemo, useState } from 'react';
 import { LocalizeText, WiredFurniType } from '../../../../api';
 import { Text } from '../../../../common';
-import { useWired, useWiredTools } from '../../../../hooks';
+import { useWired } from '../../../../hooks';
 import { VoltInput } from '../../../../layout';
 import { WiredVariablePicker } from '../WiredVariablePicker';
-import {
-    buildWiredVariablePickerEntries,
-    createFallbackVariableEntry,
-    flattenWiredVariablePickerEntries,
-    getCustomVariableItemId,
-    isCustomVariableToken,
-    normalizeVariableTokenFromWire
-} from '../WiredVariablePickerData';
+import { buildWiredVariablePickerEntries, createFallbackVariableEntry, flattenWiredVariablePickerEntries } from '../WiredVariablePickerData';
+import { createNativeVariableToken, getNativeVariableId } from '../../../../api';
+import { WIRED_VARIABLE_ABSENT, tokenOfVariableSlot, variableSlotOf } from '../../../../api';
+import { useWiredNativeVariables } from '../../../../hooks';
 import { WiredExtraBaseView } from './WiredExtraBaseView';
 import { WiredPlaceholderPreview } from './WiredPlaceholderPreview';
 
@@ -25,20 +21,18 @@ interface IVariableDefinition {
 const DISPLAY_NUMERIC = 1;
 const DISPLAY_TEXTUAL = 2;
 const DEFAULT_CAPTURER_NAME = '';
+// AS3 PlaceholderNameSection: a TextInputParam of 32 characters that lets "a-zA-Z_0-9 " through, turns spaces into "_" and lower-cases.
 const MAX_CAPTURER_NAME_LENGTH = 32;
 const PLACEHOLDER_WRAPPER_PATTERN = /^#(.*)#$/;
 
-const splitStringData = (value: string) => {
-    if (!value?.length) return ['', DEFAULT_CAPTURER_NAME];
-
-    const parts = value.split('\t');
-
-    if (parts.length === 1) return [parts[0], DEFAULT_CAPTURER_NAME];
-
-    return [parts[0], parts[1]];
-};
-
 const normalizeDisplayType = (value: number) => (value === DISPLAY_TEXTUAL ? DISPLAY_TEXTUAL : DISPLAY_NUMERIC);
+const typedCapturerName = (value: string) =>
+    (value ?? '')
+        .replace(/[^a-zA-Z0-9_ ]/g, '')
+        .split(' ')
+        .join('_')
+        .toLowerCase()
+        .slice(0, MAX_CAPTURER_NAME_LENGTH);
 const normalizeCapturerName = (value: string) => {
     let normalizedValue = (value ?? '').trim().replace(/[\t\r\n]/g, '');
 
@@ -46,25 +40,29 @@ const normalizeCapturerName = (value: string) => {
         normalizedValue = normalizedValue.substring(1, normalizedValue.length - 1).trim();
     }
 
-    return normalizedValue.slice(0, MAX_CAPTURER_NAME_LENGTH);
+    return typedCapturerName(normalizedValue);
 };
 
 const escapeHtml = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
 export const WiredExtraTextInputVariableView: FC<{}> = () => {
-    const { trigger = null, setIntParams = null, setStringParam = null } = useWired();
-    const { contextVariableDefinitions = [] } = useWiredTools();
+    const { trigger = null, setIntParams = null, setStringParam = null, setVariableIds = null } = useWired();
+    const { contextVariableDefinitions = [] } = useWiredNativeVariables();
     const [variableToken, setVariableToken] = useState('');
     const [capturerName, setCapturerName] = useState(DEFAULT_CAPTURER_NAME);
     const [displayType, setDisplayType] = useState(DISPLAY_NUMERIC);
 
-    const targetDefinitions = useMemo(() => contextVariableDefinitions.filter((definition) => !!definition.hasValue), [contextVariableDefinitions]);
+    // AS3 VariableCapturerAddon.variableSelectionFilter: hasValue && canCreateAndDelete && canWriteValue.
+    const targetDefinitions = useMemo(
+        () => contextVariableDefinitions.filter((definition) => !!definition.hasValue && !definition.isReadOnly && definition.canCreateAndDelete !== false),
+        [contextVariableDefinitions]
+    );
     const variableEntries = useMemo(
         () => buildWiredVariablePickerEntries('context', 'change-reference', targetDefinitions).filter((entry) => entry.kind === 'custom'),
         [targetDefinitions]
     );
     const resolvedVariableEntries = useMemo(() => {
-        if (!variableToken || !isCustomVariableToken(variableToken)) return variableEntries;
+        if (!variableToken || !getNativeVariableId(variableToken)) return variableEntries;
         if (flattenWiredVariablePickerEntries(variableEntries).some((entry) => entry.token === variableToken)) return variableEntries;
 
         const fallbackEntry = createFallbackVariableEntry('context', variableToken);
@@ -73,11 +71,11 @@ export const WiredExtraTextInputVariableView: FC<{}> = () => {
     }, [variableEntries, variableToken]);
 
     const selectedVariableDefinition = useMemo(() => {
-        if (!isCustomVariableToken(variableToken)) return null;
+        const variableId = getNativeVariableId(variableToken);
 
-        const itemId = getCustomVariableItemId(variableToken);
+        if (!variableId) return null;
 
-        return targetDefinitions.find((definition) => definition.itemId === itemId) ?? null;
+        return targetDefinitions.find((definition) => definition.variableId === variableId) ?? null;
     }, [targetDefinitions, variableToken]);
 
     const canUseTextDisplay = !!selectedVariableDefinition?.isTextConnected;
@@ -85,10 +83,8 @@ export const WiredExtraTextInputVariableView: FC<{}> = () => {
     useEffect(() => {
         if (!trigger) return;
 
-        const [nextVariableToken, nextCapturerName] = splitStringData(trigger.stringData);
-
-        setVariableToken(normalizeVariableTokenFromWire(nextVariableToken));
-        setCapturerName(normalizeCapturerName(nextCapturerName));
+        setVariableToken(tokenOfVariableSlot(trigger.variableIds[0]));
+        setCapturerName(normalizeCapturerName(trigger.stringData));
         setDisplayType(normalizeDisplayType(trigger.intData.length > 0 ? trigger.intData[0] : DISPLAY_NUMERIC));
     }, [trigger]);
 
@@ -101,19 +97,19 @@ export const WiredExtraTextInputVariableView: FC<{}> = () => {
     const previewToken = useMemo(() => {
         const effectiveName = normalizeCapturerName(capturerName) || 'capturer';
 
-        return `#${effectiveName}#`;
+        // The capturer is typed into a "User says keyword" text as #(name), as the editor's own preview tells the player.
+        return `#(${effectiveName})`;
     }, [capturerName]);
 
     const previewHtml = useMemo(() => LocalizeText('wiredfurni.params.texts.placeholder_preview', ['placeholder'], [escapeHtml(previewToken)]), [previewToken]);
 
     const save = () => {
-        const variableItemId = getCustomVariableItemId(variableToken);
-
         setIntParams([canUseTextDisplay ? normalizeDisplayType(displayType) : DISPLAY_NUMERIC]);
-        setStringParam(`${variableItemId ? String(variableItemId) : ''}\t${normalizeCapturerName(capturerName)}`);
+        setStringParam(normalizeCapturerName(capturerName));
+        setVariableIds([variableSlotOf(variableToken)]);
     };
 
-    const validate = () => !!normalizeCapturerName(capturerName).length && getCustomVariableItemId(variableToken) > 0;
+    const validate = () => !!normalizeCapturerName(capturerName).length && !!getNativeVariableId(variableToken);
 
     return (
         <WiredExtraBaseView
@@ -130,7 +126,7 @@ export const WiredExtraTextInputVariableView: FC<{}> = () => {
                         maxLength={MAX_CAPTURER_NAME_LENGTH}
                         type="text"
                         value={capturerName}
-                        onChange={(event) => setCapturerName(normalizeCapturerName(event.target.value))}
+                        onChange={(event) => setCapturerName(typedCapturerName(event.target.value))}
                     />
                 </div>
 

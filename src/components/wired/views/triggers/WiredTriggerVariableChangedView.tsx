@@ -22,12 +22,13 @@ const TARGET_FURNI = 1;
 const TARGET_GLOBAL = 3;
 
 // Where a change may come from; the server labels each write and the trigger keeps a bit mask of
-// the origins it listens to (-1 = every origin, which is also what a box saved before the mask means).
+// the native origins it listens to (-1 = every origin).
 const ORIGIN_ALL = -1;
 const ORIGIN_OPTIONS = [
-    { bit: 0, key: 'wiredfurni.params.variables.trigger_origin.0', fallback: 'A wired box in this room' },
-    { bit: 1, key: 'wiredfurni.params.variables.trigger_origin.1', fallback: 'The web API' },
-    { bit: 2, key: 'wiredfurni.params.variables.trigger_origin.2', fallback: 'The creator tools' }
+    { bit: 0, key: 'wiredfurni.params.variables.trigger_origin.0', fallback: 'This room' },
+    { bit: 1, key: 'wiredfurni.params.variables.trigger_origin.1', fallback: 'Another room' },
+    { bit: 2, key: 'wiredfurni.params.variables.trigger_origin.2', fallback: 'Inspection' },
+    { bit: 3, key: 'wiredfurni.params.variables.trigger_origin.3', fallback: 'External' }
 ] as const;
 const ORIGIN_EVERY_BIT = ORIGIN_OPTIONS.reduce((mask, option) => mask | (1 << option.bit), 0);
 

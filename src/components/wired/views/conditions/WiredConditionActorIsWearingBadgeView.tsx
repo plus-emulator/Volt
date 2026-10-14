@@ -26,28 +26,37 @@ interface WiredConditionActorIsWearingBadgeViewProps {
     field?: WiredTextField | null;
 }
 
+// AirSourceOnly (wf_cnd_wearing_badge, wf_cnd_not_wearing_b): AS3 wired_setup/conditions/class_4263.as
 export const WiredConditionActorIsWearingBadgeView: FC<WiredConditionActorIsWearingBadgeViewProps> = ({ negative = false, field = 'badge' }) => {
     const [badge, setBadge] = useState('');
     const [quantifier, setQuantifier] = useState(1);
-    const { trigger = null, setStringParam = null, setIntParams = null } = useWired();
+    const {
+        trigger = null,
+        setStringParam = null,
+        setIntParams = null,
+        setUserSources,
+        quantifier: nativeQuantifier,
+        setQuantifier: setNativeQuantifier
+    } = useWired();
     const [userSource, setUserSource] = useState<number>(() => {
-        if (trigger?.intData?.length >= 1) return trigger.intData[0];
-        return 0;
+        return trigger?.userSources[0] ?? 0;
     });
 
     const text = field ? TEXT_FIELDS[field] : null;
 
     const save = () => {
         setStringParam(text ? badge : '');
-        setIntParams([userSource, quantifier]);
+        setIntParams([]);
+        setUserSources([userSource]);
+        setNativeQuantifier(quantifier);
     };
 
     useEffect(() => {
         setBadge(trigger.stringData);
-        if (trigger.intData.length >= 1) setUserSource(trigger.intData[0]);
+        if (trigger.userSources.length >= 1) setUserSource(trigger.userSources[0]);
         else setUserSource(0);
-        setQuantifier(trigger.intData.length >= 2 ? (trigger.intData[1] === 1 ? 1 : 0) : 1);
-    }, [trigger]);
+        setQuantifier(nativeQuantifier);
+    }, [trigger, nativeQuantifier]);
 
     return (
         <WiredConditionBaseView

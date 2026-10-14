@@ -6,12 +6,12 @@ import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredConditionBaseView } from './WiredConditionBaseView';
 
 const TEAM_OPTIONS = [0, 1, 2, 3, 4];
-const PLACEMENT_OPTIONS = [1, 2, 3, 4];
+const PLACEMENT_OPTIONS = [0, 1, 2, 3];
 
 export const WiredConditionTeamHasRankView: FC<{}> = () => {
-    const { trigger = null, setIntParams = null } = useWired();
-    const [team, setTeam] = useState(1);
-    const [placement, setPlacement] = useState(1);
+    const { trigger = null, setIntParams = null, setUserSources, quantifier: nativeQuantifier, setQuantifier: setNativeQuantifier } = useWired();
+    const [team, setTeam] = useState(0);
+    const [placement, setPlacement] = useState(0);
     const [userSource, setUserSource] = useState(0);
     const [quantifier, setQuantifier] = useState(0);
     const [showAdvanced, setShowAdvanced] = useState(false);
@@ -19,20 +19,22 @@ export const WiredConditionTeamHasRankView: FC<{}> = () => {
     useEffect(() => {
         if (!trigger) return;
 
-        const nextTeam = trigger.intData.length > 0 ? trigger.intData[0] : 1;
-        const nextPlacement = trigger.intData.length > 1 ? trigger.intData[1] : 1;
-        const nextUserSource = trigger.intData.length > 2 ? trigger.intData[2] : 0;
-        const nextQuantifier = trigger.intData.length > 3 ? trigger.intData[3] : 0;
+        const nextTeam = trigger.intData.length > 0 ? trigger.intData[0] : 0;
+        const nextPlacement = trigger.intData.length > 1 ? trigger.intData[1] : 0;
+        const nextUserSource = trigger.userSources[0] ?? 0;
+        const nextQuantifier = nativeQuantifier;
 
-        setTeam(TEAM_OPTIONS.includes(nextTeam) ? nextTeam : 1);
-        setPlacement(PLACEMENT_OPTIONS.includes(nextPlacement) ? nextPlacement : 1);
+        setTeam(TEAM_OPTIONS.includes(nextTeam) ? nextTeam : 0);
+        setPlacement(PLACEMENT_OPTIONS.includes(nextPlacement) ? nextPlacement : 0);
         setUserSource(nextUserSource);
         setQuantifier(nextQuantifier === 1 ? 1 : 0);
         setShowAdvanced(nextUserSource !== 0 || nextQuantifier !== 0);
-    }, [trigger]);
+    }, [trigger, nativeQuantifier]);
 
     const save = () => {
-        setIntParams([team, placement, userSource, quantifier]);
+        setIntParams([team, placement]);
+        setUserSources([userSource]);
+        setNativeQuantifier(quantifier);
     };
 
     return (
@@ -105,7 +107,7 @@ export const WiredConditionTeamHasRankView: FC<{}> = () => {
                                 type="radio"
                                 onChange={() => setPlacement(value)}
                             />
-                            <Text>{LocalizeText(`wiredfurni.params.placement.${value}`)}</Text>
+                            <Text>{LocalizeText(`wiredfurni.params.placement.${value + 1}`)}</Text>
                         </div>
                     );
                 })}

@@ -178,7 +178,7 @@ export const ChatWidgetMessageView: FC<ChatWidgetMessageViewProps> = ({
                 <div className="chat-content">
                     {nativeTextEnabled && (
                         <NativeChatText
-                            username={chat.username}
+                            username={chat.hideUsername ? '' : chat.username}
                             html={formattedText}
                             type={chat.type}
                             anonymous={anonymous}
@@ -189,7 +189,7 @@ export const ChatWidgetMessageView: FC<ChatWidgetMessageViewProps> = ({
                     )}
                     {!nativeTextEnabled && (
                         <>
-                            {!anonymous && <b className="username">{chat.username}: </b>}
+                            {!anonymous && !chat.hideUsername && <b className="username">{chat.username}: </b>}
                             <span className={messageClassName} dangerouslySetInnerHTML={{ __html: formattedText }} onClick={onClickChat} />
                         </>
                     )}

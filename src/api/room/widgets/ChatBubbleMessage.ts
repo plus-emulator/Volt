@@ -12,6 +12,8 @@ export class ChatBubbleMessage {
     public skipMovement: boolean = false;
     /** -1 follows the room setting; a wired message may ask for 0 wide, 1 normal or 2 thin. */
     public bubbleWidthOverride: number = -1;
+    /** The bubble shows no `name: ` prefix (a bot box set to hide the bot name). */
+    public hideUsername: boolean = false;
     // The chat text size when the message arrived. A bubble keeps it for life, so
     // changing the setting never resizes bubbles already on screen.
     public textSize: ChatTextSize = null;

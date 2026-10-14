@@ -228,6 +228,8 @@ const useChatWidgetState = () => {
             chatSettings.weight
         );
 
+        chatMessage.hideUsername = !!(event as RoomSessionChatEvent & { hideUsername?: boolean }).hideUsername;
+
         if (isDisposed.current || roomToken !== roomTokenRef.current) {
             abandonLine(seq);
 

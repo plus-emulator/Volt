@@ -11,16 +11,17 @@ import { WiredActionBaseView } from './WiredActionBaseView';
  * Server: WiredEffectLog. Int params `[level, user source]`, string param the message.
  */
 
-/** Habbo's four levels, in the order the room log window numbers them. */
+/** Habbo's four levels, in the order the room log window numbers them (default texts: 0 INFO, 1 WARN, 2 ERROR, 3 DEBUG). */
 export const WRITE_TO_LOGS_LEVELS: Array<{ fallback: string; value: number }> = [
-    { fallback: 'Debug', value: 0 },
-    { fallback: 'Info', value: 1 },
-    { fallback: 'Warning', value: 2 },
-    { fallback: 'Error', value: 3 }
+    { fallback: 'INFO', value: 0 },
+    { fallback: 'WARN', value: 1 },
+    { fallback: 'ERROR', value: 2 },
+    { fallback: 'DEBUG', value: 3 }
 ];
 
 export const WRITE_TO_LOGS_MESSAGE_MAX_LENGTH = 400;
-const DEFAULT_LEVEL = 1;
+/** The official editor opens on the first level (observed int params [0]). */
+const DEFAULT_LEVEL = 0;
 
 const normalizeLevel = (value: number): number => (Number.isInteger(value) && value >= 0 && value <= 3 ? value : DEFAULT_LEVEL);
 
@@ -28,25 +29,23 @@ export const WiredActionWriteToLogsView: FC<{}> = () => {
     const { trigger = null, setIntParams = null, setStringParam = null } = useWired();
     const [message, setMessage] = useState('');
     const [level, setLevel] = useState(DEFAULT_LEVEL);
-    const [userSource, setUserSource] = useState(0);
 
     useEffect(() => {
         if (!trigger) return;
 
         setMessage(trigger.stringData ?? '');
         setLevel(normalizeLevel(trigger.intData?.[0]));
-        setUserSource(trigger.intData?.[1] ?? 0);
     }, [trigger]);
 
     const save = () => {
-        setStringParam(message.trim());
-        setIntParams([level, userSource]);
+        setStringParam(message);
+        setIntParams([level]);
     };
 
     return (
         <WiredActionBaseView
-            footer={<WiredSourcesSelector showUsers={true} userSource={userSource} onChangeUsers={setUserSource} />}
             hasSpecialInput={true}
+            nativeLayout={true}
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE}
             save={save}
             validate={() => message.trim().length > 0}

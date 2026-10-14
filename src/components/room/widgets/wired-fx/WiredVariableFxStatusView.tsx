@@ -4,6 +4,7 @@ import {
     formatWiredVariableFxValue,
     resolveWiredVariableFxColor,
     resolveWiredVariableFxRange,
+    subtractWiredVariableFx,
     WIRED_FX_CONFIG_EXTRA,
     WIRED_FX_RENDERER,
     wiredVariableFxLevel,
@@ -18,6 +19,7 @@ import { wiredVariableFxIconGlyph, wiredVariableFxSegmentFills } from './WiredVa
 export interface WiredVariableFxStatusViewProps {
     config: IWiredVariableFxConfig;
     entry: IWiredVariableFxStatusEntry;
+    hovered?: boolean;
 }
 
 const Icon: FC<{ icon: string }> = ({ icon }) => {
@@ -67,9 +69,9 @@ const Bar: FC<{ rendererId: number; progress: number; segments: number; color: s
 
 /** One drawn value; picks the markup by the config's renderer. */
 export const WiredVariableFxStatusView: FC<WiredVariableFxStatusViewProps> = (props) => {
-    const { config, entry } = props;
+    const { config, entry, hovered = false } = props;
     const [, setTick] = useState(0);
-    const visibility = wiredVariableFxVisibleUntil(config, entry.changedAt, Date.now());
+    const visibility = wiredVariableFxVisibleUntil(config, entry.visibleUntil ?? 0, Date.now(), hovered);
 
     // "Show while changing": re-render once the show duration since the last change has passed.
     useEffect(() => {
@@ -136,7 +138,7 @@ export const WiredVariableFxStatusView: FC<WiredVariableFxStatusViewProps> = (pr
                         Lv {level.level}
                         {level.maxLevel > 1 ? ` / ${level.maxLevel}` : ''}
                     </span>
-                    <span className="volt-wired-fx__value">{level.maxed ? 'MAX' : `${formatWiredVariableFxValue(status.value - range.min)} / ${formatWiredVariableFxValue(range.max - range.min)}`}</span>
+                    <span className="volt-wired-fx__value">{level.maxed ? 'MAX' : `${formatWiredVariableFxValue(subtractWiredVariableFx(status.value, range.min))} / ${formatWiredVariableFxValue(subtractWiredVariableFx(range.max, range.min))}`}</span>
                 </div>
             );
         }

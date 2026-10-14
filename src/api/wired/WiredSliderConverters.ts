@@ -47,3 +47,19 @@ export const wiredSliderCountOrUnlimited = (unlimitedValue: number): WiredSlider
     precision: 0,
     endsWithFive: false
 });
+
+/** ActionDelaySection's precise mode (`slider_converter/class_3928`): a step is 50 ms, shown as seconds with up to two decimals. */
+export const WIRED_SLIDER_PRECISE_DELAY: WiredSliderConverter = {
+    toIntParam: (text) => Math.round(Number(text) * 20),
+    toString: (value) => {
+        const milliseconds = value * 50;
+        const whole = Math.trunc(milliseconds / 1000);
+        const rest = milliseconds % 1000;
+
+        if (rest === 0) return `${whole}`;
+
+        return `${whole}.${rest % 100 === 0 ? rest / 100 : `${rest < 100 ? '0' : ''}${rest / 10}`}`;
+    },
+    precision: 2,
+    endsWithFive: true
+};
