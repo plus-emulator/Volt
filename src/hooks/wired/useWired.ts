@@ -51,6 +51,7 @@ const WIRED_ERROR_FALLBACKS: Record<string, string> = {
     'wiredfurni.error.invalid_api_keys': 'Invalid Web API keys',
     'wiredfurni.error.placeholder.name_length': 'Placeholder length must be between 1 and 40 characters.',
     'wiredfurni.error.require_click_tiles': 'Can only select invisible click furniture.',
+    'wiredfurni.error.require_room_linker': 'Can only select wired room linkers!',
     'wiredfurni.error.variables.reference.valid': 'Please select a valid reference variable.'
 };
 
