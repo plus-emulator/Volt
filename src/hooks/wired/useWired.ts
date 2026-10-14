@@ -48,9 +48,12 @@ import { useWiredTools } from '../wired-tools/useWiredTools';
 
 /** English for server error keys a hotel's texts may not have yet. */
 const WIRED_ERROR_FALLBACKS: Record<string, string> = {
+    'wiredfurni.error.condition_evaluation_furni': 'Can only select WIRED Conditions and Add-Ons!',
     'wiredfurni.error.invalid_api_keys': 'Invalid Web API keys',
     'wiredfurni.error.placeholder.name_length': 'Placeholder length must be between 1 and 40 characters.',
+    'wiredfurni.error.require_antenna_furni': 'Can only select antenna furni.',
     'wiredfurni.error.require_click_tiles': 'Can only select invisible click furniture.',
+    'wiredfurni.error.require_counter_furni': 'Can only select counter furni.',
     'wiredfurni.error.require_room_linker': 'Can only select wired room linkers!',
     'wiredfurni.error.variables.reference.valid': 'Please select a valid reference variable.'
 };

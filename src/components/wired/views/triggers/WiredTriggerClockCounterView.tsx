@@ -6,7 +6,6 @@ import { useWired } from '../../../../hooks';
 import { WiredSourceOption, WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredTriggerBaseView } from './WiredTriggerBaseView';
 
-const COUNTER_INTERACTION_TYPES = ['game_upcounter'];
 const MINUTES_MIN = 0;
 const MINUTES_MAX = 99;
 const HALF_SECONDS_MIN = 0;
@@ -27,7 +26,7 @@ const formatSeconds = (halfSeconds: number) => {
 };
 
 export const WiredTriggerClockCounterView: FC<{}> = () => {
-    const { trigger = null, setIntParams = null, setFurniSources, setAllowedInteractionTypes = null, setAllowedInteractionErrorKey = null } = useWired();
+    const { trigger = null, setIntParams = null, setFurniSources } = useWired();
     const [furniSource, setFurniSource] = useState(100);
     const [minutes, setMinutes] = useState(0);
     const [halfSeconds, setHalfSeconds] = useState(0);
@@ -46,16 +45,6 @@ export const WiredTriggerClockCounterView: FC<{}> = () => {
         setHalfSeconds(normalizeHalfSeconds((trigger.intData[0] ?? 0) * 2 + (trigger.intData[2] ?? 0)));
         setFurniSource(trigger.furniSources[0] ?? 100);
     }, [trigger]);
-
-    useEffect(() => {
-        setAllowedInteractionTypes(COUNTER_INTERACTION_TYPES);
-        setAllowedInteractionErrorKey('wiredfurni.error.require_counter_furni');
-
-        return () => {
-            setAllowedInteractionTypes(null);
-            setAllowedInteractionErrorKey(null);
-        };
-    }, [setAllowedInteractionErrorKey, setAllowedInteractionTypes]);
 
     return (
         <WiredTriggerBaseView

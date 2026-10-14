@@ -6,7 +6,6 @@ import { WiredLegacySlider as Slider } from '../WiredSlider';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredActionBaseView } from './WiredActionBaseView';
 
-const COUNTER_INTERACTION_TYPES = ['game_upcounter'];
 const MINUTES_MIN = 0;
 const MINUTES_MAX = 99;
 const HALF_SECONDS_MIN = 0;
@@ -35,7 +34,7 @@ const formatSeconds = (halfSeconds: number) => {
 };
 
 export const WiredActionAdjustClockView: FC<{}> = () => {
-    const { trigger = null, setIntParams = null, setAllowedInteractionTypes = null, setAllowedInteractionErrorKey = null, setFurniSources } = useWired();
+    const { trigger = null, setIntParams = null, setFurniSources } = useWired();
     const [operator, setOperator] = useState(2);
     const [furniSource, setFurniSource] = useState(100);
     const [minutes, setMinutes] = useState(0);
@@ -51,16 +50,6 @@ export const WiredActionAdjustClockView: FC<{}> = () => {
         setMinutes(normalizeMinutes(trigger.intData[1] ?? 0));
         setHalfSeconds(normalizeHalfSeconds((trigger.intData[0] ?? 0) * 2 + (trigger.intData[2] ?? 0)));
     }, [trigger]);
-
-    useEffect(() => {
-        setAllowedInteractionTypes(COUNTER_INTERACTION_TYPES);
-        setAllowedInteractionErrorKey('wiredfurni.error.require_counter_furni');
-
-        return () => {
-            setAllowedInteractionTypes(null);
-            setAllowedInteractionErrorKey(null);
-        };
-    }, [setAllowedInteractionErrorKey, setAllowedInteractionTypes]);
 
     const save = () => {
         setIntParams([Math.floor(halfSeconds / 2), minutes, halfSeconds % 2, operator]);

@@ -6,8 +6,7 @@ import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredActionBaseView } from './WiredActionBaseView';
 
 export const WiredActionSendSignalView: FC<{}> = () => {
-    const { trigger, furniIds, secondaryFurniIds, activePickSlot, setActivePickSlot,
-        setIntParams, setFurniSources, setUserSources, setAllowedInteractionTypes, setAllowedInteractionErrorKey } = useWired();
+    const { trigger, furniIds, secondaryFurniIds, activePickSlot, setActivePickSlot, setIntParams, setFurniSources, setUserSources } = useWired();
     const [antennaSource, setAntennaSource] = useState(100);
     const [forwardedSource, setForwardedSource] = useState(200);
     const [userSource, setUserSource] = useState(200);
@@ -21,13 +20,6 @@ export const WiredActionSendSignalView: FC<{}> = () => {
         setSplitFurni(trigger.intData[0] === 1);
         setSplitUsers(trigger.intData[1] === 1);
     }, [trigger]);
-
-    useEffect(() => {
-        const pickingAntennas = antennaSource === (activePickSlot === 0 ? 100 : 101);
-        setAllowedInteractionTypes(pickingAntennas ? ['antenna'] : null);
-        setAllowedInteractionErrorKey(pickingAntennas ? 'wiredfurni.error.require_antenna_furni' : null);
-        return () => { setAllowedInteractionTypes(null); setAllowedInteractionErrorKey(null); };
-    }, [activePickSlot, antennaSource, setAllowedInteractionTypes, setAllowedInteractionErrorKey]);
 
     const save = () => {
         setIntParams([splitFurni ? 1 : 0, splitUsers ? 1 : 0]);
