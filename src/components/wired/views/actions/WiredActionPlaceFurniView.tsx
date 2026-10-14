@@ -27,8 +27,9 @@ export const WiredActionPlaceFurniView: FC<{}> = () => {
     const [valueTarget, setValueTarget] = useState(0);
     const [spawnVariable, setSpawnVariable] = useState('n');
     const [valueVariable, setValueVariable] = useState('n');
-    const [furni, setFurni] = useState([100, 100, 100]);
-    const [users, setUsers] = useState([0, 0]);
+    // The hotel opens this card on the snapshot of the picked furni (110), the triggering furni (0) and the selector (200 / users 0, 200).
+    const [furni, setFurni] = useState([110, 0, 200]);
+    const [users, setUsers] = useState([0, 200]);
     useEffect(() => {
         const p = trigger?.intData ?? [];
         setTargetIsUser(p[0] === 1);
@@ -43,8 +44,8 @@ export const WiredActionPlaceFurniView: FC<{}> = () => {
         setValueTarget(p[9] ?? 0);
         setSpawnVariable(trigger?.variableIds[0] ?? 'n');
         setValueVariable(trigger?.variableIds[1] ?? 'n');
-        setFurni([0, 1, 2].map((slot) => trigger?.furniSources[slot] ?? 100));
-        setUsers([0, 1].map((slot) => trigger?.userSources[slot] ?? 0));
+        setFurni([0, 1, 2].map((slot) => trigger?.furniSources[slot] ?? [110, 0, 200][slot]));
+        setUsers([0, 1].map((slot) => trigger?.userSources[slot] ?? [0, 200][slot]));
     }, [trigger]);
     const rows = nativeCatalog?.available ? [...nativeCatalog.rows.values()].map((row) => row.variable) : [];
     const spawnRows = rows.filter((row) => row.variableTarget === 0 && row.variableType === 0 && row.canCreateAndDelete);

@@ -19,6 +19,10 @@ export interface IWiredNativeVariableDefinition {
     isReadOnly: boolean;
     isTextConnected: boolean;
     textConnector: Array<{ key: number; value: string }>;
+    /** The official WiredVariable flags the October editors filter their pickers by. */
+    canCreateAndDelete?: boolean;
+    canReadCreationTime?: boolean;
+    canReadLastUpdateTime?: boolean;
 }
 
 /** A picker token for a catalog variable, or empty when there is no id. */
@@ -54,7 +58,10 @@ export const nativeVariableDefinitions = (
             hasValue: variable.hasValue,
             isReadOnly: !variable.canWriteValue,
             isTextConnected: !!variable.textConnector?.length,
-            textConnector: variable.textConnector ?? []
+            textConnector: variable.textConnector ?? [],
+            canCreateAndDelete: variable.canCreateAndDelete,
+            canReadCreationTime: variable.canReadCreationTime,
+            canReadLastUpdateTime: variable.canReadLastUpdateTime
         });
     }
 

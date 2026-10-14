@@ -54,6 +54,7 @@ export const nativeSourceOptions = (values: number[] | undefined, kind: 'furni' 
 const FURNI_SOURCE_LABEL_ORDER = [
     'wiredfurni.params.sources.furni.100',
     'wiredfurni.params.sources.furni.101',
+    'wiredfurni.params.sources.furni.110',
     'wiredfurni.params.sources.furni.200',
     'wiredfurni.params.sources.furni.201',
     'wiredfurni.params.sources.furni.0',
