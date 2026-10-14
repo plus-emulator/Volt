@@ -1,6 +1,9 @@
+import { WiredDropdown } from '../WiredDropdown';
+import { WiredRadioGroup } from '../WiredOptions';
+import { WiredSection } from '../WiredSection';
 import { FC, useEffect, useMemo, useState } from 'react';
 import { LocalizeText } from '../../../../api';
-import { Text } from '../../../../common';
+import { WiredSelectorOptionsSection } from './WiredSelectorOptionsSection';
 import { useUserGroups, useWired } from '../../../../hooks';
 import { WiredSelectorBaseView } from './WiredSelectorBaseView';
 
@@ -11,7 +14,7 @@ export const WiredSelectorUsersGroupView: FC<{}> = () => {
     const { data: groups = [] } = useUserGroups();
     const [groupType, setGroupType] = useState(GROUP_CURRENT_ROOM);
     const [selectedGroupId, setSelectedGroupId] = useState(0);
-    const { trigger = null, setIntParams = null, setStringParam = null, filter = false, setFilter = null, inverse = false, setInverse = null } = useWired();
+    const { trigger = null, setIntParams = null, setStringParam = null } = useWired();
 
     useEffect(() => {
         if (!trigger) return;
@@ -23,73 +26,26 @@ export const WiredSelectorUsersGroupView: FC<{}> = () => {
         setSelectedGroupId(groupText.length ? Number(groupText) : 0);
     }, [trigger]);
 
-    useEffect(() => {
-        if (groupType !== GROUP_SELECTED || selectedGroupId || !groups.length) return;
-
-        setSelectedGroupId(groups[0].groupId);
-    }, [groupType, selectedGroupId, groups]);
-
     const selectedGroupOptions = useMemo(() => groups.map((group) => ({ value: group.groupId, label: group.groupName })), [groups]);
 
     // Filter and inverse are category fields of the selector save; there are no owned ints.
     const save = () => {
         setIntParams([]);
-        setStringParam(groupType === GROUP_SELECTED ? String(selectedGroupId) : '');
+        setStringParam(groupType === GROUP_SELECTED && selectedGroupOptions.some(group=>group.value===selectedGroupId) ? String(selectedGroupId) : '');
     };
 
     return (
-        <WiredSelectorBaseView hasSpecialInput={true} requiresFurni={0} save={save} hideDelay={true} cardStyle={{ width: 400 }}>
-            <div className="flex flex-col gap-2">
-                <div className="flex flex-col gap-1">
-                    <Text bold>{LocalizeText('wiredfurni.params.groupselection')}</Text>
-                    {[GROUP_CURRENT_ROOM, GROUP_SELECTED].map((value) => (
-                        <label key={value} className="flex items-center gap-1">
-                            <input
-                                checked={groupType === value}
-                                className="form-check-input"
-                                name="usersGroupSelectorType"
-                                type="radio"
-                                onChange={() => setGroupType(value)}
-                            />
-                            <Text>{LocalizeText(`wiredfurni.params.grouptype.${value}`)}</Text>
-                        </label>
-                    ))}
-                </div>
-
-                {groupType === GROUP_SELECTED && (
-                    <select
-                        className="form-select form-select-sm"
-                        value={selectedGroupId}
-                        onChange={(event) => setSelectedGroupId(parseInt(event.target.value))}
-                    >
-                        {!selectedGroupOptions.length && <option value={0}>-</option>}
-                        {selectedGroupOptions.map((group) => (
-                            <option key={group.value} value={group.value}>
-                                {group.label}
-                            </option>
-                        ))}
-                    </select>
-                )}
-
-                <hr className="m-0 bg-dark" />
-
-                <Text bold>{LocalizeText('wiredfurni.params.selector_options_selector')}</Text>
-
-                <label className="flex items-center gap-2">
-                    <input
-                        type="checkbox"
-                        className="form-check-input"
-                        checked={filter}
-                        onChange={(event) => setFilter(event.target.checked)}
-                    />
-                    <Text small>{LocalizeText('wiredfurni.params.selector_option.0')}</Text>
-                </label>
-
-                <label className="flex items-center gap-2">
-                    <input type="checkbox" className="form-check-input" checked={inverse} onChange={(event) => setInverse(event.target.checked)} />
-                    <Text small>{LocalizeText('wiredfurni.params.selector_option.1')}</Text>
-                </label>
-            </div>
+        <WiredSelectorBaseView hasSpecialInput={true} nativeLayout={true} requiresFurni={0} save={save} hideDelay={true}>
+            <WiredSection title={LocalizeText('wiredfurni.params.groupselection')}>
+                <WiredRadioGroup name="usersGroupSelectorType" value={groupType} onChange={setGroupType}
+                    options={[
+                        {id:GROUP_CURRENT_ROOM,label:LocalizeText('wiredfurni.params.grouptype.0')},
+                        {id:GROUP_SELECTED,label:LocalizeText('wiredfurni.params.grouptype.1'),extra:<WiredDropdown
+                            caption={LocalizeText('wiredfurni.tooltip.group')} value={selectedGroupId} onChange={setSelectedGroupId}
+                            options={selectedGroupOptions.map(group=>({id:group.value,label:group.label}))} />}
+                    ]} />
+            </WiredSection>
+            <WiredSelectorOptionsSection />
         </WiredSelectorBaseView>
     );
 };
