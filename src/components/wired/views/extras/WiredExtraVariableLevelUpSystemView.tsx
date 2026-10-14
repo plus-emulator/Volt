@@ -1,469 +1,105 @@
-import { FC, useEffect, useMemo, useState } from 'react';
-import { LocalizeText, localizeWithFallback, WiredFurniType } from '../../../../api';
-import { Text } from '../../../../common';
+import { FC, useEffect, useState } from 'react';
+import { localizeWithFallback, WiredFurniType } from '../../../../api';
 import { useWired } from '../../../../hooks';
-import { VoltInput } from '../../../../layout';
+import { WiredCollapsibleSection } from '../WiredCollapsibleSection';
+import { WiredNumberInput } from '../WiredNumberInput';
+import { WiredRadioGroup } from '../WiredOptions';
+import { WiredSubVariableCreator } from '../WiredSubVariableCreator';
+import { WiredText } from '../WiredText';
+import { WiredTextArea } from '../WiredTextArea';
 import { WiredExtraBaseView } from './WiredExtraBaseView';
 
-const MODE_LINEAR = 1;
-const MODE_EXPONENTIAL = 2;
-const MODE_MANUAL = 3;
-/** The native mode index in the owned ints: 0 manual, 1 linear, 2 exponential. */
-const NATIVE_MODE_MANUAL = 0;
+const l = (suffix: string, fallback: string) => localizeWithFallback(`wiredfurni.params.levelup.${suffix}`, fallback);
+const subvariables = ['current_level', 'current_xp', 'progress', 'progress_percentage', 'xp_required', 'xp_remaining', 'is_maxed', 'max_level'];
+const subvariableLabels = ['Current Level:', 'Current XP:', 'Level progress:', 'Level progress %:', 'Total XP required:', 'XP remaining:', 'Is maxed:', 'Max level:'];
+const previewLevels = [1, 2, 3, 5, 10, 20];
 
-const SUB_CURRENT_LEVEL = 0;
-const SUB_CURRENT_XP = 1;
-const SUB_LEVEL_PROGRESS = 2;
-const SUB_LEVEL_PROGRESS_PERCENT = 3;
-const SUB_TOTAL_XP_REQUIRED = 4;
-const SUB_XP_REMAINING = 5;
-const SUB_IS_AT_MAX = 6;
-const SUB_MAX_LEVEL = 7;
-
-const DEFAULT_STEP_SIZE = 100;
-const DEFAULT_MAX_LEVEL = 50;
-const DEFAULT_FIRST_LEVEL_XP = 100;
-const DEFAULT_INCREASE_FACTOR = 100;
-const DEFAULT_INTERPOLATION_TEXT = '';
-const DEFAULT_SUBVARIABLES = [SUB_CURRENT_LEVEL, SUB_CURRENT_XP];
-const DEFAULT_PLACEHOLDER = '5=100            (Level 5 = 100 XP)\n10=500\n20=4000\n...';
-
-interface ILevelEntry {
-    level: number;
-    requiredXp: number;
-}
-
-const localizeOrFallback = (key: string, fallback: string, params?: string[], values?: string[]) => {
-    const localized = params?.length ? LocalizeText(key, params, values ?? []) : LocalizeText(key);
-
-    return !localized || localized === key ? fallback : localized;
-};
-
-const normalizeMode = (value: number) => {
-    switch (value) {
-        case MODE_EXPONENTIAL:
-        case MODE_MANUAL:
-            return value;
-        default:
-            return MODE_LINEAR;
+// Keep the server's existing maximum-level bound; AIR permits 100000, Plus currently permits 10000.
+const MAX_LEVEL = 10000;
+const boundedMax = (value: number) => Math.min(MAX_LEVEL, Math.max(2, value));
+const manualAnchors = (text: string) => {
+    const anchors = new Map<number, number>([[1, 0]]);
+    for (const line of text.split('\n')) {
+        const match = line.trim().match(/^(\d+)\s*[=,]\s*(\d+)$/);
+        if (match && Number(match[1]) > 0) anchors.set(Number(match[1]), Number(match[2]));
     }
+    return [...anchors].sort((left, right) => left[0] - right[0]);
 };
 
-const normalizeNonNegativeInt = (value: number, fallback: number) => {
-    if (!Number.isFinite(value)) return fallback;
-
-    return Math.max(0, Math.trunc(value));
-};
-
-const normalizePositiveInt = (value: number, fallback: number) => {
-    if (!Number.isFinite(value)) return fallback;
-
-    return Math.max(1, Math.trunc(value));
-};
-
-const normalizeInterpolationText = (value: string) => (value ?? '').replace(/\r/g, '');
-
-/** The subvariable mask: bit i selects subvariable i. */
-const subvariablesOfMask = (mask: number) => Array.from({ length: SUB_MAX_LEVEL + 1 }, (_, bit) => bit).filter((bit) => (mask & (1 << bit)) !== 0);
-
-const maskOfSubvariables = (subvariables: number[]) => subvariables.reduce((mask, bit) => mask | (1 << bit), 0);
-
-const parseIntInput = (value: string, fallback: number) => {
-    const parsedValue = parseInt((value ?? '').trim(), 10);
-
-    return Number.isFinite(parsedValue) ? parsedValue : fallback;
-};
-
-const parseManualAnchors = (value: string) => {
-    const anchors = new Map<number, number>();
-    const lines = normalizeInterpolationText(value).split('\n');
-
-    for (const rawLine of lines) {
-        const trimmedLine = rawLine.trim();
-
-        if (!trimmedLine.length) continue;
-
-        const separator = trimmedLine.includes('=') ? '=' : trimmedLine.includes(',') ? ',' : '';
-
-        if (!separator.length) continue;
-
-        const [rawLevel, rawXp] = trimmedLine.split(separator, 2).map((part) => part.trim());
-        const level = parseInt(rawLevel, 10);
-        const xp = parseInt(rawXp, 10);
-
-        if (!Number.isFinite(level) || !Number.isFinite(xp) || level <= 0) continue;
-
-        anchors.set(level, Math.max(0, xp));
-    }
-
-    if (!anchors.has(1)) anchors.set(1, 0);
-
-    return [...anchors.entries()].sort((left, right) => left[0] - right[0]);
-};
-
-const buildLinearEntries = (stepSize: number, maxLevel: number) => {
-    const entries: ILevelEntry[] = [];
-
-    for (let level = 1; level <= maxLevel; level++) {
-        entries.push({
-            level,
-            requiredXp: Math.max(0, (level - 1) * stepSize)
-        });
-    }
-
-    return entries;
-};
-
-const buildExponentialEntries = (firstLevelXp: number, increaseFactor: number, maxLevel: number) => {
-    const entries: ILevelEntry[] = [{ level: 1, requiredXp: 0 }];
-    let nextIncrement = Math.max(0, firstLevelXp);
-    let threshold = 0;
-
-    for (let level = 2; level <= maxLevel; level++) {
-        threshold += nextIncrement;
-
-        entries.push({
-            level,
-            requiredXp: Math.max(0, Math.round(threshold))
-        });
-
-        nextIncrement = Math.max(0, Math.round(nextIncrement * ((100 + Math.max(0, increaseFactor)) / 100)));
-    }
-
-    return entries;
-};
-
-const buildManualEntries = (value: string) => {
-    const anchors = parseManualAnchors(value);
-
-    if (!anchors.length) return [{ level: 1, requiredXp: 0 }];
-
-    const entries = new Map<number, number>();
-
-    for (let index = 0; index < anchors.length; index++) {
-        const [currentLevel, currentXp] = anchors[index];
-
-        entries.set(currentLevel, currentXp);
-
-        if (index >= anchors.length - 1) continue;
-
-        const [nextLevel, nextXp] = anchors[index + 1];
-
-        if (nextLevel <= currentLevel) continue;
-
-        const deltaLevel = nextLevel - currentLevel;
-        const deltaXp = nextXp - currentXp;
-
-        for (let level = currentLevel + 1; level < nextLevel; level++) {
-            const progress = (level - currentLevel) / deltaLevel;
-            entries.set(level, Math.max(0, Math.round(currentXp + deltaXp * progress)));
-        }
-    }
-
-    return [...entries.entries()].sort((left, right) => left[0] - right[0]).map(([level, requiredXp]) => ({ level, requiredXp }));
-};
-
-const buildPreviewEntries = (mode: number, stepSize: number, maxLevel: number, firstLevelXp: number, increaseFactor: number, interpolationText: string) => {
-    switch (mode) {
-        case MODE_EXPONENTIAL:
-            return buildExponentialEntries(firstLevelXp, increaseFactor, maxLevel);
-        case MODE_MANUAL:
-            return buildManualEntries(interpolationText);
-        default:
-            return buildLinearEntries(stepSize, maxLevel);
-    }
-};
-
+/** VariableLvlUpAddon: mode-specific drafts and native owned ints [mask, mode, ...mode fields]. */
 export const WiredExtraVariableLevelUpSystemView: FC<{}> = () => {
-    const { trigger = null, setIntParams = null, setStringParam = null } = useWired();
-    const [mode, setMode] = useState(MODE_LINEAR);
-    const [stepSizeInput, setStepSizeInput] = useState(DEFAULT_STEP_SIZE.toString());
-    const [maxLevelInput, setMaxLevelInput] = useState(DEFAULT_MAX_LEVEL.toString());
-    const [firstLevelXpInput, setFirstLevelXpInput] = useState(DEFAULT_FIRST_LEVEL_XP.toString());
-    const [increaseFactorInput, setIncreaseFactorInput] = useState(DEFAULT_INCREASE_FACTOR.toString());
-    const [interpolationText, setInterpolationText] = useState(DEFAULT_INTERPOLATION_TEXT);
-    const [selectedSubvariables, setSelectedSubvariables] = useState<number[]>(DEFAULT_SUBVARIABLES);
-    const [isModeSectionOpen, setIsModeSectionOpen] = useState(true);
-    const [isPreviewSectionOpen, setIsPreviewSectionOpen] = useState(true);
-    const [isSubvariablesSectionOpen, setIsSubvariablesSectionOpen] = useState(true);
-
+    const { trigger, setIntParams, setStringParam } = useWired();
+    const [mode, setMode] = useState(1);
+    const [mask, setMask] = useState(3);
+    const [step, setStep] = useState(100);
+    const [linearMax, setLinearMax] = useState(50);
+    const [firstXp, setFirstXp] = useState(100);
+    const [factor, setFactor] = useState(20);
+    const [exponentialMax, setExponentialMax] = useState(50);
+    const [manual, setManual] = useState('');
     useEffect(() => {
-        if (!trigger) {
-            setMode(MODE_LINEAR);
-            setStepSizeInput(DEFAULT_STEP_SIZE.toString());
-            setMaxLevelInput(DEFAULT_MAX_LEVEL.toString());
-            setFirstLevelXpInput(DEFAULT_FIRST_LEVEL_XP.toString());
-            setIncreaseFactorInput(DEFAULT_INCREASE_FACTOR.toString());
-            setInterpolationText(DEFAULT_INTERPOLATION_TEXT);
-            setSelectedSubvariables([...DEFAULT_SUBVARIABLES]);
-            return;
-        }
-
-        // owned: [subvariable mask, mode, fields]: manual [mask, 0] with the raw text; linear [mask, 1, step, max];
-        // exponential [mask, 2, first level xp, increase factor, max].
-        const ints = trigger.intData;
-        const nativeMode = ints.length > 1 ? ints[1] : 1;
-        const nextMode = nativeMode === NATIVE_MODE_MANUAL ? MODE_MANUAL : nativeMode === 2 ? MODE_EXPONENTIAL : MODE_LINEAR;
-
-        setMode(nextMode);
-        setSelectedSubvariables(subvariablesOfMask(ints.length > 0 ? ints[0] : 3));
-        setInterpolationText(nextMode === MODE_MANUAL ? normalizeInterpolationText(trigger.stringData) : DEFAULT_INTERPOLATION_TEXT);
-        if (nextMode === MODE_EXPONENTIAL) {
-            setFirstLevelXpInput(normalizeNonNegativeInt(ints[2] ?? DEFAULT_FIRST_LEVEL_XP, DEFAULT_FIRST_LEVEL_XP).toString());
-            setIncreaseFactorInput(normalizeNonNegativeInt(ints[3] ?? DEFAULT_INCREASE_FACTOR, DEFAULT_INCREASE_FACTOR).toString());
-            setMaxLevelInput(normalizePositiveInt(ints[4] ?? DEFAULT_MAX_LEVEL, DEFAULT_MAX_LEVEL).toString());
-        } else {
-            setStepSizeInput(normalizeNonNegativeInt(ints[2] ?? DEFAULT_STEP_SIZE, DEFAULT_STEP_SIZE).toString());
-            setMaxLevelInput(normalizePositiveInt(ints[3] ?? DEFAULT_MAX_LEVEL, DEFAULT_MAX_LEVEL).toString());
-        }
+        const ints = trigger?.intData ?? [];
+        const nextMode = ints[1] === 0 ? 0 : ints[1] === 2 ? 2 : 1;
+        setMode(nextMode); setMask((ints[0] ?? 3) & 255);
+        setStep(nextMode === 1 ? (ints[2] ?? 100) : 100);
+        setLinearMax(nextMode === 1 ? boundedMax(ints[3] ?? 50) : 50);
+        setFirstXp(nextMode === 2 ? (ints[2] ?? 100) : 100);
+        setFactor(nextMode === 2 ? (ints[3] ?? 20) : 20);
+        setExponentialMax(nextMode === 2 ? boundedMax(ints[4] ?? 50) : 50);
+        setManual(nextMode === 0 ? (trigger?.stringData ?? '').replace(/\r/g, '') : '');
     }, [trigger]);
-
-    const normalizedStepSize = useMemo(() => normalizeNonNegativeInt(parseIntInput(stepSizeInput, DEFAULT_STEP_SIZE), DEFAULT_STEP_SIZE), [stepSizeInput]);
-    const normalizedMaxLevel = useMemo(() => normalizePositiveInt(parseIntInput(maxLevelInput, DEFAULT_MAX_LEVEL), DEFAULT_MAX_LEVEL), [maxLevelInput]);
-    const normalizedFirstLevelXp = useMemo(
-        () => normalizeNonNegativeInt(parseIntInput(firstLevelXpInput, DEFAULT_FIRST_LEVEL_XP), DEFAULT_FIRST_LEVEL_XP),
-        [firstLevelXpInput]
-    );
-    const normalizedIncreaseFactor = useMemo(
-        () => normalizeNonNegativeInt(parseIntInput(increaseFactorInput, DEFAULT_INCREASE_FACTOR), DEFAULT_INCREASE_FACTOR),
-        [increaseFactorInput]
-    );
-    const normalizedInterpolation = useMemo(() => normalizeInterpolationText(interpolationText), [interpolationText]);
-
-    const previewEntries = useMemo(
-        () => buildPreviewEntries(mode, normalizedStepSize, normalizedMaxLevel, normalizedFirstLevelXp, normalizedIncreaseFactor, normalizedInterpolation),
-        [mode, normalizedFirstLevelXp, normalizedIncreaseFactor, normalizedInterpolation, normalizedMaxLevel, normalizedStepSize]
-    );
-
-    const interpolationPlaceholder = useMemo(() => {
-        const localizedText = LocalizeText('wiredfurni.params.levelup.interpolation_placeholder');
-
-        if (!localizedText || localizedText === 'wiredfurni.params.levelup.interpolation_placeholder') return DEFAULT_PLACEHOLDER;
-
-        return localizedText.includes('5,100') ? localizedText.replace(/,/g, '=') : localizedText;
-    }, []);
-
     const save = () => {
-        const mask = maskOfSubvariables([...selectedSubvariables].sort((left, right) => left - right));
-        // The server takes a maximum level of 2 to 10000 for the levelled modes.
-        const maxLevel = Math.min(10000, Math.max(2, normalizedMaxLevel));
-
-        if (mode === MODE_MANUAL) {
-            setIntParams([mask, NATIVE_MODE_MANUAL]);
-            setStringParam(normalizedInterpolation);
-            return;
-        }
-
-        if (mode === MODE_EXPONENTIAL) {
-            setIntParams([mask, 2, normalizedFirstLevelXp, normalizedIncreaseFactor, maxLevel]);
-        } else {
-            setIntParams([mask, 1, normalizedStepSize, maxLevel]);
-        }
-
-        setStringParam('');
+        setIntParams(mode === 0 ? [mask, 0] : mode === 2 ? [mask, 2, firstXp, factor, boundedMax(exponentialMax)] : [mask, 1, step, boundedMax(linearMax)]);
+        setStringParam(mode === 0 ? manual : '');
     };
-
-    const toggleSubvariable = (subvariable: number) => {
-        setSelectedSubvariables((previousValue) => {
-            if (previousValue.includes(subvariable)) {
-                return previousValue.filter((value) => value !== subvariable);
-            }
-
-            return [...previousValue, subvariable].sort((left, right) => left - right);
-        });
-    };
-
-    const modeOptions = [
-        { value: MODE_LINEAR, label: localizeOrFallback('wiredfurni.params.levelup.mode.1', 'Lineare') },
-        { value: MODE_EXPONENTIAL, label: localizeOrFallback('wiredfurni.params.levelup.mode.2', 'Esponenziale') },
-        {
-            value: MODE_MANUAL,
-            label: localizeWithFallback('wiredfurni.params.levelup.mode.0', localizeOrFallback('wiredfurni.params.levelup.mode.3', 'Manuale'))
+    const namedNumber = (suffix: string, fallback: string, value: number, onChange: (value: number) => void, maximum = false, ariaSuffix = '') => <label style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+        <WiredText text={l(suffix, fallback)} />
+        <WiredNumberInput ariaLabel={`${l(suffix, fallback)}${ariaSuffix}`} value={value} onChange={onChange} min={maximum ? 2 : 1} max={maximum ? MAX_LEVEL : 100000} width={maximum ? 20 : 35} />
+    </label>;
+    const anchors = manualAnchors(manual);
+    const maxLevel = mode === 0 ? anchors[anchors.length - 1][0] : mode === 2 ? exponentialMax : linearMax;
+    const xpForLevel = (level: number) => {
+        if (level > maxLevel) return 'Unreachable level';
+        let xp = 0;
+        if (mode === 1) xp = (level - 1) * step;
+        else if (mode === 2) {
+            const strength = factor / 100;
+            xp = strength === 0 ? firstXp * (level - 1) : Math.trunc(firstXp * ((Math.pow(1 + strength, level - 1) - 1 + 1e-9) / strength));
+        } else if (level > 1) {
+            const upperIndex = anchors.findIndex(([anchorLevel]) => anchorLevel >= level);
+            const [upperLevel, upperXp] = anchors[upperIndex];
+            const [lowerLevel, lowerXp] = anchors[Math.max(0, upperIndex - 1)];
+            xp = level === upperLevel ? upperXp : lowerXp + Math.trunc((upperXp - lowerXp) / (upperLevel - lowerLevel) * (level - lowerLevel));
         }
-    ];
-
-    const subvariableOptions = [
-        { key: SUB_CURRENT_LEVEL, suffix: 'current_level' },
-        { key: SUB_CURRENT_XP, suffix: 'current_xp' },
-        { key: SUB_LEVEL_PROGRESS, suffix: 'progress' },
-        { key: SUB_LEVEL_PROGRESS_PERCENT, suffix: 'progress_percentage' },
-        { key: SUB_TOTAL_XP_REQUIRED, suffix: 'xp_required' },
-        { key: SUB_XP_REMAINING, suffix: 'xp_remaining' },
-        { key: SUB_IS_AT_MAX, suffix: 'is_maxed' },
-        { key: SUB_MAX_LEVEL, suffix: 'max_level' }
-    ];
-
-    return (
-        <WiredExtraBaseView hasSpecialInput={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save} cardStyle={{ width: 260 }}>
-            <div className="volt-wired__levelup">
-                <div className="volt-wired__levelup-section">
-                    <button type="button" className="volt-wired__levelup-section-header" onClick={() => setIsModeSectionOpen((value) => !value)}>
-                        <Text bold>{LocalizeText('wiredfurni.params.levelup.mode')}</Text>
-                        <span className={`volt-wired__levelup-chevron ${isModeSectionOpen ? 'is-open' : ''}`}>^</span>
-                    </button>
-
-                    {isModeSectionOpen && (
-                        <div className="volt-wired__levelup-section-body">
-                            <div className={`volt-wired__levelup-mode-block ${mode === MODE_LINEAR ? 'is-active' : 'is-inactive'}`}>
-                                <label className="volt-wired__levelup-mode-label">
-                                    <input
-                                        checked={mode === MODE_LINEAR}
-                                        className="form-check-input"
-                                        name="wiredVariableLevelUpMode"
-                                        type="radio"
-                                        onChange={() => setMode(MODE_LINEAR)}
-                                    />
-                                    <Text>{localizeOrFallback('wiredfurni.params.levelup.mode.1', 'Lineare')}</Text>
-                                </label>
-                                <div className="volt-wired__levelup-fields">
-                                    <div className="volt-wired__levelup-field-row">
-                                        <Text>{LocalizeText('wiredfurni.params.levelup.step_size')}</Text>
-                                        <VoltInput
-                                            className="volt-wired__levelup-number"
-                                            disabled={mode !== MODE_LINEAR}
-                                            type="number"
-                                            value={stepSizeInput}
-                                            onChange={(event) => setStepSizeInput(event.target.value)}
-                                        />
-                                    </div>
-                                    <div className="volt-wired__levelup-field-row">
-                                        <Text>{LocalizeText('wiredfurni.params.levelup.max_level')}</Text>
-                                        <VoltInput
-                                            className="volt-wired__levelup-number"
-                                            disabled={mode !== MODE_LINEAR}
-                                            type="number"
-                                            value={maxLevelInput}
-                                            onChange={(event) => setMaxLevelInput(event.target.value)}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className={`volt-wired__levelup-mode-block ${mode === MODE_EXPONENTIAL ? 'is-active' : 'is-inactive'}`}>
-                                <label className="volt-wired__levelup-mode-label">
-                                    <input
-                                        checked={mode === MODE_EXPONENTIAL}
-                                        className="form-check-input"
-                                        name="wiredVariableLevelUpMode"
-                                        type="radio"
-                                        onChange={() => setMode(MODE_EXPONENTIAL)}
-                                    />
-                                    <Text>{localizeOrFallback('wiredfurni.params.levelup.mode.2', 'Esponenziale')}</Text>
-                                </label>
-                                <div className="volt-wired__levelup-fields">
-                                    <div className="volt-wired__levelup-field-row">
-                                        <Text>{LocalizeText('wiredfurni.params.levelup.first_level_xp')}</Text>
-                                        <VoltInput
-                                            className="volt-wired__levelup-number"
-                                            disabled={mode !== MODE_EXPONENTIAL}
-                                            type="number"
-                                            value={firstLevelXpInput}
-                                            onChange={(event) => setFirstLevelXpInput(event.target.value)}
-                                        />
-                                    </div>
-                                    <div className="volt-wired__levelup-field-row">
-                                        <Text>{LocalizeText('wiredfurni.params.levelup.increase_factor')}</Text>
-                                        <VoltInput
-                                            className="volt-wired__levelup-number"
-                                            disabled={mode !== MODE_EXPONENTIAL}
-                                            type="number"
-                                            value={increaseFactorInput}
-                                            onChange={(event) => setIncreaseFactorInput(event.target.value)}
-                                        />
-                                    </div>
-                                    <div className="volt-wired__levelup-field-row">
-                                        <Text>{LocalizeText('wiredfurni.params.levelup.max_level')}</Text>
-                                        <VoltInput
-                                            className="volt-wired__levelup-number"
-                                            disabled={mode !== MODE_EXPONENTIAL}
-                                            type="number"
-                                            value={maxLevelInput}
-                                            onChange={(event) => setMaxLevelInput(event.target.value)}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className={`volt-wired__levelup-mode-block ${mode === MODE_MANUAL ? 'is-active' : 'is-inactive'}`}>
-                                <label className="volt-wired__levelup-mode-label">
-                                    <input
-                                        checked={mode === MODE_MANUAL}
-                                        className="form-check-input"
-                                        name="wiredVariableLevelUpMode"
-                                        type="radio"
-                                        onChange={() => setMode(MODE_MANUAL)}
-                                    />
-                                    <Text>
-                                        {localizeWithFallback(
-                                            'wiredfurni.params.levelup.mode.0',
-                                            localizeOrFallback('wiredfurni.params.levelup.mode.3', 'Inserimento manuale')
-                                        )}
-                                    </Text>
-                                </label>
-                                <textarea
-                                    className="form-control form-control-sm volt-wired__levelup-textarea"
-                                    disabled={mode !== MODE_MANUAL}
-                                    placeholder={interpolationPlaceholder}
-                                    value={interpolationText}
-                                    onChange={(event) => setInterpolationText(event.target.value)}
-                                />
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                <div className="volt-wired__divider" />
-
-                <div className="volt-wired__levelup-section">
-                    <button type="button" className="volt-wired__levelup-section-header" onClick={() => setIsPreviewSectionOpen((value) => !value)}>
-                        <Text bold>{LocalizeText('wiredfurni.params.levelup.preview')}</Text>
-                        <span className={`volt-wired__levelup-chevron ${isPreviewSectionOpen ? 'is-open' : ''}`}>^</span>
-                    </button>
-
-                    {isPreviewSectionOpen && (
-                        <div className="volt-wired__levelup-preview">
-                            {previewEntries.map((entry) => (
-                                <div key={entry.level} className="volt-wired__levelup-preview-entry">
-                                    {localizeOrFallback(
-                                        'wiredfurni.params.levelup.preview.entry',
-                                        `Livello: ${entry.level} - XP: ${entry.requiredXp}`,
-                                        ['lvl', 'xp'],
-                                        [entry.level.toString(), entry.requiredXp.toString()]
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-
-                <div className="volt-wired__divider" />
-
-                <div className="volt-wired__levelup-section">
-                    <button type="button" className="volt-wired__levelup-section-header" onClick={() => setIsSubvariablesSectionOpen((value) => !value)}>
-                        <Text bold>{LocalizeText('wiredfurni.params.create_subvariables')}</Text>
-                        <span className={`volt-wired__levelup-chevron ${isSubvariablesSectionOpen ? 'is-open' : ''}`}>^</span>
-                    </button>
-
-                    {isSubvariablesSectionOpen && (
-                        <div className="volt-wired__levelup-subvariables">
-                            {subvariableOptions.map((subvariable) => (
-                                <div key={subvariable.key} className="volt-wired__levelup-subvariable-row">
-                                    <label className="volt-wired__levelup-subvariable-label">
-                                        <input
-                                            checked={selectedSubvariables.includes(subvariable.key)}
-                                            className="form-check-input"
-                                            type="checkbox"
-                                            onChange={() => toggleSubvariable(subvariable.key)}
-                                        />
-                                        <Text>{LocalizeText(`wiredfurni.params.levelup.subvariable.${subvariable.key}`)}</Text>
-                                    </label>
-                                    <input className="volt-wired__levelup-subvariable-token" readOnly tabIndex={-1} type="text" value={subvariable.suffix} />
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
+        return xp > 9223372036854776000 ? 'Out of bounds' : String(xp);
+    };
+    return <WiredExtraBaseView nativeLayout hasSpecialInput requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save}>
+        <WiredCollapsibleSection defaultExpanded title={l('mode', 'Mode')}>
+            <WiredRadioGroup name="level-up-mode" value={mode} onChange={setMode} options={[
+                { id: 1, label: l('mode.1', 'Linear'), extra: <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                    {namedNumber('step_size', 'Step size:', step, setStep)}
+                    {namedNumber('max_level', 'Max level:', linearMax, setLinearMax, true, ' Linear')}
+                </div> },
+                { id: 2, label: l('mode.2', 'Exponential'), extra: <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                    {namedNumber('first_level_xp', 'Base XP:', firstXp, setFirstXp)}
+                    {namedNumber('increase_factor', 'Increase factor (%):', factor, setFactor)}
+                    {namedNumber('max_level', 'Max level:', exponentialMax, setExponentialMax, true, ' Exponential')}
+                </div> },
+                { id: 0, label: l('mode.0', 'Manual'), extra: <WiredTextArea height={60} maxLength={1000} label={l('mode.0', 'Manual')} value={manual}
+                    onChange={value => setManual(value.replace(/[^0-9=\n]/g, ''))} placeholder={l('interpolation_placeholder', '5=100\n10=500\n20=4000')} /> }
+            ]} />
+        </WiredCollapsibleSection>
+        <WiredCollapsibleSection title={l('preview', 'Preview')}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {previewLevels.map(level => <span key={level} data-testid="level-preview-row" style={{ display: 'flex', alignItems: 'baseline' }}>
+                    {l('preview.entry', 'Level: %lvl% - XP: %xp%').split(/(%lvl%|%xp%)/).map((part, index) => <WiredText key={index}
+                        text={part === '%lvl%' ? String(level) : part === '%xp%' ? xpForLevel(level) : part}
+                        color={part === '%lvl%' || part === '%xp%' ? 7501076 : undefined} />)}
+                </span>)}
             </div>
-        </WiredExtraBaseView>
-    );
+        </WiredCollapsibleSection>
+        <WiredCollapsibleSection defaultExpanded title={localizeWithFallback('wiredfurni.params.create_subvariables', 'Create sub-variables:')}>
+            <WiredSubVariableCreator mask={mask} onChange={setMask} options={subvariables.map((name, id) => ({ id, name, label: l(`subvariable.${id}`, subvariableLabels[id]) }))} />
+        </WiredCollapsibleSection>
+    </WiredExtraBaseView>;
 };
