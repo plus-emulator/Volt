@@ -2,6 +2,7 @@ import { IWiredVariableData } from '@volt/renderer';
 import { IWiredVariablePickerEntry } from '../WiredVariablePickerData';
 import { WiredSourceTypeSelector } from '../WiredSourceTypeSelector';
 import { WiredSection } from '../WiredSection';
+import { WiredFurniPickButton } from '../WiredFurniPickButton';
 import { WiredRadioGroup } from '../WiredOptions';
 import { useWiredNative } from '../WiredNativeContext';
 import { FC } from 'react';
@@ -56,8 +57,10 @@ export const VariableQuantifierRadios: FC<{ name: string; value: number; onChang
 /** Primary and secondary pick buttons for the furni slots a card reads from; the active slot receives the next picks. */
 export const FurniPickSlotButtons: FC<{ slots: Array<{ slot: 0 | 1; count: number }> }> = ({ slots }) => {
     const { activePickSlot = 0, setActivePickSlot = null } = useWired();
+    const native = useWiredNative();
 
     if (!slots.length) return null;
+    if (native) return <div style={{ display: 'flex', gap: 2 }}>{slots.filter((entry, index) => slots.findIndex(other => other.slot === entry.slot) === index).map(({ slot }) => <WiredFurniPickButton key={slot} kind={slot === 0 ? 'primary' : 'secondary'} active={activePickSlot === slot} onClick={() => setActivePickSlot?.(slot)} />)}</div>;
 
     return (
         <div className="flex gap-2">

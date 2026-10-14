@@ -291,13 +291,13 @@ export const WiredSourcesSelector: FC<WiredSourcesSelectorProps> = (props) => {
     if (!showFurni && !showUsers) return null;
 
     if (native) {
-        const row = (label: string, onPrevious: () => void, onNext: () => void) => <WiredSourceRow label={LocalizeText(label)} onNext={onNext} onPrevious={onPrevious} />;
+        const row = (label: string, onPrevious: () => void, onNext: () => void, disabled = false) => <WiredSourceRow disabled={disabled} label={LocalizeText(label)} onNext={onNext} onPrevious={onPrevious} />;
 
         return (
             <>
                 {showFurni && (
                     <WiredSection title={LocalizeText(furniTitle)}>
-                        {row(orderedFurniSources[furniIndex].label, prevFurni, nextFurni)}
+                        {row(orderedFurniSources[furniIndex].label, prevFurni, nextFurni, furniDisabled)}
                         {furniDetail}
                     </WiredSection>
                 )}

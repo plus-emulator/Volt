@@ -17,6 +17,7 @@ vi.mock('./WiredText', async () => ({ ...(await vi.importActual('./WiredText')),
 vi.mock('./WiredShellHeaderView', () => ({ WiredShellButton: ({ children, onClick, disabled, style }: ButtonHTMLAttributes<HTMLButtonElement>) => <button style={style} disabled={disabled} onClick={onClick}>{children}</button> }));
 vi.mock('../../mod-tools/native/NativeSkinView', () => ({ NativeSkinView: ({ width, height, state, color }: any) => <canvas data-state={state} data-color={color} width={width} height={height} /> }));
 vi.mock('./conditions/WiredConditionBaseView', () => ({ WiredConditionBaseView: ({ selectionPreview, nativeLayout, save }: { selectionPreview: React.ReactNode; nativeLayout: boolean; save: () => void }) => <WiredNativeContext.Provider value={nativeLayout}>{selectionPreview}<button onClick={save}>Save</button></WiredNativeContext.Provider> }));
+import { WiredSourceRow } from './WiredSourcesSelector';
 import { WiredFurniSelectionSourceRow } from './WiredFurniSelectionSourceRow';
 import { WiredConditionFurniIsOfTypeView } from './conditions/WiredConditionFurniIsOfTypeView';
 const options = [{ value: 100, label: 'selected' }, { value: 0, label: 'trigger' }];
@@ -39,6 +40,12 @@ describe('AIR native furniture source controls', () => {
         view.rerender(<WiredNativeContext.Provider value={true}><WiredFurniSelectionSourceRow {...props} selectionKind="secondary" selectionActive /></WiredNativeContext.Provider>);
         const pick = screen.getByRole('button', { name: 'wiredfurni.params.furni_picking.tooltip 2' }); expect(pick).toHaveAttribute('aria-pressed', 'true'); expect(pick.querySelector('canvas')).toHaveAttribute('data-state', 'pressed'); expect(pick.querySelector('canvas')).toHaveAttribute('data-color', String(0x6168ad));
         fireEvent.click(pick); expect(props.onSelectionActivate).not.toHaveBeenCalled();
+    });
+    it('disables both native source arrows when a mode locks the selection', () => {
+        const change = vi.fn();
+        render(<WiredNativeContext.Provider value={true}><WiredSourceRow label="Fixed" disabled onPrevious={change} onNext={change} /></WiredNativeContext.Provider>);
+        for (const button of screen.getAllByRole('button')) { expect(button).toBeDisabled(); fireEvent.click(button); }
+        expect(change).not.toHaveBeenCalled();
     });
     it('renders quantifier then two source sections and saves both selected lists', () => {
         const { container } = render(<WiredConditionFurniIsOfTypeView negative />);
