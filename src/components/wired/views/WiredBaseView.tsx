@@ -33,6 +33,8 @@ export interface WiredBaseViewProps {
     validate?: () => boolean;
     cardStyle?: CSSProperties;
     footer?: ReactNode;
+    /** Source-type controls placed beside the AIR summary header. */
+    headerControls?: ReactNode;
     footerCollapsible?: boolean;
     selectionPreview?: ReactNode;
     /** False keeps furni picking on but leaves its section out, for views that show it elsewhere. */
@@ -54,6 +56,7 @@ export const WiredBaseView: FC<PropsWithChildren<WiredBaseViewProps>> = (props) 
         hasSpecialInput = false,
         cardStyle = undefined,
         footer = null,
+        headerControls = null,
         footerCollapsible = true,
         selectionPreview = null,
         showSelection = true,
@@ -310,6 +313,7 @@ export const WiredBaseView: FC<PropsWithChildren<WiredBaseViewProps>> = (props) 
                             </Text>
                         )}
                     </div>
+                    {headerControls && <div className="volt-wired__header-controls" style={{ position: 'relative', zIndex: 1, marginLeft: 'auto', flexShrink: 0 }}>{headerControls}</div>}
                 </div>
                 <div className="volt-wired__body">
                     {isWiredVolterStyle(shellStyle) && shellStyle !== 'volter' ? (

@@ -11,6 +11,7 @@ export interface WiredExtraBaseViewProps {
     validate?: () => boolean;
     cardStyle?: CSSProperties;
     footer?: ReactNode;
+    headerControls?: ReactNode;
     footerCollapsible?: boolean;
     selectionPreview?: ReactNode;
     nativeLayout?: boolean;
@@ -26,6 +27,7 @@ export const WiredExtraBaseView: FC<PropsWithChildren<WiredExtraBaseViewProps>> 
         children = null,
         cardStyle = undefined,
         footer = null,
+        headerControls = null,
         footerCollapsible = true,
         selectionPreview = null,
         showSelection = true,
@@ -46,6 +48,7 @@ export const WiredExtraBaseView: FC<PropsWithChildren<WiredExtraBaseViewProps>> 
             wiredType="extra"
             cardStyle={cardStyle}
             footer={footer}
+            headerControls={headerControls}
             footerCollapsible={footerCollapsible}
             selectionPreview={selectionPreview}
             nativeLayout={nativeLayout}
