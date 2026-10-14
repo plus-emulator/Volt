@@ -2,13 +2,14 @@ import { FC, useEffect, useMemo, useState } from 'react';
 import {
     GLOBAL_PLACEHOLDER_NAME_MAX_LENGTH,
     GLOBAL_PLACEHOLDER_VALUE_MAX_LENGTH,
+    LocalizeText,
     localizeWithFallback,
     normalizeGlobalPlaceholderName,
     normalizeGlobalPlaceholderValue,
     WiredFurniType
 } from '../../../../api';
 import { Text } from '../../../../common';
-import { useWired } from '../../../../hooks';
+import { useNotification, useWired } from '../../../../hooks';
 import { VoltInput } from '../../../../layout';
 import { WiredDropdown } from '../WiredDropdown';
 import { WiredRadioGroup } from '../WiredOptions';
@@ -34,6 +35,7 @@ interface ISharedPlaceholder {
  */
 export const WiredExtraGlobalPlaceholderNativeView: FC<{}> = () => {
     const { trigger = null, setIntParams = null, setStringParam = null } = useWired();
+    const { simpleAlert = null } = useNotification();
     const [placeholderName, setPlaceholderName] = useState('');
     const [mode, setMode] = useState(FROM_VALUE);
     const [customText, setCustomText] = useState('');
@@ -92,6 +94,21 @@ export const WiredExtraGlobalPlaceholderNativeView: FC<{}> = () => {
         setSharedPlaceholder(picked);
     };
 
+    // The server refuses a placeholder without a name (a string starting with the tab), so the editor stops it first.
+    const validate = () => {
+        if (normalizeGlobalPlaceholderName(placeholderName).length > 0) return true;
+
+        simpleAlert?.(
+            localizeWithFallback('wiredfurni.error.placeholder.name_length', 'Placeholder length must be between 1 and 40 characters.'),
+            null,
+            null,
+            null,
+            LocalizeText('wiredfurni.title')
+        );
+
+        return false;
+    };
+
     const save = () => {
         const isRoomMode = mode === FROM_ANOTHER_ROOM;
         const source = isRoomMode ? (roomPlaceholders.includes(sharedPlaceholder) ? sharedPlaceholder : '') : normalizeGlobalPlaceholderValue(customText);
@@ -109,6 +126,7 @@ export const WiredExtraGlobalPlaceholderNativeView: FC<{}> = () => {
             nativeLayout={true}
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE}
             save={save}
+            validate={validate}
             cardStyle={{ width: 400 }}
         >
             <WiredSection title={localizeWithFallback('wiredfurni.params.texts.placeholder_name', 'Placeholder name:')}>
