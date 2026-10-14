@@ -12,6 +12,8 @@ import { GetConfigurationValue } from '../../volt/GetConfigurationValue';
 
 export class ChatBubbleUtilities {
     private static MAX_CACHE_SIZE: number = 200;
+    // Rows of the face icon a one-line bubble shows, in CSS pixels.
+    private static FACE_WINDOW_HEIGHT: number = 28;
 
     public static AVATAR_COLOR_CACHE: Map<string, number> = new Map();
     public static AVATAR_IMAGE_CACHE: Map<string, string> = new Map();
@@ -66,7 +68,7 @@ export class ChatBubbleUtilities {
             image.onerror = reject;
             image.src = sourceUrl;
         });
-        const imageUrl = this.focusFace(source, (zoom ? 25 : 50) * (highResolution ? 2 : 1)).toDataURL('image/png');
+        const imageUrl = this.focusFace(source, (zoom ? 25 : 50) * (highResolution ? 2 : 1), highResolution ? 2 : 1).toDataURL('image/png');
         if (isPlaceholder) this.PLACEHOLDER_IMAGE_CACHE.set(placeholderKey, imageUrl);
 
         this.AVATAR_IMAGE_CACHE.set(this.getAvatarImageCacheKey(figure, zoom, highResolution), imageUrl);
@@ -77,12 +79,13 @@ export class ChatBubbleUtilities {
     }
 
     /**
-     * The face icon the official client builds with HabboFaceFocuser: the head centred in the icon, like the
-     * pet heads beside it. The official fixed crop assumes its own avatar canvas, which Volt's head image does
-     * not share, so the head is placed by its visible pixels instead. A head taller than the icon (big hats)
-     * keeps its chin near the bottom, because a bubble shows the icon's bottom rows.
+     * The face icon the official client builds with HabboFaceFocuser. The official fixed crop assumes its own
+     * avatar canvas, which Volt's head image does not share, so the head is placed by its visible pixels instead.
+     * A bubble shows only the icon's bottom rows (about 28 px for one line of text), so the head is centred in
+     * that window, like the pet heads beside it. A head too tall for the window (big hats) keeps its chin near
+     * the bottom instead.
      */
-    private static focusFace(head: HTMLCanvasElement | HTMLImageElement, size: number): HTMLCanvasElement {
+    private static focusFace(head: HTMLCanvasElement | HTMLImageElement, size: number, scale: number): HTMLCanvasElement {
         const width = head.width;
         const height = head.height;
         const source = document.createElement('canvas');
@@ -113,7 +116,8 @@ export class ChatBubbleUtilities {
         const context = face.getContext('2d');
         context.imageSmoothingEnabled = false;
         const headHeight = bottom + 1 - top;
-        const faceY = headHeight <= size ? (size - headHeight) / 2 - top : size * 0.94 - (bottom + 1);
+        const faceWindow = Math.min(size, ChatBubbleUtilities.FACE_WINDOW_HEIGHT * scale);
+        const faceY = headHeight <= faceWindow ? size - (faceWindow + headHeight) / 2 - top : size * 0.94 - (bottom + 1);
 
         context.drawImage(source, Math.round(size / 2 - (left + right + 1) / 2), Math.round(faceY));
 
