@@ -1,280 +1,132 @@
 # Volt
 
-Volt is a fork of [Nitro React](https://github.com/billsonnn/nitro-react) and its companion [Nitro Renderer](https://github.com/billsonnn/nitro-renderer) and is completely independently developed and has no further ties to Billsonnn / Nitro.
+Volt is a Habbo Hotel client UI written in React 19 and TypeScript, built on [Volt-Renderer](https://github.com/plus-emulator/Volt-Renderer). It started as a fork of Nitro React and Nitro Renderer and is developed independently. It is the client for the [PlusEMU](https://github.com/plus-emulator/PlusEMU) emulator.
 
+Highlights:
 
-## Prerequisites
+- Wired editors and creator tools modelled on the official AIR client, including variables, chests, room logs and the variables explorer
+- Catalogue, inventory, navigator, groups, friends, camera, avatar editor, floor plan editor, mod tools, game center and more
+- Split gamedata loading (core, custom and seasonal tiers) and JSON or JSONC configuration files
 
--   [Git](https://git-scm.com/)
--   [NodeJS](https://nodejs.org/) >= 18
-    - If using NodeJS < 18 remove `--openssl-legacy-provider` from the package.json scripts
--   [Yarn](https://yarnpkg.com/) `npm i yarn -g`
+## Requirements
 
-## Quick install (recommended)
+- Node.js 22 (`.nvmrc`; `package.json` requires `>=22.12.0`)
+- Yarn 4 via Corepack (`corepack enable`; the version is pinned by `packageManager`)
+- Git
+- A Volt-Renderer checkout next to this repository
+- A game server (for example PlusEMU) and the converted client assets
 
-The repository ships a cross-platform installer that performs the full setup
-in one go: prerequisites check, renderer clone & link, dependency install,
-config copy, JSON parsing mode selection, URL prompt with validation, and the
-production build.
+## Setup
 
-After cloning Volt, from its root run:
+### 1. Clone both repositories side by side
 
-```
-# Windows
-install.bat
+`vite.config.mjs` and `tsconfig.json` read the renderer source from `../Volt-Renderer` (older folder names `volt-renderer`, `Octane-Renderer` and `renderer` are also accepted).
 
-# Linux / macOS
-./install.sh
-```
-
-Both wrappers just exec `node install.mjs`, so you can also invoke it directly:
-
-```
-node install.mjs
+```sh
+git clone https://github.com/plus-emulator/Volt.git
+git clone https://github.com/plus-emulator/Volt-Renderer.git
+corepack enable
+(cd Volt-Renderer && yarn install)
+(cd Volt && yarn install)
 ```
 
-The installer walks through these steps:
+Re-run `yarn install` in Volt-Renderer whenever it bumps `pixi.js`; the Vite config stops with an error if the installed version does not match.
 
-```
-[1/9] Check prerequisites (node >= 18, yarn, git)
-[2/9] Clone volt-renderer
-[3/9] Setup renderer (yarn install + yarn link)
-[4/9] Setup client (yarn install + yarn link "@volt/renderer")
-[5/9] Copy public/configuration/*.example -> *.json
-[6/9] Choose JSON parsing mode (jsonc recommended) -> writes .volt-build.json
-[7/9] Configure URLs (interactive, validated)
-[8/9] Build (yarn build)
-[9/9] Summary
-```
+### 2. Create the configuration files
 
-### Headless / CI runs
+Runtime configuration lives in `public/configuration/`. Copy the examples (the copies are gitignored):
 
-Every step can be driven from flags so the installer can be used in pipelines:
-
-```
-node install.mjs --non-interactive \
-    --json-mode=jsonc \
-    --socket-url=wss://example.com/ws \
-    --api-url=https://example.com \
-    --asset-url=https://example.com/nitro-assets/ \
-    --image-library-url=https://example.com/c_images \
-    --hof-furni-url=https://example.com/hof_furni \
-    --camera-url=https://example.com/camera \
-    --thumbnails-url=https://example.com/thumbnails \
-    --habbopages-url=/habbopages \
-    --api-base-url=https://example.com \
-    --plain-config-base-url=https://example.com/configuration \
-    --plain-gamedata-base-url=https://example.com/gamedata \
-    --skip-link
+```sh
+cd Volt/public/configuration
+cp renderer-config.json.example.json renderer-config.json
+cp ui-config.example ui-config.json
+cp client-mode.example client-mode.json
 ```
 
-Useful workflow flags:
+| File | Key settings |
+|------|--------------|
+| `renderer-config.json` | `socket.url` (game server WebSocket), `api.url`, `asset.url`, `image.library.url`, `hof.furni.url`, `gamedata.url` and the per-file gamedata URLs |
+| `ui-config.json` | `camera.url`, `thumbnails.url`, `url.prefix`, `habbopages.url`, catalogue and UI options |
+| `client-mode.json` | `secureAssetsEnabled`, `secureApiEnabled`, `distObfuscationEnabled`, `apiBaseUrl`, `plainConfigBaseUrl`, `plainGamedataBaseUrl` |
 
--   `--non-interactive` / `--skip-prompts` — keep example defaults unless a URL override is passed
--   `--json-mode=<jsonc\|legacy\|auto>` — pick the parser without the JSON mode prompt
--   `--skip-build`, `--skip-clone`, `--skip-link` — re-runs without redoing those steps
--   `--help` — full flag reference and per-key URL flags
+Translations (`UITexts_*.jsonc.example`, `QuestUITexts.jsonc.example`) and `hotlooks.example` sit in the same folder.
 
-`install.mjs` is idempotent: re-running it keeps any `*.json` config files
-that already exist and only patches the URL keys you pass on the CLI.
+### 3. Connect to an emulator
 
-## Splitting gamedata
+- `socket.url` - the emulator's WebSocket server. For PlusEMU this is the `Nitro` section of `Config/config.json` (default port 2096), e.g. `ws://127.0.0.1:2096` locally or `wss://` behind a TLS proxy.
+- `api.url` - the HTTP API used for login, maintenance and auth. The dev server proxies `/api/*` to `AUTH_PROXY_TARGET`, else `api.url`, else `http://127.0.0.1:2096`.
+- The client reads an SSO ticket from the `?sso=` query parameter.
 
-The renderer can load gamedata files (FigureData, FurnitureData, FigureMap,
-EffectMap, ProductData, HabboAvatarActions, ExternalTexts, UITexts) either as
-a single legacy JSON/JSONC file or as a **directory of small files** organised
-in three tiers: `core/` (vendor baseline), `custom/` (your additions / overrides),
-`seasonal/` (date-bound content such as Christmas or Easter).
+In development, assets can be served from a sibling `../Nitro-Files/` directory: `nitro-assets/` is mounted at `/nitro-assets` and `swf/` at `/swf`.
 
-The split layout is much easier to maintain — you edit a small focused file
-instead of a 43 MB FurnitureData.json — and lets you keep vendor and operator
-content cleanly separated.
+### 4. Run
 
-### Directory layout
-
-```
-nitro-assets/gamedata/furnidata/
-  manifest.jsonc           # { "tiers": ["core", "custom", "seasonal"] }
-  core/
-    manifest.jsonc         # { "files": ["floor-001.jsonc", ..., "wall-001.jsonc"] }
-    floor-001.jsonc
-    floor-002.jsonc
-    wall-001.jsonc
-  custom/                  # OPTIONAL — created by you
-    manifest.jsonc         # { "files": ["my-rares.jsonc"] }
-    my-rares.jsonc
-  seasonal/                # OPTIONAL — created by you
-    manifest.jsonc
-    xmas-2026.jsonc
+```sh
+yarn start        # Vite dev server with hot reload (listens on all interfaces)
 ```
 
-Each tier is loaded in order. Within a tier, files load in the order listed in
-its `manifest.jsonc`. Items in later layers override items in earlier layers
-when they share the same identifier (`id`, `classname`, `name`, or the
-top-level key for flat dictionaries).
+## Building for production
 
-### Generating the `core/` tier from a legacy file
+| Command | What it does |
+|---------|--------------|
+| `yarn vite build` | Plain Vite build into `dist/`. This is what the release workflow publishes. |
+| `yarn build` | `prebuild` (JSON mode prompt if unset, writes `public/configuration/bootstrap.js` and `asset-loader.js`), then `vite build`, then `scripts/minify-dist.mjs`, which minifies JSON and writes gzip-encoded `.dat` copies of the JS and CSS for the obfuscated loader. |
+| `yarn build:prod` | Updates the browserslist database, then runs `yarn build`. |
+| `yarn preview` | Serves `dist/` locally. |
 
-Use the bundled CLI splitter:
+Upload the contents of `dist/` to your web server together with your configuration files. Set `VITE_BASE` to change the base path (default `./`).
 
+## JSON or JSONC configuration
+
+Configuration and gamedata files can be parsed as strict JSON (`legacy`), JSONC with comments and trailing commas (`jsonc`), or `auto` (strict first, then JSONC). The mode is baked in at build time:
+
+```sh
+yarn configure                    # interactive, writes .volt-build.json
+VOLT_JSON_MODE=jsonc yarn build   # one-off override
 ```
-node scripts/split-gamedata.mjs \
-    --input ~/legacy-gamedata/FurnitureData.json \
-    --output ~/nitro-assets/gamedata/furnidata
+
+Without a setting, plain `vite` builds use `auto`.
+
+## Split gamedata
+
+Gamedata (FurnitureData, FigureData, FigureMap, EffectMap, ProductData, HabboAvatarActions, ExternalTexts, UITexts) can be a single file or a directory of small files in `core/`, `custom/` and `seasonal/` tiers, each listed in a `manifest.jsonc`. Later tiers override earlier ones. Point the URL at the directory with a trailing slash:
+
+```jsonc
+"furnidata.url": "https://example.com/gamedata/furnidata/"
 ```
 
-It auto-detects the gamedata type from the file's top-level keys and applies
-the strategy that makes the most sense:
+Generate the `core/` tier from a legacy file:
 
-| Type                 | Split strategy                              |
-|----------------------|---------------------------------------------|
-| EffectMap            | one file per effect `type` (dance, fx, ...) |
-| FigureData           | one `palettes.jsonc` + one file per setType |
-| FigureMap            | chunks of `libraries` (default 500/file)    |
-| FurnitureData        | floor / wall, chunks of `furnitype` (300)   |
-| HabboAvatarActions   | grouped by `state` (or single file if ≤1)   |
-| ProductData          | chunks of products (default 500)            |
-| ExternalTexts/UITexts| grouped by key prefix (e.g. `gamecenter.*`) |
-
-Useful flags: `--type=<name>` to force the type, `--chunk-size=N` to override
-the default chunk size, `--json` to emit standard JSON instead of JSONC,
-`--force` to overwrite an existing output directory. Full reference:
-
-```
+```sh
+node scripts/split-gamedata.mjs --input FurnitureData.json --output gamedata/furnidata
 node scripts/split-gamedata.mjs --help
 ```
 
-We only ship the `core/` tier with vendor baselines — `custom/` and `seasonal/`
-are operator-owned: create their manifests when you need them and the loader
-picks them up automatically.
+## Development scripts
 
-### Pointing the renderer at a directory
+| Command | Purpose |
+|---------|---------|
+| `yarn typecheck` | Type check with `tsgo` (TypeScript native preview) |
+| `yarn lint` / `yarn lint:fix` | Biome lint on `src/` |
+| `yarn check:biome` / `yarn format` | Biome check / format |
+| `yarn lint:hooks` | ESLint rules-of-hooks gate (run in CI) |
+| `yarn test` / `yarn test:watch` | Vitest |
+| `yarn verify:jsonc` | Validate JSONC files |
 
-In `public/configuration/renderer-config.json`, replace the legacy file URL
-with the directory URL (note the trailing slash — that's how the loader
-detects split mode):
+`yarn typecheck` also expects the renderer linked at `node_modules/@volt/renderer`:
 
-```jsonc
-{
-  // single file (legacy, still supported):
-  "furnidata.url": "https://example.com/nitro-assets/gamedata/FurnitureData.json",
-
-  // directory (split mode):
-  "furnidata.url": "https://example.com/nitro-assets/gamedata/furnidata/",
-}
+```sh
+mkdir -p node_modules/@volt && ln -sfn "$(realpath ../Volt-Renderer)" node_modules/@volt/renderer
 ```
 
-Both styles work; you can migrate one gamedata file at a time.
+CI runs the type check, the hooks lint and the tests on pushes and pull requests.
 
-## Installation (manual)
+## Releases
 
--   First you should open terminal and navigate to the folder where you want to clone Volt and Volt Renderer
--   Clone Volt (Expl. C:\Github\)
-  -   `git clone https://github.com/duckietm/Octane.git` <== For now switch to Dev-RendererV2
-	-   `git clone https://github.com/duckietm/Octane-Renderer.git`
-	-   Install the dependencies for the renderer : cd C:\Github\volt-renderer
-    	-   `yarn install`
-	-	Now we will create a Link for the Volt Renderer : `yarn link` This will give you a link address `yarn link "@volt/renderer"`
-    -   Install the dependencies for Cool UI : cd C:\Github\volt
-	-   `yarn install`
- -  -   Rename a few files
-    -   Copy `public/configuration/renderer-config.example` to `public/configuration/renderer-config.json`
-    -   Copy `public/configuration/ui-config.example` to `public/configuration/ui-config.json`
-    -   Copy `public/configuration/client-mode.example` to `public/configuration/client-mode.json`
-    -   Set your links
-    -   Open `public/configuration/renderer-config.json`
-        -   Update `socket.url, asset.url, image.library.url, & hof.furni.url`
-    -   Open `public/configuration/ui-config.json`
-        -   Update `camera.url, thumbnails.url, url.prefix, habbopages.url`
-	-   `yarn build` <== the final step to build the DIST folder this is where your browser needs to point / or upload this to your /client if you do the compile on a other machine (preferd)
-    -   You can override any variable by passing it to `VoltConfig` in the index.html
+Every push to `main` builds the client with `yarn vite build` against Volt-Renderer `main` and publishes a GitHub release tagged `client-v<package version>-<short sha>` with `volt-client.zip` (the contents of `dist/`). Hotel installers download the latest release.
 
-## JSON / JSONC configuration mode
+The bundled `install.mjs` predates the current layout (it expects `renderer-config.example` and clones the upstream Octane-Renderer by default); follow the manual steps above instead.
 
-Starting with this version of Volt, you can choose how the client parses the
-configuration files (`renderer-config.json`, `ui-config.json`, `client-mode.json`,
-and the gamedata JSONs served by the renderer):
+## Licence
 
--   **JSONC** (recommended) — accepts comments and trailing commas while still
-    requiring double-quoted keys and strings. It is easier to maintain in `ui-config.json`
-    where you may want inline notes.
--   **JSON (legacy strict)** — only valid standard JSON is accepted. Any comment
-    or trailing comma will fail the load with a clear error.
-
-### Picking a mode
-
-The first time you run `yarn start` or `yarn build`, an interactive prompt asks
-which mode to use:
-
-```
-════════════════════════════════════════════════════════════
-  Volt — JSON mode configuration
-════════════════════════════════════════════════════════════
-
-  1) JSONC  (recommended)
-  2) JSON   (legacy strict)
-  auto      Try strict JSON first, then JSONC
-
-Choice [1=JSONC]:
-```
-
-Your choice is stored in `.volt-build.json` at the project root (gitignored, so
-each deployment keeps its own setting). Subsequent builds reuse it silently.
-
-### Changing the mode later
-
-Run the prompt again at any time:
-
-```
-yarn configure
-```
-
-You can also set the mode without interaction (useful in CI / scripts):
-
-```
-# one-shot override for a single build
-NITRO_JSON_MODE=legacy yarn build
-NITRO_JSON_MODE=jsonc  yarn build
-
-# write the choice persistently
-echo '{"jsonMode":"legacy"}' > .volt-build.json
-```
-
-The recognized values are `legacy`, `jsonc`, and `auto` (auto = try strict JSON
-first, fall back to JSONC — equivalent to the original Render V3 behaviour).
-
-### How it propagates
-
-The chosen mode is injected at build time as the compile-time constant
-`__VOLT_JSON_MODE__`. It is honoured by:
-
--   `src/bootstrap.ts` when loading `client-mode.json`
--   `@volt/utils` → `JsonParser.ts` in Render V3, used for every config file
-    and every gamedata JSON loaded by the renderer
-
-In `legacy` mode, an invalid file produces a clear error that suggests switching
-to JSONC; nothing is silently coerced.
-
-## Usage
-
--   To use Volt you need `.nitro` assets generated, see [volt-converter](https://git.krews.org/volt/volt-converter) for instructions
--   See [Morningstar Websockets](https://git.krews.org/volt/ms-websockets) for instructions on configuring websockets on your server
-
-### Development
-
-Run Volt in development mode when you are editing the files, this way you can see the changes in your browser instantly
-
-```
-yarn start
-```
-
-### Production
-
-To build a production version of Volt just run the following command
-
-```
-yarn build:prod
-```
-
--   A `dist` folder will be generated, these are the files that must be uploaded to your webserver
--   Consult your CMS documentation for compatibility with Volt and how to add the production files
+GPL-3.0. See [LICENSE](LICENSE).
