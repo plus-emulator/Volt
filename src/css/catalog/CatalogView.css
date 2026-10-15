@@ -366,6 +366,10 @@
     overflow: auto;
 }
 
+.volt-catalog-navigation-scroll-area {
+    height: 100%;
+}
+
 /* Reserve only the visible scrollbar; selection fills the remaining row. */
 .volt-catalog-navigation-scroll-area:has(> .volt-classic-scrollbar[data-visible='true']) > .volt-classic-scroll-area-viewport {
     padding-right: 17px;
