@@ -2325,7 +2325,7 @@
     min-height: 24px !important;
     padding: 0 !important;
     border: 0 !important;
-    border-image: none !important;
+    border-image-source: none !important;
     border-radius: 0 !important;
     background: transparent !important;
     background-image: none !important;

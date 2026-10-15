@@ -58,6 +58,13 @@ describe('Native variable action read/edit/save', () => {
         const values = state.setIntParams.mock.lastCall![0]; expect(values.slice(View === WiredActionGiveVariableView ? 1 : 3, View === WiredActionGiveVariableView ? 3 : 5)).toEqual([-2147483648, 0]);
         fireEvent.change(input, { target: { value: '9223372036854775808' } }); expect(screen.getByRole('button', { name: 'Save' })).toHaveProperty('disabled', true);
     });
+    it('shows the reference holder as a second footer section, disabled for unary operations', () => {
+        state.trigger.intData = [1, 1, 1, 0, 0, 1, 0]; render(<WiredActionChangeVariableValueView />);
+        const reference = screen.getByRole('textbox', { name: 'Source 1' });
+        expect(reference.closest('fieldset')).toHaveProperty('disabled', false);
+        fireEvent.change(screen.getByRole('combobox', { name: 'Operation' }), { target: { value: '103' } });
+        expect(screen.getByRole('textbox', { name: 'Source 1' }).closest('fieldset')).toHaveProperty('disabled', true);
+    });
     it('saves Change seven fields and disables but preserves reference UI for unary operations', () => {
         state.trigger.intData = [1, 1, 1, 0, 0, 1, 1]; render(<WiredActionChangeVariableValueView />); save();
         expect(state.setIntParams).toHaveBeenLastCalledWith([1, 1, 1, 0, 0, 1, 1]); expect(state.setVariableIds).toHaveBeenLastCalledWith(['destination', 'reference']);
