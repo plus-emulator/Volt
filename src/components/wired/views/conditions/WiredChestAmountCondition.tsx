@@ -4,7 +4,7 @@ import { useWired } from '../../../../hooks';
 import { AMOUNT_TARGETS } from '../actions/WiredChestRewardForm';
 import { WIRED_CMP_GREATER, WiredComparisonOperator } from '../WiredComparisonOperator';
 import { WiredSection } from '../WiredSection';
-import { WiredSourcesSelector } from '../WiredSourcesSelector';
+import { WiredMergedSourceSection, WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredActionValueOrVariableSection } from '../actions/WiredActionValueOrVariableSection';
 import { WiredConditionBaseView } from './WiredConditionBaseView';
 import { FurniPickSlotButtons } from './WiredVariableConditionParts';
@@ -101,24 +101,6 @@ export const WiredChestAmountCondition: FC<{ itemTypes: boolean }> = ({ itemType
                         furniTitle="wiredfurni.params.sources.furni.title.chests"
                         onChangeFurni={(source) => setSource(chestSlot, source)}
                     />
-                    {useVariable && target === 'furni' && (
-                        <WiredSourcesSelector
-                            showFurni={true}
-                            furniSlot={mergedSlot}
-                            furniSource={sources[mergedSlot] ?? 0}
-                            furniTitle="wiredfurni.params.sources.merged.title.variables_reference"
-                            onChangeFurni={(source) => setSource(mergedSlot, source)}
-                        />
-                    )}
-                    {useVariable && target === 'user' && (
-                        <WiredSourcesSelector
-                            showUsers={true}
-                            userSlot={0}
-                            userSource={mergedUser}
-                            usersTitle="wiredfurni.params.sources.merged.title.variables_reference"
-                            onChangeUsers={setMergedUser}
-                        />
-                    )}
                     {itemTypes && (
                         <FurniPickSlotButtons
                             slots={pickSlots.map((slot) => ({ slot: slot as 0 | 1, count: slot === 0 ? furniIds.length : secondaryFurniIds.length }))}
@@ -151,6 +133,10 @@ export const WiredChestAmountCondition: FC<{ itemTypes: boolean }> = ({ itemType
                 variableToken={variableToken}
                 onVariableTokenChange={setVariableToken}
                 onValidityChange={setAmountValid}
+                // AIR ChestHasAmount.as:85,99-122 / class_4163.as:27-30 (WIN63-202610131318): the merged slot ([[1,0]] / [[2,0]]) is claimed by
+                // the value-or-variable section (ValueOrVariableSection.as:290-304) and drawn in its popup, not in the footer.
+                popupSources={<WiredMergedSourceSection bare scope={target} title="wiredfurni.params.sources.merged.title.variables" furniSlot={mergedSlot} userSlot={0}
+                    furniSource={sources[mergedSlot] ?? 0} userSource={mergedUser} onChangeFurni={(source) => setSource(mergedSlot, source)} onChangeUsers={setMergedUser} />}
             />
         </WiredConditionBaseView>
     );

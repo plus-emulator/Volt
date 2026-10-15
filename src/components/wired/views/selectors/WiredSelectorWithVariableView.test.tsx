@@ -45,9 +45,11 @@ describe('AIR WithVariable selector read/edit/save', () => {
         expect(state.setUserSources).toHaveBeenLastCalledWith([201]);
         choose(); const popup = screen.getByRole('dialog');
         expect(within(popup).getByRole('checkbox')).toHaveProperty('checked', true);
-        expect(within(popup).queryByRole('textbox', { name: 'Reference source' })).toBeNull();
+        // AIR ValueOrVariablePopupPreset.applyReferenceVariableOnTargetState (L337-363): the locked holder row stays visible but greyed.
+        expect(within(popup).getByRole('textbox', { name: 'Reference source' }).closest('fieldset')).toHaveProperty('disabled', true);
         fireEvent.click(within(popup).getByRole('checkbox')); save();
         expect(state.setIntParams.mock.lastCall![0][5]).toBe(0);
+        expect(within(popup).getByRole('textbox', { name: 'Reference source' }).closest('fieldset')).toHaveProperty('disabled', false);
         expect(within(popup).getByRole('textbox', { name: 'Reference source' })).toHaveProperty('value', selectorTarget === 'user' ? '201' : '100');
     });
     it('shows comparisons in AIR order and saves signed32 literal boundaries with sign extension', () => {

@@ -17,7 +17,7 @@ vi.mock('../../../../hooks', () => ({ useWired: () => state, useWiredNativeVaria
 vi.mock('../../../../common', () => ({ Text: ({ children }: PropsWithChildren) => <span>{children}</span> }));
 vi.mock('../WiredText', () => ({ WiredText: ({ text }: { text: string }) => <span>{text}</span> }));
 vi.mock('../conditions/WiredVariableConditionParts', () => ({ FurniPickSlotButtons: () => null }));
-vi.mock('../WiredSourcesSelector', () => ({ WiredSourcesSelector: () => null }));
+vi.mock('../WiredSourcesSelector', () => ({ WiredSourcesSelector: () => null, WiredHolderSourceSection: ({ scope }: any) => <span>{`holder ${scope}`}</span>, WiredMergedSourceSection: ({ scope, bare, disabled, furniSlot = 0, userSlot = 0, furniSource, userSource, onChangeFurni, onChangeUsers }: any) => { const content = scope === 'global' || scope === 'context' ? <span>{`holder ${scope}`}</span> : <input aria-label={`Merged ${scope === 'furni' ? 'furni' : 'user'} ${scope === 'furni' ? furniSlot : userSlot}${bare ? ' bare' : ''}`} value={scope === 'furni' ? furniSource : userSource} onChange={event => (scope === 'furni' ? onChangeFurni : onChangeUsers)(Number(event.target.value))} />; return disabled ? <fieldset disabled>{content}</fieldset> : content; } }));
 vi.mock('../WiredSourceTypeSelector', () => ({ WiredSourceTypeSelector: ({ types, onChange }: { types: string[]; onChange: (value: string) => void }) => <div>{types.map(type => <button key={type} onClick={() => onChange(type)}>{type}</button>)}</div> }));
 vi.mock('../WiredVariablePickerData', () => ({
     buildWiredVariablePickerEntries: () => [
@@ -141,5 +141,15 @@ describe('AIR Custom Contract native sections and packets', () => {
         open('Choose variable');
         fireEvent.click(screen.getByRole('checkbox', { name: 'Enable payment' }));
         expect(screen.queryByRole('dialog')).toBeNull();
+    });
+
+    it('draws each side\'s claimed merged holder ([[2,0],[3,1]]) inside its amount popup (AIR class_4265.as:218-252)', () => {
+        render(<WiredCustomContractView />);
+        open('Payment');
+        expect(screen.queryByRole('textbox', { name: 'Merged furni 2 bare' })).toBeNull();
+        fireEvent.click(screen.getAllByRole('button', { name: 'Choose variable' })[0]);
+        expect(screen.getByRole('textbox', { name: 'Merged furni 2 bare' })).toHaveProperty('value', '301');
+        fireEvent.click(screen.getByRole('button', { name: 'context' }));
+        expect(screen.getByText('holder context')).toBeTruthy();
     });
 });

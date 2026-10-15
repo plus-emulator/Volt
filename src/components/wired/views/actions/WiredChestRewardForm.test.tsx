@@ -17,7 +17,7 @@ vi.mock('../../../../hooks', () => ({ useWired: () => state, useWiredNativeVaria
 vi.mock('../../../../common', () => ({ Text: ({ children }: PropsWithChildren) => <span>{children}</span> }));
 vi.mock('../WiredText', () => ({ WiredText: ({ text }: { text: string }) => <span>{text}</span> }));
 vi.mock('../conditions/WiredVariableConditionParts', () => ({ FurniPickSlotButtons: () => null }));
-vi.mock('../WiredSourcesSelector', () => ({ WiredSourcesSelector: () => null }));
+vi.mock('../WiredSourcesSelector', () => ({ WiredSourcesSelector: () => null, WiredHolderSourceSection: ({ scope }: any) => <span>{`holder ${scope}`}</span>, WiredMergedSourceSection: ({ scope, bare, disabled, furniSlot = 0, userSlot = 0, furniSource, userSource, onChangeFurni, onChangeUsers }: any) => { const content = scope === 'global' || scope === 'context' ? <span>{`holder ${scope}`}</span> : <input aria-label={`Merged ${scope === 'furni' ? 'furni' : 'user'} ${scope === 'furni' ? furniSlot : userSlot}${bare ? ' bare' : ''}`} value={scope === 'furni' ? furniSource : userSource} onChange={event => (scope === 'furni' ? onChangeFurni : onChangeUsers)(Number(event.target.value))} />; return disabled ? <fieldset disabled>{content}</fieldset> : content; } }));
 vi.mock('../WiredSourceTypeSelector', () => ({ WiredSourceTypeSelector: ({ types, onChange }: { types: string[]; onChange: (value: string) => void }) => <div>{types.map(type => <button key={type} onClick={() => onChange(type)}>{type}</button>)}</div> }));
 vi.mock('../WiredVariablePickerData', () => ({
     buildWiredVariablePickerEntries: () => [
@@ -108,5 +108,15 @@ describe('AIR chest reward form sections and wire values', () => {
         expect(state.setIntParams).toHaveBeenLastCalledWith([1, 7, 1, 1, 0, 1]);
         expect(state.setUserSources).toHaveBeenLastCalledWith([202, 203]);
         expect(state.setVariableIds).toHaveBeenLastCalledWith(['pay']);
+    });
+
+    it('draws the claimed reference holder (merged [[1,1]]) in the amount popup, not the footer (AIR class_4173.as:166-184)', () => {
+        state.trigger.intData = [0, 7, 1, 1, 1, 13]; state.trigger.userSources = [202, 203];
+        render(<WiredChestRewardForm kind="currency" />);
+        expect(screen.queryByRole('textbox', { name: 'Merged user 1 bare' })).toBeNull();
+        fireEvent.click(screen.getByRole('button', { name: 'Choose variable' }));
+        expect(screen.getByRole('textbox', { name: 'Merged user 1 bare' })).toHaveProperty('value', '203');
+        fireEvent.click(screen.getByRole('button', { name: 'context' }));
+        expect(screen.getByText('holder context')).toBeTruthy();
     });
 });

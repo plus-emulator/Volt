@@ -3,7 +3,7 @@ import { localizeWithFallback, WiredFurniType } from '../../../../api';
 import { useWired } from '../../../../hooks';
 import { FurniPickSlotButtons } from '../conditions/WiredVariableConditionParts';
 import { WiredCheckboxOption, WiredRadioGroup } from '../WiredOptions';
-import { WiredSourcesSelector } from '../WiredSourcesSelector';
+import { WiredMergedSourceSection, WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredActionValueOrVariableSection } from './WiredActionValueOrVariableSection';
 import { WiredNumberInput } from '../WiredNumberInput';
 import { WiredSection } from '../WiredSection';
@@ -110,16 +110,6 @@ export const WiredActionInitTransactionView: FC<{}> = () => {
                     <WiredSourcesSelector showFurni={true} furniSlot={0} furniSource={chestSource} furniTitle="wiredfurni.params.sources.furni.title.chests" onChangeFurni={(source) => pick(source, setChestSource)} />
                     <WiredSourcesSelector showFurni={true} furniSlot={1} furniSource={contractSource} furniTitle="wiredfurni.params.sources.furni.title.contracts" onChangeFurni={(source) => pick(source, setContractSource)} />
                     <FurniPickSlotButtons slots={lists.map((slot) => ({ slot: slot as 0 | 1, count: slot === 0 ? furniIds.length : secondaryFurniIds.length }))} />
-                    {useVariable && target === 'furni' && (
-                        <fieldset disabled={multiplierDisabled} inert={multiplierDisabled} style={{ border: 0, margin: 0, padding: 0, opacity: multiplierDisabled ? .5 : 1 }}>
-                            <WiredSourcesSelector showFurni={true} furniSlot={2} furniSource={mergedFurniSource} furniTitle="wiredfurni.params.sources.merged.title.variables_reference" onChangeFurni={setMergedFurniSource} />
-                        </fieldset>
-                    )}
-                    {useVariable && target === 'user' && (
-                        <fieldset disabled={multiplierDisabled} inert={multiplierDisabled} style={{ border: 0, margin: 0, padding: 0, opacity: multiplierDisabled ? .5 : 1 }}>
-                            <WiredSourcesSelector showUsers={true} userSlot={1} userSource={mergedUserSource} usersTitle="wiredfurni.params.sources.merged.title.variables_reference" onChangeUsers={setMergedUserSource} />
-                        </fieldset>
-                    )}
                 </>
             }
         >
@@ -134,7 +124,11 @@ export const WiredActionInitTransactionView: FC<{}> = () => {
                 recentScope="transaction-multiplier" min={MULTIPLIER_MIN} max={MULTIPLIER_MAX}
                 literal={multiplier} onLiteralChange={setMultiplier} option={useVariable ? 1 : 0} onOptionChange={option => setUseVariable(option === 1)}
                 target={target} onTargetChange={setTarget} variableToken={variableToken} onVariableTokenChange={setVariableToken}
-                disabled={multiplierDisabled} onValidityChange={setMultiplierValid} />
+                disabled={multiplierDisabled} onValidityChange={setMultiplierValid}
+                // AIR class_4180.as:84,98-105,130-153 (WIN63-202610131318): merged [[2,1]] is claimed by the multiplier section and drawn in its
+                // popup; isInputSourceDisabled(0) mirrors the section's disabled state.
+                popupSources={<WiredMergedSourceSection bare scope={target} title="wiredfurni.params.sources.merged.title.variables" furniSlot={2} userSlot={1}
+                    furniSource={mergedFurniSource} userSource={mergedUserSource} disabled={multiplierDisabled} onChangeFurni={setMergedFurniSource} onChangeUsers={setMergedUserSource} />} />
             <WiredSection title={localizeWithFallback('wiredfurni.params.contract.timeout', 'Time-out:')}>
                 <WiredCheckboxOption checked={timeoutEnabled} label={localizeWithFallback('wiredfurni.params.contract.timeout.desc', 'Automatically cancel trade after timeout')} onChange={setTimeoutEnabled} last />
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginLeft: 25, marginTop: 3, opacity: timeoutEnabled ? 1 : .5 }}>

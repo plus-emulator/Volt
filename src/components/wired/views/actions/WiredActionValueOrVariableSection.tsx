@@ -47,6 +47,8 @@ export const normalizeWiredValueTarget = (value: number | undefined): WiredValue
 
 export const getWiredValueTargetCode = (type: WiredValueTargetType): number => WIRED_NATIVE_VARIABLE_TARGET[type];
 
+const ALL_TARGET_TYPES: WiredValueTargetType[] = ['furni', 'user', 'global', 'context'];
+
 const TARGET_BUTTONS: Array<{ key: WiredValueTargetType; icon: string }> = [
     { key: 'furni', icon: furniVariableIcon },
     { key: 'user', icon: userVariableIcon },
@@ -75,6 +77,8 @@ export interface WiredActionValueOrVariableSectionProps {
     sameHolder?: boolean;
     onSameHolderChange?: (value: boolean) => void;
     popupSources?: ReactNode;
+    /** The section's allowed holder types (AIR createValueOrVariableSection param2, mergedSourceOptions); one type hides the selector (ValueOrVariablePopupPreset.refreshTargetSelector L365-381). */
+    targetTypes?: WiredValueTargetType[];
     onLiteralChange: (value: number) => void;
     target: WiredValueTargetType;
     onTargetChange: (target: WiredValueTargetType) => void;
@@ -189,6 +193,7 @@ export const WiredActionValueOrVariableSection: FC<WiredActionValueOrVariableSec
 /** AIR25 ValueOrVariableInputPreset: an editable number/name field with a reference chooser. */
 const NativeValueOrVariable: FC<WiredActionValueOrVariableSectionProps & { entries: ReturnType<typeof buildWiredVariablePickerEntries> }> = (props) => {
     const { title, targetTitle, recentScope, option, literal, min, max, target, variableToken, entries, disabled = false, onOptionChange, onLiteralChange, onTargetChange, onVariableTokenChange, onValidityChange } = props;
+    const targetTypes = props.targetTypes ?? ALL_TARGET_TYPES;
     const flatEntries = flattenWiredVariablePickerEntries(entries);
     const selected = flatEntries.find(entry => entry.token === variableToken);
     const shown = props.variableOnlyOrEmpty || option === WIRED_VALUE_OPTION_VARIABLE ? selected?.displayLabel ?? variableToken : props.literalText ?? String(literal);
@@ -262,11 +267,17 @@ const NativeValueOrVariable: FC<WiredActionValueOrVariableSectionProps & { entri
                 </div>
                 {open && !disabled && (
                     <div role="dialog" aria-label={targetTitle} className="volt-wired__value-chooser" style={{ position: 'absolute', zIndex: 100, top: '100%', right: 0, width: 260, border: '1px solid #000', padding: 8, background: '#e9e9e1' }}>
-                        <div className="flex items-center justify-between gap-2">
-                            <WiredText text={targetTitle} bold />
-                            <WiredSourceTypeSelector types={['furni', 'user', 'global', 'context']} value={target} disabled={sourceLocked} onChange={next => { onTargetChange(next); onVariableTokenChange(''); }} />
-                        </div>
-                        {props.popupSources}
+                        {props.popupSources !== undefined
+                            // AIR ValueOrVariablePopupPreset.attachInputSource (L156-181): the claimed merged slot is the popup's first section,
+                            // "Variables:" with the type selector in its header; both grey out while the same holder locks the source (L337-363).
+                            ? <WiredSection title={localizeWithFallback('wiredfurni.params.sources.merged.title.variables', 'Variables:')}
+                                headerOptionsRight={targetTypes.length > 1 ? <WiredSourceTypeSelector types={targetTypes} value={target} disabled={sourceLocked} onChange={next => { onTargetChange(next); onVariableTokenChange(''); }} /> : null}>
+                                <fieldset disabled={sourceLocked} inert={sourceLocked} style={{ minWidth: 0, border: 0, padding: 0, margin: 0, opacity: sourceLocked ? 0.5 : undefined }}>{props.popupSources}</fieldset>
+                            </WiredSection>
+                            : <div className="flex items-center justify-between gap-2">
+                                <WiredText text={targetTitle} bold />
+                                {targetTypes.length > 1 && <WiredSourceTypeSelector types={targetTypes} value={target} disabled={sourceLocked} onChange={next => { onTargetChange(next); onVariableTokenChange(''); }} />}
+                            </div>}
                         {props.onSameHolderChange && <WiredCheckboxOption label={localizeWithFallback('wiredfurni.params.variables.reference_value.same_holder', 'Use the same variable holder')} checked={!!props.sameHolder} disabled={!sameHolderEligible} onChange={checked => { props.onSameHolderChange(checked); if (checked) onOptionChange(WIRED_VALUE_OPTION_VARIABLE); }} />}
                         <WiredVariablePicker entries={entries} recentScope={recentScope} selectedToken={variableToken} onSelect={entry => {
                             onOptionChange(WIRED_VALUE_OPTION_VARIABLE);

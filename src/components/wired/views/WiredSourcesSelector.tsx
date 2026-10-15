@@ -104,6 +104,12 @@ interface WiredSourcesSelectorProps {
     allowClickedUserSource?: boolean;
     furniDetail?: ReactNode;
     userDetail?: ReactNode;
+    /** Right-aligned header option of the shown section (AIR InputSourceSection's merged source type selector). */
+    headerOption?: ReactNode;
+    /** Only the source row, for a section the owner draws (AIR ValueOrVariablePopupPreset.attachInputSource). */
+    bare?: boolean;
+    /** isInputSourceDisabled: greys the row only; the section title and header type selector stay live (InputSourceControlPreset.updateUI L89-94). */
+    rowDisabled?: boolean;
     onChangeFurni?: (source: number) => void;
     onChangeUsers?: (source: number) => void;
 }
@@ -217,6 +223,10 @@ export const useAvailableUserSources = (
     );
 };
 
+/** A greyed, inert wrapper around one source row (AIR InputSourceControlPreset.disabled); a plain fragment when enabled. */
+export const WiredSourceRowFence: FC<{ disabled?: boolean; children?: ReactNode }> = ({ disabled = false, children = null }) =>
+    disabled ? <fieldset disabled inert style={{ minWidth: 0, border: 0, padding: 0, margin: 0, opacity: 0.5 }}>{children}</fieldset> : <>{children}</>;
+
 export const WiredSourcesSelector: FC<WiredSourcesSelectorProps> = (props) => {
     const {
         furniSlot = 0,
@@ -233,6 +243,9 @@ export const WiredSourcesSelector: FC<WiredSourcesSelectorProps> = (props) => {
         allowClickedUserSource = true,
         furniDetail = null,
         userDetail = null,
+        headerOption = null,
+        bare = false,
+        rowDisabled = false,
         onChangeFurni = null,
         onChangeUsers = null
     } = props;
@@ -292,21 +305,13 @@ export const WiredSourcesSelector: FC<WiredSourcesSelectorProps> = (props) => {
 
     if (native) {
         const row = (label: string, onPrevious: () => void, onNext: () => void, disabled = false) => <WiredSourceRow disabled={disabled} label={LocalizeText(label)} onNext={onNext} onPrevious={onPrevious} />;
+        const furniRow = <WiredSourceRowFence disabled={rowDisabled}>{row(orderedFurniSources[furniIndex].label, prevFurni, nextFurni, furniDisabled)}{furniDetail}</WiredSourceRowFence>;
+        const userRow = <WiredSourceRowFence disabled={rowDisabled}>{row(orderedUserSources[userIndex].label, prevUsers, nextUsers)}{userDetail}</WiredSourceRowFence>;
 
         return (
             <>
-                {showFurni && (
-                    <WiredSection title={LocalizeText(furniTitle)}>
-                        {row(orderedFurniSources[furniIndex].label, prevFurni, nextFurni, furniDisabled)}
-                        {furniDetail}
-                    </WiredSection>
-                )}
-                {showUsers && (
-                    <WiredSection title={LocalizeText(usersTitle)}>
-                        {row(orderedUserSources[userIndex].label, prevUsers, nextUsers)}
-                        {userDetail}
-                    </WiredSection>
-                )}
+                {showFurni && (bare ? furniRow : <WiredSection title={LocalizeText(furniTitle)} headerOptionsRight={headerOption}>{furniRow}</WiredSection>)}
+                {showUsers && (bare ? userRow : <WiredSection title={LocalizeText(usersTitle)} headerOptionsRight={headerOption}>{userRow}</WiredSection>)}
             </>
         );
     }
@@ -316,7 +321,8 @@ export const WiredSourcesSelector: FC<WiredSourcesSelectorProps> = (props) => {
             {showFurni && (
                 <>
                     <Text bold>{LocalizeText(furniTitle)}</Text>
-                    <div className="flex items-center gap-1">
+                    {headerOption}
+                    <WiredSourceRowFence disabled={rowDisabled}><div className="flex items-center gap-1">
                         <Button variant="primary" classNames={['volt-wired__picker-button']} className="px-2 py-1" disabled={furniDisabled} onClick={prevFurni}>
                             <FaChevronLeft />
                         </Button>
@@ -328,7 +334,7 @@ export const WiredSourcesSelector: FC<WiredSourcesSelectorProps> = (props) => {
                         <Button variant="primary" classNames={['volt-wired__picker-button']} className="px-2 py-1" disabled={furniDisabled} onClick={nextFurni}>
                             <FaChevronRight />
                         </Button>
-                    </div>
+                    </div></WiredSourceRowFence>
                     {furniDetail && <div className="volt-wired__source-detail">{furniDetail}</div>}
                 </>
             )}
@@ -338,7 +344,8 @@ export const WiredSourcesSelector: FC<WiredSourcesSelectorProps> = (props) => {
             {showUsers && (
                 <>
                     <Text bold>{LocalizeText(usersTitle)}</Text>
-                    <div className="flex items-center gap-1">
+                    {headerOption}
+                    <WiredSourceRowFence disabled={rowDisabled}><div className="flex items-center gap-1">
                         <Button variant="primary" classNames={['volt-wired__picker-button']} className="px-2 py-1" onClick={prevUsers}>
                             <FaChevronLeft />
                         </Button>
@@ -350,7 +357,7 @@ export const WiredSourcesSelector: FC<WiredSourcesSelectorProps> = (props) => {
                         <Button variant="primary" classNames={['volt-wired__picker-button']} className="px-2 py-1" onClick={nextUsers}>
                             <FaChevronRight />
                         </Button>
-                    </div>
+                    </div></WiredSourceRowFence>
                     {userDetail && <div className="volt-wired__source-detail">{userDetail}</div>}
                 </>
             )}
@@ -402,4 +409,47 @@ export const WiredSourceRow: FC<{ label: string; onPrevious: () => void; onNext:
             </WiredShellButton>
         </div>
     );
+};
+
+export type WiredMergedSourceScope = 'furni' | 'user' | 'users' | 'global' | 'context';
+
+const NO_CYCLE = () => undefined;
+
+/**
+ * AIR WiredInputSourcePicker.refreshContainer (WIN63-202610131318, L276-389): a merged section whose type is a room or
+ * context holder reads "wiredfurni.params.sources.<global|context>" and InputSourceControlPreset.updateUI (L91-94)
+ * disables both arrows (isButtonsDisabled). Only the whole section is disabled by isInputSourceDisabled.
+ */
+export const WiredHolderSourceSection: FC<{ title: string; scope: 'global' | 'context'; headerOption?: ReactNode; bare?: boolean; rowDisabled?: boolean }> = ({ title, scope, headerOption = null, bare = false, rowDisabled = false }) =>
+{
+    const native = useWiredNative();
+    const label = LocalizeText(`wiredfurni.params.sources.${scope}`);
+    const row = <WiredSourceRowFence disabled={rowDisabled}>{native ? <WiredSourceRow label={label} disabled onPrevious={NO_CYCLE} onNext={NO_CYCLE} /> : <Text>{label}</Text>}</WiredSourceRowFence>;
+
+    if (bare) return row;
+
+    return <WiredSection title={LocalizeText(title)} headerOptionsRight={headerOption}>{row}</WiredSection>;
+};
+
+/** One merged input section (AIR mergedSelections entry): furni or users cycle their sources; room and context holders are fixed. */
+export const WiredMergedSourceSection: FC<{
+    scope: WiredMergedSourceScope;
+    title: string;
+    furniSlot?: number;
+    userSlot?: number;
+    furniSource?: number;
+    userSource?: number;
+    disabled?: boolean;
+    bare?: boolean;
+    /** The section's type selector when the card has no custom type picker (AIR InputSourceSection, hasCustomTypePicker false). */
+    headerOption?: ReactNode;
+    onChangeFurni?: (value: number) => void;
+    onChangeUsers?: (value: number) => void;
+}> = ({ scope, title, furniSlot = 0, userSlot = 0, furniSource = 0, userSource = 0, disabled = false, bare = false, headerOption = null, onChangeFurni = null, onChangeUsers = null }) =>
+{
+    // isInputSourceDisabled greys the row only (InputSourceControlPreset.updateUI L89-94); the title and header type selector stay live.
+    return scope === 'global' || scope === 'context'
+        ? <WiredHolderSourceSection title={title} scope={scope} headerOption={headerOption} bare={bare} rowDisabled={disabled} />
+        : <WiredSourcesSelector showFurni={scope === 'furni'} showUsers={scope !== 'furni'} furniSlot={furniSlot} userSlot={userSlot} headerOption={headerOption} bare={bare} rowDisabled={disabled}
+            furniSource={furniSource} userSource={userSource} furniTitle={title} usersTitle={title} onChangeFurni={onChangeFurni} onChangeUsers={onChangeUsers} />;
 };

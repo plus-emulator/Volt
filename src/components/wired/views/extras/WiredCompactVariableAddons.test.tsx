@@ -26,7 +26,8 @@ vi.mock('../WiredSourcesSelector', () => ({
     USER_SOURCES: [{ value: 0 }, { value: 201 }], CLICKED_USER_SOURCE: { value: 10 },
     useAvailableUserSources: () => [{ value: 0 }, { value: 201 }],
     sortWiredSourceOptions: (options: any) => options,
-    nativeSourceOptions: () => [{ value: 0 }, { value: 100 }]
+    nativeSourceOptions: () => [{ value: 0 }, { value: 100 }],
+    WiredMergedSourceSection: ({ scope, furniSource, userSource, onChangeFurni, onChangeUsers }: any) => scope === 'global' || scope === 'context' ? <span>{`holder ${scope}`}</span> : <input aria-label="Reference source" value={scope === 'furni' ? furniSource : userSource} onChange={event => (scope === 'furni' ? onChangeFurni : onChangeUsers)(Number(event.target.value))} />
 }));
 vi.mock('../WiredFurniSelectionSourceRow', () => ({ WiredFurniSelectionSourceRow: ({ value, onChange }: any) => <input aria-label="Reference source" value={value} onChange={event => onChange(Number(event.target.value))} /> }));
 vi.mock('./WiredExtraBaseView', () => ({ WiredExtraBaseView: ({ children, save, validate, nativeLayout }: PropsWithChildren<{ save: () => void; validate: () => boolean; nativeLayout: boolean }>) => <WiredNativeContext.Provider value={nativeLayout}>{children}<button disabled={!validate()} onClick={save}>Save</button></WiredNativeContext.Provider> }));

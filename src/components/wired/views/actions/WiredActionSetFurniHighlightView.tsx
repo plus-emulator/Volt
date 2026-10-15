@@ -116,7 +116,7 @@ export const WiredActionSetFurniHighlightView: FC<{}> = () => {
                 <WiredVisualizationSources
                     audienceUserSource={audienceUserSource}
                     furniSource={furniSource}
-                    showAudienceSource={audience !== WIRED_VISUALIZATION_AUDIENCE_EVERYONE}
+                    audienceSourceDisabled={audience === WIRED_VISUALIZATION_AUDIENCE_EVERYONE}
                     targetUsers={targetUsers}
                     userSource={userSource}
                     onAudienceUserSourceChange={setAudienceUserSource}

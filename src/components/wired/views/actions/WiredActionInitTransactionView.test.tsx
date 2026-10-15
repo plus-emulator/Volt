@@ -11,7 +11,7 @@ vi.mock('../../../../hooks', () => ({
 }));
 vi.mock('../../../../api', async original => ({ ...await original<object>(), localizeWithFallback: (_key: string, fallback: string) => fallback }));
 vi.mock('../WiredText', () => ({ WiredText: ({ text }: { text: string }) => <span>{text}</span> }));
-vi.mock('../WiredSourcesSelector', () => ({ WiredSourcesSelector: ({ furniSlot, userSlot }: { furniSlot?: number; userSlot?: number }) => <button>{`source-${furniSlot ?? userSlot}`}</button> }));
+vi.mock('../WiredSourcesSelector', () => ({ WiredSourcesSelector: ({ furniSlot, userSlot }: { furniSlot?: number; userSlot?: number }) => <button>{`source-${furniSlot ?? userSlot}`}</button>, WiredHolderSourceSection: ({ scope }: any) => <span>{`holder ${scope}`}</span>, WiredMergedSourceSection: ({ scope, bare, disabled, furniSlot = 0, userSlot = 0, furniSource, userSource, onChangeFurni, onChangeUsers }: any) => { const content = scope === 'global' || scope === 'context' ? <span>{`holder ${scope}`}</span> : <input aria-label={`Merged ${scope === 'furni' ? 'furni' : 'user'} ${scope === 'furni' ? furniSlot : userSlot}${bare ? ' bare' : ''}`} value={scope === 'furni' ? furniSource : userSource} onChange={event => (scope === 'furni' ? onChangeFurni : onChangeUsers)(Number(event.target.value))} />; return disabled ? <fieldset disabled>{content}</fieldset> : content; } }));
 vi.mock('../conditions/WiredVariableConditionParts', () => ({ FurniPickSlotButtons: () => null }));
 vi.mock('./WiredActionBaseView', () => ({ WiredActionBaseView: (props: PropsWithChildren<typeof base & { footer?: ReactNode }>) => {
     base = props; return <WiredNativeContext.Provider value={true}>{props.children}{props.footer}</WiredNativeContext.Provider>;
@@ -39,7 +39,8 @@ describe('AIR transaction editor', () => {
         render(<WiredActionInitTransactionView />);
         expect(screen.getByRole('textbox', { name: 'Multiplier selection:' })).toBeDisabled();
         expect(screen.getByRole('button', { name: 'Choose variable' })).toBeDisabled();
-        expect(screen.getAllByRole('button', { name: 'source-1' }).map(button => button.closest('fieldset')).find(Boolean)).toBeDisabled();
+        // The merged reference holder lives in the (closed, disabled) multiplier popup, not in the footer (class_4180 claim).
+        expect(screen.queryByRole('textbox', { name: 'Merged user 1 bare' })).toBeNull();
         fireEvent.click(screen.getByRole('radio', { name: 'Mode 2' }));
         expect(screen.getByRole('textbox', { name: 'Auto-multiplier limit:' })).not.toBeDisabled();
         act(() => base.save());
@@ -57,5 +58,15 @@ describe('AIR transaction editor', () => {
         fireEvent.change(screen.getByRole('textbox', { name: 'Seconds:' }), { target: { value: '1000' } });
         fireEvent.click(screen.getByRole('checkbox')); act(() => base.save());
         expect(setIntParams).toHaveBeenCalledWith([1, 2, 0, 1, 0, 1000]);
+    });
+    it('draws the claimed merged holder [[2,1]] in the multiplier popup for every holder type (AIR class_4180.as:130-153)', () => {
+        trigger.intData = [1, 1, 1, 1, 0, 300]; trigger.variableIds = ['custom:123'];
+        render(<WiredActionInitTransactionView />);
+        fireEvent.click(screen.getByRole('button', { name: 'Choose variable' }));
+        expect(screen.getByRole('textbox', { name: 'Merged user 1 bare' })).toHaveProperty('value', '200');
+        fireEvent.click(screen.getByRole('button', { name: 'Furniture' }));
+        expect(screen.getByRole('textbox', { name: 'Merged furni 2 bare' })).toHaveProperty('value', '200');
+        fireEvent.click(screen.getByRole('button', { name: 'Room' }));
+        expect(screen.getByText('holder global')).toBeTruthy();
     });
 });

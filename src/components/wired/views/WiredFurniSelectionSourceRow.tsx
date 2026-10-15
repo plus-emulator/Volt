@@ -19,6 +19,8 @@ interface WiredFurniSelectionSourceRowProps {
     selectionEnabledValues: number[];
     showSelectionToggle?: boolean;
     headerContent?: ReactNode;
+    /** Only the source row, for a section its owner draws (AIR ValueOrVariablePopupPreset.attachInputSource L156-181). */
+    bare?: boolean;
     onChange: (value: number) => void;
     onSelectionActivate?: () => void;
 }
@@ -36,6 +38,7 @@ export const WiredFurniSelectionSourceRow: FC<WiredFurniSelectionSourceRowProps>
         selectionEnabledValues = [],
         showSelectionToggle = true,
         headerContent = null,
+        bare = false,
         onChange = null,
         onSelectionActivate = null
     } = props;
@@ -60,16 +63,21 @@ export const WiredFurniSelectionSourceRow: FC<WiredFurniSelectionSourceRowProps>
         onChange(options[nextIndex].value);
     };
 
+    const holderRow = /^wiredfurni\.params\.sources\.(global|context)$/.test(currentOption?.label ?? '');
+
+    if (native && bare) return <WiredSourceRow label={displayText} disabled={holderRow} onPrevious={() => cycleValue(-1)} onNext={() => cycleValue(1)} />;
+
     if (native) return <WiredSection title={resolvedTitle} headerOptionsRight={<>
         {headerContent}
         {showSelectionToggle && shouldShowCount && <WiredFurniPickButton kind={selectionKind} active={selectionActive} disabled={!canActivateSelection} onClick={() => onSelectionActivate?.()} />}
     </>}>
-        <WiredSourceRow label={displayText} disabled={options.length < 2} onPrevious={() => cycleValue(-1)} onNext={() => cycleValue(1)} />
+        {/* AIR InputSourceControlPreset.updateUI: only a room/context holder disables the arrows (isButtonsDisabled); a single furni/user option still cycles. */}
+        <WiredSourceRow label={displayText} disabled={holderRow} onPrevious={() => cycleValue(-1)} onNext={() => cycleValue(1)} />
     </WiredSection>;
 
     return (
         <div className="volt-wired__source-row">
-            <div className="flex items-center justify-between gap-2">
+            {!bare && <div className="flex items-center justify-between gap-2">
                 <Text>{resolvedTitle}</Text>
                 {headerContent}
                 {showSelectionToggle && (
@@ -82,9 +90,9 @@ export const WiredFurniSelectionSourceRow: FC<WiredFurniSelectionSourceRowProps>
                         <FaMousePointer />
                     </button>
                 )}
-            </div>
+            </div>}
             <div className="flex items-center gap-1">
-                <Button variant="primary" classNames={['volt-wired__picker-button']} className="px-2 py-1" onClick={() => cycleValue(-1)}>
+                <Button variant="primary" classNames={['volt-wired__picker-button']} className="px-2 py-1" disabled={holderRow} onClick={() => cycleValue(-1)}>
                     <FaChevronLeft />
                 </Button>
                 <div className="flex min-w-0 flex-1 items-center justify-center volt-wired__picker-label">
@@ -92,7 +100,7 @@ export const WiredFurniSelectionSourceRow: FC<WiredFurniSelectionSourceRowProps>
                         {displayText}
                     </Text>
                 </div>
-                <Button variant="primary" classNames={['volt-wired__picker-button']} className="px-2 py-1" onClick={() => cycleValue(1)}>
+                <Button variant="primary" classNames={['volt-wired__picker-button']} className="px-2 py-1" disabled={holderRow} onClick={() => cycleValue(1)}>
                     <FaChevronRight />
                 </Button>
             </div>

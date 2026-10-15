@@ -2,7 +2,7 @@ import { FC, useEffect, useState } from 'react';
 import { localizeWithFallback, WiredFurniType } from '../../../../api';
 import { useWired } from '../../../../hooks';
 import { WiredCheckboxOption, WiredRadioGroup } from '../WiredOptions';
-import { WiredSourcesSelector } from '../WiredSourcesSelector';
+import { WiredMergedSourceSection, WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredVariablePickerTarget } from '../WiredVariablePickerData';
 import { tokenOfVariableSlot, variableSlotOf, WIRED_VARIABLE_ABSENT } from '../../../../api';
 import { WiredActionBaseView } from './WiredActionBaseView';
@@ -92,13 +92,7 @@ export const WiredChestRewardForm: FC<{ kind: 'currency' | 'furni' }> = ({ kind 
             footer={
                 <>
                     <WiredSourcesSelector showFurni={true} furniSlot={0} furniSource={chestSource} furniTitle="wiredfurni.params.sources.furni.title.chests" onChangeFurni={setChestSource} />
-                    {useVariable && target === 'furni' && (
-                        <WiredSourcesSelector showFurni={true} furniSlot={1} furniSource={mergedFurniSource} furniTitle="wiredfurni.params.sources.merged.title.variables_reference" onChangeFurni={setMergedFurniSource} />
-                    )}
                     <WiredSourcesSelector showUsers={true} userSlot={0} userSource={rewardUserSource} usersTitle="wiredfurni.params.sources.users.title.reward_user" onChangeUsers={setRewardUserSource} />
-                    {useVariable && target === 'user' && (
-                        <WiredSourcesSelector showUsers={true} userSlot={1} userSource={mergedUserSource} usersTitle="wiredfurni.params.sources.merged.title.variables_reference" onChangeUsers={setMergedUserSource} />
-                    )}
                 </>
             }
         >
@@ -115,6 +109,10 @@ export const WiredChestRewardForm: FC<{ kind: 'currency' | 'furni' }> = ({ kind 
                 option={useVariable ? 1 : 0} onOptionChange={value => setUseVariable(value === 1)}
                 literal={amount} onLiteralChange={setAmount} target={target} onTargetChange={setTarget}
                 variableToken={variableToken} onVariableTokenChange={setVariableToken} onValidityChange={setAmountValid}
+                // AIR class_4173.as:108-115,127,166-184 (WIN63-202610131318): merged [[1,1]] is claimed by the amount section and drawn in its
+                // popup; isInputSourceDisabled(0) follows the section's disabled state (all-of-chest mode), which already closes the popup.
+                popupSources={<WiredMergedSourceSection bare scope={target} title="wiredfurni.params.sources.merged.title.variables" furniSlot={1} userSlot={1}
+                    furniSource={mergedFurniSource} userSource={mergedUserSource} disabled={mode === 1} onChangeFurni={setMergedFurniSource} onChangeUsers={setMergedUserSource} />}
             />
             <WiredSection title={localizeWithFallback('wiredfurni.reward_contract.reward_popup', 'Reward popup')}>
                 <textarea className="form-control form-control-sm" aria-label={localizeWithFallback('wiredfurni.reward_contract.reward_popup', 'Reward popup')} title={localizeWithFallback('wiredfurni.reward_contract.reward_popup.text.tooltip', 'Reward popup text')}

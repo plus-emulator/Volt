@@ -5,7 +5,7 @@ import { WiredActionValueOrVariableSection, getWiredValueTargetCode, normalizeWi
 import { FurniPickSlotButtons } from '../conditions/WiredVariableConditionParts';
 import { WiredDropdown } from '../WiredDropdown';
 import { WiredSection } from '../WiredSection';
-import { WiredSourcesSelector } from '../WiredSourcesSelector';
+import { WiredMergedSourceSection } from '../WiredSourcesSelector';
 import { WiredVariablePicker } from '../WiredVariablePicker';
 import { buildWiredVariablePickerEntries, createFallbackVariableEntry, flattenWiredVariablePickerEntries } from '../WiredVariablePickerData';
 import { WiredExtraBaseView } from './WiredExtraBaseView';
@@ -62,9 +62,11 @@ export const WiredExtraFilterByVariableView: FC<{ target: 'user' | 'furni' }> = 
             recentScope={`variable-extra-reference-${target}`} min={1} max={1000} literal={amount} onLiteralChange={setAmount}
             option={option} onOptionChange={setOption} target={referenceTarget} onTargetChange={setReferenceTarget}
             variableToken={referenceToken} onVariableTokenChange={setReferenceToken} onValidityChange={setValid}
+            // AIR VariableFilter.as:128,132-160 (WIN63-202610131318): merged [[0,0]] is claimed by the amount section and drawn as a bare row in its popup.
             popupSources={<>
-                {referenceTarget === 'furni' && <><FurniPickSlotButtons slots={furniSource === 100 ? [{ slot: 0, count: furniIds.length }] : furniSource === 101 ? [{ slot: 1, count: secondaryFurniIds.length }] : []} /><WiredSourcesSelector showFurni furniSource={furniSource} onChangeFurni={setFurniSource} /></>}
-                {referenceTarget === 'user' && <WiredSourcesSelector showUsers userSource={userSource} onChangeUsers={setUserSource} />}
+                {referenceTarget === 'furni' && <FurniPickSlotButtons slots={furniSource === 100 ? [{ slot: 0, count: furniIds.length }] : furniSource === 101 ? [{ slot: 1, count: secondaryFurniIds.length }] : []} />}
+                <WiredMergedSourceSection bare scope={referenceTarget} title="wiredfurni.params.sources.merged.title.variables" furniSlot={0} userSlot={0}
+                    furniSource={furniSource} userSource={userSource} onChangeFurni={setFurniSource} onChangeUsers={setUserSource} />
             </>} />
     </WiredExtraBaseView>;
 };

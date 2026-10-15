@@ -38,10 +38,12 @@ import {
     VARIABLE_LEADERBOARD_OPERAND,
     VariableLeaderboardConfigError
 } from '../../../../api/wired/WiredVariableLeaderboard';
-import { useWired, useWiredNativeVariables } from '../../../../hooks';
+import { useWired } from '../../../../hooks';
 import { WiredDropdown } from '../WiredDropdown';
 import { WiredNumberInput } from '../WiredNumberInput';
-import { WiredCheckboxGroup, WiredCheckboxOption, WiredRadioGroup } from '../WiredOptions';
+import { WiredCheckboxGroup, WiredCheckboxOption } from '../WiredOptions';
+import { WiredMergedSourceSection } from '../WiredSourcesSelector';
+import { WiredActionValueOrVariableSection } from '../actions/WiredActionValueOrVariableSection';
 import { WiredSection } from '../WiredSection';
 import { WiredText } from '../WiredText';
 import { WiredTextInput } from '../WiredTextInput';
@@ -151,7 +153,6 @@ const CollapsibleSection: FC<{ title: string; open: boolean; onToggle: () => voi
  */
 export const WiredExtraVariableLeaderboardView: FC<{}> = () => {
     const { trigger = null, nativeCatalog = null, setIntParams = null, setStringParam = null, setVariableIds = null } = useWired();
-    const { roomVariableDefinitions = [] } = useWiredNativeVariables();
     const context = useMemo(() => findLeaderboardContext(trigger?.contexts), [trigger]);
     // The decoded stack, read from the trigger; the viewer's edits are kept beside it and dropped when the trigger changes.
     const base = useMemo(() => {
@@ -200,23 +201,8 @@ export const WiredExtraVariableLeaderboardView: FC<{}> = () => {
         return definitions;
     }, [nativeCatalog]);
 
-    const globalDefinitions = useMemo<IWiredVariableDefinitionLike[]>(
-        () =>
-            roomVariableDefinitions.map((definition) => ({
-                variableId: definition.variableId,
-                name: definition.name,
-                availability: definition.availability,
-                hasValue: definition.hasValue,
-                isReadOnly: definition.isReadOnly
-            })),
-        [roomVariableDefinitions]
-    );
 
     const filterEntries = useMemo(() => pickerEntries('user', filterDefinitions, config.filterVariableId), [config.filterVariableId, filterDefinitions]);
-    const globalEntries = useMemo(
-        () => pickerEntries('global', globalDefinitions, config.globalOperandVariableId),
-        [config.globalOperandVariableId, globalDefinitions]
-    );
 
     const resolvedConfig = useMemo<IVariableLeaderboardConfig>(
         () => ({ ...config, overrides: resolveOverrides(config.overrides, choices) }),
@@ -473,33 +459,26 @@ export const WiredExtraVariableLeaderboardView: FC<{}> = () => {
                         </WiredCheckboxGroup>
                         {config.comparisonEnabled && (
                             <>
-                                <WiredText text={localizeWithFallback('wiredfurni.params.variable_leaderboard.filter.operand', 'Compare against:')} />
-                                <WiredRadioGroup
-                                    name="variableLeaderboardOperand"
-                                    options={[
-                                        { id: VARIABLE_LEADERBOARD_OPERAND.LITERAL, label: 'Value' },
-                                        { id: VARIABLE_LEADERBOARD_OPERAND.GLOBAL, label: 'Global variable' }
-                                    ]}
-                                    value={config.operandKind}
-                                    onChange={setOperandKind}
+                                {/* AIR VariableLeaderboardAddon.as:169 (WIN63-202610131318): a value-or-variable section restricted to room variables that
+                                    claims merged slot 0 ([[0,0]], fixed GLOBAL_SOURCE, L642-665), so its popup shows the fixed "room" holder row and no type selector. */}
+                                <WiredActionValueOrVariableSection
+                                    title={localizeWithFallback('wiredfurni.params.variable_leaderboard.filter.operand', 'Compare against:')}
+                                    targetTitle={localizeWithFallback('wiredfurni.params.variables.reference_value.target', 'Variable target:')}
+                                    recentScope="variable-leaderboard-operand"
+                                    variableUsage="filter-main"
+                                    min={INT32.min}
+                                    max={INT32.max}
+                                    option={operandIsLiteral ? 0 : 1}
+                                    onOptionChange={(option) => { if ((option === 1) === operandIsLiteral) setOperandKind(option === 1 ? VARIABLE_LEADERBOARD_OPERAND.GLOBAL : VARIABLE_LEADERBOARD_OPERAND.LITERAL); }}
+                                    literal={literalFitsInt32(config.literal) ? Number(config.literal) : 0}
+                                    onLiteralChange={(value) => update({ literal: `${value}` })}
+                                    target="global"
+                                    targetTypes={['global']}
+                                    onTargetChange={() => undefined}
+                                    variableToken={isVariableLeaderboardNullId(config.globalOperandVariableId) ? '' : createNativeVariableToken(config.globalOperandVariableId)}
+                                    onVariableTokenChange={(token) => update({ globalOperandVariableId: token ? canonicalVariableLeaderboardId(getNativeVariableId(token)) : '0' })}
+                                    popupSources={<WiredMergedSourceSection bare scope="global" title="wiredfurni.params.sources.merged.title.variables" />}
                                 />
-                                {operandIsLiteral ? (
-                                    <WiredNumberInput
-                                        min={INT32.min}
-                                        max={INT32.max}
-                                        value={literalFitsInt32(config.literal) ? Number(config.literal) : 0}
-                                        onChange={(value) => update({ literal: `${value}` })}
-                                    />
-                                ) : (
-                                    <WiredVariablePicker
-                                        recentScope="variable-leaderboard-operand"
-                                        entries={globalEntries}
-                                        selectedToken={createNativeVariableToken(config.globalOperandVariableId)}
-                                        onSelect={(entry) =>
-                                            update({ globalOperandVariableId: canonicalVariableLeaderboardId(getNativeVariableId(entry.token)) })
-                                        }
-                                    />
-                                )}
                             </>
                         )}
                     </>

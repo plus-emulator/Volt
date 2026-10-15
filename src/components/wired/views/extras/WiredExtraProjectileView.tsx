@@ -1,4 +1,4 @@
-import { FC, PropsWithChildren, useEffect, useMemo, useState } from 'react';
+import { FC, PropsWithChildren, useEffect, useState } from 'react';
 import {
     clampProjectileParam,
     defaultProjectileParams,
@@ -47,11 +47,9 @@ import { WiredText } from '../WiredText';
 import { WiredDropdown } from '../WiredDropdown';
 import { useWired } from '../../../../hooks';
 import { WiredFurniSelectorView } from '../WiredFurniSelectorView';
-import { nativeSourceOptions, WiredSourceOption } from '../WiredSourcesSelector';
-import { WiredVariablePicker } from '../WiredVariablePicker';
-import { buildWiredVariablePickerEntries, createFallbackVariableEntry, flattenWiredVariablePickerEntries, WiredVariablePickerTarget } from '../WiredVariablePickerData';
+import { nativeSourceOptions, WiredMergedSourceSection, WiredSourceOption } from '../WiredSourcesSelector';
+import { getWiredValueTargetCode, normalizeWiredValueTarget, WiredActionValueOrVariableSection } from '../actions/WiredActionValueOrVariableSection';
 import { WIRED_VARIABLE_ABSENT, tokenOfVariableSlot, variableSlotOf } from '../../../../api';
-import { useWiredNativeVariables } from '../../../../hooks';
 import { WiredExtraBaseView } from './WiredExtraBaseView';
 import { WiredProjectileDirectionGrid } from './WiredProjectileDirectionGrid';
 
@@ -74,14 +72,6 @@ const DISTANCE_AXES: Array<{ fallback: string; key: string; param: number }> = [
     { fallback: 'Height', key: 'height', param: PROJECTILE_PARAM_DISTANCE_BY_HEIGHT }
 ];
 
-/** Native merged variable target codes. */
-const VARIABLE_TARGETS: Array<{ key: WiredVariablePickerTarget; value: number; fallback: string }> = [
-    { key: 'furni', value: 0, fallback: 'Furni' },
-    { key: 'user', value: 1, fallback: 'User' },
-    { key: 'global', value: -10, fallback: 'Global' },
-    { key: 'context', value: -20, fallback: 'Context' }
-];
-
 type SectionKey = 'info' | 'direction' | 'trajectory' | 'time' | 'rotation' | 'variables';
 
 const INITIALLY_OPEN: Record<SectionKey, boolean> = {
@@ -96,7 +86,6 @@ const INITIALLY_OPEN: Record<SectionKey, boolean> = {
 const text = (key: string, fallback: string, parameters: string[] = null, replacements: string[] = null) =>
     localizeWithFallback(`wiredfurni.params.projectile.${key}`, fallback, parameters, replacements);
 
-const targetKeyOf = (value: number): WiredVariablePickerTarget => VARIABLE_TARGETS.find((target) => target.value === value)?.key ?? 'user';
 
 const ProjectileSection: FC<PropsWithChildren<{ title: string; open: boolean; first?: boolean; onToggle: () => void }>> = (props) => {
     const { title, open, onToggle, children } = props;
@@ -132,7 +121,6 @@ const SourceSelect: FC<{ label: string; options: WiredSourceOption[]; value: num
 interface ValueOrVariableProps {
     min: number;
     max: number;
-    name: string;
     label: string;
     value: number;
     fromVariable: boolean;
@@ -140,64 +128,53 @@ interface ValueOrVariableProps {
     token: string;
     userSource: number;
     furniSource: number;
-    userSources: WiredSourceOption[];
-    furniSources: WiredSourceOption[];
+    /** The merged slot pair this section claims (mergedSelections [[1,0],[2,2]]). */
+    furniSlot: number;
+    userSlot: number;
+    recentScope: string;
     onValue: (value: number) => void;
     onFromVariable: (fromVariable: boolean) => void;
     onTarget: (target: number) => void;
     onToken: (token: string) => void;
     onUserSource: (source: number) => void;
     onFurniSource: (source: number) => void;
+    onValidityChange?: (valid: boolean) => void;
 }
 
-/** Habbo's "set value / from variable" pair, as the time per tile and the distance use it. */
+/**
+ * The time per tile and the distance: AIR class_3959.as:133-136 builds both as value-or-variable sections (ids 1 and 0) that claim
+ * merged slots 1 and 0 ([[1,0],[2,2]], L279), so the variable holder's source row sits in each section's popup (ValueOrVariablePopupPreset
+ * attachInputSource L156-181), with the furni/user/room/context type selector in the popup's "Variables:" header.
+ */
 const ValueOrVariable: FC<ValueOrVariableProps> = (props) => {
-    const { name, label, value, fromVariable, target, token, userSource, furniSource, userSources } = props;
-    const { userVariableDefinitions = [], furniVariableDefinitions = [], roomVariableDefinitions = [], contextVariableDefinitions = [] } = useWiredNativeVariables();
-    const targetKey = targetKeyOf(target);
-
-    const entries = useMemo(() => {
-        const definitions =
-            targetKey === 'furni'
-                ? furniVariableDefinitions
-                : targetKey === 'global'
-                  ? roomVariableDefinitions
-                  : targetKey === 'context'
-                    ? contextVariableDefinitions
-                    : userVariableDefinitions;
-        const built = buildWiredVariablePickerEntries(targetKey, 'change-reference', definitions);
-
-        if (!token || flattenWiredVariablePickerEntries(built).some((entry) => entry.token === token)) return built;
-
-        const fallback = createFallbackVariableEntry(targetKey, token);
-
-        return fallback ? [fallback, ...built] : built;
-    }, [contextVariableDefinitions, furniVariableDefinitions, roomVariableDefinitions, targetKey, token, userVariableDefinitions]);
+    const targetKey = normalizeWiredValueTarget(props.target);
 
     return (
-        <div className="flex flex-col gap-1">
-            <WiredRadioGroup name={name} value={fromVariable ? 1 : 0} onChange={(value) => props.onFromVariable(value === 1)} options={[
-                { id: 0, label, extra: <WiredNumberInput min={props.min} max={props.max} disabled={fromVariable} value={value} onChange={props.onValue} /> },
-                { id: 1, label: LocalizeText('wiredfurni.params.variables.reference_value.from_variable') }
-            ]} />
-            {fromVariable && (
-                <div className="flex flex-col gap-1 volt-wired__projectile-indent">
-                    <WiredDropdown caption={`${label} variable type`} value={target} options={VARIABLE_TARGETS.map((option) => ({ id: option.value, label: text(`variable_target.${option.key}`, option.fallback) }))} onChange={(value) => { props.onTarget(value); props.onToken(''); }} />
-                    <WiredVariablePicker entries={entries} recentScope="projectile-reference" selectedToken={token} onSelect={(entry) => props.onToken(entry.token)} />
-                    {targetKey === 'user' && (
-                        <SourceSelect label={text('variable_source', 'Read it from:')} options={userSources} value={userSource} onChange={props.onUserSource} />
-                    )}
-                    {targetKey === 'furni' && (
-                        <SourceSelect label={text('variable_source', 'Read it from:')} options={props.furniSources} value={furniSource} onChange={props.onFurniSource} />
-                    )}
-                </div>
-            )}
-        </div>
+        <WiredActionValueOrVariableSection
+            title={props.label}
+            targetTitle={LocalizeText('wiredfurni.params.variables.reference_value.target')}
+            recentScope={props.recentScope}
+            min={props.min}
+            max={props.max}
+            option={props.fromVariable ? 1 : 0}
+            onOptionChange={(option) => props.onFromVariable(option === 1)}
+            literal={props.value}
+            onLiteralChange={props.onValue}
+            target={targetKey}
+            onTargetChange={(target) => props.onTarget(getWiredValueTargetCode(target))}
+            variableToken={props.token}
+            onVariableTokenChange={props.onToken}
+            onValidityChange={props.onValidityChange}
+            popupSources={<WiredMergedSourceSection bare scope={targetKey} title="wiredfurni.params.sources.merged.title.variables" furniSlot={props.furniSlot} userSlot={props.userSlot}
+                furniSource={props.furniSource} userSource={props.userSource} onChangeFurni={props.onFurniSource} onChangeUsers={props.onUserSource} />}
+        />
     );
 };
 
 export const WiredExtraProjectileView: FC<{}> = () => {
     const { trigger = null, setIntParams = null, setStringParam = null, setVariableIds = null, setUserSources = null, setFurniSources = null } = useWired();
+    const [timeValid, setTimeValid] = useState(true);
+    const [distanceValid, setDistanceValid] = useState(true);
     const [params, setParams] = useState<number[]>(defaultProjectileParams);
     const [curved, setCurved] = useState(false);
     const [timeToken, setTimeToken] = useState('');
@@ -256,7 +233,7 @@ export const WiredExtraProjectileView: FC<{}> = () => {
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID}
             save={save}
             showSelection={false}
-            validate={() => !(scalesTime && timeFromVariable && !timeToken) && !(distanceMode !== PROJECTILE_DISTANCE_NORMAL && distanceFromVariable && !distanceToken)}
+            validate={() => !(scalesTime && (!timeValid || (timeFromVariable && !timeToken))) && !(distanceMode !== PROJECTILE_DISTANCE_NORMAL && (!distanceValid || (distanceFromVariable && !distanceToken)))}
         >
             <>
                 <ProjectileSection first open={openSections.info} title={LocalizeText('wiredfurni.params.general_box_info')} onToggle={() => toggleSection('info')}>
@@ -326,17 +303,18 @@ export const WiredExtraProjectileView: FC<{}> = () => {
                                 fromVariable={distanceFromVariable}
                                 furniSource={params[PROJECTILE_PARAM_DISTANCE_FURNI_SOURCE]}
                                 label={text('distance.tiles', 'Tiles:')}
-                                name="projectileDistanceValue"
+                                recentScope="projectile-distance"
+                                furniSlot={2}
+                                userSlot={2}
                                 target={params[PROJECTILE_PARAM_DISTANCE_TARGET]}
                                 token={distanceToken}
                                 userSource={params[PROJECTILE_PARAM_DISTANCE_USER_SOURCE]}
-                                userSources={nativeSourceOptions(trigger?.inputSources?.usersAllowed[2], 'users')}
-                                furniSources={nativeSourceOptions(trigger?.inputSources?.furniAllowed[2], 'furni')}
                                 value={params[PROJECTILE_PARAM_DISTANCE_TILES]}
                                 onFromVariable={(fromVariable) => setFlag(PROJECTILE_PARAM_DISTANCE_IS_VARIABLE, fromVariable)}
                                 onFurniSource={(source) => setParam(PROJECTILE_PARAM_DISTANCE_FURNI_SOURCE, source)}
                                 onTarget={(target) => setParam(PROJECTILE_PARAM_DISTANCE_TARGET, target)}
                                 onToken={setDistanceToken}
+                                onValidityChange={setDistanceValid}
                                 onUserSource={(source) => setParam(PROJECTILE_PARAM_DISTANCE_USER_SOURCE, source)}
                                 onValue={(value) => setParam(PROJECTILE_PARAM_DISTANCE_TILES, value)}
                             />
@@ -357,17 +335,18 @@ export const WiredExtraProjectileView: FC<{}> = () => {
                                 fromVariable={timeFromVariable}
                                 furniSource={params[PROJECTILE_PARAM_TIME_FURNI_SOURCE]}
                                 label={text('time_per_tile', 'Time per tile (ms):')}
-                                name="projectileTimeValue"
+                                recentScope="projectile-time"
+                                furniSlot={1}
+                                userSlot={0}
                                 target={params[PROJECTILE_PARAM_TIME_TARGET]}
                                 token={timeToken}
                                 userSource={params[PROJECTILE_PARAM_TIME_USER_SOURCE]}
-                                userSources={nativeSourceOptions(trigger?.inputSources?.usersAllowed[0], 'users')}
-                                furniSources={nativeSourceOptions(trigger?.inputSources?.furniAllowed[1], 'furni')}
                                 value={params[PROJECTILE_PARAM_TIME_PER_TILE]}
                                 onFromVariable={(fromVariable) => setFlag(PROJECTILE_PARAM_TIME_IS_VARIABLE, fromVariable)}
                                 onFurniSource={(source) => setParam(PROJECTILE_PARAM_TIME_FURNI_SOURCE, source)}
                                 onTarget={(target) => setParam(PROJECTILE_PARAM_TIME_TARGET, target)}
                                 onToken={setTimeToken}
+                                onValidityChange={setTimeValid}
                                 onUserSource={(source) => setParam(PROJECTILE_PARAM_TIME_USER_SOURCE, source)}
                                 onValue={(value) => setParam(PROJECTILE_PARAM_TIME_PER_TILE, value)}
                             />

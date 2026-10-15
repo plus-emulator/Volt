@@ -2,7 +2,7 @@ import { WiredActionValueOrVariableSection } from '../actions/WiredActionValueOr
 import { WiredSection } from '../WiredSection';
 import { WiredCheckboxGroup, WiredCheckboxOption, WiredRadioGroup } from '../WiredOptions';
 import { FC, useEffect, useMemo, useState } from 'react';
-import { LocalizeText, localizeWithFallback, WiredFurniType } from '../../../../api';
+import { LocalizeText, WiredFurniType } from '../../../../api';
 import { useWired } from '../../../../hooks';
 import { joinWiredLiteral, parseWiredLiteral, splitWiredLiteral, WIRED_VARIABLE_ABSENT, tokenOfVariableSlot, variableSlotOf } from '../../../../api';
 import { useWiredNativeVariables } from '../../../../hooks';
@@ -43,7 +43,7 @@ const isSigned32Literal = (value: string) => {
 
 
 const GLOBAL_SOURCE_OPTIONS: WiredSourceOption[] = [{ value: SOURCE_TRIGGER, label: 'wiredfurni.params.sources.global' }];
-const CONTEXT_SOURCE_OPTIONS: WiredSourceOption[] = [{ value: SOURCE_TRIGGER, label: localizeWithFallback('wiredfurni.params.sources.context', 'Current execution') }];
+const CONTEXT_SOURCE_OPTIONS: WiredSourceOption[] = [{ value: SOURCE_TRIGGER, label: 'wiredfurni.params.sources.context' }];
 
 
 const getTargetValue = (value: VariableTargetType) => {
@@ -205,8 +205,11 @@ export const WiredSelectorWithVariableView: FC<WiredSelectorWithVariableViewProp
         setReferenceVariableToken('');
     };
 
-    const sources = !sameHolderActive && <WiredFurniSelectionSourceRow
-        title="wiredfurni.params.sources.merged.title.variables_reference"
+    // AIR WithVariable.as:108-115,150,154-182 (WIN63-202610131318): merged [[0,0]] is claimed by the reference section and drawn in its popup;
+    // it stays visible (greyed by the popup) while the same holder locks the source, like ValueOrVariablePopupPreset L337-363.
+    const sources = <WiredFurniSelectionSourceRow
+        bare
+        title="wiredfurni.params.sources.merged.title.variables"
         options={referenceSourceOptions} value={selectedReferenceSourceValue}
         selectionKind={referenceFurniSource === SOURCE_SECONDARY_SELECTED ? 'secondary' : 'primary'}
         selectionActive={activePickSlot === (referenceFurniSource === SOURCE_SECONDARY_SELECTED ? 1 : 0)}

@@ -9,13 +9,16 @@ const state = vi.hoisted(() => ({
 vi.mock('../../../../hooks', () => ({ useWired: () => state, useWiredNativeVariables: () => ({}) }));
 vi.mock('../../../../api', () => ({
     localizeWithFallback: (_key: string, fallback: string) => fallback,
-    WiredFurniType: { STUFF_SELECTION_OPTION_NONE: 0 }
+    WiredFurniType: { STUFF_SELECTION_OPTION_NONE: 0 },
+    createNativeVariableToken: (id: string) => `custom:${id}`,
+    getNativeVariableId: (token: string) => token.replace(/^custom:/, '')
 }));
+vi.mock('../WiredSourcesSelector', () => ({ WiredHolderSourceSection: ({ scope }: any) => <span>{`holder ${scope}`}</span>, WiredMergedSourceSection: ({ scope, bare, disabled, furniSlot = 0, userSlot = 0, furniSource, userSource, onChangeFurni, onChangeUsers }: any) => { const content = scope === 'global' || scope === 'context' ? <span>{`holder ${scope}`}</span> : <input aria-label={`Merged ${scope === 'furni' ? 'furni' : 'user'} ${scope === 'furni' ? furniSlot : userSlot}${bare ? ' bare' : ''}`} value={scope === 'furni' ? furniSource : userSource} onChange={event => (scope === 'furni' ? onChangeFurni : onChangeUsers)(Number(event.target.value))} />; return disabled ? <fieldset disabled>{content}</fieldset> : content; } }));
 vi.mock('../../../../common', () => ({ Text: ({ children }: PropsWithChildren) => <span>{children}</span> }));
 vi.mock('../../../../common/native-text/NativeText', () => ({ NativeText: ({ text }: { text: string }) => <span>{text}</span> }));
 vi.mock('../../../mod-tools/native/NativeSkinView', () => ({ NativeSkinView: () => null }));
 vi.mock('../WiredText', async () => ({ WiredText: ({ text }: { text: string }) => <span>{text}</span>, WiredSurfaceContext: (await import('react')).createContext(0xffffff) }));
-vi.mock('../WiredVariablePickerData', () => ({ buildWiredVariablePickerEntries: () => [], flattenWiredVariablePickerEntries: () => [] }));
+vi.mock('../WiredVariablePickerData', () => ({ buildWiredVariablePickerEntries: () => [], flattenWiredVariablePickerEntries: () => [], createFallbackVariableEntry: () => null }));
 vi.mock('../WiredVariablePicker', () => ({ WiredVariablePicker: () => null }));
 vi.mock('./WiredExtraBaseView', () => ({ WiredExtraBaseView: ({ children, nativeLayout, save }: PropsWithChildren<{ nativeLayout: boolean; save: () => void }>) => <WiredNativeContext.Provider value={nativeLayout}>{children}<button onClick={save}>Save</button></WiredNativeContext.Provider> }));
 
@@ -72,4 +75,20 @@ describe('Leaderboard AIR general controls', () => {
         expect(saved.columns).toEqual(config.columns);
     });
 
+    it('builds the operand as a room-only value-or-variable section whose popup holds the fixed room holder row (AIR VariableLeaderboardAddon.as:169, 642-665)', () => {
+        const config = createUnpublishedVariableLeaderboardConfig();
+        config.title = 'Leaderboard';
+        Object.assign(config, { filterEnabled: true, filterVariableId: '123', comparisonEnabled: true, literal: '7' });
+        const payload = encodeVariableLeaderboardConfig(config)!;
+        state.trigger = { intData: payload.intParams, stringData: payload.stringParam, variableIds: payload.variableIds, contexts: [] };
+        render(<WiredExtraVariableLeaderboardView />);
+        expect(screen.getByRole('textbox', { name: 'Compare against:' })).toHaveProperty('value', '7');
+        fireEvent.click(screen.getByRole('button', { name: 'Choose variable' }));
+        expect(screen.getByText('holder global')).toBeTruthy();
+        expect(screen.queryByRole('group', { name: 'Variable selection:' })).toBeNull();
+        fireEvent.change(screen.getByRole('textbox', { name: 'Compare against:' }), { target: { value: '-12' } });
+        fireEvent.click(screen.getByText('Save'));
+        const saved = decodeVariableLeaderboardConfig(state.setIntParams.mock.lastCall![0], state.setVariableIds.mock.lastCall![0], state.setStringParam.mock.lastCall![0])!;
+        expect(saved.literal).toBe('-12'); expect(saved.operandKind).toBe(0);
+    });
 });
