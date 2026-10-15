@@ -1,69 +1,95 @@
 import {
     FurnitureType,
+    ItemDataStructure,
     IWiredTradeNode,
     IWiredTradeRule,
     WIRED_TRADE_NODE_FURNI,
-    WIRED_TRADE_STATE_ADDING_ITEMS,
-    WIRED_TRADE_STATE_CONFIRMING,
-    WIRED_TRADE_STATE_COUNTDOWN,
+    WIRED_TRADE_REQUIREMENT_ANY,
+    WIRED_TRADE_REQUIREMENT_ANY_COINS,
+    WIRED_TRADE_REQUIREMENT_ANY_FURNI,
+    WIRED_TRADE_REQUIREMENT_RULES,
+    WIRED_TRADE_RULES_AUTO,
+    WIRED_TRADE_RULES_MULTIPLIER,
 } from '@volt/renderer';
 import { FC, Fragment, useMemo, useState } from 'react';
 import { GroupItem, localizeWithFallback, ProductImageUtility } from '../../../../api';
 import { AutoGrid, Button, Column, Flex, Grid, LayoutGridItem, Text } from '../../../../common';
 import { useInventoryFurni, useWiredTrading } from '../../../../hooks';
+import { WIRED_TRADING_STATE_ADDING_ITEMS, WIRED_TRADING_STATE_CONFIRMED, WIRED_TRADING_STATE_CONFIRMING, WIRED_TRADING_STATE_COUNTDOWN } from '../../../../hooks/inventory/useWiredTrading';
 
 /** The window has room for nine, the same as the trade it is modelled on. */
 const MAX_ITEMS_ON_TABLE = 9;
 
-const CONTRACT_TITLES = [
-    'inventory.wired_trading.payment',
-    'inventory.wired_trading.trade',
-    'inventory.wired_trading.payment',
-    'inventory.wired_trading.chest_deposit',
-];
-const CONTRACT_FALLBACKS = ['Payment', 'Trade', 'Payment', 'Fill the chest'];
+/** AIR OfferingRequirementsView anyCoinsText / anyFurniText / anyAllText for the plain requirement types. */
+const ANY_REQUIREMENT_TEXTS: Record<number, [string, string]> = {
+    [WIRED_TRADE_REQUIREMENT_ANY_COINS]: ['inventory.wired_trading.requirements.any_coins', 'Any coins'],
+    [WIRED_TRADE_REQUIREMENT_ANY_FURNI]: ['inventory.wired_trading.requirements.any_furni', 'Any furni'],
+    [WIRED_TRADE_REQUIREMENT_ANY]: ['inventory.wired_trading.requirements.any_all', 'Anything'],
+};
 
-/** A table opened to fill a chest: nothing is required of the player, and nothing comes back. */
-const CONTRACT_TYPE_CHEST_DEPOSIT = 3;
+const itemImage = (item: ItemDataStructure) =>
+    ProductImageUtility.getProductImageUrl(item.isWallItem ? FurnitureType.WALL : FurnitureType.FLOOR, item.spriteId, '');
 
 /**
- * The negotiation a wired contract opens: what you offer on one side, what you receive on the other,
- * and a bubble spelling out which combinations the contract will accept.
+ * The wired trade window (AIR inventory/wired_trading): what you offer on one side, what you receive on the other,
+ * and a bubble spelling out what the trade requires.
  *
  * <p>It lives inside the inventory rather than in a window of its own because items are dragged into
  * it — the same reason the ordinary trade lives here.
  */
 export const InventoryWiredTradeView: FC<{}> = () => {
     const {
-        contractType,
-        rewardText,
+        requirementType,
+        youGetText,
         giveRules,
-        rewardRule,
+        getRule,
+        rulesType,
+        multiplier,
         showRequirements,
         setShowRequirements,
         state,
         canAccept,
+        extra,
         secondsLeft,
         countdown,
         offeredItems,
-        rewardFurni,
-        rewardCurrency,
-        missing,
+        rewardItems,
+        rewardCredits,
         offerItems,
         withdrawItem,
         progress,
         cancel,
     } = useWiredTrading();
 
-    const isChestDeposit = contractType === CONTRACT_TYPE_CHEST_DEPOSIT;
+    const hasRules = requirementType === WIRED_TRADE_REQUIREMENT_RULES;
+    const hasReceiveSide = !!getRule || !!youGetText || rewardItems.length > 0 || rewardCredits > 0;
+    const title = hasRules
+        ? (getRule
+            ? localizeWithFallback('inventory.wired_trading.trade', 'Trade')
+            : localizeWithFallback('inventory.wired_trading.payment', 'Payment'))
+        : localizeWithFallback('inventory.wired_trading.chest_deposit', 'Fill the chest');
 
     const { groupItems = [] } = useInventoryFurni();
     const [selected, setSelected] = useState<GroupItem>(null);
     const [quantity, setQuantity] = useState(1);
 
-    const canChangeOffer = state === WIRED_TRADE_STATE_ADDING_ITEMS;
-    const waitingOnCountdown = state === WIRED_TRADE_STATE_COUNTDOWN && countdown > 0;
-    const requirementsMet = !missing.length;
+    const canChangeOffer = state === WIRED_TRADING_STATE_ADDING_ITEMS;
+    const waitingOnCountdown = state === WIRED_TRADING_STATE_COUNTDOWN;
+
+    /** AIR requirement indicator: multiplier rules count the times met, auto rules number a repeated match. */
+    const indicatorText = (() => {
+        if (rulesType === WIRED_TRADE_RULES_MULTIPLIER) {
+            return localizeWithFallback('inventory.wired_trading.requirements.indicator.multi', 'Requirements met %amount%/%times% times',
+                ['times', 'amount'], [String(multiplier), String(extra)]);
+        }
+        if (rulesType === WIRED_TRADE_RULES_AUTO && canAccept && extra > 1) {
+            return localizeWithFallback('inventory.wired_trading.requirements.indicator.met_numbered', 'Requirements met %amount% times',
+                ['amount'], [String(extra)]);
+        }
+        return canAccept
+            ? localizeWithFallback('inventory.wired_trading.requirements.indicator.met', 'Requirements met')
+            : localizeWithFallback('inventory.wired_trading.requirements.indicator.not_met', 'Requirements not met');
+    })();
 
     const clock = useMemo(() => {
         const minutes = Math.floor(secondsLeft / 60);
@@ -95,20 +121,20 @@ export const InventoryWiredTradeView: FC<{}> = () => {
     };
 
     const nodeLabel = (node: IWiredTradeNode) =>
-        node.kind === WIRED_TRADE_NODE_FURNI
+        node.type === WIRED_TRADE_NODE_FURNI
             ? localizeWithFallback('inventory.wired_trading.node.furni', '%amount%x furni', ['amount'], [String(node.amount)])
             : localizeWithFallback('inventory.wired_trading.node.coins', '%amount%x coins', ['amount'], [String(node.amount)]);
 
     const renderNode = (node: IWiredTradeNode, key: string) => (
         <span key={key} className="inline-flex items-center gap-1 rounded border border-[#cbcbcb] bg-white px-1 py-[1px]">
-            {node.kind === WIRED_TRADE_NODE_FURNI && (
+            {node.type === WIRED_TRADE_NODE_FURNI && !!node.itemType && (
                 <img
                     alt=""
                     className="max-h-[20px] max-w-[20px] object-contain"
                     src={ProductImageUtility.getProductImageUrl(
-                        node.wallItem ? FurnitureType.WALL : FurnitureType.FLOOR,
-                        node.spriteId,
-                        '',
+                        node.itemType.isWallItem ? FurnitureType.WALL : FurnitureType.FLOOR,
+                        node.itemType.typeId,
+                        node.itemType.legacyPosterId,
                     )}
                 />
             )}
@@ -139,7 +165,7 @@ export const InventoryWiredTradeView: FC<{}> = () => {
         if (waitingOnCountdown) {
             return localizeWithFallback('inventory.trading.countdown', 'Wait %counter%', ['counter'], [String(countdown)]);
         }
-        if (state === WIRED_TRADE_STATE_CONFIRMING || state === WIRED_TRADE_STATE_COUNTDOWN) {
+        if (state === WIRED_TRADING_STATE_CONFIRMING || state === WIRED_TRADING_STATE_CONFIRMED) {
             return localizeWithFallback('inventory.wired_trading.confirm', 'Confirm');
         }
         return localizeWithFallback('inventory.trading.accept', 'Accept');
@@ -148,46 +174,43 @@ export const InventoryWiredTradeView: FC<{}> = () => {
     return (
         <Column overflow="hidden" gap={1}>
             <div className="flex items-center justify-between gap-2">
-                <Text bold>
-                    {localizeWithFallback(
-                        CONTRACT_TITLES[contractType] ?? CONTRACT_TITLES[0],
-                        CONTRACT_FALLBACKS[contractType] ?? CONTRACT_FALLBACKS[0],
-                    )}
-                </Text>
+                <Text bold>{title}</Text>
                 <div className="flex items-center gap-2">
                     {secondsLeft > 0 && secondsLeft < 120 && (
                         <span className="text-[11px] tabular-nums text-[#96631f]">
                             {localizeWithFallback('inventory.wired_trading.seconds_left', 'Time left %time%', ['time'], [clock])}
                         </span>
                     )}
-                    {!isChestDeposit && (
-                        <Button variant="secondary" onClick={() => setShowRequirements(!showRequirements)}>
-                            {localizeWithFallback('inventory.wired_trading.requirements.title', 'Requirements')}
-                        </Button>
-                    )}
+                    <Button variant="secondary" onClick={() => setShowRequirements(!showRequirements)}>
+                        {localizeWithFallback('inventory.wired_trading.requirements.title', 'Requirements')}
+                    </Button>
                 </div>
             </div>
 
-            {showRequirements && !isChestDeposit && (
+            {showRequirements && (
                 <div className="rounded border border-[#b9b3a5] bg-[#f7f5ee] p-2 flex flex-col gap-1">
                     <Text small bold>
                         {localizeWithFallback('inventory.wired_trading.requirements.offering', 'You give')}
                     </Text>
-                    {giveRules.map(renderRule)}
-                    {!!rewardRule && (
+                    {hasRules
+                        ? giveRules.map(renderRule)
+                        : (
+                            <div className="text-[11px]">
+                                {localizeWithFallback(...(ANY_REQUIREMENT_TEXTS[requirementType] ?? ANY_REQUIREMENT_TEXTS[WIRED_TRADE_REQUIREMENT_ANY]))}
+                            </div>
+                        )}
+                    {(!!getRule || !!youGetText) && (
                         <>
                             <Text small bold>
                                 {localizeWithFallback('inventory.wired_trading.requirements.receiving', 'You receive')}
                             </Text>
-                            {renderRule(rewardRule, 0)}
+                            {!!getRule && renderRule(getRule, 0)}
+                            {!!youGetText && <div className="text-[11px] text-[#6b6659]">{youGetText}</div>}
                         </>
                     )}
-                    <div className={`text-[11px] ${ requirementsMet ? 'text-[#4a7237]' : 'text-[#8f3527]' }`}>
-                        {requirementsMet
-                            ? localizeWithFallback('inventory.wired_trading.requirements.indicator.met', 'Requirements met')
-                            : localizeWithFallback('inventory.wired_trading.requirements.indicator.not_met', 'Requirements not met')}
+                    <div className={`text-[11px] ${ canAccept ? 'text-[#4a7237]' : 'text-[#8f3527]' }`}>
+                        {indicatorText}
                     </div>
-                    {!!rewardText && <div className="text-[11px] text-[#6b6659]">{rewardText}</div>}
                 </div>
             )}
 
@@ -240,11 +263,11 @@ export const InventoryWiredTradeView: FC<{}> = () => {
                     )}
                 </Column>
 
-                <Column overflow="hidden" size={isChestDeposit ? 8 : 4}>
+                <Column overflow="hidden" size={hasReceiveSide ? 4 : 8}>
                     <Text small>
-                        {isChestDeposit
-                            ? localizeWithFallback('inventory.wired_trading.depositing', 'Going into the chest')
-                            : localizeWithFallback('inventory.wired_trading.offering', 'You offer')}
+                        {hasReceiveSide
+                            ? localizeWithFallback('inventory.wired_trading.offering', 'You offer')
+                            : localizeWithFallback('inventory.wired_trading.depositing', 'Going into the chest')}
                     </Text>
                     <AutoGrid columnCount={3}>
                         {Array.from(Array(MAX_ITEMS_ON_TABLE), (unused, index) => {
@@ -255,11 +278,7 @@ export const InventoryWiredTradeView: FC<{}> = () => {
                             return (
                                 <LayoutGridItem
                                     key={index}
-                                    itemImage={ProductImageUtility.getProductImageUrl(
-                                        item.wallItem ? FurnitureType.WALL : FurnitureType.FLOOR,
-                                        item.spriteId,
-                                        '',
-                                    )}
+                                    itemImage={itemImage(item)}
                                     onDoubleClick={() => canChangeOffer && withdrawItem(item.itemId)}
                                 />
                             );
@@ -267,27 +286,23 @@ export const InventoryWiredTradeView: FC<{}> = () => {
                     </AutoGrid>
                 </Column>
 
-                <Column overflow="hidden" size={4} className={isChestDeposit ? 'hidden' : undefined}>
+                <Column overflow="hidden" size={4} className={hasReceiveSide ? undefined : 'hidden'}>
                     <Text small>{localizeWithFallback('inventory.wired_trading.receiving', 'You receive')}</Text>
                     <AutoGrid columnCount={3}>
-                        {rewardFurni.map((reward, index) => (
-                            <LayoutGridItem
-                                key={index}
-                                itemCount={reward.amount}
-                                itemImage={ProductImageUtility.getProductImageUrl(FurnitureType.FLOOR, reward.spriteId, '')}
-                            />
+                        {rewardItems.map((item, index) => (
+                            <LayoutGridItem key={index} itemImage={itemImage(item)} />
                         ))}
                     </AutoGrid>
-                    {rewardCurrency.map((reward, index) => (
-                        <div key={index} className="text-[11px] tabular-nums text-[#6b6659]">
+                    {rewardCredits > 0 && (
+                        <div className="text-[11px] tabular-nums text-[#6b6659]">
                             {localizeWithFallback(
                                 'inventory.wired_trading.reward.coins',
                                 '%amount% coins',
                                 ['amount'],
-                                [String(reward.amount)],
+                                [String(rewardCredits)],
                             )}
                         </div>
-                    ))}
+                    )}
                 </Column>
             </Grid>
 
@@ -295,10 +310,8 @@ export const InventoryWiredTradeView: FC<{}> = () => {
                 <Button variant="danger" onClick={cancel}>
                     {localizeWithFallback('generic.cancel', 'Cancel')}
                 </Button>
-                {/* A deposit asks for nothing, so the offer always "satisfies" it -- but confirming an
-                    empty table would just close the window, which is not what the button promises. */}
                 <Button
-                    disabled={!canAccept || waitingOnCountdown || (isChestDeposit && !offeredItems.length)}
+                    disabled={!canAccept || waitingOnCountdown || state === WIRED_TRADING_STATE_CONFIRMED}
                     variant="success"
                     onClick={progress}
                 >

@@ -8,7 +8,6 @@ import {
     IWiredChestTransactionRow,
     RoomControllerLevel,
     WiredChestLockComposer,
-    WiredChestLockStateEvent,
     WiredChestRoomLogsComposer,
     WiredChestRoomLogsEvent,
     WiredChestTransactionDetailsComposer,
@@ -27,7 +26,10 @@ const PAGE_SIZE = 10;
 /** Matches the official tab: the preview refreshes on its own while it is the visible tab. */
 const POLL_MS = 20000;
 
-/** The official tab greys the lock buttons briefly after a click so a double click cannot fire twice. */
+/**
+ * AIR WiredMenuChestsTab.startLockTimeout: lock (1323) gets no answer, so the buttons are greyed for a short time-out
+ * and the new state shows through the chests' stuff data.
+ */
 const LOCK_COOLDOWN_MS = 500;
 
 interface TransactionDetail {
@@ -58,7 +60,6 @@ export const WiredChestsTabView: FC<{}> = () => {
     const [details, setDetails] = useState<Record<number, TransactionDetail>>({});
 
     const [lockBusy, setLockBusy] = useState(false);
-    const [lockResult, setLockResult] = useState('');
     /** Zero means the whole room. A room with a dozen chests makes a log nobody can read. */
     const [onlyChestId, setOnlyChestId] = useState(0);
 
@@ -103,30 +104,6 @@ export const WiredChestsTabView: FC<{}> = () => {
         setLoaded(true);
     });
 
-    useMessageEvent<WiredChestLockStateEvent>(WiredChestLockStateEvent, (event) => {
-        const parser = event.getParser();
-        if (!parser) return;
-
-        if (!parser.affected) {
-            setLockResult(
-                localizeWithFallback(
-                    'wiredmenu.chests.chest_control.result.none',
-                    'Nothing changed - the chests were already in that state.',
-                ),
-            );
-            return;
-        }
-
-        setLockResult(
-            localizeWithFallback(
-                parser.locked ? 'wiredmenu.chests.chest_control.result.locked' : 'wiredmenu.chests.chest_control.result.unlocked',
-                parser.locked ? '%count% chests locked.' : '%count% chests unlocked.',
-                ['count'],
-                [String(parser.affected)],
-            ),
-        );
-    });
-
     useMessageEvent<WiredChestTransactionDetailsEvent>(WiredChestTransactionDetailsEvent, (event) => {
         const parser = event.getParser();
         if (!parser) return;
@@ -139,7 +116,6 @@ export const WiredChestsTabView: FC<{}> = () => {
             if (lockBusy) return;
 
             setLockBusy(true);
-            setLockResult('');
             SendMessageComposer(new WiredChestLockComposer(lock, all));
             window.setTimeout(() => setLockBusy(false), LOCK_COOLDOWN_MS);
         },
@@ -239,11 +215,6 @@ export const WiredChestsTabView: FC<{}> = () => {
                 <WiredMenuButton disabled={!canManageAll || lockBusy} h={30} w={221} x={10} y={50} onClick={lockEveryChest}>
                     Lock all chests
                 </WiredMenuButton>
-                {!!lockResult && (
-                    <WiredMenuText h={19} w={221} x={241} y={55}>
-                        {lockResult}
-                    </WiredMenuText>
-                )}
             </WiredMenuPanel>
             <WiredMenuItem h={17} w={136} x={14} y={139}>
                 <span className="volt-wired-menu__text volt-wired-menu__text--bold">Room Transaction Logs:</span>

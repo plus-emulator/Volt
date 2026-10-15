@@ -355,6 +355,10 @@ export class WiredRewardResultMessageEvent extends MessageEvent {
     static readonly PRODUCT_DONATED_CODE = 7;
     static readonly BADGE_DONATED_CODE = 8;
 }
+// Wired transaction notifications (AIR build 202610121709 ids 1360 / 503 / 125).
+export class WiredTransactionFailEvent extends MessageEvent {}
+export class WiredTradeErrorEvent extends MessageEvent {}
+export class WiredTransactionSuccessEvent extends MessageEvent {}
 
 // RoomEnterEffect — used by useNotificationStore to check if the room-enter
 // animation is still running before showing the mod disclaimer bubble.

@@ -1,30 +1,48 @@
 import {
     ChestCloseComposer,
-    ChestDataEvent,
-    ChestDepositComposer,
-    ChestEnableWiredComposer,
-    ChestDepositInventoryItemComposer,
+    ChestCoinsEvent,
     ChestFurniChunkEvent,
-    ChestFurniDeltaEvent,
+    ChestFurniUpdateEvent,
     ChestLogEvent,
+    ChestOpenComposer,
+    ChestOpenEvent,
     ChestSaveNotificationsComposer,
     ChestSaveOptionsComposer,
     ChestSaveSettingsComposer,
+    ChestSettingsUpdatedEvent,
     ChestStartDepositComposer,
     ChestUpgradeCapacityComposer,
     ChestUpgradeResultEvent,
-    ChestWithdrawAllFurniComposer,
-    ChestWithdrawComposer,
+    ChestWithdrawAllComposer,
+    ChestWithdrawCoinsComposer,
     ChestWithdrawFurniComposer,
+    FurnitureDataEvent,
+    FurnitureFloorUpdateEvent,
     FurnitureListComposer,
-    FurnitureListInvalidateEvent,
     FurnitureType,
+    GetRoomEngine,
     GetSessionDataManager,
     IChestFurniStoredItem,
-    WiredChestSettingsAckEvent,
+    RoomObjectCategory,
+    RoomObjectVariable,
 } from '@volt/renderer';
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { LocalizeText, localizeWithFallback, ProductImageUtility, SendMessageComposer } from '../../../../api';
+import {
+    GetConfigurationValue,
+    GetRoomSession,
+    getWiredChestLayout,
+    getWiredChestMaxCapacity,
+    getWiredChestRights,
+    isStarterChest,
+    LocalizeText,
+    localizeWithFallback,
+    readWiredChestStuffData,
+    SanitizeHtml,
+    SendMessageComposer,
+    WIRED_CHEST_KIND_COINS,
+    WIRED_CHEST_KIND_FURNI,
+    WiredChestKind,
+} from '../../../../api';
 import sceneHigh from '../../../../assets/images/chest/light_coins_chest_balance_high.png';
 import sceneLow from '../../../../assets/images/chest/light_coins_chest_balance_low.png';
 import sceneMedium from '../../../../assets/images/chest/light_coins_chest_balance_medium.png';
@@ -32,20 +50,17 @@ import sceneZero from '../../../../assets/images/chest/light_coins_chest_balance
 import furniEmptyScene from '../../../../assets/images/chest/variant_furni_chest_empty.png';
 import bellIcon from '../../../../assets/images/chest/wired_chests_bell_icon.png';
 import gearIcon from '../../../../assets/images/chest/wired_chests_gear_icon.png';
+import checkmarkIcon from '../../../../assets/images/reward-track/air/checkmark.png';
+import wiredIcon from '../../../../assets/images/wiredtools/wired_menu.png';
 import { Column, Flex, LayoutCurrencyIcon, LayoutFurniImageView, VoltCardContentView, VoltCardHeaderView, VoltCardView, PIXEL_ART_RENDERING, Text } from '../../../../common';
-import { useMessageEvent, useNotification, usePurse } from '../../../../hooks';
-import { useInventoryFurni } from '../../../../hooks/inventory';
+import { useMessageEvent, usePurse } from '../../../../hooks';
+import { useWiredToolsState } from '../../../../hooks/wired-tools/useWiredToolsState';
 import { ChestButton } from './ChestButton';
 import { ChestAppearanceFields, ChestSettingsSection } from './ChestSettingsFields';
 import { HabboDropMenuView } from '../../../../common/dropmenu/HabboDropMenuView';
 import { ChestFurniGroup, chestFurniDisplayName, groupStoredFurni } from './chestFurniGrouping';
 import { FurniChestGridItem } from './FurniChestGridItem';
 import { FurniChestSearchBar } from './FurniChestSearchBar';
-
-interface ChestEntry {
-    currencyType: number;
-    amount: number;
-}
 
 interface ChestLogRow {
     type: string;
@@ -56,19 +71,17 @@ interface ChestLogRow {
 }
 
 const CREDITS = -1;
-const CHEST_KIND_FURNI = 1;
-/** Each coin upgrade adds 5000 capacity; each furni upgrade adds 1000. */
-const COIN_UPGRADE_STEP = 5000;
-const FURNI_UPGRADE_STEP = 1000;
 const NON_DIGITS = /\D/g;
+/** Matches the server's per-purchase cap. */
+const MAX_UPGRADES_PER_PURCHASE = 10;
 /** Coin chests stop at 100000 capacity and furni chests at 10000. */
 const COIN_MAX_CAPACITY = 100_000;
 const FURNI_MAX_CAPACITY = 10_000;
-/** Matches the server's per-purchase cap. */
-const MAX_UPGRADES_PER_PURCHASE = 10;
 const LOCK_INFO_RULES = [1, 2, 3, 4, 5, 6, 7].map((n) => `wiredchests.lock_info.rule_${ n }`);
 const CAPACITY_INFO_RULES = [1, 2, 3, 4].map((n) => `wiredchests.capacity_info.rule_${ n }`);
 const FURNI_SEARCH_THRESHOLD = 31;
+const COST_CREDITS = 10;
+const COST_DIAMONDS = 10;
 
 const furniName = (baseItemId: number, wallItem = false): string => {
     const data = wallItem
@@ -76,8 +89,6 @@ const furniName = (baseItemId: number, wallItem = false): string => {
         : GetSessionDataManager().getFloorItemData(baseItemId);
     return data?.name || `#${baseItemId}`;
 };
-const COST_CREDITS = 10;
-const COST_DIAMONDS = 10;
 
 const groupLabel = (group: ChestFurniGroup): string =>
     chestFurniDisplayName(
@@ -87,65 +98,69 @@ const groupLabel = (group: ChestFurniGroup): string =>
         (id) => furniName(id, true),
     );
 
+const configNumber = (key: string): number | null => {
+    const value = GetConfigurationValue<number>(key, null);
+
+    return typeof value === 'number' && Number.isFinite(value) ? value : null;
+};
+
+/** The chest furni as the room engine holds it: stuff data map, owner and furni type. */
+const readChestObject = (chestId: number) => {
+    const roomId = GetRoomSession()?.roomId ?? -1;
+    const roomObject = chestId > 0 && roomId >= 0 ? GetRoomEngine().getRoomObject(roomId, chestId, RoomObjectCategory.FLOOR) : null;
+    const model = roomObject?.model ?? null;
+    const typeId = model?.getValue<number>(RoomObjectVariable.FURNITURE_TYPE_ID) ?? 0;
+
+    return {
+        data: readWiredChestStuffData(model?.getValue<Record<string, string>>(RoomObjectVariable.FURNITURE_DATA)),
+        ownerId: model?.getValue<number>(RoomObjectVariable.FURNITURE_OWNER_ID) ?? -1,
+        typeId,
+        className: (typeId > 0 && GetSessionDataManager().getFloorItemData(typeId)?.className) || '',
+    };
+};
+
+/**
+ * The wired chest window, after AIR WiredChestController / WiredChestWrapperView (WIN63-202610131318-860371703).
+ *
+ * <p>Opening: the server answers a furni use with ChestOpen (3966); the client asks for the contents with ChestOpen
+ * (1595) and the answer decides the chest kind: ChestCoins (988) for a coin chest, ChestFurniChunk (44) fragments for a
+ * furni chest. Everything else (name, access, lock, capacity, notifications, wired) is read from the chest's stuff
+ * data and re-read whenever the room object updates; rights are computed on the client.
+ */
 export const FurnitureChestView: FC = () => {
     const [itemId, setItemId] = useState(-1);
+    const [kind, setKind] = useState<WiredChestKind>(WIRED_CHEST_KIND_COINS);
+    const [coins, setCoins] = useState(0);
+    const [storedFurniItems, setStoredFurniItems] = useState<IChestFurniStoredItem[]>([]);
+    const [selectedFurniKey, setSelectedFurniKey] = useState('');
+    const [furniWithdrawAmount, setFurniWithdrawAmount] = useState(1);
+    const [withdrawAmount, setWithdrawAmount] = useState(1);
+    /** Bumped to re-read the chest's room object after it updates (AIR viewingChestUpdated). */
+    const [, setObjectVersion] = useState(0);
+
+    // Settings frame draft (AIR ChestSettingsUI reads the stuff data when it is shown).
+    const [showSettings, setShowSettings] = useState(false);
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
-    const [capacityMax, setCapacityMax] = useState(5000);
-    const [used, setUsed] = useState(0);
-    const [accessOpen, setAccessOpen] = useState(true);
+    const [accessOpen, setAccessOpen] = useState(false);
     const [accessDonate, setAccessDonate] = useState(false);
-    const [locked, setLocked] = useState(false);
-    const [autoLock, setAutoLock] = useState(false);
-    const [capacity, setCapacity] = useState(0);
-    const [isOwner, setIsOwner] = useState(false);
-    const [canWithdraw, setCanWithdraw] = useState(false);
-    const [canDeposit, setCanDeposit] = useState(false);
-    const [canToggleLock, setCanToggleLock] = useState(false);
     const [appearanceState, setAppearanceState] = useState(0);
+    const [previewMode, setPreviewMode] = useState(0);
+    const [previewAmount, setPreviewAmount] = useState(1);
+    /** AIR: the upgrade button is disabled once the chest is wired; every save sends wiredEnabled = that. */
+    const [wiredUpgradeDisabled, setWiredUpgradeDisabled] = useState(false);
+    const [confirmWiredUpgrade, setConfirmWiredUpgrade] = useState(false);
+    const [wiredUpgradeBuying, setWiredUpgradeBuying] = useState(false);
+
+    // Notification settings frame draft (AIR ChestNotificationSettingsUI).
+    const [showNotifications, setShowNotifications] = useState(false);
     const [notifyFull, setNotifyFull] = useState(false);
     const [notifyDonation, setNotifyDonation] = useState(false);
     const [notifyWithdraw, setNotifyWithdraw] = useState(false);
     const [notifyEmpty, setNotifyEmpty] = useState(false);
     const [notifyWired, setNotifyWired] = useState(false);
     const [notifyMode, setNotifyMode] = useState(0);
-    const [entries, setEntries] = useState<ChestEntry[]>([]);
-    const [chestKind, setChestKind] = useState(0);
-    const [storedFurniItems, setStoredFurniItems] = useState<IChestFurniStoredItem[]>([]);
-    const [legacyFurniGroups, setLegacyFurniGroups] = useState<ChestFurniGroup[]>([]);
-    const [selectedFurniKey, setSelectedFurniKey] = useState('');
-    const [furniWithdrawAmount, setFurniWithdrawAmount] = useState(1);
 
-    const [withdrawAmount, setWithdrawAmount] = useState(1);
-    const [depositOpen, setDepositOpen] = useState(false);
-    const [depositAmount, setDepositAmount] = useState(0);
-
-    const [showSettings, setShowSettings] = useState(false);
-    const [showNotifications, setShowNotifications] = useState(false);
-
-    // Every settings-affecting message is answered by one ack, in order. This records what each send
-    // was, so only the explicit Save of its own dialog closes that dialog, and an automatic save
-    // (a lock switch, enabling Wired) never does. The queue belongs to the chest on screen.
-    const pendingSaves = useRef<('settings' | 'notifications' | 'other')[]>([]);
-    const settingsOpenRef = useRef(false);
-    const notificationsOpenRef = useRef(false);
-    const itemIdRef = useRef(itemId);
-    settingsOpenRef.current = showSettings;
-    notificationsOpenRef.current = showNotifications;
-    itemIdRef.current = itemId;
-
-    useEffect(() => {
-        pendingSaves.current = [];
-
-        return () => {
-            pendingSaves.current = [];
-        };
-    }, [itemId]);
-
-    const sendSave = (kind: 'settings' | 'notifications' | 'other', composer: Parameters<typeof SendMessageComposer>[0]) => {
-        pendingSaves.current.push(kind);
-        SendMessageComposer(composer);
-    };
     const [showUpgrade, setShowUpgrade] = useState(false);
     const [showLog, setShowLog] = useState(false);
     const [logRows, setLogRows] = useState<ChestLogRow[]>([]);
@@ -154,26 +169,38 @@ export const FurnitureChestView: FC = () => {
     const [confirmLock, setConfirmLock] = useState<null | boolean>(null);
     const [showLockInfo, setShowLockInfo] = useState(false);
     const [upgradeResult, setUpgradeResult] = useState('');
-    const [capacityDraft, setCapacityDraft] = useState('');
-    const [chestBaseItemId, setChestBaseItemId] = useState(0);
-    const [wiredEnabled, setWiredEnabled] = useState(true);
-    const [isStarter, setIsStarter] = useState(false);
-    const [confirmWiredUpgrade, setConfirmWiredUpgrade] = useState(false);
-    const [previewMode, setPreviewMode] = useState(0);
-    const [previewAmount, setPreviewAmount] = useState(1);
+    /** null shows the saved capacity; a string is what the owner is typing. */
+    const [capacityDraft, setCapacityDraft] = useState<string | null>(null);
+    const [furniSearchDraft, setFurniSearchDraft] = useState('');
+    const [furniSearchQuery, setFurniSearchQuery] = useState('');
+
+    /** The chest a ChestOpen (1595) was sent for; only its 988 / 44 answers open the window. */
+    const openingIdRef = useRef(-1);
 
     const { getCurrencyAmount } = usePurse();
     const creditsWallet = getCurrencyAmount(-1);
     const diamondsWallet = getCurrencyAmount(5);
-    const [furniSearchDraft, setFurniSearchDraft] = useState('');
-    const [furniSearchQuery, setFurniSearchQuery] = useState('');
+    const { roomSettings } = useWiredToolsState();
 
-    const { groupItems = [] } = useInventoryFurni();
+    const chestObject = readChestObject(itemId);
+    const stuff = chestObject.data;
+    const isFurni = kind === WIRED_CHEST_KIND_FURNI;
+    const isStarter = isStarterChest(chestObject.className);
+    const capacityMax = getWiredChestMaxCapacity(kind, isStarter, stuff.capacityLevel, configNumber);
+    const capacity = stuff.capacity > 0 ? Math.min(stuff.capacity, capacityMax) : capacityMax;
+    const used = isFurni ? storedFurniItems.length : coins;
+    const isOwner = chestObject.ownerId > 0 && chestObject.ownerId === GetSessionDataManager().userId;
+    const rights = getWiredChestRights({
+        owner: isOwner,
+        roomOwner: !!GetRoomSession()?.isRoomOwner,
+        hasWiredRead: !!roomSettings?.canInspect,
+        hasWiredWrite: !!roomSettings?.canModify,
+        empty: used <= 0,
+        data: stuff,
+    });
+    const layout = getWiredChestLayout(rights.canRead, stuff.wiredEnabled, kind);
 
-    const furniEntries = useMemo(() => {
-        if (chestKind === CHEST_KIND_FURNI) return groupStoredFurni(storedFurniItems);
-        return legacyFurniGroups;
-    }, [chestKind, storedFurniItems, legacyFurniGroups]);
+    const furniEntries = useMemo(() => (isFurni ? groupStoredFurni(storedFurniItems) : []), [isFurni, storedFurniItems]);
 
     const syncSelectedFurniKey = useCallback((groups: ChestFurniGroup[]) => {
         setSelectedFurniKey((prev) =>
@@ -194,8 +221,8 @@ export const FurnitureChestView: FC = () => {
         if (!q) return furniEntries;
         const terms = q.split(/\s+/).filter(Boolean);
         return furniEntries.filter((f) => {
-            const name = groupLabel(f).toLowerCase();
-            return terms.every((term) => name.includes(term));
+            const label = groupLabel(f).toLowerCase();
+            return terms.every((term) => label.includes(term));
         });
     }, [furniEntries, furniSearchQuery]);
 
@@ -206,7 +233,6 @@ export const FurnitureChestView: FC = () => {
     }, [selectedFurniKey]);
 
     const selectedGroup = furniEntries.find((f) => f.key === selectedFurniKey) ?? null;
-
 
     useEffect(() => {
         syncSelectedFurniKey(furniEntries);
@@ -223,83 +249,94 @@ export const FurnitureChestView: FC = () => {
         };
     }, [itemId]);
 
-    useMessageEvent<ChestDataEvent>(ChestDataEvent, (event) => {
-        const p = event.getParser();
-        setItemId(p.itemId);
-        setCapacityMax(p.capacityMax);
-        setUsed(p.used);
-        // An open dialog keeps its unsaved draft for the same chest. Closed dialogs accept
-        // the next refresh, and another chest never inherits a draft.
-        const sameChest = p.itemId === itemIdRef.current;
-        const keepSettingsDraft = settingsOpenRef.current && sameChest;
-        const keepNotificationsDraft = notificationsOpenRef.current && sameChest;
+    const closeFrames = () => {
+        setShowSettings(false);
+        setShowNotifications(false);
+        setConfirmWiredUpgrade(false);
+        setShowUpgrade(false);
+        setConfirmWithdrawAll(false);
+        setConfirmLock(null);
+    };
 
-        if (!sameChest) {
-            setShowSettings(false);
-            setShowNotifications(false);
-        }
+    // AIR WiredChestController.onOpenChest -> open(): ask for the contents.
+    useMessageEvent<ChestOpenEvent>(ChestOpenEvent, (event) => {
+        const chestId = event.getParser().chestId;
 
-        if (!keepSettingsDraft) {
-            setName(p.name);
-            setDescription(p.description);
-            setAccessOpen(p.accessOpen);
-            setAccessDonate(p.accessDonate);
-        }
+        if (chestId <= 0) return;
 
-        setLocked(p.locked);
-        setAutoLock(p.autoLock);
-        setCapacity(p.capacity ?? p.capacityMax);
-        setCapacityDraft(String(p.capacity ?? p.capacityMax));
-        setIsOwner(p.viewerOwnsChest);
-        setCanWithdraw(p.canWithdraw);
-        setCanDeposit(p.canDeposit);
-        setCanToggleLock(p.canLock);
-        setChestBaseItemId(p.chestSpriteId);
-        setWiredEnabled(p.wiredEnabled);
-        setIsStarter(p.starterChest);
-        if (!keepSettingsDraft) {
-            setPreviewMode(p.previewMode);
-            setPreviewAmount(p.previewAmount);
-            setAppearanceState(p.appearanceState);
-        }
-
-        if (!keepNotificationsDraft) {
-            setNotifyFull(p.notifyFull);
-            setNotifyDonation(p.notifyDonation);
-            setNotifyWithdraw(p.notifyWithdraw);
-            setNotifyEmpty(p.notifyEmpty);
-            setNotifyWired(p.notifyWired);
-            setNotifyMode(p.notifyMode);
-        }
-
-        setEntries(p.entries.map((e) => ({ currencyType: e.currencyType, amount: e.amount })));
-        setChestKind(p.chestKind);
-        if (p.chestKind === CHEST_KIND_FURNI) {
-            // v2 rows: chunk/delta own storedFurniItems — only refresh shell fields here.
-        } else {
-            const legacyGroups: ChestFurniGroup[] = p.furniEntries.map((e) => ({
-                key: `0-${e.baseItemId}-`,
-                wallItem: false,
-                baseItemId: e.baseItemId,
-                legacyPosterId: '',
-                specialType: 0,
-                quantity: e.quantity,
-                sample: {
-                    inventoryId: 0,
-                    lockState: 0,
-                    transactionId: 0,
-                    wallItem: false,
-                    baseItemId: e.baseItemId,
-                    legacyPosterId: '',
-                    groupable: true,
-                    specialType: 0,
-                    stuffData: null,
-                    extra: 0,
-                },
-            }));
-            setLegacyFurniGroups(legacyGroups);
-        }
+        openingIdRef.current = chestId;
+        SendMessageComposer(new ChestOpenComposer(chestId));
     });
+
+    const openChest = (chestId: number, chestKind: WiredChestKind) => {
+        openingIdRef.current = -1;
+
+        if (chestId !== itemId) {
+            closeFrames();
+            setFurniSearchDraft('');
+            setFurniSearchQuery('');
+        }
+
+        setKind(chestKind);
+        setItemId(chestId);
+        setObjectVersion((value) => value + 1);
+    };
+
+    useMessageEvent<ChestCoinsEvent>(ChestCoinsEvent, (event) => {
+        const p = event.getParser();
+
+        if (p.isUpdate) {
+            if (p.chestId === itemId && kind === WIRED_CHEST_KIND_COINS) setCoins(p.coins);
+            return;
+        }
+
+        if (p.chestId !== openingIdRef.current) return;
+
+        setCoins(p.coins);
+        setStoredFurniItems([]);
+        openChest(p.chestId, WIRED_CHEST_KIND_COINS);
+    });
+
+    const pendingFurniRef = useRef<IChestFurniStoredItem[]>([]);
+
+    useMessageEvent<ChestFurniChunkEvent>(ChestFurniChunkEvent, (event) => {
+        const p = event.getParser();
+
+        if (p.chestId !== openingIdRef.current) return;
+
+        if (p.fragmentNo === 0) pendingFurniRef.current = [];
+
+        pendingFurniRef.current = [...pendingFurniRef.current, ...p.items];
+
+        if (p.fragmentNo < p.totalFragments - 1) return;
+
+        setStoredFurniItems(pendingFurniRef.current);
+        pendingFurniRef.current = [];
+        setCoins(0);
+        openChest(p.chestId, WIRED_CHEST_KIND_FURNI);
+    });
+
+    useMessageEvent<ChestFurniUpdateEvent>(ChestFurniUpdateEvent, (event) => {
+        const p = event.getParser();
+
+        if (p.chestId !== itemId) return;
+
+        setStoredFurniItems((prev) => {
+            const removed = new Set(p.removedIds);
+            return [...prev.filter((i) => !removed.has(i.inventoryId)), ...p.added];
+        });
+    });
+
+    // AIR viewingChestUpdated: the window follows the chest's room object. The engine applies the update when it
+    // handles the same message, so the read happens right after.
+    const refreshObject = (objectId: number) => {
+        if (objectId !== itemId) return;
+
+        window.setTimeout(() => setObjectVersion((value) => value + 1), 0);
+    };
+
+    useMessageEvent<FurnitureFloorUpdateEvent>(FurnitureFloorUpdateEvent, (event) => refreshObject(event.getParser().item?.itemId));
+    useMessageEvent<FurnitureDataEvent>(FurnitureDataEvent, (event) => refreshObject(event.getParser().furnitureId));
 
     useMessageEvent<ChestUpgradeResultEvent>(ChestUpgradeResultEvent, (event) => {
         const p = event.getParser();
@@ -322,101 +359,76 @@ export const FurnitureChestView: FC = () => {
         );
     });
 
-    useMessageEvent<ChestFurniChunkEvent>(ChestFurniChunkEvent, (event) => {
-        const p = event.getParser();
-        setItemId(p.chestId);
-
-        setStoredFurniItems((prev) => {
-            const next = p.fragmentNo === 0 ? [] : [...prev];
-            next.push(...p.items);
-            return next;
-        });
-    });
-
-    useMessageEvent<ChestFurniDeltaEvent>(ChestFurniDeltaEvent, (event) => {
-        const p = event.getParser();
-
-        setStoredFurniItems((prev) => {
-            const removed = new Set(p.removedIds);
-            return [...prev.filter((i) => !removed.has(i.inventoryId)), ...p.added];
-        });
-    });
-
     useMessageEvent<ChestLogEvent>(ChestLogEvent, (event) => {
         const p = event.getParser();
         setLogRows(p.rows.map((r) => ({ ...r })));
         setShowLog(true);
     });
 
-    const { simpleAlert } = useNotification();
+    // ChestSettingsUpdated (2159) arrives only for a successful save and closes the matching frame; a refused save
+    // leaves the frame open.
+    useMessageEvent<ChestSettingsUpdatedEvent>(ChestSettingsUpdatedEvent, (event) => {
+        const p = event.getParser();
 
-    // The server answers every settings save with this, then re-sends the chest, so the window only
-    // closes on an accepted save and a refusal says so instead of vanishing.
-    useMessageEvent<WiredChestSettingsAckEvent>(WiredChestSettingsAckEvent, (event) => {
-        const ack = event.getParser();
+        if (p.chestId !== itemId) return;
 
-        if (ack.chestId !== itemId) return;
-
-        const kind = pendingSaves.current.shift() ?? 'other';
-
-        if (ack.saved) {
-            if (kind === 'settings') {
-                settingsOpenRef.current = false;
-                setShowSettings(false);
-            }
-            if (kind === 'notifications') {
-                notificationsOpenRef.current = false;
-                setShowNotifications(false);
-            }
-
+        if (p.isNotificationPreferences) {
+            setShowNotifications(false);
             return;
         }
 
-        simpleAlert(
-            localizeWithFallback('wiredchests.settings.error', 'The chest settings were refused.'),
-            null,
-            null,
-            null,
-            localizeWithFallback('generic.error', 'Error'),
-        );
+        setShowSettings(false);
+        setConfirmWiredUpgrade(false);
+        setWiredUpgradeBuying(false);
     });
 
     if (itemId === -1) return null;
 
-    const creditsBalance = entries.find((e) => e.currencyType === CREDITS)?.amount ?? 0;
     // Scene image follows the official CoinChestSubController.CHEST_STATES thresholds:
     // absolute coin count (NOT a fill ratio) — 0 -> zero, >=1 -> low, >=20 -> medium, >=100 -> high.
-    const sceneImg =
-        creditsBalance >= 100 ? sceneHigh : creditsBalance >= 20 ? sceneMedium : creditsBalance >= 1 ? sceneLow : sceneZero;
+    const sceneImg = coins >= 100 ? sceneHigh : coins >= 20 ? sceneMedium : coins >= 1 ? sceneLow : sceneZero;
 
-    const isFurni = chestKind === CHEST_KIND_FURNI;
     const chestTypeLabel = isFurni
         ? LocalizeText('wiredchests.furni_chest')
         : LocalizeText('wiredchests.coin_chest');
+    const chestName = stuff.name || chestTypeLabel;
     const selectedFurniQty = selectedGroup?.quantity ?? 0;
 
     const close = () => {
+        closeFrames();
+        openingIdRef.current = -1;
         setItemId(-1);
         setStoredFurniItems([]);
-        setLegacyFurniGroups([]);
+        setCoins(0);
     };
-    const deposit = () => {
-        if (depositAmount <= 0) return;
-        SendMessageComposer(new ChestDepositComposer(itemId, CREDITS, depositAmount));
-        setDepositAmount(0);
+    const openSettings = () => {
+        setName(stuff.name);
+        setDescription(stuff.description);
+        setAccessOpen(stuff.everyoneCanOpen);
+        setAccessDonate(stuff.everyoneCanDonate);
+        setAppearanceState(stuff.stateMode);
+        setPreviewMode(stuff.previewMode);
+        setPreviewAmount(stuff.previewAmount);
+        setWiredUpgradeDisabled(stuff.wiredEnabled);
+        setWiredUpgradeBuying(false);
+        setShowSettings(true);
+    };
+    const openNotifications = () => {
+        setNotifyFull(stuff.notifyChestFull);
+        setNotifyDonation(stuff.notifyDonation);
+        setNotifyWithdraw(stuff.notifySomeoneWithdraws);
+        setNotifyEmpty(stuff.notifyChestEmpty);
+        setNotifyWired(stuff.notifyWiredTransaction);
+        setNotifyMode(stuff.notifyMode);
+        setShowNotifications(true);
     };
     const withdraw = () => {
         if (withdrawAmount <= 0) return;
-        SendMessageComposer(new ChestWithdrawComposer(itemId, CREDITS, withdrawAmount));
-        setWithdrawAmount(0);
+        SendMessageComposer(new ChestWithdrawCoinsComposer(itemId, withdrawAmount));
     };
     const withdrawAll = () => setConfirmWithdrawAll(true);
     const doWithdrawAll = () => {
-        if (isFurni) {
-            SendMessageComposer(new ChestWithdrawAllFurniComposer(itemId));
-        } else {
-            SendMessageComposer(new ChestWithdrawComposer(itemId, CREDITS, -1));
-        }
+        SendMessageComposer(new ChestWithdrawAllComposer(itemId));
         setConfirmWithdrawAll(false);
     };
     const withdrawFurni = () => {
@@ -431,17 +443,13 @@ export const FurnitureChestView: FC = () => {
             ),
         );
     };
-    const depositInventoryItem = (inventoryItemId: number) => {
-        if (inventoryItemId <= 0 || used >= capacity) return;
-        SendMessageComposer(new ChestDepositInventoryItemComposer(itemId, inventoryItemId));
-    };
-    const startDepositFurni = () => {
+    /** AIR deposits furni and credit furni through the wired trade the server opens for 3268. */
+    const startDeposit = () => {
         SendMessageComposer(new FurnitureListComposer());
         SendMessageComposer(new ChestStartDepositComposer(itemId));
     };
-    const saveSettings = () => {
-        sendSave(
-            'settings',
+    const sendSettings = (wiredEnabled: boolean) => {
+        SendMessageComposer(
             new ChestSaveSettingsComposer(
                 itemId,
                 name,
@@ -451,30 +459,36 @@ export const FurnitureChestView: FC = () => {
                 appearanceState,
                 previewMode,
                 previewAmount,
+                wiredEnabled,
             ),
         );
+    };
+    const saveSettings = () => sendSettings(wiredUpgradeDisabled);
+    /** AIR ChestSettingsUI.confirmUpgrade: disable the button, show the checkmark, then the normal save with wired on. */
+    const buyWiredUpgrade = () => {
+        setWiredUpgradeBuying(true);
+        setWiredUpgradeDisabled(true);
+        sendSettings(true);
     };
     /**
      * The three switches on this window save the moment they are touched, the way the official one
      * does — no save button, because closing a chest is not a settings change you review first.
      */
     const saveOptions = (next: { locked?: boolean; autoLock?: boolean; capacity?: number }) => {
-        const nextLocked = next.locked ?? locked;
-        const nextAutoLock = next.autoLock ?? autoLock;
-        const nextCapacity = next.capacity ?? capacity;
-
-        setLocked(nextLocked);
-        setAutoLock(nextAutoLock);
-        setCapacity(nextCapacity);
-        sendSave('other', new ChestSaveOptionsComposer(itemId, nextLocked, nextAutoLock, nextCapacity));
+        SendMessageComposer(new ChestSaveOptionsComposer(
+            itemId,
+            next.locked ?? stuff.locked,
+            next.autoLock ?? stuff.autoLock,
+            next.capacity ?? capacity,
+        ));
     };
 
     /**
      * How many steps are still buyable. The official offers 1..remaining rather than a fixed list, so
      * the dropdown can never propose a purchase the chest has no room for.
      */
-    const upgradeStep = isFurni ? FURNI_UPGRADE_STEP : COIN_UPGRADE_STEP;
-    const upgradesLeft = isStarter ? 0 : Math.max(0, Math.floor(((isFurni ? FURNI_MAX_CAPACITY : COIN_MAX_CAPACITY) - capacityMax) / upgradeStep));
+    const upgradeStep = getWiredChestMaxCapacity(kind, false, 1, configNumber) - getWiredChestMaxCapacity(kind, false, 0, configNumber);
+    const upgradesLeft = isStarter || upgradeStep <= 0 ? 0 : Math.max(0, Math.floor(((isFurni ? FURNI_MAX_CAPACITY : COIN_MAX_CAPACITY) - capacityMax) / upgradeStep));
     const upgradeOptions = Array.from(
         { length: Math.min(upgradesLeft, MAX_UPGRADES_PER_PURCHASE) },
         (unused, index) => index + 1,
@@ -488,14 +502,14 @@ export const FurnitureChestView: FC = () => {
           : '';
 
     const commitCapacity = () => {
-        const parsed = parseInt(capacityDraft, 10);
+        const parsed = parseInt(capacityDraft ?? '', 10);
         const next = Math.min(Math.max(isNaN(parsed) ? capacity : parsed, 0), capacityMax);
 
-        setCapacityDraft(String(next));
+        setCapacityDraft(null);
         if (next !== capacity) saveOptions({ capacity: next });
     };
     const saveNotifications = () => {
-        sendSave('notifications', new ChestSaveNotificationsComposer(itemId, notifyFull, notifyDonation, notifyWithdraw, notifyEmpty, notifyWired, notifyMode));
+        SendMessageComposer(new ChestSaveNotificationsComposer(itemId, notifyMode, notifyFull, notifyDonation, notifyWithdraw, notifyEmpty, notifyWired));
     };
     const buyUpgrade = () => {
         setUpgradeResult('');
@@ -506,9 +520,9 @@ export const FurnitureChestView: FC = () => {
         <>
             {/* ===== MAIN WINDOW ===== */}
             <VoltCardView className="volt-widget-chest" theme="primary-slim" style={{ width: 460 }}>
-                <VoltCardHeaderView headerText={name || chestTypeLabel} onCloseClick={close} />
+                <VoltCardHeaderView headerText={chestName} onCloseClick={close} />
                 <VoltCardContentView>
-                    {locked && !isOwner && (
+                    {stuff.locked && !isOwner && (
                         <div className="mb-1 rounded border border-[#c08a5a] bg-[#f7e6cf] px-2 py-1 text-[11px] text-[#7a4a1c]">
                             {localizeWithFallback(
                                 'wiredchests.locked.notice',
@@ -543,29 +557,31 @@ export const FurnitureChestView: FC = () => {
                                 opacity: 0.6,
                             }}
                         >
-                            {description || LocalizeText('wiredchests.description_placeholder')}
+                            {stuff.description || LocalizeText('wiredchests.description_placeholder')}
                         </Text>
                         <div style={{ position: 'absolute', top: 7, right: 9, display: 'flex', gap: 5 }}>
-                            {/* notification_settings_button 24x24, icon wired_chests_bell_icon 12x15 */}
-                            <button
+                            {/* notification_settings_button 24x24, icon wired_chests_bell_icon 12x15; owner only (AIR var_774) */}
+                            {layout.showNotificationSettings && <button
                                 type="button"
                                 className="flex items-center justify-center cursor-pointer shrink-0"
                                 style={{ width: 24, height: 24, background: '#f1f0ee', border: '1px solid #cfcabc', borderRadius: 4, padding: 0 }}
-                                onClick={() => setShowNotifications(true)}
+                                disabled={!isOwner}
+                                onClick={openNotifications}
                                 title={LocalizeText('wiredchests.notifications.button')}
                             >
                                 <img src={bellIcon} width={12} height={15} alt="" draggable={false} style={{ imageRendering: PIXEL_ART_RENDERING }} />
-                            </button>
-                            {/* settings_button 24x24, icon wired_chests_gear_icon 14x14 */}
-                            <button
+                            </button>}
+                            {/* settings_button 24x24, icon wired_chests_gear_icon 14x14; owner only */}
+                            {layout.showSettings && <button
                                 type="button"
                                 className="flex items-center justify-center cursor-pointer shrink-0"
                                 style={{ width: 24, height: 24, background: '#f1f0ee', border: '1px solid #cfcabc', borderRadius: 4, padding: 0 }}
-                                onClick={() => setShowSettings(true)}
+                                disabled={!isOwner}
+                                onClick={openSettings}
                                 title={LocalizeText('wiredchests.settings.button')}
                             >
                                 <img src={gearIcon} width={14} height={14} alt="" draggable={false} style={{ imageRendering: PIXEL_ART_RENDERING }} />
-                            </button>
+                            </button>}
                         </div>
                     </div>
                     {/* ===== FURNI CHEST body (furni_chest_contents.xml) ===== */}
@@ -644,7 +660,7 @@ export const FurnitureChestView: FC = () => {
                                             setFurniWithdrawAmount(Math.max(0, parseInt(e.target.value.replace(/\D/g, ''), 10) || 0))
                                         }
                                     />
-                                    <ChestButton fixed disabled={!canWithdraw || !selectedGroup || selectedFurniQty <= 0} onClick={withdrawFurni}>
+                                    <ChestButton fixed disabled={!rights.canWithdraw || !selectedGroup || selectedFurniQty <= 0} onClick={withdrawFurni}>
                                         {LocalizeText('wiredchests.withdraw')}
                                     </ChestButton>
                                 </div>
@@ -672,7 +688,7 @@ export const FurnitureChestView: FC = () => {
                         {/* balance_container: AS3 centers it horizontally inside balance_cont (x9..63) at runtime
                             (balanceContainerList.x = parent.width/2 - width/2). amount (bold) + coin_icon (13x15) */}
                         <div style={{ position: 'absolute', left: 9, top: 90, width: 54, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-                            <span style={{ fontSize: 12, fontWeight: 'bold', color: '#5b4632' }}>{creditsBalance}</span>
+                            <span style={{ fontSize: 12, fontWeight: 'bold', color: '#5b4632' }}>{coins}</span>
                             {/* coin_icon (coins_chest_contents.xml <icon style=35>) = real credits currency icon */}
                             <LayoutCurrencyIcon type={CREDITS} style={{ width: 15, height: 15 }} />
                         </div>
@@ -685,35 +701,21 @@ export const FurnitureChestView: FC = () => {
                                 value={withdrawAmount}
                                 onChange={(e) => setWithdrawAmount(Math.max(0, parseInt(e.target.value.replace(/\D/g, ''), 10) || 0))}
                             />
-                            <ChestButton fixed disabled={!canWithdraw || creditsBalance <= 0} onClick={withdraw}>
+                            <ChestButton fixed disabled={!rights.canWithdraw} onClick={withdraw}>
                                 {LocalizeText('wiredchests.withdraw')}
                             </ChestButton>
                         </div>
                     </div>
-                    {depositOpen && (
-                        <Flex alignItems="center" gap={1} className="mt-1">
-                            <input
-                                type="number"
-                                min={0}
-                                className="form-control form-control-sm"
-                                value={depositAmount}
-                                onChange={(e) => setDepositAmount(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                            />
-                            <ChestButton wide disabled={!canDeposit} onClick={deposit}>
-                                {LocalizeText('wiredchests.deposit')}
-                            </ChestButton>
-                        </Flex>
-                    )}
                         </>
                     )}
                     <div className="volt-chest__footer">
-                        <div className="volt-chest__locking">
+                        {layout.showLockingOptions && <div className="volt-chest__locking">
                             <label className="volt-chest__option">
                                 <input
                                     type="checkbox"
                                     className="form-check-input"
-                                    checked={locked}
-                                    disabled={!canToggleLock}
+                                    checked={stuff.locked}
+                                    disabled={!rights.canToggleLock}
                                     onChange={(e) => setConfirmLock(e.target.checked)}
                                 />
                                 <Text small>{localizeWithFallback('wiredchests.lock_chest', 'Lock this chest')}</Text>
@@ -722,7 +724,7 @@ export const FurnitureChestView: FC = () => {
                                 <input
                                     type="checkbox"
                                     className="form-check-input"
-                                    checked={autoLock}
+                                    checked={stuff.autoLock}
                                     disabled={!isOwner}
                                     onChange={(e) => saveOptions({ autoLock: e.target.checked })}
                                 />
@@ -739,7 +741,8 @@ export const FurnitureChestView: FC = () => {
                             >
                                 i
                             </button>
-                        </div>
+                        </div>}
+                        {layout.showCapacityOptions && <>
                         <Flex alignItems="center" justifyContent="between" className="volt-chest__footer-capacity">
                             <Flex alignItems="center" gap={1}>
                                 <Text small style={{ opacity: 0.6 }}>
@@ -750,7 +753,7 @@ export const FurnitureChestView: FC = () => {
                                     inputMode="numeric"
                                     type="text"
                                     disabled={!isOwner}
-                                    value={capacityDraft}
+                                    value={capacityDraft ?? String(capacity)}
                                     onChange={(e) => setCapacityDraft(e.target.value.replace(NON_DIGITS, ''))}
                                     onBlur={commitCapacity}
                                     onKeyDown={(e) => {
@@ -779,26 +782,18 @@ export const FurnitureChestView: FC = () => {
                         <Text small style={{ opacity: 0.6 }}>
                             {LocalizeText('wiredchests.space_used2', ['count', 'total'], [String(used), String(capacity)])}
                         </Text>
+                        </>}
                         <div className="volt-chest__footer-row">
-                            {!isFurni ? (
-                                <div className="volt-chest__footer-group">
-                                    <ChestButton wide footer disabled={!canWithdraw || creditsBalance <= 0} onClick={withdrawAll}>
+                            <div className="volt-chest__footer-group">
+                                {layout.showWithdrawAll && (
+                                    <ChestButton wide footer disabled={!rights.canWithdraw} onClick={withdrawAll}>
                                         {LocalizeText('wiredchests.withdraw_all')}
                                     </ChestButton>
-                                    <ChestButton wide footer disabled={!canDeposit} onClick={() => setDepositOpen((v) => !v)}>
-                                        {LocalizeText('wiredchests.initial_deposit')}
-                                    </ChestButton>
-                                </div>
-                            ) : (
-                                <div className="volt-chest__footer-group">
-                                    <ChestButton wide footer disabled={!canWithdraw || furniEntries.length <= 0} onClick={withdrawAll}>
-                                        {LocalizeText('wiredchests.withdraw_all')}
-                                    </ChestButton>
-                                    <ChestButton wide footer disabled={!canDeposit} onClick={startDepositFurni}>
-                                        {LocalizeText('wiredchests.start_deposit')}
-                                    </ChestButton>
-                                </div>
-                            )}
+                                )}
+                                <ChestButton wide footer disabled={!rights.canDeposit} onClick={startDeposit}>
+                                    {LocalizeText(layout.depositKey)}
+                                </ChestButton>
+                            </div>
                         </div>
                     </div>
                 </VoltCardContentView>
@@ -833,33 +828,18 @@ export const FurnitureChestView: FC = () => {
                                 <ChestAppearanceFields isFurni={isFurni} state={appearanceState} previewMode={previewMode} previewAmount={previewAmount}
                                     onStateChange={setAppearanceState} onPreviewModeChange={setPreviewMode} onPreviewAmountChange={setPreviewAmount} />
                             </ChestSettingsSection>
-                            <ChestSettingsSection title={localizeWithFallback('wiredchests.settings.wired', 'Wired')}>
-                            {wiredEnabled ? (
-                                <Text small>
-                                    {localizeWithFallback(
-                                        'wiredchests.settings.wired.enabled',
-                                        'This chest answers wired.',
-                                    )}
-                                </Text>
-                            ) : (
-                                <>
-                                    <ChestButton
-                                        wide
-                                        disabled={!isOwner || isStarter}
-                                        onClick={() => setConfirmWiredUpgrade(true)}
-                                    >
-                                        {localizeWithFallback('wiredchests.settings.wired.upgrade', 'Make it wired')}
+                            <ChestSettingsSection title={localizeWithFallback('wiredchests.settings.wired', 'Wired transactions')}>
+                                <Flex alignItems="center" gap={2}>
+                                    <ChestButton wide disabled={wiredUpgradeDisabled} onClick={() => setConfirmWiredUpgrade(true)}>
+                                        <span className="inline-flex items-center gap-1">
+                                            <img src={wiredIcon} width={16} height={16} alt="" draggable={false} style={{ imageRendering: PIXEL_ART_RENDERING }} />
+                                            {localizeWithFallback('wiredchests.settings.wired.upgrade', 'Upgrade to Wired Chest')}
+                                        </span>
                                     </ChestButton>
-                                    <Text small style={{ opacity: 0.6 }}>
-                                        {localizeWithFallback(
-                                            isStarter
-                                                ? 'wiredchests.settings.wired.starter'
-                                                : 'wiredchests.settings.wired.hint',
-                                            '',
-                                        )}
-                                    </Text>
-                                </>
-                            )}
+                                    {wiredUpgradeDisabled && (
+                                        <img src={checkmarkIcon} alt="" draggable={false} style={{ imageRendering: PIXEL_ART_RENDERING }} />
+                                    )}
+                                </Flex>
                             </ChestSettingsSection>
                             <div className="volt-chest__actions">
                                 <ChestButton wide onClick={saveSettings}>
@@ -895,7 +875,7 @@ export const FurnitureChestView: FC = () => {
                                 <input type="checkbox" className="form-check-input" checked={notifyDonation} onChange={(e) => setNotifyDonation(e.target.checked)} />
                                 <Text small>{LocalizeText('wiredchests.notification_settings.enable_notifications.generic.1')}</Text>
                             </label>
-                            <fieldset disabled={!wiredEnabled} className="volt-chest-settings__wired-notifications">
+                            <fieldset disabled={!stuff.wiredEnabled} className="volt-chest-settings__wired-notifications">
                             <Text bold>{LocalizeText('wiredchests.notification_settings.enable_notifications.wired')}</Text>
                             <label className="flex items-center gap-2">
                                 <input type="checkbox" className="form-check-input" checked={notifyWithdraw} onChange={(e) => setNotifyWithdraw(e.target.checked)} />
@@ -936,7 +916,7 @@ export const FurnitureChestView: FC = () => {
                         <Column gap={2}>
                             <Flex alignItems="center" gap={2}>
                                 <div className="volt-chest__upgrade-preview">
-                                    {chestBaseItemId > 0 && <LayoutFurniImageView productType={FurnitureType.FLOOR} productClassId={chestBaseItemId} direction={2} />}
+                                    {chestObject.typeId > 0 && <LayoutFurniImageView productType={FurnitureType.FLOOR} productClassId={chestObject.typeId} direction={2} />}
                                 </div>
                                 <Column gap={1}>
                                     <Text bold>
@@ -1053,44 +1033,46 @@ export const FurnitureChestView: FC = () => {
                 </VoltCardView>
             )}
 
-            {/* ===== WITHDRAW-ALL CONFIRM (mirrors WiredChestWrapperView.onWithdrawAllClick) ===== */}
-            {confirmWiredUpgrade && (
+            {/* ===== WIRED UPGRADE CONFIRM (AIR WiredChestWiredUpdateConfirmationView) ===== */}
+            {confirmWiredUpgrade && showSettings && (
                 <VoltCardView className="volt-widget-chest-confirm" theme="primary-slim" style={{ width: 360 }}>
                     <VoltCardHeaderView
-                        headerText={localizeWithFallback('wiredchests.upgrade.wired.title', 'Make it wired')}
+                        headerText={localizeWithFallback('wiredchests.upgrade.title', 'Chest upgrade')}
                         onCloseClick={() => setConfirmWiredUpgrade(false)}
                     />
                     <VoltCardContentView>
                         <Column gap={2}>
                             <Flex alignItems="center" gap={2}>
                                 <div className="volt-chest__upgrade-preview">
-                                    {chestBaseItemId > 0 && (
+                                    {chestObject.typeId > 0 && (
                                         <LayoutFurniImageView
                                             productType={FurnitureType.FLOOR}
-                                            productClassId={chestBaseItemId}
+                                            productClassId={chestObject.typeId}
                                             direction={2}
                                         />
                                     )}
                                 </div>
-                                <Text>
-                                    {localizeWithFallback(
-                                        'wiredchests.upgrade.wired.desc',
-                                        'Wired will be able to fill and empty this chest. This cannot be undone.',
+                                <Column gap={1}>
+                                    <Text bold>{LocalizeText('wiredchests.upgrade.wired.info')}</Text>
+                                    <Text small dangerouslySetInnerHTML={{ __html: SanitizeHtml(LocalizeText('wiredchests.big_fat_warning')) }} />
+                                </Column>
+                            </Flex>
+                            <Text bold>{LocalizeText('wiredchests.upgrade.wired.cost')}</Text>
+                            {isStarter && (
+                                <Text small className="volt-chest__upgrade-error">
+                                    {LocalizeText(
+                                        'wiredchests.upgrade.wired.error',
+                                        ['reason'],
+                                        [LocalizeText('wiredchests.upgrade.wired.error.reason.rookie_chest')],
                                     )}
                                 </Text>
-                            </Flex>
+                            )}
                             <div className="volt-chest__actions">
-                                <ChestButton
-                                    wide
-                                    onClick={() => {
-                                        sendSave('other', new ChestEnableWiredComposer(itemId));
-                                        setConfirmWiredUpgrade(false);
-                                    }}
-                                >
-                                    {LocalizeText('wiredchests.ready')}
-                                </ChestButton>
                                 <ChestButton wide onClick={() => setConfirmWiredUpgrade(false)}>
                                     {LocalizeText('wiredchests.cancel')}
+                                </ChestButton>
+                                <ChestButton wide disabled={isStarter || wiredUpgradeBuying} onClick={buyWiredUpgrade}>
+                                    {LocalizeText('wiredchests.upgrade.buy')}
                                 </ChestButton>
                             </div>
                         </Column>
