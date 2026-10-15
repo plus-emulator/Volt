@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
     getWiredChestLayout,
     getWiredChestMaxCapacity,
+    getWiredChestOptions,
     getWiredChestRights,
     isStarterChest,
     readWiredChestStuffData,
@@ -35,6 +36,12 @@ describe('wired chest stuff data (AIR WiredChestWrapperView / ChestSettingsUI ke
         const empty = readWiredChestStuffData(null);
 
         expect([empty.name, empty.wiredEnabled, empty.locked, empty.previewAmount, empty.capacity]).toEqual(['', false, false, 1, 0]);
+    });
+
+    it('keeps the stored capacity, even 0, when only the lock or auto-lock changes', () => {
+        expect(getWiredChestOptions(stuff({ capacity: '0', locked: '0', auto_lock: '0' }), { locked: true })).toEqual({ locked: true, autoLock: false, capacity: 0 });
+        expect(getWiredChestOptions(stuff({ capacity: '0' }), { autoLock: false })).toEqual({ locked: false, autoLock: false, capacity: 0 });
+        expect(getWiredChestOptions(stuff(), { capacity: 300 })).toEqual({ locked: false, autoLock: true, capacity: 300 });
     });
 
     it('computes the max capacity from the level, the starter rule and the hotel config', () => {

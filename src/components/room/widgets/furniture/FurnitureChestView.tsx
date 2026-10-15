@@ -32,6 +32,7 @@ import {
     GetRoomSession,
     getWiredChestLayout,
     getWiredChestMaxCapacity,
+    getWiredChestOptions,
     getWiredChestRights,
     isStarterChest,
     LocalizeText,
@@ -475,12 +476,9 @@ export const FurnitureChestView: FC = () => {
      * does — no save button, because closing a chest is not a settings change you review first.
      */
     const saveOptions = (next: { locked?: boolean; autoLock?: boolean; capacity?: number }) => {
-        SendMessageComposer(new ChestSaveOptionsComposer(
-            itemId,
-            next.locked ?? stuff.locked,
-            next.autoLock ?? stuff.autoLock,
-            next.capacity ?? capacity,
-        ));
+        const options = getWiredChestOptions(stuff, next);
+
+        SendMessageComposer(new ChestSaveOptionsComposer(itemId, options.locked, options.autoLock, options.capacity));
     };
 
     /**

@@ -70,6 +70,18 @@ export const readWiredChestStuffData = (data: StuffMap): IWiredChestStuffData =>
     notifyMode: int(data, 'notify_mode', 0),
 });
 
+/**
+ * Values for ChestSaveOptions (1211). Only the capacity input changes the capacity; a lock or auto-lock toggle sends the
+ * stored capacity unchanged (also 0), because the server refuses a non-owner's lock change when anything else moved.
+ */
+export const getWiredChestOptions = (
+    data: IWiredChestStuffData,
+    next: { locked?: boolean; autoLock?: boolean; capacity?: number }): { locked: boolean; autoLock: boolean; capacity: number } => ({
+    locked: next.locked ?? data.locked,
+    autoLock: next.autoLock ?? data.autoLock,
+    capacity: next.capacity ?? data.capacity,
+});
+
 export const isStarterChest = (className: string): boolean => !!className && className.includes('_starter');
 
 /**
