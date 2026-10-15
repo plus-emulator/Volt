@@ -125,7 +125,7 @@ CI runs the type check, the hooks lint and the tests on pushes and pull requests
 
 Every push to `main` builds the client with `yarn vite build` against Volt-Renderer `main` and publishes a GitHub release tagged `client-v<package version>-<short sha>` with `volt-client.zip` (the contents of `dist/`). Hotel installers download the latest release.
 
-The bundled `install.mjs` predates the current layout (it expects `renderer-config.example` and clones the upstream Octane-Renderer by default); follow the manual steps above instead.
+`install.sh` / `install.bat` (both run `install.mjs`) automate the setup steps above: they check Node against `.nvmrc` and `package.json`, clone Volt-Renderer to `../Volt-Renderer` if missing, run `yarn install` in both repositories, link `node_modules/@volt/renderer`, copy the three configuration files, ask for the JSON mode and URLs, and run `yarn build`. `node install.mjs --help` lists the flags; `--non-interactive` with `--socket-url=...` and friends runs it unattended.
 
 ## Licence
 
