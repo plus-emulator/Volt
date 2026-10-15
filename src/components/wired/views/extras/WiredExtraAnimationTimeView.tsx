@@ -34,7 +34,10 @@ export const WiredExtraAnimationTimeView: FC<{}> = () => {
     return (
         <WiredExtraBaseView hasSpecialInput={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save} cardStyle={{ width: 380 }}>
             <div className="flex flex-col gap-2">
-                <Text bold>{localizeWithFallback('wiredfurni.params.setanimationtime2', `${duration} ms`)}</Text>
+                <div className="flex items-center justify-between gap-2">
+                    <Text bold>{localizeWithFallback('wiredfurni.params.setanimationtime2', 'Animation time (ms):')}</Text>
+                    <output className="font-bold tabular-nums whitespace-nowrap">{duration} ms</output>
+                </div>
                 <Slider
                     min={MIN_DURATION}
                     max={MAX_DURATION}
