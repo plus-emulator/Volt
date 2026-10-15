@@ -7,15 +7,18 @@ import {
     PetFigureData,
     TextureUtils,
     Vector3d
-} from '@octane/renderer';
-import { GetConfigurationValue } from '../../octane/GetConfigurationValue';
+} from '@volt/renderer';
+import { GetConfigurationValue } from '../../volt/GetConfigurationValue';
 
 export class ChatBubbleUtilities {
-    private static MAX_CACHE_SIZE: number = 200;
+    private static MAX_CACHE_SIZE: number = 1024;
+    // Rows of the face icon a one-line bubble shows, in CSS pixels.
+    private static FACE_WINDOW_HEIGHT: number = 28;
 
     public static AVATAR_COLOR_CACHE: Map<string, number> = new Map();
     public static AVATAR_IMAGE_CACHE: Map<string, string> = new Map();
     public static PET_IMAGE_CACHE: Map<string, string> = new Map();
+    private static AVATAR_IMAGE_PENDING_CACHE: Map<string, Promise<string>> = new Map();
     private static PET_IMAGE_PENDING_CACHE: Map<string, Promise<string>> = new Map();
 
     private static PLACEHOLDER_IMAGE_CACHE: Map<string, string> = new Map();
@@ -66,10 +69,10 @@ export class ChatBubbleUtilities {
             image.onerror = reject;
             image.src = sourceUrl;
         });
-        const imageUrl = this.focusFace(source, (zoom ? 25 : 50) * (highResolution ? 2 : 1)).toDataURL('image/png');
+        const imageUrl = this.focusFace(source, (zoom ? 25 : 50) * (highResolution ? 2 : 1), highResolution ? 2 : 1).toDataURL('image/png');
         if (isPlaceholder) this.PLACEHOLDER_IMAGE_CACHE.set(placeholderKey, imageUrl);
 
-        this.AVATAR_IMAGE_CACHE.set(this.getAvatarImageCacheKey(figure, zoom, highResolution), imageUrl);
+        this.AVATAR_IMAGE_CACHE.set(this.getAvatarImageCacheKey(requestedFigure, zoom, highResolution), imageUrl);
 
         this.pruneCache(this.AVATAR_IMAGE_CACHE);
 
@@ -77,11 +80,13 @@ export class ChatBubbleUtilities {
     }
 
     /**
-     * The face icon the official client builds with HabboFaceFocuser: the head centred, chin near the bottom
-     * (a bubble shows the icon's bottom rows). The official fixed crop assumes its own avatar canvas, which
-     * Octane's head image does not share, so the head is placed by its visible pixels instead.
+     * The face icon the official client builds with HabboFaceFocuser. The official fixed crop assumes its own
+     * avatar canvas, which Volt's head image does not share, so the head is placed by its visible pixels instead.
+     * A bubble shows only the icon's bottom rows (about 28 px for one line of text), so the head is centred in
+     * that window, like the pet heads beside it. A head too tall for the window (big hats) keeps its chin near
+     * the bottom instead.
      */
-    private static focusFace(head: HTMLCanvasElement | HTMLImageElement, size: number): HTMLCanvasElement {
+    private static focusFace(head: HTMLCanvasElement | HTMLImageElement, size: number, scale: number): HTMLCanvasElement {
         const width = head.width;
         const height = head.height;
         const source = document.createElement('canvas');
@@ -111,25 +116,50 @@ export class ChatBubbleUtilities {
 
         const context = face.getContext('2d');
         context.imageSmoothingEnabled = false;
-        context.drawImage(source, Math.round(size / 2 - (left + right + 1) / 2), Math.round(size * 0.94 - (bottom + 1)));
+        const headHeight = bottom + 1 - top;
+        const faceWindow = Math.min(size, ChatBubbleUtilities.FACE_WINDOW_HEIGHT * scale);
+        const faceY = headHeight <= faceWindow ? size - (faceWindow + headHeight) / 2 - top : size * 0.94 - (bottom + 1);
+
+        context.drawImage(source, Math.round(size / 2 - (left + right + 1) / 2), Math.round(faceY));
 
         return face;
     }
 
     public static async getUserImage(figure: string, highResolution: boolean = false): Promise<string> {
         const zoom = GetConfigurationValue<boolean>('zoom.enabled', false);
-        let existing = this.AVATAR_IMAGE_CACHE.get(this.getAvatarImageCacheKey(figure, zoom, highResolution));
-
-        if (!existing) existing = await this.setFigureImage(figure, zoom, highResolution);
-
-        return existing;
+        const key = this.getAvatarImageCacheKey(figure, zoom, highResolution);
+        const existing = this.AVATAR_IMAGE_CACHE.get(key);
+        if (existing) {
+            // Reading a hot speaker must keep their head and colour near the end of the LRU.
+            this.AVATAR_IMAGE_CACHE.delete(key);
+            this.AVATAR_IMAGE_CACHE.set(key, existing);
+            const color = this.AVATAR_COLOR_CACHE.get(figure);
+            if (color !== undefined) {
+                this.AVATAR_COLOR_CACHE.delete(figure);
+                this.AVATAR_COLOR_CACHE.set(figure, color);
+            }
+            return existing;
+        }
+        const pending = this.AVATAR_IMAGE_PENDING_CACHE.get(key);
+        if (pending) return pending;
+        const request = this.setFigureImage(figure, zoom, highResolution);
+        this.AVATAR_IMAGE_PENDING_CACHE.set(key, request);
+        try {
+            return await request;
+        } finally {
+            if (this.AVATAR_IMAGE_PENDING_CACHE.get(key) === request) this.AVATAR_IMAGE_PENDING_CACHE.delete(key);
+        }
     }
 
     public static async getPetImage(figure: string, direction: number, headOnly: boolean, scale: number = 64, posture: string = null) {
         const cacheKey = `${figure}-${posture || 'std'}-${direction}-${scale}-${headOnly ? 'head' : 'full'}`;
         let existing = this.PET_IMAGE_CACHE.get(cacheKey);
 
-        if (existing) return existing;
+        if (existing) {
+            this.PET_IMAGE_CACHE.delete(cacheKey);
+            this.PET_IMAGE_CACHE.set(cacheKey, existing);
+            return existing;
+        }
 
         const pending = this.PET_IMAGE_PENDING_CACHE.get(cacheKey);
 

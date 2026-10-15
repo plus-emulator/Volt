@@ -11,8 +11,8 @@ import {
     RoomSessionChatEvent,
     RoomUserData,
     SystemChatStyleEnum
-} from '@octane/renderer';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+} from '@volt/renderer';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
     ChatBubbleMessage,
     ChatBubbleUtilities,
@@ -28,9 +28,7 @@ import {
 } from '../../../api';
 import { captureNativeChatCreation } from '../../../components/room/widgets/chat/nativeChatScroller';
 import { useChatHistory } from './../../chat-history';
-import { useMessageEvent, useOctaneEvent } from '../../events';
-import { useUserDataSnapshot } from '../../session/useSessionSnapshots';
-import { useTranslation } from '../../translation';
+import { useMessageEvent, useVoltEvent } from '../../events';
 import { useChatPreferences } from '../../useChatPreferences';
 import { useRoom } from '../useRoom';
 import { createChatLineQueue, reserveChatLine, resetChatLineQueue, settleChatLine, takeReadyChatLines } from './chatLineQueue';
@@ -55,67 +53,10 @@ const useChatWidgetState = () => {
     }), [roomChatSettings, chatPreferences]);
     const { roomSession = null } = useRoom();
     const { addChatEntry, updateChatEntry } = useChatHistory();
-    const { settings, translateIncoming, consumeOutgoingTranslation } = useTranslation();
     const isDisposed = useRef(false);
     const roomTokenRef = useRef(0);
     const lineQueueRef = useRef(createChatLineQueue<ChatBubbleMessage>());
     const lineFlushFrameRef = useRef(0);
-    // Reactive: re-renders if the session-data snapshot flips (e.g.
-    // reconnect under a different user id). Safe to call here —
-    // useChatWidget is not singleton-backed (see export below),
-    // so the real React dispatcher is in scope and
-    // useSyncExternalStore installs correctly.
-    const ownUserId = useUserDataSnapshot().userId || -1;
-
-    const applyTranslationToBubble = useCallback(
-        (chatMessage: ChatBubbleMessage, originalText: string, translatedText: string, detectedLanguage: string, targetLanguage: string) => {
-            const resolvedOriginalText = originalText || chatMessage.text || '';
-            const resolvedTranslatedText = translatedText || resolvedOriginalText;
-            const originalFormattedText = RoomChatFormatter(resolvedOriginalText);
-            const translatedFormattedText = RoomChatFormatter(resolvedTranslatedText);
-
-            chatMessage.text = resolvedOriginalText;
-            chatMessage.formattedText = originalFormattedText;
-            chatMessage.originalText = resolvedOriginalText;
-            chatMessage.originalFormattedText = originalFormattedText;
-            chatMessage.translatedText = resolvedTranslatedText;
-            chatMessage.translatedFormattedText = translatedFormattedText;
-            chatMessage.translationDetectedLanguage = detectedLanguage || '';
-            chatMessage.translationTargetLanguage = targetLanguage || '';
-            chatMessage.showTranslation = true;
-        },
-        []
-    );
-
-    const buildTranslatedEntryPatch = useCallback((originalText: string, translatedText: string, detectedLanguage: string, targetLanguage: string) => {
-        const resolvedOriginalText = originalText || '';
-        const resolvedTranslatedText = translatedText || resolvedOriginalText;
-
-        return {
-            showTranslation: true,
-            message: RoomChatFormatter(resolvedOriginalText),
-            originalMessage: RoomChatFormatter(resolvedOriginalText),
-            translatedMessage: RoomChatFormatter(resolvedTranslatedText),
-            detectedLanguage: detectedLanguage || '',
-            targetLanguage: targetLanguage || ''
-        };
-    }, []);
-
-    const applyAsyncTranslation = useCallback(
-        (bubbleId: number, chatEntryId: number, originalText: string, translatedText: string, detectedLanguage: string, targetLanguage: string) => {
-            setChatMessages((prevValue) => {
-                const newValue = [...prevValue];
-                const bubble = newValue.find((chat) => chat.id === bubbleId);
-
-                if (bubble) applyTranslationToBubble(bubble, originalText, translatedText, detectedLanguage, targetLanguage);
-
-                return newValue;
-            });
-
-            updateChatEntry(chatEntryId, buildTranslatedEntryPatch(originalText, translatedText, detectedLanguage, targetLanguage));
-        },
-        [applyTranslationToBubble, buildTranslatedEntryPatch, updateChatEntry]
-    );
 
     const cancelLineFlush = () => {
         if (!lineFlushFrameRef.current) return;
@@ -261,21 +202,14 @@ const useChatWidgetState = () => {
             }
         }
 
-        const isTranslatableChatType =
-            chatType === RoomSessionChatEvent.CHAT_TYPE_SPEAK ||
-            chatType === RoomSessionChatEvent.CHAT_TYPE_WHISPER ||
-            chatType === RoomSessionChatEvent.CHAT_TYPE_SHOUT;
-
-        const outgoingTranslation = isTranslatableChatType && userData.webID === ownUserId ? consumeOutgoingTranslation(text) : null;
-        const originalText = outgoingTranslation?.originalText || text;
-        const formattedText = RoomChatFormatter(originalText);
+        const formattedText = RoomChatFormatter(text);
         const color = avatarColor && ('#' + avatarColor.toString(16).padStart(6, '0') || null);
 
         const chatMessage = new ChatBubbleMessage(
             userData.roomIndex,
             RoomObjectCategory.UNIT,
             roomSession.roomId,
-            originalText,
+            text,
             formattedText,
             username,
             { x: bubbleLocation.x, y: bubbleLocation.y },
@@ -286,7 +220,7 @@ const useChatWidgetState = () => {
         );
         if (userType === RoomObjectType.USER) chatMessage.imageScale = 2;
         captureNativeChatCreation(chatMessage, chatSettings.mode);
-        // The renderer adds bubbleWidthOverride to the chat event in Octane-Renderer#212; until that
+        // The renderer adds bubbleWidthOverride to the chat event in Volt-Renderer#212; until that
         // lands the published event has no such field, so it is read as optional.
         // Native bubbles resolve their width at creation; later preference changes affect new bubbles only.
         chatMessage.bubbleWidthOverride = resolveChatBubbleWidth(
@@ -294,15 +228,7 @@ const useChatWidgetState = () => {
             chatSettings.weight
         );
 
-        if (outgoingTranslation) {
-            applyTranslationToBubble(
-                chatMessage,
-                outgoingTranslation.originalText,
-                outgoingTranslation.translatedText,
-                outgoingTranslation.detectedLanguage,
-                outgoingTranslation.targetLanguage
-            );
-        }
+        chatMessage.hideUsername = !!(event as RoomSessionChatEvent & { hideUsername?: boolean }).hideUsername;
 
         if (isDisposed.current || roomToken !== roomTokenRef.current) {
             abandonLine(seq);
@@ -335,15 +261,7 @@ const useChatWidgetState = () => {
                       timestamp: ChatHistoryCurrentDate(),
                       type: ChatEntryType.TYPE_CHAT,
                       roomId: roomSession.roomId,
-                      color,
-                      ...(outgoingTranslation
-                          ? buildTranslatedEntryPatch(
-                                outgoingTranslation.originalText,
-                                outgoingTranslation.translatedText,
-                                outgoingTranslation.detectedLanguage,
-                                outgoingTranslation.targetLanguage
-                            )
-                          : {})
+                      color
                   })
                 : -1;
 
@@ -368,32 +286,9 @@ const useChatWidgetState = () => {
                 updateChatEntry(chatEntryId, { imageUrl: historyImageUrl });
             }).catch(() => {});
         }
-
-        if (!settings.enabled || outgoingTranslation || !isTranslatableChatType || !text.trim().length) return;
-
-        void translateIncoming(text).then((translation) => {
-            if (!translation || isDisposed.current || roomToken !== roomTokenRef.current) return;
-
-            applyTranslationToBubble(
-                chatMessage,
-                translation.originalText,
-                translation.translatedText,
-                translation.detectedLanguage,
-                translation.targetLanguage
-            );
-
-            applyAsyncTranslation(
-                chatMessage.id,
-                chatEntryId,
-                translation.originalText,
-                translation.translatedText,
-                translation.detectedLanguage,
-                translation.targetLanguage
-            );
-        });
     };
 
-    useOctaneEvent<RoomSessionChatEvent>(RoomSessionChatEvent.CHAT_EVENT, (event) => {
+    useVoltEvent<RoomSessionChatEvent>(RoomSessionChatEvent.CHAT_EVENT, (event) => {
         const roomToken = roomTokenRef.current;
         const seq = reserveChatLine(lineQueueRef.current);
 
@@ -407,7 +302,7 @@ const useChatWidgetState = () => {
         }
     });
 
-    useOctaneEvent<RoomDragEvent>(RoomDragEvent.ROOM_DRAG, (event) => {
+    useVoltEvent<RoomDragEvent>(RoomDragEvent.ROOM_DRAG, (event) => {
         if (!chatMessages.length || event.roomId !== roomSession.roomId) return;
 
         const offsetX = event.offsetX;

@@ -1,4 +1,4 @@
-import { AvatarScaleType, AvatarSetType, GetAvatarRenderManager } from '@octane/renderer';
+import { AvatarScaleType, AvatarSetType, GetAvatarRenderManager, IAvatarImageListener } from '@volt/renderer';
 import { CSSProperties, FC, useEffect, useMemo, useRef, useState } from 'react';
 import { Base, BaseProps } from '../Base';
 import { cropAirMeMenuFaceImageUrl, cropOpaqueBoundsImageUrl, cropTransparentImageUrl, dataUrlToBlob } from './avatarImageCrop';
@@ -96,6 +96,11 @@ export const LayoutAvatarImageView: FC<LayoutAvatarImageViewProps> = (props) => 
         if (!isReady) return;
 
         const requestId = ++requestIdRef.current;
+        const listener: IAvatarImageListener = {
+            resetFigure: () => {},
+            disposed: false,
+            dispose() { this.disposed = true; this.resetFigure = () => {}; }
+        };
         const figureKey = [figure, gender, direction, headOnly, compactHead, compactHeadSize, compactHeadPadding, fit, airMeMenu, nativeCroppedHead, trimmed].join('-');
 
         const applyImage = (image: Blob | string) => {
@@ -112,54 +117,60 @@ export const LayoutAvatarImageView: FC<LayoutAvatarImageViewProps> = (props) => 
             const resetFigure = async (_figure: string) => {
                 if (isDisposed.current || requestIdRef.current !== requestId) return;
 
-                const avatarImage = GetAvatarRenderManager().createAvatarImage(_figure, AvatarScaleType.LARGE, gender, {
-                    resetFigure: (figure: string) => resetFigure(figure),
-                    dispose: null,
-                    disposed: false
-                });
+                const avatarImage = GetAvatarRenderManager().createAvatarImage(_figure, AvatarScaleType.LARGE, gender, listener);
+                if (!avatarImage) return;
 
-                let setType = AvatarSetType.FULL;
+                try {
+                    let setType = AvatarSetType.FULL;
 
-                if (headOnly && !airMeMenu) setType = AvatarSetType.HEAD;
+                    if (headOnly && !airMeMenu) setType = AvatarSetType.HEAD;
 
-                avatarImage.setDirection(setType, direction);
+                    avatarImage.setDirection(setType, direction);
 
-                let imageUrl = nativeCroppedHead ? avatarImage.processAsCroppedImageUrl(setType) : avatarImage.processAsImageUrl(setType);
+                    let imageUrl = nativeCroppedHead ? avatarImage.processAsCroppedImageUrl(setType) : avatarImage.processAsImageUrl(setType);
 
-                if (imageUrl && airMeMenu) imageUrl = await cropAirMeMenuFaceImageUrl(imageUrl);
+                    if (imageUrl && airMeMenu) imageUrl = await cropAirMeMenuFaceImageUrl(imageUrl);
 
-                if (imageUrl && headOnly && compactHead && !airMeMenu && !nativeCroppedHead)
-                    imageUrl = await cropTransparentImageUrl(imageUrl, compactHeadSize, compactHeadPadding);
+                    if (imageUrl && headOnly && compactHead && !airMeMenu && !nativeCroppedHead)
+                        imageUrl = await cropTransparentImageUrl(imageUrl, compactHeadSize, compactHeadPadding);
 
-                // The full-body canvas is 90x130 with the figure occupying
-                // only part of it, off-center for some figures. Fit consumers
-                // (grid tiles) object-contain the image, so crop the
-                // transparent border first — otherwise the figure renders
-                // tiny and drifts sideways inside the tile.
-                if (imageUrl && fit && !nativeCroppedHead) imageUrl = await cropOpaqueBoundsImageUrl(imageUrl);
+                    // The full-body canvas is 90x130 with the figure occupying
+                    // only part of it, off-center for some figures. Fit consumers
+                    // (grid tiles) object-contain the image, so crop the
+                    // transparent border first — otherwise the figure renders
+                    // tiny and drifts sideways inside the tile.
+                    if (imageUrl && fit && !nativeCroppedHead) imageUrl = await cropOpaqueBoundsImageUrl(imageUrl);
 
-                if (imageUrl && nativeCroppedHead && trimmed) imageUrl = await cropOpaqueBoundsImageUrl(imageUrl, 0);
+                    if (imageUrl && nativeCroppedHead && trimmed) imageUrl = await cropOpaqueBoundsImageUrl(imageUrl, 0);
 
-                if (imageUrl && !isDisposed.current && requestIdRef.current === requestId) {
-                    const blob = dataUrlToBlob(imageUrl);
+                    if (imageUrl && !isDisposed.current && requestIdRef.current === requestId) {
+                        const blob = dataUrlToBlob(imageUrl);
 
-                    if (blob && !avatarImage.isPlaceholder()) {
-                        if (AVATAR_IMAGE_CACHE.size >= AVATAR_CACHE_MAX_SIZE) {
-                            const firstKey = AVATAR_IMAGE_CACHE.keys().next().value;
-                            AVATAR_IMAGE_CACHE.delete(firstKey);
+                        if (blob && !avatarImage.isPlaceholder()) {
+                            if (AVATAR_IMAGE_CACHE.size >= AVATAR_CACHE_MAX_SIZE) {
+                                const firstKey = AVATAR_IMAGE_CACHE.keys().next().value;
+                                AVATAR_IMAGE_CACHE.delete(firstKey);
+                            }
+
+                            AVATAR_IMAGE_CACHE.set(figureKey, blob);
                         }
 
-                        AVATAR_IMAGE_CACHE.set(figureKey, blob);
+                        applyImage(blob ?? imageUrl);
                     }
 
-                    applyImage(blob ?? imageUrl);
+                } finally {
+                    avatarImage.dispose();
                 }
-
-                avatarImage.dispose();
             };
 
+            listener.resetFigure = resetFigure;
             resetFigure(figure);
         }
+
+        return () => {
+            listener.dispose();
+            if (requestIdRef.current === requestId) requestIdRef.current++;
+        };
     }, [figure, gender, direction, headOnly, compactHead, compactHeadSize, compactHeadPadding, fit, airMeMenu, nativeCroppedHead, trimmed, isReady]);
 
     useEffect(() => {

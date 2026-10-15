@@ -5,26 +5,25 @@ import contextVariableIcon from '../../../../assets/images/wired/var/icon_source
 import furniVariableIcon from '../../../../assets/images/wired/var/icon_source_furni.png';
 import userVariableIcon from '../../../../assets/images/wired/var/icon_source_user.png';
 import { Button, Text } from '../../../../common';
+import { useWired } from '../../../../hooks';
+import { VoltInput } from '../../../../layout';
+import { joinWiredLiteral, parseWiredLiteral, splitWiredLiteral, WIRED_VARIABLE_ABSENT, tokenOfVariableSlot, variableSlotOf } from '../../../../api';
+import { useWiredNativeVariables } from '../../../../hooks';
 import { WiredLegacySlider as Slider } from '../WiredSlider';
-import { useWired, useWiredTools } from '../../../../hooks';
-import { OctaneInput } from '../../../../layout';
-import { CLICKED_USER_SOURCE, FURNI_SOURCES, sortWiredSourceOptions, USER_SOURCES, useAvailableUserSources } from '../WiredSourcesSelector';
+import { CLICKED_USER_SOURCE, FURNI_SOURCES, nativeSourceOptions, sortWiredSourceOptions, USER_SOURCES, useAvailableUserSources } from '../WiredSourcesSelector';
+import { normalizeNativeSource } from '../../../../api';
 import { WiredVariablePicker } from '../WiredVariablePicker';
-import {
-    buildWiredVariablePickerEntries,
-    createCustomVariableToken,
-    createFallbackVariableEntry,
-    flattenWiredVariablePickerEntries,
-    getCustomVariableItemId,
-    normalizeVariableTokenFromWire
-} from '../WiredVariablePickerData';
+import { buildWiredVariablePickerEntries, createFallbackVariableEntry, flattenWiredVariablePickerEntries } from '../WiredVariablePickerData';
+import { createNativeVariableToken, getNativeVariableId } from '../../../../api';
+import { FurniPickSlotButtons } from '../conditions/WiredVariableConditionParts';
 import { WiredActionBaseView } from './WiredActionBaseView';
 
 type VariableTargetType = 'user' | 'furni' | 'context';
 
-const TARGET_USER = 0;
-const TARGET_FURNI = 1;
-const TARGET_CONTEXT = 2;
+// Native variable target codes: furni 0, user 1, context -20.
+const TARGET_USER = 1;
+const TARGET_FURNI = 0;
+const TARGET_CONTEXT = -20;
 const SOURCE_SELECTED = 100;
 
 const TARGET_BUTTONS: Array<{ key: VariableTargetType; icon: string }> = [
@@ -62,16 +61,25 @@ export const WiredActionGiveVariableView: FC<{}> = () => {
         actionDelay = 0,
         setActionDelay = null,
         setIntParams = null,
-        setFurniIds = null,
-        setStringParam = null
+        secondaryFurniIds = [],
+        setActivePickSlot = null,
+        setStringParam = null,
+        setVariableIds = null,
+        setUserSources = null,
+        setFurniSources = null
     } = useWired();
-    const { userVariableDefinitions = [], furniVariableDefinitions = [], contextVariableDefinitions = [] } = useWiredTools();
+    const { userVariableDefinitions = [], furniVariableDefinitions = [], contextVariableDefinitions = [] } = useWiredNativeVariables();
+    // The card's own groups and defaults decide which sources are valid.
+    const userAllowed = trigger?.inputSources?.usersAllowed[0];
+    const userDefault = trigger?.inputSources?.userDefaults[0] ?? 0;
+    const furniAllowed = trigger?.inputSources?.furniAllowed[0];
+    const furniDefault = trigger?.inputSources?.furniDefaults[0] ?? SOURCE_SELECTED;
     const [selectedTargetType, setSelectedTargetType] = useState<VariableTargetType>('user');
     const [selectedVariableToken, setSelectedVariableToken] = useState('');
     const [overrideExisting, setOverrideExisting] = useState(false);
     const [initialValueInput, setInitialValueInput] = useState('0');
-    const [userSource, setUserSource] = useState(0);
-    const [furniSource, setFurniSource] = useState(0);
+    const [userSource, setUserSource] = useState(userDefault);
+    const [furniSource, setFurniSource] = useState(furniDefault);
 
     const targetDefinitions = useMemo(() => {
         if (selectedTargetType === 'furni') return furniVariableDefinitions;
@@ -95,9 +103,14 @@ export const WiredActionGiveVariableView: FC<{}> = () => {
         () => flattenWiredVariablePickerEntries(resolvedVariableEntries).find((entry) => entry.token === selectedVariableToken) ?? null,
         [resolvedVariableEntries, selectedVariableToken]
     );
-    const availableUserSources = useAvailableUserSources(trigger, USER_SOURCES);
+    const nativeUserOptions = useMemo(() => nativeSourceOptions(userAllowed, 'users'), [userAllowed]);
+    const nativeFurniOptions = useMemo(() => nativeSourceOptions(furniAllowed, 'furni'), [furniAllowed]);
+    const availableUserSources = useAvailableUserSources(trigger, nativeUserOptions.length ? nativeUserOptions : USER_SOURCES);
     const orderedUserSources = useMemo(() => sortWiredSourceOptions(availableUserSources, 'users'), [availableUserSources]);
-    const orderedFurniSources = useMemo(() => sortWiredSourceOptions(FURNI_SOURCES, 'furni'), []);
+    const orderedFurniSources = useMemo(
+        () => sortWiredSourceOptions(nativeFurniOptions.length ? nativeFurniOptions : FURNI_SOURCES, 'furni'),
+        [nativeFurniOptions]
+    );
     const sourceOptions = selectedTargetType === 'user' ? orderedUserSources : selectedTargetType === 'furni' ? orderedFurniSources : [];
     const selectedSourceValue = selectedTargetType === 'user' ? userSource : furniSource;
     const resolvedSourceOptions = useMemo(() => {
@@ -124,24 +137,14 @@ export const WiredActionGiveVariableView: FC<{}> = () => {
     useEffect(() => {
         if (!trigger) return;
 
-        const parsedVariableItemId = parseInt((trigger.stringData || '').trim(), 10);
-        const nextTargetType = normalizeTargetType(trigger.intData.length > 0 ? trigger.intData[0] : TARGET_USER);
-
-        setSelectedTargetType(nextTargetType);
-        setSelectedVariableToken(
-            normalizeVariableTokenFromWire(
-                !Number.isNaN(parsedVariableItemId) && parsedVariableItemId > 0
-                    ? String(parsedVariableItemId)
-                    : nextTargetType === 'user' && (trigger.selectedItems?.length ?? 0) > 0
-                      ? String(trigger.selectedItems[0])
-                      : ''
-            )
-        );
-        setOverrideExisting(trigger.intData.length > 1 ? trigger.intData[1] === 1 : false);
-        setInitialValueInput((trigger.intData.length > 2 ? trigger.intData[2] : 0).toString());
-        setUserSource(trigger.intData.length > 3 ? trigger.intData[3] : 0);
-        setFurniSource(trigger.intData.length > 4 ? trigger.intData[4] : (trigger.selectedItems?.length ?? 0) > 0 ? SOURCE_SELECTED : 0);
-    }, [trigger]);
+        // owned: [target, override, initial value]; variableIds[0] the variable; the sources are the U and F tails.
+        setSelectedTargetType(normalizeTargetType(trigger.intData.length > 0 ? trigger.intData[0] : TARGET_USER));
+        setSelectedVariableToken(tokenOfVariableSlot(trigger.variableIds[0]));
+        setOverrideExisting(trigger.intData.length > 3 ? trigger.intData[3] === 1 : false);
+        setInitialValueInput(trigger.intData.length > 2 ? joinWiredLiteral(trigger.intData[1], trigger.intData[2]) : '0');
+        setUserSource(normalizeNativeSource(trigger.userSources.length > 0 ? trigger.userSources[0] : userDefault, userAllowed, userDefault));
+        setFurniSource(normalizeNativeSource(trigger.furniSources.length > 0 ? trigger.furniSources[0] : furniDefault, furniAllowed, furniDefault));
+    }, [furniAllowed, furniDefault, trigger, userAllowed, userDefault]);
 
     useEffect(() => {
         if (!selectedVariableDefinition) return;
@@ -152,15 +155,24 @@ export const WiredActionGiveVariableView: FC<{}> = () => {
 
     const save = () => {
         const targetValue = getTargetValue(selectedTargetType);
-        const parsedInitialValue = parseInt(initialValueInput.trim(), 10);
-        const variableItemId = getCustomVariableItemId(selectedVariableToken);
+        const initialValue = parseWiredLiteral(initialValueInput.trim());
+        setStringParam('');
+        const [high, low] = splitWiredLiteral(initialValue ?? 0n);
 
-        setStringParam(variableItemId ? String(variableItemId) : '');
-        setIntParams([targetValue, overrideExisting ? 1 : 0, Number.isFinite(parsedInitialValue) ? parsedInitialValue : 0, userSource, furniSource]);
-        setFurniIds(selectedTargetType === 'furni' && furniSource === SOURCE_SELECTED ? [...furniIds] : []);
+        // owned: [target, value high, value low, override].
+        setIntParams([targetValue, high, low, overrideExisting ? 1 : 0]);
+        setVariableIds([variableSlotOf(selectedVariableToken)]);
+        setUserSources([userSource]);
+        setFurniSources([furniSource]);
     };
 
-    const validate = () => getCustomVariableItemId(selectedVariableToken) > 0;
+    const validate = () => !!getNativeVariableId(selectedVariableToken) && parseWiredLiteral(initialValueInput.trim()) !== null;
+
+    const picksFurni = selectedTargetType === 'furni' && (furniSource === 100 || furniSource === 101);
+
+    useEffect(() => {
+        if (picksFurni) setActivePickSlot(furniSource === 101 ? 1 : 0);
+    }, [furniSource, picksFurni, setActivePickSlot]);
 
     const requiresFurni =
         selectedTargetType === 'furni' ? WiredFurniType.STUFF_SELECTION_OPTION_BY_ID_BY_TYPE_OR_FROM_CONTEXT : WiredFurniType.STUFF_SELECTION_OPTION_NONE;
@@ -196,15 +208,16 @@ export const WiredActionGiveVariableView: FC<{}> = () => {
 
     return (
         <WiredActionBaseView hasSpecialInput={true} requiresFurni={requiresFurni} save={save} validate={validate} cardStyle={{ width: 244 }} hideDelay={true}>
-            <div className="octane-wired__give-var">
-                <div className="octane-wired__give-var-heading">
+            <div className="volt-wired__give-var">
+                {picksFurni && <FurniPickSlotButtons slots={[furniSource === 101 ? { slot: 1, count: secondaryFurniIds.length } : { slot: 0, count: furniIds.length }]} />}
+                <div className="volt-wired__give-var-heading">
                     <Text>{LocalizeText('wiredfurni.params.variables.variable_selection')}</Text>
-                    <div className="octane-wired__give-var-targets">
+                    <div className="volt-wired__give-var-targets">
                         {TARGET_BUTTONS.map((button) => (
                             <button
                                 key={button.key}
                                 type="button"
-                                className={`octane-wired__give-var-target octane-wired__give-var-target--${button.key} ${selectedTargetType === button.key ? 'is-active' : ''}`}
+                                className={`volt-wired__give-var-target volt-wired__give-var-target--${button.key} ${selectedTargetType === button.key ? 'is-active' : ''}`}
                                 onClick={() => handleTargetTypeChange(button.key)}
                             >
                                 <img src={button.icon} alt={button.key} />
@@ -223,7 +236,7 @@ export const WiredActionGiveVariableView: FC<{}> = () => {
 
                     {!targetDefinitions.length && <Text small>{missingVariablesText}</Text>}
 
-                    <label className="octane-wired__give-var-checkbox">
+                    <label className="volt-wired__give-var-checkbox">
                         <input
                             checked={overrideExisting}
                             className="form-check-input"
@@ -233,26 +246,27 @@ export const WiredActionGiveVariableView: FC<{}> = () => {
                         <Text>{LocalizeText('wiredfurni.params.variables.value_settings.override_existing')}</Text>
                     </label>
 
-                    <div className="octane-wired__divider" />
+                    <div className="volt-wired__divider" />
 
-                    <div className="octane-wired__give-var-section">
-                        <div className="octane-wired__give-var-section-title">{LocalizeText('wiredfurni.params.variables.value_settings')}</div>
-                        <div className="octane-wired__give-var-input-row">
+                    <div className="volt-wired__give-var-section">
+                        <div className="volt-wired__give-var-section-title">{LocalizeText('wiredfurni.params.variables.value_settings')}</div>
+                        <div className="volt-wired__give-var-input-row">
                             <Text>{LocalizeText('wiredfurni.params.variables.value_settings.initial_value')}</Text>
-                            <OctaneInput
-                                className={`octane-wired__give-var-number ${!selectedVariableDefinition?.hasValue ? 'octane-wired__give-var-number--blurred' : ''}`}
+                            <VoltInput
+                                className={`volt-wired__give-var-number ${!selectedVariableDefinition?.hasValue ? 'volt-wired__give-var-number--blurred' : ''}`}
                                 readOnly={!selectedVariableDefinition?.hasValue}
-                                type="number"
+                                type="text"
+                                inputMode="numeric"
                                 value={initialValueInput}
                                 onChange={(event) => setInitialValueInput(event.target.value)}
                             />
                         </div>
                     </div>
 
-                    <div className="octane-wired__divider" />
+                    <div className="volt-wired__divider" />
 
-                    <div className="octane-wired__give-var-section">
-                        <div className="octane-wired__give-var-section-title">
+                    <div className="volt-wired__give-var-section">
+                        <div className="volt-wired__give-var-section-title">
                             {LocalizeText('wiredfurni.params.delay', ['seconds'], [GetWiredTimeLocale(actionDelay)])}
                         </div>
                         <Slider max={20} min={0} value={actionDelay} onChange={(event) => setActionDelay(event)} />
@@ -260,21 +274,23 @@ export const WiredActionGiveVariableView: FC<{}> = () => {
 
                     {selectedTargetType !== 'context' && (
                         <>
-                            <div className="octane-wired__divider" />
+                            <div className="volt-wired__divider" />
 
-                            <div className="octane-wired__give-var-section">
-                                <div className="octane-wired__give-var-section-title">{localizeWithFallback('wiredfurni.params.sources.merged.title.variables_destination', 'Destinazione variabile:')}</div>
+                            <div className="volt-wired__give-var-section">
+                                <div className="volt-wired__give-var-section-title">
+                                    {localizeWithFallback('wiredfurni.params.sources.merged.title.variables_destination', 'Destinazione variabile:')}
+                                </div>
                                 <div className="flex items-center gap-1">
                                     <Button
                                         disabled={resolvedSourceOptions.length <= 1}
                                         variant="primary"
-                                        classNames={['octane-wired__picker-button']}
+                                        classNames={['volt-wired__picker-button']}
                                         className="px-2 py-1"
                                         onClick={() => cycleSource(-1)}
                                     >
                                         <FaChevronLeft />
                                     </Button>
-                                    <div className="flex min-w-0 flex-1 items-center justify-center octane-wired__picker-label">
+                                    <div className="flex min-w-0 flex-1 items-center justify-center volt-wired__picker-label">
                                         <Text small className="text-center">
                                             {selectedSourceOption ? LocalizeText(selectedSourceOption.label) : '-'}
                                         </Text>
@@ -282,7 +298,7 @@ export const WiredActionGiveVariableView: FC<{}> = () => {
                                     <Button
                                         disabled={resolvedSourceOptions.length <= 1}
                                         variant="primary"
-                                        classNames={['octane-wired__picker-button']}
+                                        classNames={['volt-wired__picker-button']}
                                         className="px-2 py-1"
                                         onClick={() => cycleSource(1)}
                                     >

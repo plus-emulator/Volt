@@ -1,7 +1,7 @@
-import { RoomObjectCategory } from '@octane/renderer';
-import { FC, PropsWithChildren, useEffect, useMemo, useRef } from 'react';
+import { RoomEngineObjectEvent, RoomObjectCategory } from '@volt/renderer';
+import { FC, PropsWithChildren, useEffect, useMemo, useRef, useState } from 'react';
 import { AddAnimationTickerCallback, GetRoomObjectBounds } from '../../../../api';
-import { useRoom, useWiredVariableFxEvents, useWiredVariableFxStore } from '../../../../hooks';
+import { useVoltEvent, useRoom, useWiredVariableFxEvents, useWiredVariableFxStore } from '../../../../hooks';
 import { groupWiredVariableFxStatuses } from './WiredVariableFxOverlay.helpers';
 import { WiredVariableFxStatusView } from './WiredVariableFxStatusView';
 
@@ -42,7 +42,7 @@ const WiredVariableFxEntityView: FC<PropsWithChildren<WiredVariableFxEntityViewP
     }, [roomId, userEntity, entityId]);
 
     return (
-        <div ref={elementRef} className="octane-wired-fx-overlay__entity" style={{ visibility: 'hidden' }} data-testid="fx-entity">
+        <div ref={elementRef} className="volt-wired-fx-overlay__entity" style={{ visibility: 'hidden' }} data-testid="fx-entity">
             {children}
         </div>
     );
@@ -59,23 +59,32 @@ export const WiredVariableFxOverlayView: FC<{}> = () => {
     const { roomSession = null } = useRoom();
     const configs = useWiredVariableFxStore((state) => state.configs);
     const statuses = useWiredVariableFxStore((state) => state.statuses);
+    const [hoveredEntity, setHoveredEntity] = useState<string | null>(null);
+    useVoltEvent<RoomEngineObjectEvent>([RoomEngineObjectEvent.MOUSE_ENTER, RoomEngineObjectEvent.MOUSE_LEAVE], event => {
+        if (event.roomId !== roomSession?.roomId) return;
+        if (event.category !== RoomObjectCategory.UNIT && event.category !== RoomObjectCategory.FLOOR) return;
+        const key = `${event.category === RoomObjectCategory.UNIT ? 'u' : 'f'}:${event.objectId}`;
+        if (event.type === RoomEngineObjectEvent.MOUSE_ENTER) setHoveredEntity(key);
+        else setHoveredEntity(current => current === key ? null : current);
+    });
+    useEffect(() => setHoveredEntity(null), [roomSession?.roomId]);
     const groups = useMemo(() => groupWiredVariableFxStatuses(configs, statuses), [configs, statuses]);
 
     if (!roomSession || (!groups.entities.length && !groups.bosses.length)) return null;
 
     return (
-        <div className="octane-wired-fx-overlay" data-testid="fx-overlay">
+        <div className="volt-wired-fx-overlay" data-testid="fx-overlay">
             {groups.bosses.length > 0 && (
-                <div className="octane-wired-fx-overlay__bosses">
+                <div className="volt-wired-fx-overlay__bosses">
                     {groups.bosses.map((drawn) => (
-                        <WiredVariableFxStatusView key={drawn.entry.key} config={drawn.config} entry={drawn.entry} />
+                        <WiredVariableFxStatusView key={drawn.entry.key} config={drawn.config} entry={drawn.entry} hovered={hoveredEntity === `${drawn.entry.status.userEntity ? 'u' : 'f'}:${drawn.entry.status.entityId}`} />
                     ))}
                 </div>
             )}
             {groups.entities.map((group) => (
                 <WiredVariableFxEntityView key={group.entityKey} roomId={roomSession.roomId} userEntity={group.userEntity} entityId={group.entityId}>
                     {group.drawn.map((drawn) => (
-                        <WiredVariableFxStatusView key={drawn.entry.key} config={drawn.config} entry={drawn.entry} />
+                        <WiredVariableFxStatusView key={drawn.entry.key} config={drawn.config} entry={drawn.entry} hovered={hoveredEntity === `${drawn.entry.status.userEntity ? 'u' : 'f'}:${drawn.entry.status.entityId}`} />
                     ))}
                 </WiredVariableFxEntityView>
             ))}

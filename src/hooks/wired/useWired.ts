@@ -1,5 +1,8 @@
 import {
     ConditionDefinition,
+    WiredSelectorDefinition, WiredAddonDefinition, WiredVariableDefinition,
+    WiredFurniSelectorEvent, WiredFurniAddonEvent, WiredFurniVariableEvent,
+    UpdateSelectorMessageComposer, UpdateAddonMessageComposer, UpdateVariableMessageComposer,
     GetRoomEngine,
     GetSessionDataManager,
     IFurnitureData,
@@ -19,7 +22,7 @@ import {
     WiredOpenEvent,
     WiredSaveSuccessEvent,
     WiredValidationErrorEvent
-} from '@octane/renderer';
+} from '@volt/renderer';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { registerSharedHook, useSharedHook } from '@/state/useSharedHook';
 import {
@@ -29,6 +32,7 @@ import {
     localizeWithFallback,
     pasteTriggerableData,
     resetTriggerableData,
+    withTriggerableData,
     SendMessageComposer,
     WiredClipboardEntry,
     wiredClipboardKeyOf,
@@ -38,11 +42,20 @@ import {
 import { useMessageEvent } from '../events';
 import { useNotification } from '../notification';
 import { useLiveState } from '../useLiveState';
+import { useWiredCatalog } from './useWiredCatalog';
+import { WiredCatalogState } from './WiredCatalogProvider';
 import { useWiredTools } from '../wired-tools/useWiredTools';
 
 /** English for server error keys a hotel's texts may not have yet. */
 const WIRED_ERROR_FALLBACKS: Record<string, string> = {
-    'wiredfurni.error.invalid_api_keys': 'Invalid Web API keys'
+    'wiredfurni.error.condition_evaluation_furni': 'Can only select WIRED Conditions and Add-Ons!',
+    'wiredfurni.error.invalid_api_keys': 'Invalid Web API keys',
+    'wiredfurni.error.placeholder.name_length': 'Placeholder length must be between 1 and 40 characters.',
+    'wiredfurni.error.require_antenna_furni': 'Can only select antenna furni.',
+    'wiredfurni.error.require_click_tiles': 'Can only select invisible click furniture.',
+    'wiredfurni.error.require_counter_furni': 'Can only select counter furni.',
+    'wiredfurni.error.require_room_linker': 'Can only select wired room linkers!',
+    'wiredfurni.error.variables.reference.valid': 'Please select a valid reference variable.'
 };
 
 /** Whether a clicked floor furni may be picked, from its room object and furnidata. */
@@ -53,7 +66,16 @@ const useWiredState = () => {
     const [intParams, setIntParams, intParamsRef] = useLiveState<number[]>([]);
     const [stringParam, setStringParam, stringParamRef] = useLiveState<string>('');
     const [furniIds, setFurniIds, furniIdsRef] = useLiveState<number[]>([]);
+    const [secondaryFurniIds, setSecondaryFurniIds, secondaryFurniIdsRef] = useLiveState<number[]>([]);
+    const [furniSources, setFurniSources, furniSourcesRef] = useLiveState<number[]>([]);
+    const [userSources, setUserSources, userSourcesRef] = useLiveState<number[]>([]);
+    const [variableIds, setVariableIds, variableIdsRef] = useLiveState<string[]>([]);
+    const [activePickSlot, setActivePickSlot] = useState<0 | 1>(0);
     const [actionDelay, setActionDelay, actionDelayRef] = useLiveState<number>(0);
+    // Category fields travel outside the owned ints: quantifier (conditions), filter and inverse (selectors).
+    const [quantifier, setQuantifier, quantifierRef] = useLiveState<number>(0);
+    const [filter, setFilter, filterRef] = useLiveState<boolean>(false);
+    const [inverse, setInverse, inverseRef] = useLiveState<boolean>(false);
     const [allowsFurni, setAllowsFurni] = useState<number>(WiredFurniType.STUFF_SELECTION_OPTION_NONE);
     const selectByType = false;
     const [neighborhoodTiles, setNeighborhoodTiles] = useState<{ x: number; y: number }[] | null>(null);
@@ -65,6 +87,22 @@ const useWiredState = () => {
     const setAllowedFurniCheck = useCallback((check: WiredFurniPickCheck | null) => setAllowedFurniCheckState(() => check), []);
     const { showConfirm = null, simpleAlert = null } = useNotification();
     const { requestUserVariables = null, roomSettings = null } = useWiredTools();
+    const { provider: catalogProvider, bind: bindCatalog } = useWiredCatalog();
+    const [nativeCatalog, setNativeCatalog] = useState<WiredCatalogState | null>(null);
+    const catalogGeneration = useRef(0);
+    useEffect(() => {
+        const generation = ++catalogGeneration.current;
+        setNativeCatalog(null);
+        const context = trigger?.contexts.find(context => context.type === 0);
+        if(!trigger || !context || context.type !== 0) return;
+        const captured = trigger;
+        bindCatalog(roomSettings?.roomId === GetRoomSession()?.roomId && !!roomSettings?.canInspect);
+        const cancel = catalogProvider.subscribe(state => {
+            if(catalogGeneration.current === generation && triggerRef.current === captured) setNativeCatalog(state);
+        }, context.hash);
+        return () => { catalogGeneration.current++; cancel(); };
+    }, [trigger, roomSettings?.roomId, roomSettings?.canInspect, catalogProvider, bindCatalog]);
+
     // The quick menu's clipboard: one entry per holder and code, kept for the session.
     const [clipboard, setClipboard] = useState<Map<string, WiredClipboardEntry>>(() => new Map());
     // "Save without closing": the next save success leaves the window open.
@@ -79,12 +117,20 @@ const useWiredState = () => {
             const furniIds = furniIdsRef.current;
             const actionDelay = actionDelayRef.current;
 
+            const tails = [furniSourcesRef.current, userSourcesRef.current, variableIdsRef.current, secondaryFurniIdsRef.current] as const;
+
             if (trigger instanceof WiredActionDefinition) {
-                SendMessageComposer(new UpdateActionMessageComposer(trigger.id, intParams, stringParam, furniIds, actionDelay, trigger.stuffTypeSelectionCode));
+                SendMessageComposer(new UpdateActionMessageComposer(trigger.id, intParams, stringParam, furniIds, actionDelay, ...tails));
             } else if (trigger instanceof TriggerDefinition) {
-                SendMessageComposer(new UpdateTriggerMessageComposer(trigger.id, intParams, stringParam, furniIds, trigger.stuffTypeSelectionCode));
+                SendMessageComposer(new UpdateTriggerMessageComposer(trigger.id, intParams, stringParam, furniIds, ...tails));
             } else if (trigger instanceof ConditionDefinition) {
-                SendMessageComposer(new UpdateConditionMessageComposer(trigger.id, intParams, stringParam, furniIds, trigger.stuffTypeSelectionCode));
+                SendMessageComposer(new UpdateConditionMessageComposer(trigger.id, intParams, stringParam, furniIds, quantifierRef.current, ...tails));
+            } else if (trigger instanceof WiredSelectorDefinition) {
+                SendMessageComposer(new UpdateSelectorMessageComposer(trigger.id, intParams, stringParam, furniIds, filterRef.current, inverseRef.current, ...tails));
+            } else if (trigger instanceof WiredAddonDefinition) {
+                SendMessageComposer(new UpdateAddonMessageComposer(trigger.id, intParams, stringParam, furniIds, ...tails));
+            } else if (trigger instanceof WiredVariableDefinition) {
+                SendMessageComposer(new UpdateVariableMessageComposer(trigger.id, intParams, stringParam, furniIds, ...tails));
             }
         };
 
@@ -109,7 +155,13 @@ const useWiredState = () => {
     const selectObjectForWired = (objectId: number, category: number) => {
         if (!trigger || !allowsFurni) return;
 
-        if (objectId <= 0) return;
+        if (objectId <= 0 || (category !== RoomObjectCategory.FLOOR && category !== RoomObjectCategory.WALL)) return;
+        if (category === RoomObjectCategory.WALL && !trigger.allowWall) return;
+
+        const session = GetRoomSession();
+        if (!session || !GetRoomEngine().getRoomObject(session.roomId, objectId, category)) return;
+
+        const pickedId = category === RoomObjectCategory.WALL ? -objectId : objectId;
 
         const getInteractionTypeName = (furniData: any): string => {
             if (!furniData) return null;
@@ -254,7 +306,7 @@ const useWiredState = () => {
             if (!sourceFurniData) return;
             if (!isAllowedInteraction(sourceFurniData) || (allowedFurniCheck && !allowedFurniCheck(clickedObject, sourceFurniData))) {
                 handleDisallowedInteraction();
-                setFurniIds((prevValue) => {
+                (activePickSlot === 1 ? setSecondaryFurniIds : setFurniIds)((prevValue) => {
                     if (!prevValue.includes(objectId)) return prevValue;
 
                     const remaining = prevValue.filter((id) => id !== objectId);
@@ -268,19 +320,20 @@ const useWiredState = () => {
             }
         }
 
-        setFurniIds((prevValue) => {
+        (activePickSlot === 1 ? setSecondaryFurniIds : setFurniIds)((prevValue) => {
             const newFurniIds = [...prevValue];
 
-            const index = prevValue.indexOf(objectId);
+            const index = prevValue.indexOf(pickedId);
 
             if (index >= 0) {
                 newFurniIds.splice(index, 1);
 
-                WiredSelectionVisualizer.hide(objectId);
+                WiredSelectionVisualizer.hide(pickedId);
             } else if (newFurniIds.length < trigger.maximumItemSelectionCount) {
-                newFurniIds.push(objectId);
+                newFurniIds.push(pickedId);
 
-                WiredSelectionVisualizer.show(objectId);
+                if (activePickSlot === 1) WiredSelectionVisualizer.applySecondarySelectionShaderToFurni([pickedId]);
+                else WiredSelectionVisualizer.show(pickedId);
             }
 
             return newFurniIds;
@@ -328,7 +381,13 @@ const useWiredState = () => {
             intParams: [...(intParamsRef.current ?? [])],
             stringParam: stringParamRef.current ?? '',
             furniIds: [...(furniIdsRef.current ?? [])],
-            delayInPulses: actionDelayRef.current ?? 0
+            delayInPulses: actionDelayRef.current ?? 0,
+            secondaryFurniIds: [...secondaryFurniIdsRef.current],
+            furniSources: [...furniSourcesRef.current], userSources: [...userSourcesRef.current],
+            variableIds: [...variableIdsRef.current],
+            quantifier: current instanceof ConditionDefinition ? quantifierRef.current : undefined,
+            filter: current instanceof WiredSelectorDefinition ? filterRef.current : undefined,
+            inverse: current instanceof WiredSelectorDefinition ? inverseRef.current : undefined
         };
 
         setClipboard((prevValue) => {
@@ -368,7 +427,8 @@ const useWiredState = () => {
 
         if (!current) return;
 
-        setTrigger(resetTriggerableData(current));
+        // The category fields go back to the pristine native values (quantifier 0, filter and inverse off), which the server also captures.
+        setTrigger(withTriggerableData(resetTriggerableData(current), { quantifier: 0, filter: false, inverse: false }));
     }, [setTrigger]);
 
     /** Drops every furni pick of the open box. */
@@ -378,7 +438,11 @@ const useWiredState = () => {
 
             return [];
         });
-    }, [setFurniIds]);
+        setSecondaryFurniIds(previous => {
+            for (const id of previous) WiredSelectionVisualizer.hide(id);
+            return [];
+        });
+    }, [setFurniIds, setSecondaryFurniIds]);
 
     useMessageEvent<WiredValidationErrorEvent>(WiredValidationErrorEvent, (event) => {
         const parser = event.getParser();
@@ -410,14 +474,34 @@ const useWiredState = () => {
         setTrigger(parser.definition);
     });
 
+    useMessageEvent<WiredFurniSelectorEvent>(WiredFurniSelectorEvent, event => setTrigger(event.getParser().definition));
+    useMessageEvent<WiredFurniAddonEvent>(WiredFurniAddonEvent, event => setTrigger(event.getParser().definition));
+    useMessageEvent<WiredFurniVariableEvent>(WiredFurniVariableEvent, event => setTrigger(event.getParser().definition));
+
     useEffect(() => {
         if (!trigger) return;
+        setSecondaryFurniIds([...trigger.secondarySelectedItems]);
+        setFurniSources([...trigger.furniSources]);
+        setUserSources([...trigger.userSources]);
+        setVariableIds([...trigger.variableIds]);
+        setQuantifier(trigger instanceof ConditionDefinition ? trigger.quantifier : 0);
+        setFilter(trigger instanceof WiredSelectorDefinition ? trigger.filter : false);
+        setInverse(trigger instanceof WiredSelectorDefinition ? trigger.inverse : false);
+        setActivePickSlot(0);
 
         return () => {
             WiredSelectionVisualizer.clearAllSelectionShaders();
             setIntParams([]);
             setStringParam('');
             setActionDelay(0);
+            setQuantifier(0);
+            setFilter(false);
+            setInverse(false);
+            setSecondaryFurniIds([]);
+            setFurniSources([]);
+            setUserSources([]);
+            setVariableIds([]);
+            setActivePickSlot(0);
             setFurniIds((prevValue) => {
                 if (prevValue && prevValue.length) WiredSelectionVisualizer.clearSelectionShaderFromFurni(prevValue);
 
@@ -433,6 +517,7 @@ const useWiredState = () => {
     }, [trigger]);
 
     return {
+        nativeCatalog,
         trigger,
         setTrigger,
         intParams,
@@ -441,8 +526,17 @@ const useWiredState = () => {
         setStringParam,
         furniIds,
         setFurniIds,
+        secondaryFurniIds, setSecondaryFurniIds,
+        furniSources, setFurniSources, userSources, setUserSources, variableIds, setVariableIds,
+        activePickSlot, setActivePickSlot,
         actionDelay,
         setActionDelay,
+        quantifier,
+        setQuantifier,
+        filter,
+        setFilter,
+        inverse,
+        setInverse,
         setAllowsFurni,
         saveWired,
         saveWiredAndKeepOpen,

@@ -7,7 +7,6 @@ import {
     ChestFurniChunkEvent,
     ChestFurniDeltaEvent,
     ChestLogEvent,
-    ChestRequestLogComposer,
     ChestSaveNotificationsComposer,
     ChestSaveOptionsComposer,
     ChestSaveSettingsComposer,
@@ -22,8 +21,9 @@ import {
     FurnitureType,
     GetSessionDataManager,
     IChestFurniStoredItem,
-} from '@octane/renderer';
-import { FC, useCallback, useEffect, useMemo, useState } from 'react';
+    WiredChestSettingsAckEvent,
+} from '@volt/renderer';
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LocalizeText, localizeWithFallback, ProductImageUtility, SendMessageComposer } from '../../../../api';
 import sceneHigh from '../../../../assets/images/chest/light_coins_chest_balance_high.png';
 import sceneLow from '../../../../assets/images/chest/light_coins_chest_balance_low.png';
@@ -32,8 +32,8 @@ import sceneZero from '../../../../assets/images/chest/light_coins_chest_balance
 import furniEmptyScene from '../../../../assets/images/chest/variant_furni_chest_empty.png';
 import bellIcon from '../../../../assets/images/chest/wired_chests_bell_icon.png';
 import gearIcon from '../../../../assets/images/chest/wired_chests_gear_icon.png';
-import { Column, Flex, LayoutCurrencyIcon, LayoutFurniImageView, OctaneCardContentView, OctaneCardHeaderView, OctaneCardView, PIXEL_ART_RENDERING, Text } from '../../../../common';
-import { useMessageEvent, usePurse } from '../../../../hooks';
+import { Column, Flex, LayoutCurrencyIcon, LayoutFurniImageView, VoltCardContentView, VoltCardHeaderView, VoltCardView, PIXEL_ART_RENDERING, Text } from '../../../../common';
+import { useMessageEvent, useNotification, usePurse } from '../../../../hooks';
 import { useInventoryFurni } from '../../../../hooks/inventory';
 import { ChestButton } from './ChestButton';
 import { ChestFurniGroup, chestFurniDisplayName, groupStoredFurni } from './chestFurniGrouping';
@@ -55,10 +55,13 @@ interface ChestLogRow {
 
 const CREDITS = -1;
 const CHEST_KIND_FURNI = 1;
-const UPGRADE_STEP = 5000;
+/** Each coin upgrade adds 5000 capacity; each furni upgrade adds 1000. */
+const COIN_UPGRADE_STEP = 5000;
+const FURNI_UPGRADE_STEP = 1000;
 const NON_DIGITS = /\D/g;
-/** Matches ChestStorage.MAX_CAPACITY, the ceiling the server refuses to go past. */
-const MAX_CAPACITY = 1_000_000;
+/** Coin chests stop at 100000 capacity and furni chests at 10000. */
+const COIN_MAX_CAPACITY = 100_000;
+const FURNI_MAX_CAPACITY = 10_000;
 /** Matches the server's per-purchase cap. */
 const MAX_UPGRADES_PER_PURCHASE = 10;
 const LOCK_INFO_RULES = [1, 2, 3, 4, 5, 6, 7].map((n) => `wiredchests.lock_info.rule_${ n }`);
@@ -94,6 +97,9 @@ export const FurnitureChestView: FC = () => {
     const [autoLock, setAutoLock] = useState(false);
     const [capacity, setCapacity] = useState(0);
     const [isOwner, setIsOwner] = useState(false);
+    const [canWithdraw, setCanWithdraw] = useState(false);
+    const [canDeposit, setCanDeposit] = useState(false);
+    const [canToggleLock, setCanToggleLock] = useState(false);
     const [appearanceState, setAppearanceState] = useState(0);
     const [notifyFull, setNotifyFull] = useState(false);
     const [notifyDonation, setNotifyDonation] = useState(false);
@@ -114,6 +120,30 @@ export const FurnitureChestView: FC = () => {
 
     const [showSettings, setShowSettings] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
+
+    // Every settings-affecting message is answered by one ack, in order. This records what each send
+    // was, so only the explicit Save of its own dialog closes that dialog, and an automatic save
+    // (a lock switch, enabling Wired) never does. The queue belongs to the chest on screen.
+    const pendingSaves = useRef<('settings' | 'notifications' | 'other')[]>([]);
+    const settingsOpenRef = useRef(false);
+    const notificationsOpenRef = useRef(false);
+    const itemIdRef = useRef(itemId);
+    settingsOpenRef.current = showSettings;
+    notificationsOpenRef.current = showNotifications;
+    itemIdRef.current = itemId;
+
+    useEffect(() => {
+        pendingSaves.current = [];
+
+        return () => {
+            pendingSaves.current = [];
+        };
+    }, [itemId]);
+
+    const sendSave = (kind: 'settings' | 'notifications' | 'other', composer: Parameters<typeof SendMessageComposer>[0]) => {
+        pendingSaves.current.push(kind);
+        SendMessageComposer(composer);
+    };
     const [showUpgrade, setShowUpgrade] = useState(false);
     const [showLog, setShowLog] = useState(false);
     const [logRows, setLogRows] = useState<ChestLogRow[]>([]);
@@ -154,6 +184,7 @@ export const FurnitureChestView: FC = () => {
             { value: 0, label: LocalizeText('wiredchests.settings.appearance.state.0') },
             { value: 1, label: LocalizeText('wiredchests.settings.appearance.state.1') },
             { value: 2, label: LocalizeText('wiredchests.settings.appearance.state.2') },
+            { value: 3, label: LocalizeText('wiredchests.settings.appearance.state.3') },
         ],
         [],
     );
@@ -162,7 +193,6 @@ export const FurnitureChestView: FC = () => {
         () => [
             { value: 0, label: LocalizeText('wiredchests.notification_settings.notification_mode.when.0') },
             { value: 1, label: LocalizeText('wiredchests.notification_settings.notification_mode.when.1') },
-            { value: 2, label: LocalizeText('wiredchests.notification_settings.notification_mode.when.2') },
         ],
         [],
     );
@@ -204,29 +234,52 @@ export const FurnitureChestView: FC = () => {
     useMessageEvent<ChestDataEvent>(ChestDataEvent, (event) => {
         const p = event.getParser();
         setItemId(p.itemId);
-        setName(p.name);
-        setDescription(p.description);
         setCapacityMax(p.capacityMax);
         setUsed(p.used);
-        setAccessOpen(p.accessOpen);
-        setAccessDonate(p.accessDonate);
+        // An open dialog keeps its unsaved draft for the same chest. Closed dialogs accept
+        // the next refresh, and another chest never inherits a draft.
+        const sameChest = p.itemId === itemIdRef.current;
+        const keepSettingsDraft = settingsOpenRef.current && sameChest;
+        const keepNotificationsDraft = notificationsOpenRef.current && sameChest;
+
+        if (!sameChest) {
+            setShowSettings(false);
+            setShowNotifications(false);
+        }
+
+        if (!keepSettingsDraft) {
+            setName(p.name);
+            setDescription(p.description);
+            setAccessOpen(p.accessOpen);
+            setAccessDonate(p.accessDonate);
+        }
+
         setLocked(p.locked);
         setAutoLock(p.autoLock);
-        setCapacity(p.capacity || p.capacityMax);
-        setCapacityDraft(String(p.capacity || p.capacityMax));
+        setCapacity(p.capacity ?? p.capacityMax);
+        setCapacityDraft(String(p.capacity ?? p.capacityMax));
         setIsOwner(p.viewerOwnsChest);
+        setCanWithdraw(p.canWithdraw);
+        setCanDeposit(p.canDeposit);
+        setCanToggleLock(p.canLock);
         setChestBaseItemId(p.chestSpriteId);
         setWiredEnabled(p.wiredEnabled);
         setIsStarter(p.starterChest);
-        setPreviewMode(p.previewMode);
-        setPreviewAmount(p.previewAmount);
-        setAppearanceState(p.appearanceState);
-        setNotifyFull(p.notifyFull);
-        setNotifyDonation(p.notifyDonation);
-        setNotifyWithdraw(p.notifyWithdraw);
-        setNotifyEmpty(p.notifyEmpty);
-        setNotifyWired(p.notifyWired);
-        setNotifyMode(p.notifyMode);
+        if (!keepSettingsDraft) {
+            setPreviewMode(p.previewMode);
+            setPreviewAmount(p.previewAmount);
+            setAppearanceState(p.appearanceState);
+        }
+
+        if (!keepNotificationsDraft) {
+            setNotifyFull(p.notifyFull);
+            setNotifyDonation(p.notifyDonation);
+            setNotifyWithdraw(p.notifyWithdraw);
+            setNotifyEmpty(p.notifyEmpty);
+            setNotifyWired(p.notifyWired);
+            setNotifyMode(p.notifyMode);
+        }
+
         setEntries(p.entries.map((e) => ({ currencyType: e.currencyType, amount: e.amount })));
         setChestKind(p.chestKind);
         if (p.chestKind === CHEST_KIND_FURNI) {
@@ -303,6 +356,39 @@ export const FurnitureChestView: FC = () => {
         setShowLog(true);
     });
 
+    const { simpleAlert } = useNotification();
+
+    // The server answers every settings save with this, then re-sends the chest, so the window only
+    // closes on an accepted save and a refusal says so instead of vanishing.
+    useMessageEvent<WiredChestSettingsAckEvent>(WiredChestSettingsAckEvent, (event) => {
+        const ack = event.getParser();
+
+        if (ack.chestId !== itemId) return;
+
+        const kind = pendingSaves.current.shift() ?? 'other';
+
+        if (ack.saved) {
+            if (kind === 'settings') {
+                settingsOpenRef.current = false;
+                setShowSettings(false);
+            }
+            if (kind === 'notifications') {
+                notificationsOpenRef.current = false;
+                setShowNotifications(false);
+            }
+
+            return;
+        }
+
+        simpleAlert(
+            localizeWithFallback('wiredchests.settings.error', 'The chest settings were refused.'),
+            null,
+            null,
+            null,
+            localizeWithFallback('generic.error', 'Error'),
+        );
+    });
+
     if (itemId === -1) return null;
 
     const creditsBalance = entries.find((e) => e.currencyType === CREDITS)?.amount ?? 0;
@@ -361,9 +447,9 @@ export const FurnitureChestView: FC = () => {
         SendMessageComposer(new FurnitureListComposer());
         SendMessageComposer(new ChestStartDepositComposer(itemId));
     };
-    const requestLog = () => SendMessageComposer(new ChestRequestLogComposer(itemId));
     const saveSettings = () => {
-        SendMessageComposer(
+        sendSave(
+            'settings',
             new ChestSaveSettingsComposer(
                 itemId,
                 name,
@@ -375,7 +461,6 @@ export const FurnitureChestView: FC = () => {
                 previewAmount,
             ),
         );
-        setShowSettings(false);
     };
     /**
      * The three switches on this window save the moment they are touched, the way the official one
@@ -389,27 +474,15 @@ export const FurnitureChestView: FC = () => {
         setLocked(nextLocked);
         setAutoLock(nextAutoLock);
         setCapacity(nextCapacity);
-        SendMessageComposer(new ChestSaveOptionsComposer(itemId, nextLocked, nextAutoLock, nextCapacity));
+        sendSave('other', new ChestSaveOptionsComposer(itemId, nextLocked, nextAutoLock, nextCapacity));
     };
-
-    /**
-     * A lock closes the chest to the room, not to its owner, so the owner keeps both directions and
-     * everyone else loses both until it comes off.
-     */
-    const canWithdraw = !locked || isOwner;
-    const canDeposit = !locked || isOwner;
-
-    /**
-     * Anyone in the room who can reach this window may throw the lock -- that is the point of a panic
-     * button. Taking it off again is the owner's alone, so a lock cannot be undone by whoever set it.
-     */
-    const canToggleLock = isOwner || !locked;
 
     /**
      * How many steps are still buyable. The official offers 1..remaining rather than a fixed list, so
      * the dropdown can never propose a purchase the chest has no room for.
      */
-    const upgradesLeft = Math.max(0, Math.floor((MAX_CAPACITY - capacityMax) / UPGRADE_STEP));
+    const upgradeStep = isFurni ? FURNI_UPGRADE_STEP : COIN_UPGRADE_STEP;
+    const upgradesLeft = isStarter ? 0 : Math.max(0, Math.floor(((isFurni ? FURNI_MAX_CAPACITY : COIN_MAX_CAPACITY) - capacityMax) / upgradeStep));
     const upgradeOptions = Array.from(
         { length: Math.min(upgradesLeft, MAX_UPGRADES_PER_PURCHASE) },
         (unused, index) => index + 1,
@@ -424,14 +497,13 @@ export const FurnitureChestView: FC = () => {
 
     const commitCapacity = () => {
         const parsed = parseInt(capacityDraft, 10);
-        const next = Math.min(Math.max(isNaN(parsed) ? 1 : parsed, 1), capacityMax);
+        const next = Math.min(Math.max(isNaN(parsed) ? capacity : parsed, 0), capacityMax);
 
         setCapacityDraft(String(next));
         if (next !== capacity) saveOptions({ capacity: next });
     };
     const saveNotifications = () => {
-        SendMessageComposer(new ChestSaveNotificationsComposer(itemId, notifyFull, notifyDonation, notifyWithdraw, notifyEmpty, notifyWired, notifyMode));
-        setShowNotifications(false);
+        sendSave('notifications', new ChestSaveNotificationsComposer(itemId, notifyFull, notifyDonation, notifyWithdraw, notifyEmpty, notifyWired, notifyMode));
     };
     const buyUpgrade = () => {
         setUpgradeResult('');
@@ -441,9 +513,9 @@ export const FurnitureChestView: FC = () => {
     return (
         <>
             {/* ===== MAIN WINDOW ===== */}
-            <OctaneCardView className="octane-widget-chest" theme="primary-slim" style={{ width: 460 }}>
-                <OctaneCardHeaderView headerText={name || chestTypeLabel} onCloseClick={close} />
-                <OctaneCardContentView>
+            <VoltCardView className="volt-widget-chest" theme="primary-slim" style={{ width: 460 }}>
+                <VoltCardHeaderView headerText={name || chestTypeLabel} onCloseClick={close} />
+                <VoltCardContentView>
                     {locked && !isOwner && (
                         <div className="mb-1 rounded border border-[#c08a5a] bg-[#f7e6cf] px-2 py-1 text-[11px] text-[#7a4a1c]">
                             {localizeWithFallback(
@@ -455,7 +527,7 @@ export const FurnitureChestView: FC = () => {
                     {/* ===== header box (chest_generic.xml container "header", 460x51) =====
                          grey band (layout_1 #dadada) + bottom splitter (#c0c0c0 @y50);
                          desc text @(10,10) 380w bold blend=0.6; bell btn @(397,7) + gear btn @(426,7) 24x24.
-                         margin -10 bleeds past OctaneCardContentView's p-[10px] to the card edges. */}
+                         margin -10 bleeds past VoltCardContentView's p-[10px] to the card edges. */}
                     <div
                         style={{
                             position: 'relative',
@@ -506,8 +578,8 @@ export const FurnitureChestView: FC = () => {
                     </div>
                     {/* ===== FURNI CHEST body (furni_chest_contents.xml) ===== */}
                     {isFurni && (
-                        <div className="octane-chest__furni-body">
-                            <div className="octane-chest__grid-border">
+                        <div className="volt-chest__furni-body">
+                            <div className="volt-chest__grid-border">
                                 {showFurniSearch && (
                                     <FurniChestSearchBar
                                         draft={furniSearchDraft}
@@ -520,17 +592,17 @@ export const FurnitureChestView: FC = () => {
                                     />
                                 )}
                                 <div
-                                    className="octane-chest__grid-scroll"
+                                    className="volt-chest__grid-scroll"
                                     style={showFurniSearch ? { height: 204 } : undefined}
                                 >
                                     {visibleFurniEntries.length === 0 ? (
-                                        <div className="octane-chest__grid-empty">
+                                        <div className="volt-chest__grid-empty">
                                             <Text small style={{ opacity: 0.5 }}>
                                                 {localizeWithFallback('wiredchests.furni_chest.no_items', 'No items stored')}
                                             </Text>
                                         </div>
                                     ) : (
-                                        <div className="octane-chest__grid">
+                                        <div className="volt-chest__grid">
                                             {visibleFurniEntries.map((f) => (
                                                 <FurniChestGridItem
                                                     key={f.key}
@@ -544,14 +616,14 @@ export const FurnitureChestView: FC = () => {
                                     )}
                                 </div>
                             </div>
-                            <div className="octane-chest__detail-panel">
-                                <div className="octane-chest__preview-box">
+                            <div className="volt-chest__detail-panel">
+                                <div className="volt-chest__preview-box">
                                     {selectedGroup ? (
                                         <>
-                                            <Text bold className="octane-chest__preview-name">
+                                            <Text bold className="volt-chest__preview-name">
                                                 {groupLabel(selectedGroup)}
                                             </Text>
-                                            <div className="octane-chest__preview-image">
+                                            <div className="volt-chest__preview-image">
                                                 <LayoutFurniImageView
                                                     productType={selectedGroup.wallItem ? 'i' : 's'}
                                                     productClassId={selectedGroup.baseItemId}
@@ -566,15 +638,15 @@ export const FurnitureChestView: FC = () => {
                                             src={furniEmptyScene}
                                             alt=""
                                             draggable={false}
-                                            className="octane-chest__preview-placeholder"
+                                            className="volt-chest__preview-placeholder"
                                         />
                                     )}
                                 </div>
-                                <div className="octane-chest__withdraw-row">
+                                <div className="volt-chest__withdraw-row">
                                     <input
                                         type="text"
                                         inputMode="numeric"
-                                        className="octane-chest__input octane-chest__input--furni"
+                                        className="volt-chest__input volt-chest__input--furni"
                                         value={furniWithdrawAmount}
                                         onChange={(e) =>
                                             setFurniWithdrawAmount(Math.max(0, parseInt(e.target.value.replace(/\D/g, ''), 10) || 0))
@@ -617,7 +689,7 @@ export const FurnitureChestView: FC = () => {
                             <input
                                 type="text"
                                 inputMode="numeric"
-                                className="octane-chest__input octane-chest__input--coin"
+                                className="volt-chest__input volt-chest__input--coin"
                                 value={withdrawAmount}
                                 onChange={(e) => setWithdrawAmount(Math.max(0, parseInt(e.target.value.replace(/\D/g, ''), 10) || 0))}
                             />
@@ -642,9 +714,9 @@ export const FurnitureChestView: FC = () => {
                     )}
                         </>
                     )}
-                    <div className="octane-chest__footer">
-                        <div className="octane-chest__locking">
-                            <label className="octane-chest__option">
+                    <div className="volt-chest__footer">
+                        <div className="volt-chest__locking">
+                            <label className="volt-chest__option">
                                 <input
                                     type="checkbox"
                                     className="form-check-input"
@@ -654,7 +726,7 @@ export const FurnitureChestView: FC = () => {
                                 />
                                 <Text small>{localizeWithFallback('wiredchests.lock_chest', 'Lock this chest')}</Text>
                             </label>
-                            <label className="octane-chest__option">
+                            <label className="volt-chest__option">
                                 <input
                                     type="checkbox"
                                     className="form-check-input"
@@ -669,20 +741,20 @@ export const FurnitureChestView: FC = () => {
                             </label>
                             <button
                                 type="button"
-                                className="octane-chest__info-button"
+                                className="volt-chest__info-button"
                                 title={localizeWithFallback('wiredchests.lock_info.title', 'About locking')}
                                 onClick={() => setShowLockInfo((v) => !v)}
                             >
                                 i
                             </button>
                         </div>
-                        <Flex alignItems="center" justifyContent="between" className="octane-chest__footer-capacity">
+                        <Flex alignItems="center" justifyContent="between" className="volt-chest__footer-capacity">
                             <Flex alignItems="center" gap={1}>
                                 <Text small style={{ opacity: 0.6 }}>
                                     {localizeWithFallback('wiredchests.capacity', 'Chest capacity:')}
                                 </Text>
                                 <input
-                                    className="form-control form-control-sm octane-chest__capacity-input"
+                                    className="form-control form-control-sm volt-chest__capacity-input"
                                     inputMode="numeric"
                                     type="text"
                                     disabled={!isOwner}
@@ -715,9 +787,9 @@ export const FurnitureChestView: FC = () => {
                         <Text small style={{ opacity: 0.6 }}>
                             {LocalizeText('wiredchests.space_used2', ['count', 'total'], [String(used), String(capacity)])}
                         </Text>
-                        <div className="octane-chest__footer-row">
+                        <div className="volt-chest__footer-row">
                             {!isFurni ? (
-                                <div className="octane-chest__footer-group">
+                                <div className="volt-chest__footer-group">
                                     <ChestButton wide footer disabled={!canWithdraw || creditsBalance <= 0} onClick={withdrawAll}>
                                         {LocalizeText('wiredchests.withdraw_all')}
                                     </ChestButton>
@@ -726,7 +798,7 @@ export const FurnitureChestView: FC = () => {
                                     </ChestButton>
                                 </div>
                             ) : (
-                                <div className="octane-chest__footer-group">
+                                <div className="volt-chest__footer-group">
                                     <ChestButton wide footer disabled={!canWithdraw || furniEntries.length <= 0} onClick={withdrawAll}>
                                         {LocalizeText('wiredchests.withdraw_all')}
                                     </ChestButton>
@@ -735,22 +807,19 @@ export const FurnitureChestView: FC = () => {
                                     </ChestButton>
                                 </div>
                             )}
-                            <ChestButton wide footer onClick={requestLog}>
-                                {LocalizeText('wiredchests.view_logs')}
-                            </ChestButton>
                         </div>
                     </div>
-                </OctaneCardContentView>
-            </OctaneCardView>
+                </VoltCardContentView>
+            </VoltCardView>
 
             {/* ===== SETTINGS ===== */}
             {showSettings && (
-                <OctaneCardView className="octane-widget-chest-settings" theme="primary-slim" style={{ width: 360 }}>
-                    <OctaneCardHeaderView
+                <VoltCardView className="volt-widget-chest-settings" theme="primary-slim" style={{ width: 360 }}>
+                    <VoltCardHeaderView
                         headerText={LocalizeText('wiredchests.settings.title', ['chest_type'], [chestTypeLabel])}
                         onCloseClick={() => setShowSettings(false)}
                     />
-                    <OctaneCardContentView>
+                    <VoltCardContentView>
                         <Column gap={2}>
                             <Text bold>{LocalizeText('wiredchests.settings.access')}</Text>
                             <label className="flex items-center gap-2">
@@ -763,9 +832,9 @@ export const FurnitureChestView: FC = () => {
                             </label>
                             <Text bold>{LocalizeText('wiredchests.settings.info')}</Text>
                             <Text small>{LocalizeText('wiredchests.settings.info.name')}</Text>
-                            <input className="form-control form-control-sm" maxLength={60} value={name} onChange={(e) => setName(e.target.value)} />
+                            <input className="form-control form-control-sm" maxLength={30} value={name} onChange={(e) => setName(e.target.value)} />
                             <Text small>{LocalizeText('wiredchests.settings.info.desc')}</Text>
-                            <textarea className="form-control form-control-sm" rows={3} maxLength={255} value={description} onChange={(e) => setDescription(e.target.value)} />
+                            <textarea className="form-control form-control-sm" rows={3} maxLength={200} value={description} onChange={(e) => setDescription(e.target.value)} />
                             <Text bold>{LocalizeText('wiredchests.settings.appearance')}</Text>
                             <Text small>{LocalizeText('wiredchests.settings.appearance.state')}</Text>
                             <select className="form-select form-select-sm" value={appearanceState} onChange={(e) => setAppearanceState(parseInt(e.target.value, 10))}>
@@ -844,7 +913,7 @@ export const FurnitureChestView: FC = () => {
                                     </Text>
                                 </>
                             )}
-                            <div className="octane-chest__actions">
+                            <div className="volt-chest__actions">
                                 <ChestButton wide onClick={saveSettings}>
                                     {LocalizeText('wiredchests.ready')}
                                 </ChestButton>
@@ -853,18 +922,18 @@ export const FurnitureChestView: FC = () => {
                                 </ChestButton>
                             </div>
                         </Column>
-                    </OctaneCardContentView>
-                </OctaneCardView>
+                    </VoltCardContentView>
+                </VoltCardView>
             )}
 
             {/* ===== NOTIFICATIONS ===== */}
             {showNotifications && (
-                <OctaneCardView className="octane-widget-chest-notifications" theme="primary-slim" style={{ width: 360 }}>
-                    <OctaneCardHeaderView
+                <VoltCardView className="volt-widget-chest-notifications" theme="primary-slim" style={{ width: 360 }}>
+                    <VoltCardHeaderView
                         headerText={LocalizeText('wiredchests.notification_settings.title', ['chest_type'], [chestTypeLabel])}
                         onCloseClick={() => setShowNotifications(false)}
                     />
-                    <OctaneCardContentView>
+                    <VoltCardContentView>
                         <Column gap={2}>
                             <Text bold>{LocalizeText('wiredchests.notification_settings.enable_notifications.generic')}</Text>
                             <label className="flex items-center gap-2">
@@ -896,7 +965,7 @@ export const FurnitureChestView: FC = () => {
                                     </option>
                                 ))}
                             </select>
-                            <div className="octane-chest__actions">
+                            <div className="volt-chest__actions">
                                 <ChestButton wide onClick={saveNotifications}>
                                     {LocalizeText('wiredchests.ready')}
                                 </ChestButton>
@@ -905,29 +974,29 @@ export const FurnitureChestView: FC = () => {
                                 </ChestButton>
                             </div>
                         </Column>
-                    </OctaneCardContentView>
-                </OctaneCardView>
+                    </VoltCardContentView>
+                </VoltCardView>
             )}
 
             {/* ===== UPGRADE ===== */}
             {showUpgrade && (
-                <OctaneCardView className="octane-widget-chest-upgrade" theme="primary-slim" style={{ width: 340 }}>
-                    <OctaneCardHeaderView headerText={LocalizeText('wiredchests.upgrade.title')} onCloseClick={() => setShowUpgrade(false)} />
-                    <OctaneCardContentView>
+                <VoltCardView className="volt-widget-chest-upgrade" theme="primary-slim" style={{ width: 340 }}>
+                    <VoltCardHeaderView headerText={LocalizeText('wiredchests.upgrade.title')} onCloseClick={() => setShowUpgrade(false)} />
+                    <VoltCardContentView>
                         <Column gap={2}>
                             <Flex alignItems="center" gap={2}>
-                                <div className="octane-chest__upgrade-preview">
+                                <div className="volt-chest__upgrade-preview">
                                     {chestBaseItemId > 0 && <LayoutFurniImageView productType={FurnitureType.FLOOR} productClassId={chestBaseItemId} direction={2} />}
                                 </div>
                                 <Column gap={1}>
                                     <Text bold>
-                                        {LocalizeText('wiredchests.upgrade.capacity.extra', ['purchase_capacity'], [String(UPGRADE_STEP * upgradeQty)])}
+                                        {LocalizeText('wiredchests.upgrade.capacity.extra', ['purchase_capacity'], [String(upgradeStep * upgradeQty)])}
                                     </Text>
                                     <Text small>
                                         {LocalizeText('wiredchests.upgrade.capacity.current', ['current_capacity'], [String(capacityMax)])}
                                     </Text>
                                     <Text small>
-                                        {LocalizeText('wiredchests.upgrade.capacity.new', ['new_capacity'], [String(capacityMax + UPGRADE_STEP * upgradeQty)])}
+                                        {LocalizeText('wiredchests.upgrade.capacity.new', ['new_capacity'], [String(capacityMax + upgradeStep * upgradeQty)])}
                                     </Text>
                                 </Column>
                             </Flex>
@@ -961,16 +1030,16 @@ export const FurnitureChestView: FC = () => {
                                 )}
                             </Flex>
                             {upgradeError && (
-                                <Text small className="octane-chest__upgrade-error">
+                                <Text small className="volt-chest__upgrade-error">
                                     {LocalizeText('wiredchests.upgrade.error', ['reason'], [localizeWithFallback(upgradeError, '')])}
                                 </Text>
                             )}
                             {upgradeResult && (
-                                <Text small className="octane-chest__upgrade-error">
+                                <Text small className="volt-chest__upgrade-error">
                                     {upgradeResult}
                                 </Text>
                             )}
-                            <div className="octane-chest__actions">
+                            <div className="volt-chest__actions">
                                 <ChestButton wide disabled={!!upgradeError} onClick={buyUpgrade}>
                                     {LocalizeText('wiredchests.upgrade.buy')}
                                 </ChestButton>
@@ -979,15 +1048,15 @@ export const FurnitureChestView: FC = () => {
                                 </ChestButton>
                             </div>
                         </Column>
-                    </OctaneCardContentView>
-                </OctaneCardView>
+                    </VoltCardContentView>
+                </VoltCardView>
             )}
 
             {/* ===== LOG ===== */}
             {showLog && (
-                <OctaneCardView className="octane-widget-chest-log" theme="primary-slim" style={{ width: 520 }}>
-                    <OctaneCardHeaderView headerText={LocalizeText('wiredchests.logs.title')} onCloseClick={() => setShowLog(false)} />
-                    <OctaneCardContentView>
+                <VoltCardView className="volt-widget-chest-log" theme="primary-slim" style={{ width: 520 }}>
+                    <VoltCardHeaderView headerText={LocalizeText('wiredchests.logs.title')} onCloseClick={() => setShowLog(false)} />
+                    <VoltCardContentView>
                         <Column gap={1}>
                             <Text small>{LocalizeText('wiredchests.logs.chest_id', ['id'], [String(itemId)])}</Text>
                             <Flex gap={2} className="border-b pb-1">
@@ -1030,21 +1099,21 @@ export const FurnitureChestView: FC = () => {
                                 </Flex>
                             ))}
                         </Column>
-                    </OctaneCardContentView>
-                </OctaneCardView>
+                    </VoltCardContentView>
+                </VoltCardView>
             )}
 
             {/* ===== WITHDRAW-ALL CONFIRM (mirrors WiredChestWrapperView.onWithdrawAllClick) ===== */}
             {confirmWiredUpgrade && (
-                <OctaneCardView className="octane-widget-chest-confirm" theme="primary-slim" style={{ width: 360 }}>
-                    <OctaneCardHeaderView
+                <VoltCardView className="volt-widget-chest-confirm" theme="primary-slim" style={{ width: 360 }}>
+                    <VoltCardHeaderView
                         headerText={localizeWithFallback('wiredchests.upgrade.wired.title', 'Make it wired')}
                         onCloseClick={() => setConfirmWiredUpgrade(false)}
                     />
-                    <OctaneCardContentView>
+                    <VoltCardContentView>
                         <Column gap={2}>
                             <Flex alignItems="center" gap={2}>
-                                <div className="octane-chest__upgrade-preview">
+                                <div className="volt-chest__upgrade-preview">
                                     {chestBaseItemId > 0 && (
                                         <LayoutFurniImageView
                                             productType={FurnitureType.FLOOR}
@@ -1060,11 +1129,11 @@ export const FurnitureChestView: FC = () => {
                                     )}
                                 </Text>
                             </Flex>
-                            <div className="octane-chest__actions">
+                            <div className="volt-chest__actions">
                                 <ChestButton
                                     wide
                                     onClick={() => {
-                                        SendMessageComposer(new ChestEnableWiredComposer(itemId));
+                                        sendSave('other', new ChestEnableWiredComposer(itemId));
                                         setConfirmWiredUpgrade(false);
                                     }}
                                 >
@@ -1075,20 +1144,20 @@ export const FurnitureChestView: FC = () => {
                                 </ChestButton>
                             </div>
                         </Column>
-                    </OctaneCardContentView>
-                </OctaneCardView>
+                    </VoltCardContentView>
+                </VoltCardView>
             )}
 
             {confirmLock !== null && (
-                <OctaneCardView className="octane-widget-chest-confirm" theme="primary-slim" style={{ width: 340 }}>
-                    <OctaneCardHeaderView
+                <VoltCardView className="volt-widget-chest-confirm" theme="primary-slim" style={{ width: 340 }}>
+                    <VoltCardHeaderView
                         headerText={localizeWithFallback(
                             confirmLock ? 'wiredchests.lock.confirm.title' : 'wiredchests.unlock.confirm.title',
                             '',
                         )}
                         onCloseClick={() => setConfirmLock(null)}
                     />
-                    <OctaneCardContentView>
+                    <VoltCardContentView>
                         <Column gap={2}>
                             <Text>
                                 {localizeWithFallback(
@@ -1096,7 +1165,7 @@ export const FurnitureChestView: FC = () => {
                                     '',
                                 )}
                             </Text>
-                            <div className="octane-chest__actions">
+                            <div className="volt-chest__actions">
                                 <ChestButton
                                     wide
                                     onClick={() => {
@@ -1111,20 +1180,20 @@ export const FurnitureChestView: FC = () => {
                                 </ChestButton>
                             </div>
                         </Column>
-                    </OctaneCardContentView>
-                </OctaneCardView>
+                    </VoltCardContentView>
+                </VoltCardView>
             )}
 
             {showLockInfo && (
-                <OctaneCardView className="octane-widget-chest-info" theme="primary-slim" style={{ width: 400 }}>
-                    <OctaneCardHeaderView
+                <VoltCardView className="volt-widget-chest-info" theme="primary-slim" style={{ width: 400 }}>
+                    <VoltCardHeaderView
                         headerText={localizeWithFallback('wiredchests.lock_info.title', 'About locking')}
                         onCloseClick={() => setShowLockInfo(false)}
                     />
-                    <OctaneCardContentView>
+                    <VoltCardContentView>
                         <Column gap={2}>
                             <Text small>{localizeWithFallback('wiredchests.lock_info.desc', '')}</Text>
-                            <ul className="octane-chest__rules">
+                            <ul className="volt-chest__rules">
                                 {LOCK_INFO_RULES.map((key) => (
                                     <li key={key}>
                                         <Text small>{localizeWithFallback(key, '')}</Text>
@@ -1133,7 +1202,7 @@ export const FurnitureChestView: FC = () => {
                             </ul>
                             <Text bold>{localizeWithFallback('wiredchests.capacity_info.title', 'About capacity')}</Text>
                             <Text small>{localizeWithFallback('wiredchests.capacity_info.desc', '')}</Text>
-                            <ul className="octane-chest__rules">
+                            <ul className="volt-chest__rules">
                                 {CAPACITY_INFO_RULES.map((key) => (
                                     <li key={key}>
                                         <Text small>{localizeWithFallback(key, '')}</Text>
@@ -1141,21 +1210,21 @@ export const FurnitureChestView: FC = () => {
                                 ))}
                             </ul>
                         </Column>
-                    </OctaneCardContentView>
-                </OctaneCardView>
+                    </VoltCardContentView>
+                </VoltCardView>
             )}
 
             {confirmWithdrawAll && (
-                <OctaneCardView className="octane-widget-chest-confirm" theme="primary-slim" style={{ width: 320 }}>
-                    <OctaneCardHeaderView headerText={LocalizeText('wiredchests.withdraw_all.confirm.title')} onCloseClick={() => setConfirmWithdrawAll(false)} />
-                    <OctaneCardContentView>
+                <VoltCardView className="volt-widget-chest-confirm" theme="primary-slim" style={{ width: 320 }}>
+                    <VoltCardHeaderView headerText={LocalizeText('wiredchests.withdraw_all.confirm.title')} onCloseClick={() => setConfirmWithdrawAll(false)} />
+                    <VoltCardContentView>
                         <Column gap={2}>
                             <Text>
                                 {LocalizeText(
                                     isFurni ? 'wiredchests.withdraw_all.confirm.desc_furni' : 'wiredchests.withdraw_all.confirm.desc',
                                 )}
                             </Text>
-                            <div className="octane-chest__actions">
+                            <div className="volt-chest__actions">
                                 <ChestButton wide onClick={doWithdrawAll}>
                                     {LocalizeText('wiredchests.withdraw_all.confirm.yes')}
                                 </ChestButton>
@@ -1164,8 +1233,8 @@ export const FurnitureChestView: FC = () => {
                                 </ChestButton>
                             </div>
                         </Column>
-                    </OctaneCardContentView>
-                </OctaneCardView>
+                    </VoltCardContentView>
+                </VoltCardView>
             )}
         </>
     );

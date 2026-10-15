@@ -22,8 +22,8 @@ vi.mock('../../common', () => ({
         </button>
     ),
     DraggableWindowPosition: { TOP_LEFT: 'top-left' },
-    OctaneCardView: ({ children }: PropsWithChildren) => <div>{children}</div>,
-    OctaneCardHeaderView: ({ headerText, onCloseClick }: { headerText: string; onCloseClick: () => void }) => (
+    VoltCardView: ({ children }: PropsWithChildren) => <div>{children}</div>,
+    VoltCardHeaderView: ({ headerText, onCloseClick }: { headerText: string; onCloseClick: () => void }) => (
         <div>
             <span>{headerText}</span>
             <button type="button" onClick={onCloseClick}>
@@ -31,7 +31,7 @@ vi.mock('../../common', () => ({
             </button>
         </div>
     ),
-    OctaneCardContentView: ({ children }: PropsWithChildren) => <div>{children}</div>,
+    VoltCardContentView: ({ children }: PropsWithChildren) => <div>{children}</div>,
     Text: ({ children }: PropsWithChildren) => <span>{children}</span>
 }));
 
@@ -89,9 +89,9 @@ describe('WiredRoomLogsView', () => {
     it('shows a write-to-logs line under its own source and at its own level', () => {
         render(<WiredRoomLogsView onClose={() => undefined} />);
 
-        deliverPage({ totalEntries: 2, currentPage: 1, entries: [entry(1, 0, 8, 'door opened'), entry(2, 3, 8, 'boss escaped')] });
+        deliverPage({ totalEntries: 2, currentPage: 1, entries: [entry(1, 3, 1, 'door opened'), entry(2, 2, 1, 'boss escaped')] });
 
-        expect(screen.getAllByText('WIRED_LOG').length).toBeGreaterThanOrEqual(2);
+        expect(screen.getAllByText('Wired').length).toBeGreaterThanOrEqual(2);
         expect(screen.getAllByText('DEBUG').length).toBeGreaterThanOrEqual(1);
         expect(screen.getAllByText('ERROR').length).toBeGreaterThanOrEqual(1);
     });

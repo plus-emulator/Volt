@@ -1,7 +1,7 @@
-import { GetEventDispatcher, GetRenderer, RoomObjectMouseEvent, RoomObjectTileMouseEvent, RoomSession } from '@octane/renderer';
+import { GetEventDispatcher, GetRenderer, RoomObjectMouseEvent, RoomObjectTileMouseEvent, RoomSession } from '@volt/renderer';
 import { AnimatePresence, motion } from 'framer-motion';
 import { FC, useEffect, useRef } from 'react';
-import { DispatchMouseEvent, DispatchTouchEvent } from '../../api';
+import { DispatchMouseEvent, DispatchTouchEvent, DispatchWheelEvent } from '../../api';
 import { useRoom, useRoomKeyboardMovement } from '../../hooks';
 import { classNames } from '../../layout';
 import { RoomSpectatorView } from './spectator/RoomSpectatorView';
@@ -21,10 +21,48 @@ export const RoomView: FC<{}> = (props) => {
 
         if (!canvas) return;
 
+        // AIR forwards a release over another window as a mouse up of the room (WME_UP_OUTSIDE).
+        // Without it a room drag released over the UI never ends, and the next click is swallowed.
+        let isPressed = false;
+        let lastPointer = { clientX: 0, clientY: 0 };
+
+        const rememberPointer = (event: MouseEvent) => (lastPointer = { clientX: event.clientX, clientY: event.clientY });
+
         canvas.onclick = (event) => DispatchMouseEvent(event);
-        canvas.onmousemove = (event) => DispatchMouseEvent(event);
-        canvas.onmousedown = (event) => DispatchMouseEvent(event);
-        canvas.onmouseup = (event) => DispatchMouseEvent(event);
+        canvas.ondblclick = (event) => DispatchMouseEvent(event);
+        canvas.onmousemove = (event) => {
+            rememberPointer(event);
+            DispatchMouseEvent(event);
+        };
+        canvas.onmousedown = (event) => {
+            rememberPointer(event);
+            isPressed = true;
+            DispatchMouseEvent(event);
+        };
+        canvas.onmouseup = (event) => {
+            isPressed = false;
+            DispatchMouseEvent(event);
+        };
+
+        const onWindowMouseUp = (event: MouseEvent) => {
+            if (!isPressed || event.target === canvas) return;
+
+            isPressed = false;
+            DispatchMouseEvent(event);
+        };
+
+        const onWindowBlur = () => {
+            if (!isPressed) return;
+
+            isPressed = false;
+            DispatchMouseEvent(new MouseEvent('mouseup', lastPointer));
+        };
+
+        const onWheel = (event: WheelEvent) => DispatchWheelEvent(event, roomSession.roomId);
+
+        window.addEventListener('mouseup', onWindowMouseUp, true);
+        window.addEventListener('blur', onWindowBlur);
+        canvas.addEventListener('wheel', onWheel, { passive: false });
 
         canvas.ontouchstart = (event) => DispatchTouchEvent(event);
         canvas.ontouchmove = (event) => DispatchTouchEvent(event);
@@ -69,7 +107,7 @@ export const RoomView: FC<{}> = (props) => {
 
             const feedback = document.createElement('div');
 
-            feedback.className = 'octane-room-touch-feedback';
+            feedback.className = 'volt-room-touch-feedback';
             feedback.style.left = `${lastTileTap.x}px`;
             feedback.style.top = `${lastTileTap.y}px`;
 
@@ -90,13 +128,16 @@ export const RoomView: FC<{}> = (props) => {
 
         const element = elementRef.current;
 
-        if (!element) return;
+        if (element) {
+            canvas.classList.add('bg-black');
 
-        canvas.classList.add('bg-black');
-
-        element.appendChild(canvas);
+            element.appendChild(canvas);
+        }
 
         return () => {
+            window.removeEventListener('mouseup', onWindowMouseUp, true);
+            window.removeEventListener('blur', onWindowBlur);
+            canvas.removeEventListener('wheel', onWheel);
             canvas.removeEventListener('touchstart', onTouchStart);
             canvas.removeEventListener('touchmove', onTouchMove);
             canvas.removeEventListener('touchend', onTouchEnd);

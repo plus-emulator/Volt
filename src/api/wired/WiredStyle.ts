@@ -25,7 +25,7 @@ export const resolveWiredStyle = (activeStyle: WiredShellStyle, furniClassName: 
     }
 };
 
-export const wiredStyleClassName = (value: WiredShellStyle): string => `octane-wired--style-${value}`;
+export const wiredStyleClassName = (value: WiredShellStyle): string => `volt-wired--style-${value}`;
 
 export const isWiredVolterStyle = (value: WiredShellStyle): value is WiredVolterStyle => value.startsWith('volter');
 
@@ -35,14 +35,21 @@ export const wiredStyleWidth = (style: WiredShellStyle): number =>
 /** Matched subtype controllers, not the compatibility views' cardStyle widths. */
 export const wiredWidthMultiplier = (wiredType: string, code: number): number => {
     if (wiredType === 'action') {
+        if (code === 64) return 1.4; // SendLinkDataframe widthModifier (WIN63-202610131318)
         if (code === WiredActionLayoutCode.RESET) return 1.06; // fke:417428
         if (code === WiredActionLayoutCode.PLACE_FURNI) return 1.2; // ake:416900
     }
     if (wiredType === 'extra') {
+        if (code === 1005) return 1.35; // VariableLeaderboardAddon widthModifier (WIN63-202610131318)
+        if (code === 2002) return 1.4; // VariablesWebApiAddon widthModifier L150 (WIN63-202610131318)
         if (code === WiredActionLayoutCode.PROJECTILE_EXTRA) return 1.3; // aAe:412944
         if (code === WiredActionLayoutCode.VARIABLE_WEB_API_EXTRA) return 1.4; // IY:413916
         if (code === WiredActionLayoutCode.CUSTOM_CONTRACT) return 1.2; // hAe:414180
         if (code >= WiredActionLayoutCode.VARIABLE_FX_HEALTH_POINTS_EXTRA && code <= WiredActionLayoutCode.VARIABLE_FX_NUMBER_DISPLAY_EXTRA) return 1.45; // Cb:414466
+    }
+    if (wiredType === 'trigger') {
+        if (code === 28) return 1.5; // RoomInitialized widthModifier (WIN63-202610131318)
+        if (code === 30) return 1.4; // ReceiveLinkDataframe widthModifier (WIN63-202610131318)
     }
     return 1;
 };

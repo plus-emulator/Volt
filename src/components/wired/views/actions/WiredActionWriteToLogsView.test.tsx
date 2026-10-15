@@ -37,11 +37,11 @@ describe('WiredActionWriteToLogsView', () => {
         baseProps = null;
     });
 
-    it('opens a fresh box at info and refuses to save without a message', () => {
+    it('opens a fresh box at the first level (INFO) and refuses to save without a message', () => {
         trigger = { stringData: '', intData: [] };
         render(<WiredActionWriteToLogsView />);
 
-        expect((screen.getByRole('combobox') as HTMLSelectElement).value).toBe('1');
+        expect((screen.getByRole('combobox') as HTMLSelectElement).value).toBe('0');
         expect(baseProps.validate()).toBe(false);
     });
 

@@ -6,8 +6,7 @@ import { getVisibleAirGridEntries, layoutAirCatalogOffers } from '../common/cata
 
 const state = vi.hoisted(() => ({
     currentPage: { offers: [] as any[], pageId: 1 },
-    currentType: 'NORMAL',
-    adminMode: false
+    currentType: 'NORMAL'
 }));
 
 vi.mock('../../../../../hooks', async () => {
@@ -21,10 +20,6 @@ vi.mock('../../../../../hooks', async () => {
         useScrollWindow
     };
 });
-
-vi.mock('../../../CatalogAdminContext', () => ({
-    useCatalogAdmin: () => ({ adminMode: state.adminMode, reorderOffers: vi.fn() })
-}));
 
 vi.mock('../common/CatalogOfferTileView', () => ({
     CatalogOfferTileView: ({ offer }: any) => <div data-testid={`tile-${offer.offerId}`} />
@@ -40,7 +35,7 @@ const makeOffer = (offerId: number, priced: boolean) =>
         clubLevel: 0
     }) as any;
 
-const getViewport = (container: HTMLElement) => container.querySelector('.octane-classic-scroll-area-viewport') as HTMLElement;
+const getViewport = (container: HTMLElement) => container.querySelector('.volt-classic-scroll-area-viewport') as HTMLElement;
 
 const getRenderedIndexes = () =>
     Array.from(document.querySelectorAll('[data-air-offer-index]')).map((el) => Number(el.getAttribute('data-air-offer-index')));
@@ -51,7 +46,6 @@ describe('CatalogItemGridWidgetView mixed-grid windowing', () => {
         vi.useRealTimers();
         state.currentPage = { offers: [], pageId: 1 };
         state.currentType = 'NORMAL';
-        state.adminMode = false;
     });
 
     it('mounts only the entries intersecting the measured viewport, and follows scroll', () => {
@@ -63,10 +57,10 @@ describe('CatalogItemGridWidgetView mixed-grid windowing', () => {
 
         vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'setTimeout'] });
 
-        const { container } = render(<CatalogItemGridWidgetView className="octane-catalog-grid-density-standard" />);
+        const { container } = render(<CatalogItemGridWidgetView className="volt-catalog-grid-density-standard" />);
 
         const grid = screen.getByRole('listbox', { name: 'Catalog items' });
-        const columnCount = Number(grid.style.getPropertyValue('--octane-air-column-count'));
+        const columnCount = Number(grid.style.getPropertyValue('--volt-air-column-count'));
         const expectedLayout = layoutAirCatalogOffers(offers, columnCount);
         expect(grid.style.height).toBe(`${expectedLayout.height}px`);
 
@@ -98,14 +92,13 @@ describe('CatalogItemGridWidgetView mixed-grid windowing', () => {
         expect(grid.style.height).toBe(`${expectedLayout.height}px`);
     });
 
-    it('renders the virtualized grid for a large uniform priced page regardless of admin mode', () => {
+    it('renders the virtualized grid for a large uniform priced page', () => {
         const offers = Array.from({ length: 120 }, (_, i) => makeOffer(i, true));
         state.currentPage = { offers, pageId: 1 };
-        state.adminMode = true;
 
-        const { container } = render(<CatalogItemGridWidgetView className="octane-catalog-grid-density-standard" />);
+        const { container } = render(<CatalogItemGridWidgetView className="volt-catalog-grid-density-standard" />);
 
-        expect(container.querySelector('.octane-catalog-grid-virtual')).not.toBeNull();
+        expect(container.querySelector('.volt-catalog-grid-virtual')).not.toBeNull();
     });
 
     it('resets the window before paint on page change so a shorter page is fully mounted on the same render', () => {
@@ -117,7 +110,7 @@ describe('CatalogItemGridWidgetView mixed-grid windowing', () => {
 
         vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'setTimeout'] });
 
-        const { container, rerender } = render(<CatalogItemGridWidgetView className="octane-catalog-grid-density-standard" />);
+        const { container, rerender } = render(<CatalogItemGridWidgetView className="volt-catalog-grid-density-standard" />);
 
         const viewport = getViewport(container);
         Object.defineProperty(viewport, 'clientHeight', { value: 200, configurable: true });
@@ -139,7 +132,7 @@ describe('CatalogItemGridWidgetView mixed-grid windowing', () => {
         ];
         state.currentPage = { offers: shortOffers, pageId: 2 };
 
-        rerender(<CatalogItemGridWidgetView className="octane-catalog-grid-density-standard" />);
+        rerender(<CatalogItemGridWidgetView className="volt-catalog-grid-density-standard" />);
 
         const renderedTestIds = Array.from(document.querySelectorAll('[data-testid^="tile-"]')).map((el) => el.getAttribute('data-testid'));
         for (const offer of shortOffers) {
@@ -156,7 +149,7 @@ describe('CatalogItemGridWidgetView mixed-grid windowing', () => {
 
         vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'setTimeout'] });
 
-        const { container, rerender } = render(<CatalogItemGridWidgetView className="octane-catalog-grid-density-standard" />);
+        const { container, rerender } = render(<CatalogItemGridWidgetView className="volt-catalog-grid-density-standard" />);
 
         const viewport = getViewport(container);
         Object.defineProperty(viewport, 'clientHeight', { value: 200, configurable: true });
@@ -174,10 +167,10 @@ describe('CatalogItemGridWidgetView mixed-grid windowing', () => {
         ];
         state.currentPage = { offers: tallerOffers, pageId: 2 };
 
-        rerender(<CatalogItemGridWidgetView className="octane-catalog-grid-density-standard" />);
+        rerender(<CatalogItemGridWidgetView className="volt-catalog-grid-density-standard" />);
 
         const grid = screen.getByRole('listbox', { name: 'Catalog items' });
-        const columnCount = Number(grid.style.getPropertyValue('--octane-air-column-count'));
+        const columnCount = Number(grid.style.getPropertyValue('--volt-air-column-count'));
         const newLayout = layoutAirCatalogOffers(tallerOffers, columnCount);
         const expectedTopIndexes = getVisibleAirGridEntries(newLayout.entries, 0, 200)
             .map((entry) => entry.index)
@@ -185,35 +178,5 @@ describe('CatalogItemGridWidgetView mixed-grid windowing', () => {
 
         const mountedIndexes = getRenderedIndexes().sort((a, b) => a - b);
         expect(mountedIndexes).toEqual(expectedTopIndexes);
-    });
-
-    it('keeps the admin drag source mounted through a scroll that would otherwise window it out', () => {
-        const offers = [
-            ...Array.from({ length: 60 }, (_, i) => makeOffer(i, false)),
-            ...Array.from({ length: 60 }, (_, i) => makeOffer(60 + i, true))
-        ];
-        state.currentPage = { offers, pageId: 1 };
-        state.adminMode = true;
-
-        vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'setTimeout'] });
-
-        const { container } = render(<CatalogItemGridWidgetView className="octane-catalog-grid-density-standard" />);
-
-        const viewport = getViewport(container);
-        Object.defineProperty(viewport, 'clientHeight', { value: 200, configurable: true });
-
-        const dragSourceTile = container.querySelector('[data-air-offer-index="0"]') as HTMLElement;
-        expect(dragSourceTile).not.toBeNull();
-        act(() => {
-            dragSourceTile.dispatchEvent(new Event('dragstart', { bubbles: true }));
-        });
-
-        viewport.scrollTop = 1500;
-        act(() => {
-            viewport.dispatchEvent(new Event('scroll'));
-            vi.runAllTimers();
-        });
-
-        expect(document.querySelector('[data-testid="tile-0"]')).not.toBeNull();
     });
 });

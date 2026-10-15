@@ -6,9 +6,10 @@ import {
     GetStage,
     HanditemBlockStateMessageEvent,
     IRoomSession,
-    OctaneAdjustmentFilter,
-    OctaneSprite,
-    OctaneTexture,
+    VoltAdjustmentFilter,
+    VoltSprite,
+    VoltContainer,
+    VoltTexture,
     RoomBackgroundColorEvent,
     RoomEngineEvent,
     RoomEngineObjectEvent,
@@ -21,7 +22,7 @@ import {
     WiredClickSettingsEvent,
     RoomVariableEnum,
     Vector3d
-} from '@octane/renderer';
+} from '@volt/renderer';
 import { useEffect, useState } from 'react';
 import { registerSharedHook, useSharedHook } from '@/state/useSharedHook';
 import {
@@ -35,7 +36,8 @@ import {
     SetActiveRoomId,
     StartRoomSession
 } from '../../api';
-import { useMessageEvent, useOctaneEvent, useUiEvent } from '../events';
+import { useMessageEvent, useVoltEvent, useUiEvent } from '../events';
+import { updateRoomTint } from './updateRoomTint';
 import { useWiredFurniOpacity } from './useWiredFurniOpacity';
 
 const getViewportSize = () => {
@@ -50,8 +52,9 @@ const getViewportSize = () => {
 const useRoomState = () => {
     const [roomSession, setRoomSession] = useState<IRoomSession>(null);
     const [isHandItemBlocked, setIsHandItemBlocked] = useState(false);
-    const [roomBackground, setRoomBackground] = useState<OctaneSprite>(null);
-    const [roomFilter, setRoomFilter] = useState<OctaneAdjustmentFilter>(null);
+    const [roomBackground, setRoomBackground] = useState<VoltSprite>(null);
+    const [roomFilter, setRoomFilter] = useState<VoltAdjustmentFilter>(null);
+    const [roomMaster, setRoomMaster] = useState<VoltContainer>(null);
     const [originalRoomBackgroundColor, setOriginalRoomBackgroundColor] = useState(0);
 
     useWiredFurniOpacity(roomSession?.roomId ?? 0);
@@ -73,13 +76,7 @@ const useRoomState = () => {
     const updateRoomFilter = (color: number) => {
         if (!roomFilter) return;
 
-        const r = (color >> 16) & 0xff;
-        const g = (color >> 8) & 0xff;
-        const b = color & 0xff;
-
-        roomFilter.red = r / 255;
-        roomFilter.green = g / 255;
-        roomFilter.blue = b / 255;
+        updateRoomTint(roomMaster, roomFilter, color);
     };
 
     useUiEvent<RoomWidgetUpdateBackgroundColorPreviewEvent>(RoomWidgetUpdateBackgroundColorPreviewEvent.PREVIEW, (event) =>
@@ -92,14 +89,14 @@ const useRoomState = () => {
         roomBackground.tint = originalRoomBackgroundColor;
     });
 
-    useOctaneEvent<RoomObjectHSLColorEnabledEvent>(RoomObjectHSLColorEnabledEvent.ROOM_BACKGROUND_COLOR, (event) => {
+    useVoltEvent<RoomObjectHSLColorEnabledEvent>(RoomObjectHSLColorEnabledEvent.ROOM_BACKGROUND_COLOR, (event) => {
         if (RoomId.isRoomPreviewerId(event.roomId)) return;
 
         if (event.enable) updateRoomBackgroundColor(event.hue, event.saturation, event.lightness, true);
         else updateRoomBackgroundColor(0, 0, 0, true);
     });
 
-    useOctaneEvent<RoomBackgroundColorEvent>(RoomBackgroundColorEvent.ROOM_COLOR, (event) => {
+    useVoltEvent<RoomBackgroundColorEvent>(RoomBackgroundColorEvent.ROOM_COLOR, (event) => {
         if (RoomId.isRoomPreviewerId(event.roomId)) return;
 
         let color = 0x000000;
@@ -113,7 +110,7 @@ const useRoomState = () => {
         updateRoomFilter(ColorConverter.hslToRGB((ColorConverter.rgbToHSL(color) & 0xffff00) + brightness));
     });
 
-    useOctaneEvent<RoomEngineEvent>([RoomEngineEvent.INITIALIZED, RoomEngineEvent.DISPOSED], (event) => {
+    useVoltEvent<RoomEngineEvent>([RoomEngineEvent.INITIALIZED, RoomEngineEvent.DISPOSED], (event) => {
         if (RoomId.isRoomPreviewerId(event.roomId)) return;
 
         const session = GetRoomSession();
@@ -133,7 +130,7 @@ const useRoomState = () => {
         }
     });
 
-    useOctaneEvent<RoomSessionEvent>([RoomSessionEvent.CREATED, RoomSessionEvent.ENDED], (event) => {
+    useVoltEvent<RoomSessionEvent>([RoomSessionEvent.CREATED, RoomSessionEvent.ENDED], (event) => {
         switch (event.type) {
             case RoomSessionEvent.CREATED:
                 StartRoomSession(event.session);
@@ -167,7 +164,7 @@ const useRoomState = () => {
         setIsHandItemBlocked(parser.stateData.blocked);
     });
 
-    useOctaneEvent<RoomEngineObjectEvent>(
+    useVoltEvent<RoomEngineObjectEvent>(
         [
             RoomEngineObjectEvent.SELECTED,
             RoomEngineObjectEvent.DESELECTED,
@@ -289,8 +286,8 @@ const useRoomState = () => {
 
         if (!displayObject || !canvas) return;
 
-        const background = new OctaneSprite(OctaneTexture.WHITE);
-        const filter = new OctaneAdjustmentFilter();
+        const background = new VoltSprite(VoltTexture.WHITE);
+        const filter = new VoltAdjustmentFilter();
         const master = canvas.master;
 
         background.tint = 0;
@@ -298,10 +295,11 @@ const useRoomState = () => {
         background.height = height;
 
         master.addChildAt(background, 0);
-        master.filters = [filter];
+        // A white tint is an identity operation; attach only when the mood light changes it.
 
         setRoomBackground(background);
         setRoomFilter(filter);
+        setRoomMaster(master);
 
         const geometry = roomEngine.getRoomInstanceGeometry(roomId, canvasId) as RoomGeometry;
 
@@ -327,6 +325,7 @@ const useRoomState = () => {
         GetStage().addChild(displayObject);
 
         SetActiveRoomId(roomSession.roomId);
+        roomEngine.initializeRoomCamera(roomId, canvasId);
 
         const resize = () => {
             const { width: newWidth, height: newHeight } = getViewportSize();
@@ -353,6 +352,9 @@ const useRoomState = () => {
         return () => {
             setRoomBackground(null);
             setRoomFilter(null);
+            setRoomMaster(null);
+            updateRoomTint(master, filter, 0xffffff);
+            filter.destroy();
             setOriginalRoomBackgroundColor(0);
 
             window.removeEventListener('resize', resize);

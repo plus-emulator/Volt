@@ -2,7 +2,10 @@ import {
     AddLinkEventTracker,
     CreateLinkEvent,
     ExtendedForumData,
+    ForumData,
     ForumDataMessageEvent,
+    ForumsListMessageEvent,
+    GetForumsListMessageComposer,
     GetForumStatsMessageComposer,
     GetThreadMessageComposer,
     GetUnreadForumsCountMessageComposer,
@@ -13,17 +16,18 @@ import {
     UpdateForumReadMarkerEntry,
     UpdateForumReadMarkerMessageComposer,
     UpdateThreadMessageEvent
-} from '@octane/renderer';
+} from '@volt/renderer';
 import { FC, useCallback, useEffect, useRef, useState } from 'react';
-import { GetGroupInformation, LocalizeText, SendMessageComposer } from '../../../../api';
+import { GetConfigurationValue, GetGroupInformation, LocalizeText, SendMessageComposer } from '../../../../api';
 import { useMessageEvent } from '../../../../hooks';
+import { useGroupForumUnreadStore } from '../../../../state/groupForumUnreadStore';
 import { NativeNotificationPopupView } from '../../../notification-center/views/native/NativeNotificationPopupView';
 import listActive from '../../../../assets/images/groups/native/forum_forum_list0.png';
 import listViewed from '../../../../assets/images/groups/native/forum_forum_list1.png';
 import listMine from '../../../../assets/images/groups/native/forum_forum_list2.png';
 import { ForumFrame, ForumHeader, ForumShortcuts, FORUM_PAGE_SIZE } from './GroupForumLayout';
 import { GroupForumComposeView } from './GroupForumComposeView';
-import { GroupForumListView } from './GroupForumListView';
+import { GroupForumListView, GroupForumsListData } from './GroupForumListView';
 import { GroupForumSettingsView } from './GroupForumSettingsView';
 import { GroupForumThreadListView } from './GroupForumThreadListView';
 import { GroupForumThreadView } from './GroupForumThreadView';
@@ -33,7 +37,25 @@ type ForumCompose = { kind: 'thread' } | { kind: 'reply'; threadId: number; subj
 
 // forum_forum_list0..2: most active, most viewed, my forums.
 const LIST_ICONS = [listActive, listViewed, listMine];
+// GroupForumController.FORUMS_LIST_CODE_ACTIVE / _POPULAR / _MY_FORUMS and their names in "groupforum/list/<name>".
 const LIST_CODES: Record<string, number> = { active: 0, popular: 1, my: 2 };
+const MY_FORUMS = 2;
+// startPollingForUnreadForumsCount: every groupforum.poll.period seconds, 300 when not configured.
+const DEFAULT_POLL_PERIOD = 300;
+
+/** ForumsListData.unreadForumsCount: the listed forums with unread messages. */
+const countUnreadForums = (forums: ForumData[]) => forums.filter((forum) => forum.unreadMessages > 0).length;
+
+/** ForumsListData.updateUnreadMessages: the entry of the open forum takes its data and what the reader has seen of it. */
+const updateUnreadMessages = (list: GroupForumsListData, forum: ExtendedForumData, lastReadMessageId: number) =>
+{
+    const entry = list.forums.find((listed) => listed.groupId === forum.groupId);
+
+    if (!entry) return;
+
+    entry.updateFrom(forum);
+    entry.lastReadMessageId = lastReadMessageId;
+};
 
 const WINDOW_WIDTH = 552;
 const WINDOW_HEIGHT = 565;
@@ -55,12 +77,14 @@ export const GroupForumView: FC<{}> = () =>
     const [threadId, setThreadId] = useState<number>(0);
     const [currentThread, setCurrentThread] = useState<GuildForumThread>(null);
     const [forumData, setForumData] = useState<ExtendedForumData>(null);
-    const [listCode, setListCode] = useState<number>(2);
-    const [listPage, setListPage] = useState<number>(0);
+    // GroupForumController.var_406: the forums list last shown. It outlives the window and is only forgotten when a link opens a forum.
+    const [forumsList, setForumsList] = useState<GroupForumsListData>(null);
     const [threadsPage, setThreadsPage] = useState<number>(0);
+    // requestThreadList for the page already shown (after a new thread was posted) asks for it again.
+    const [threadsReload, setThreadsReload] = useState<number>(0);
     const [threadStart, setThreadStart] = useState<{ pageIndex: number; scrollIndex: number }>({ pageIndex: 0, scrollIndex: 0 });
-    const [fromList, setFromList] = useState<boolean>(false);
-    const [unreadForums, setUnreadForums] = useState<number>(0);
+    const unreadForumsCount = useGroupForumUnreadStore((state) => state.unreadForumsCount);
+    const setUnreadForumsCount = useGroupForumUnreadStore((state) => state.setUnreadForumsCount);
     const [compose, setCompose] = useState<ForumCompose>(null);
     const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
     const [denied, setDenied] = useState<{ title: string; message: string }>(null);
@@ -69,6 +93,38 @@ export const GroupForumView: FC<{}> = () =>
     const forumRef = useRef<ExtendedForumData>(null);
     const seenMessageId = useRef<number>(0);
     const pendingThread = useRef<PendingThread>(null);
+    // _lastReadMessageIndexByThread: the index of the newest message the reader has seen per thread of the open forum.
+    const lastReadIndexByThread = useRef<Map<number, number>>(new Map());
+    // _requestedForumsListCode: the list asked for last; -1 while a forum is asked for or the window is closed.
+    const requestedListCode = useRef<number>(-1);
+    const forumsListRef = useRef<GroupForumsListData>(null);
+    const isVisibleRef = useRef<boolean>(false);
+
+    const showForumsList = useCallback((list: GroupForumsListData) =>
+    {
+        forumsListRef.current = list;
+        setForumsList(list);
+    }, []);
+
+    useEffect(() =>
+    {
+        isVisibleRef.current = isVisible;
+    }, [isVisible]);
+
+    // startPollingForUnreadForumsCount: once at start, then every poll period. While the window is open the first page of
+    // "My Forums" is asked for instead of the count (onUnreadForumsCountUpdateTimerEvent); its answer updates the count too.
+    useEffect(() =>
+    {
+        const configuredPeriod = Number(GetConfigurationValue<number>('groupforum.poll.period', DEFAULT_POLL_PERIOD));
+        const period = configuredPeriod > 0 ? configuredPeriod : DEFAULT_POLL_PERIOD;
+        const poll = () => SendMessageComposer(isVisibleRef.current ? new GetForumsListMessageComposer(MY_FORUMS, 0, FORUM_PAGE_SIZE) : new GetUnreadForumsCountMessageComposer());
+
+        poll();
+
+        const interval = window.setInterval(poll, period * 1000);
+
+        return () => window.clearInterval(interval);
+    }, []);
 
     useMessageEvent<ForumDataMessageEvent>(ForumDataMessageEvent, (event) =>
     {
@@ -99,7 +155,7 @@ export const GroupForumView: FC<{}> = () =>
         setForumData(data);
     });
 
-    useMessageEvent<UnreadForumsCountMessageEvent>(UnreadForumsCountMessageEvent, (event) => setUnreadForums(event.getParser().count));
+    useMessageEvent<UnreadForumsCountMessageEvent>(UnreadForumsCountMessageEvent, (event) => setUnreadForumsCount(event.getParser().count));
 
     // markForumAsRead: only when the reader has seen newer messages than the stored marker, or by force ("Mark read"), which marks the whole forum.
     const markForumAsRead = useCallback((force: boolean = false) =>
@@ -115,17 +171,46 @@ export const GroupForumView: FC<{}> = () =>
         }
 
         seenMessageId.current = 0;
+        lastReadIndexByThread.current = new Map();
     }, []);
 
-    const onMessagesSeen = useCallback((messageId: number) =>
+    // updateUnreadMessageCounts: the thread remembers the index of the message seen; a newer seen message also updates the forums list the
+    // forum was opened from, and with it the "My Forums" count.
+    const onMessagesSeen = useCallback((messageId: number, seenThreadId: number, messageIndex: number) =>
     {
-        if (messageId > seenMessageId.current) seenMessageId.current = messageId;
+        if (messageId > seenMessageId.current)
+        {
+            seenMessageId.current = messageId;
+
+            const list = forumsListRef.current;
+            const forum = forumRef.current;
+
+            if (list && forum)
+            {
+                updateUnreadMessages(list, forum, messageId);
+
+                if (list.listCode === MY_FORUMS) setUnreadForumsCount(countUnreadForums(list.forums));
+            }
+        }
+
+        lastReadIndexByThread.current.set(seenThreadId, messageIndex);
+    }, [setUnreadForumsCount]);
+
+    // getThreadLastReadMessageIndex: what was seen this session, else what the server counts as read.
+    const getThreadLastReadMessageIndex = useCallback((thread: GuildForumThread) =>
+    {
+        const seenIndex = lastReadIndexByThread.current.get(thread.threadId);
+
+        if (seenIndex !== undefined) return seenIndex;
+
+        return thread.totalMessages - thread.unreadMessagesCount - 1;
     }, []);
 
     // initForum: the previous forum is marked read before another one is asked for.
     const initForum = useCallback((id: number) =>
     {
         markForumAsRead();
+        requestedListCode.current = -1;
         requestedGroup.current = id;
         forumRef.current = null;
         seenMessageId.current = 0;
@@ -140,13 +225,17 @@ export const GroupForumView: FC<{}> = () =>
         SendMessageComposer(new GetForumStatsMessageComposer(id));
     }, [markForumAsRead]);
 
-    const openForum = useCallback((id: number, options?: { fromList?: boolean }) =>
+    // openGroupForum. A forum opened by a link forgets the forums list (linkReceived: var_406 = null), so its "Mark As Read" closes the window;
+    // one opened from the list goes back to that list.
+    const openForum = useCallback((id: number, fromList: boolean = false) =>
     {
         pendingThread.current = null;
-        setFromList(!!options?.fromList);
+
+        if (!fromList) showForumsList(null);
+
         setMode('threads');
         initForum(id);
-    }, [initForum]);
+    }, [initForum, showForumsList]);
 
     const openThread = useCallback((thread: GuildForumThread, start: { pageIndex: number; scrollIndex: number } = { pageIndex: 0, scrollIndex: 0 }) =>
     {
@@ -156,15 +245,43 @@ export const GroupForumView: FC<{}> = () =>
         setMode('thread');
     }, []);
 
+    // ThreadListView.onGoToFirstUnread: the thread opens at the message after the last one seen (goToMessageIndex).
+    const openThreadAtFirstUnread = useCallback((thread: GuildForumThread) =>
+    {
+        const messageIndex = Math.max(0, Math.min(getThreadLastReadMessageIndex(thread) + 1, thread.totalMessages - 1));
+
+        openThread(thread, { pageIndex: Math.floor(messageIndex / FORUM_PAGE_SIZE), scrollIndex: messageIndex % FORUM_PAGE_SIZE });
+    }, [getThreadLastReadMessageIndex, openThread]);
+
+    // GroupForumController.onPostThreadMessage: the new thread counts as seen, the forums list counts it, and the forum goes to the first
+    // page of its thread list.
+    const onThreadCreated = useCallback((thread: GuildForumThread) =>
+    {
+        setCompose(null);
+
+        const forum = forumRef.current;
+
+        if (!forum || forum.groupId !== groupId) return;
+
+        onMessagesSeen(thread.lastMessageId, thread.threadId, thread.totalMessages - 1);
+        forumsListRef.current?.forums.find((listed) => listed.groupId === groupId)?.addNewThread(thread);
+
+        setThreadId(0);
+        setCurrentThread(null);
+        setThreadsPage(0);
+        setThreadsReload((value) => value + 1);
+        setMode('threads');
+    }, [groupId, onMessagesSeen]);
+
     // linkReceived "groupforum/<group>/<thread>[/<message index>]": initForum, GetThread, then the page that holds the message.
     const openForumThread = useCallback((id: number, linkedThreadId: number, messageIndex: number) =>
     {
-        setFromList(false);
+        showForumsList(null);
         setMode('threads');
         initForum(id);
         pendingThread.current = { groupId: id, threadId: linkedThreadId, messageIndex };
         SendMessageComposer(new GetThreadMessageComposer(id, linkedThreadId));
-    }, [initForum]);
+    }, [initForum, showForumsList]);
 
     useMessageEvent<UpdateThreadMessageEvent>(UpdateThreadMessageEvent, (event) =>
     {
@@ -181,6 +298,7 @@ export const GroupForumView: FC<{}> = () =>
     const closeForum = useCallback(() =>
     {
         markForumAsRead();
+        requestedListCode.current = -1;
         requestedGroup.current = -1;
         forumRef.current = null;
         pendingThread.current = null;
@@ -190,39 +308,64 @@ export const GroupForumView: FC<{}> = () =>
         setIsSettingsOpen(false);
     }, [markForumAsRead]);
 
-    // openForumsList: the forum that was open is marked read first.
-    const openList = useCallback((listMode: string, startIndex: number = 0) =>
+    // openForumsList: the forum that was open is marked read first, then the list is asked for; the window shows it when it arrives.
+    const openForumsList = useCallback((listCode: number, startIndex: number = 0) =>
     {
         markForumAsRead();
+        requestedListCode.current = listCode;
         requestedGroup.current = -1;
-        forumRef.current = null;
         pendingThread.current = null;
+        SendMessageComposer(new GetForumsListMessageComposer(listCode, startIndex, FORUM_PAGE_SIZE));
+    }, [markForumAsRead]);
+
+    // onForumsList: a "My Forums" answer sets the unread forums count, whoever asked for it; a list other than the one asked for last is dropped.
+    useMessageEvent<ForumsListMessageEvent>(ForumsListMessageEvent, (event) =>
+    {
+        const parser = event.getParser();
+        const list: GroupForumsListData = { listCode: parser.listCode, totalAmount: parser.totalAmount, startIndex: parser.startIndex, forums: parser.forums };
+
+        if (forumRef.current && seenMessageId.current > 0) updateUnreadMessages(list, forumRef.current, seenMessageId.current);
+
+        if (list.listCode === MY_FORUMS) setUnreadForumsCount(countUnreadForums(list.forums));
+
+        if (list.listCode !== requestedListCode.current) return;
+
+        forumRef.current = null;
+        showForumsList(list);
         setForumData(null);
-        setListCode(LIST_CODES[listMode] ?? 2);
-        setListPage(Math.floor(startIndex / FORUM_PAGE_SIZE));
-        setMode('list');
+        setThreadId(0);
+        setCurrentThread(null);
         setCompose(null);
         setIsSettingsOpen(false);
+        setMode('list');
         setIsVisible(true);
-        SendMessageComposer(new GetUnreadForumsCountMessageComposer());
-    }, [markForumAsRead]);
+    });
+
+    // markForumsAsRead (the list's back_button "Mark As Read"): every listed forum with unread messages is marked read as a whole and the
+    // unread forums count drops to 0, then the window closes.
+    const markForumsAsRead = useCallback(() =>
+    {
+        const entries = (forumsListRef.current?.forums ?? []).filter((forum) => forum.unreadMessages > 0).map((forum) => new UpdateForumReadMarkerEntry(forum.groupId, forum.totalMessages, true));
+
+        if (entries.length)
+        {
+            SendMessageComposer(new UpdateForumReadMarkerMessageComposer(...entries));
+            setUnreadForumsCount(0);
+        }
+
+        closeForum();
+    }, [closeForum, setUnreadForumsCount]);
 
     // The thread list's back button (back_button in a thread list): the forum is marked read, then the list it came from opens again, or the window closes.
     const leaveThreads = useCallback(() =>
     {
         markForumAsRead(true);
 
-        if (fromList)
-        {
-            const mode = Object.keys(LIST_CODES).find((key) => LIST_CODES[key] === listCode) ?? 'my';
+        const list = forumsListRef.current;
 
-            openList(mode, listPage * FORUM_PAGE_SIZE);
-        }
-        else
-        {
-            closeForum();
-        }
-    }, [closeForum, fromList, listCode, listPage, markForumAsRead, openList]);
+        if (list) openForumsList(list.listCode, list.startIndex);
+        else closeForum();
+    }, [closeForum, markForumAsRead, openForumsList]);
 
     const backToThreads = useCallback(() =>
     {
@@ -244,13 +387,14 @@ export const GroupForumView: FC<{}> = () =>
                 {
                     case 'toggle':
                         if (isVisible) closeForum();
-                        else openList('my');
+                        else openForumsList(MY_FORUMS);
                         return;
                     case 'show':
                         setIsVisible(true);
                         return;
                     case 'list':
-                        openList(parts[2] ?? 'my');
+                        // linkReceived: only "groupforum/list/<active|popular|my>".
+                        if (parts.length === 3 && parts[2] in LIST_CODES) openForumsList(LIST_CODES[parts[2]]);
                         return;
                     case 'hide':
                         closeForum();
@@ -271,7 +415,7 @@ export const GroupForumView: FC<{}> = () =>
         AddLinkEventTracker(linkTracker);
 
         return () => RemoveLinkEventTracker(linkTracker);
-    }, [closeForum, isVisible, openForum, openForumThread, openList]);
+    }, [closeForum, isVisible, openForum, openForumThread, openForumsList]);
 
     if (denied) return <NativeNotificationPopupView message={denied.message} title={denied.title} onClose={() => setDenied(null)} />;
 
@@ -279,14 +423,14 @@ export const GroupForumView: FC<{}> = () =>
 
     const initialPosition = { x: Math.round((window.innerWidth - WINDOW_WIDTH) / 2), y: WINDOW_TOP };
     const dialogPosition = (width: number) => ({ x: Math.min(initialPosition.x + WINDOW_WIDTH + 1, window.innerWidth - width + 1), y: WINDOW_TOP });
-    const isList = mode === 'list';
+    const isList = mode === 'list' && !!forumsList;
     // Only forum data of the requested group is kept (see the ForumDataMessageEvent handler), so every write goes to that group.
     const effectiveGroupId = groupId;
 
     return (
         <>
             <ForumFrame
-                className="octane-group-forum"
+                className="volt-group-forum"
                 height={WINDOW_HEIGHT}
                 initialPosition={initialPosition}
                 isResizable={true}
@@ -300,9 +444,9 @@ export const GroupForumView: FC<{}> = () =>
             >
                 {isList ? (
                     <ForumHeader
-                        description={LocalizeText(`groupforum.view.forums_description.${listCode}`)}
-                        icon={LIST_ICONS[listCode]}
-                        title={LocalizeText(`groupforum.view.forums_header.${listCode}`)}
+                        description={LocalizeText(`groupforum.view.forums_description.${forumsList.listCode}`)}
+                        icon={LIST_ICONS[forumsList.listCode]}
+                        title={LocalizeText(`groupforum.view.forums_header.${forumsList.listCode}`)}
                     />
                 ) : (
                     <ForumHeader
@@ -314,16 +458,25 @@ export const GroupForumView: FC<{}> = () =>
                         onSettings={() => setIsSettingsOpen(true)}
                     />
                 )}
-                <ForumShortcuts unreadCount={unreadForums} onOpenList={openList} />
-                {isList && <GroupForumListView key={listCode} listCode={listCode} pageIndex={listPage} onLeave={closeForum} onOpenForum={(id) => openForum(id, { fromList: true })} onPageChange={setListPage} />}
+                <ForumShortcuts unreadCount={unreadForumsCount} onOpenList={(listMode) => openForumsList(LIST_CODES[listMode] ?? MY_FORUMS)} />
+                {isList && (
+                    <GroupForumListView
+                        list={forumsList}
+                        onMarkAsRead={markForumsAsRead}
+                        onOpenForum={(id) => openForum(id, true)}
+                        onPage={(pageIndex) => openForumsList(forumsList.listCode, pageIndex * FORUM_PAGE_SIZE)}
+                    />
+                )}
                 {mode === 'threads' && forumData && (
                     <GroupForumThreadListView
                         forumData={forumData}
+                        getLastReadMessageIndex={getThreadLastReadMessageIndex}
                         groupId={effectiveGroupId}
                         pageIndex={threadsPage}
+                        reloadKey={threadsReload}
                         onLeave={leaveThreads}
                         onNewThread={() => setCompose({ kind: 'thread' })}
-                        onOpenThread={(thread) => openThread(thread)}
+                        onOpenThread={openThreadAtFirstUnread}
                         onPageChange={setThreadsPage}
                     />
                 )}
@@ -349,11 +502,7 @@ export const GroupForumView: FC<{}> = () =>
                     initialPosition={dialogPosition(455)}
                     readForumData={() => forumRef.current}
                     onClose={() => setCompose(null)}
-                    onThreadCreated={(thread) =>
-                    {
-                        setCompose(null);
-                        openThread(thread);
-                    }}
+                    onThreadCreated={onThreadCreated}
                 />
             )}
             {isSettingsOpen && forumData && (

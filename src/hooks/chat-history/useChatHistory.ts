@@ -1,8 +1,8 @@
-import { GetGuestRoomResultEvent, NewConsoleMessageEvent, RoomInviteEvent, RoomSessionEvent } from '@octane/renderer';
+import { GetGuestRoomResultEvent, NewConsoleMessageEvent, RoomInviteEvent, RoomSessionEvent } from '@volt/renderer';
 import { useState } from 'react';
 import { registerSharedHook, useSharedHook } from '@/state/useSharedHook';
 import { ChatEntryType, ChatHistoryCurrentDate, IChatEntry, IRoomHistoryEntry, MessengerHistoryCurrentDate } from '../../api';
-import { useMessageEvent, useOctaneEvent } from '../events';
+import { useMessageEvent, useVoltEvent } from '../events';
 import { useLocalStorage } from '../useLocalStorage';
 
 const ROOM_HISTORY_MAX = 10;
@@ -34,8 +34,7 @@ export const ClearStoredChatHistory = () => {
  * head thumbnails for entries loaded from a previous session.
  *
  * `style` / `chatType` / `color` are kept because they're tiny but
- * meaningful for re-rendering the bubble. Translation fields are kept
- * because they're already text.
+ * meaningful for re-rendering the bubble.
  */
 const slimChatEntriesForStorage = (entries: IChatEntry[]): IChatEntry[] => entries.map((entry) => (entry.imageUrl ? { ...entry, imageUrl: undefined } : entry));
 
@@ -105,7 +104,7 @@ const useChatHistoryState = () => {
         });
     };
 
-    useOctaneEvent<RoomSessionEvent>(RoomSessionEvent.STARTED, (event) => setNeedsRoomInsert(true));
+    useVoltEvent<RoomSessionEvent>(RoomSessionEvent.STARTED, (event) => setNeedsRoomInsert(true));
 
     useMessageEvent<GetGuestRoomResultEvent>(GetGuestRoomResultEvent, (event) => {
         if (!needsRoomInsert) return;

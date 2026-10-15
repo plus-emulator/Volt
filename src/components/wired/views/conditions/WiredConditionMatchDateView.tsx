@@ -1,17 +1,15 @@
 import { ChangeEvent, FC, useEffect, useMemo, useState } from 'react';
-import { LocalizeText, WiredFurniType } from '../../../../api';
+import { GetConfigurationValue, LocalizeText, WiredFurniType } from '../../../../api';
 import { Text } from '../../../../common';
 import { useWired } from '../../../../hooks';
 import { WiredConditionBaseView } from './WiredConditionBaseView';
 
 const MODE_SKIP = 0;
-const MODE_EXACT = 1;
 const MODE_RANGE = 2;
-const MODE_OPTIONS = [MODE_SKIP, MODE_EXACT, MODE_RANGE];
 const WEEKDAY_OPTIONS = [1, 2, 3, 4, 5, 6, 7];
 const MONTH_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
-const createMask = (values: number[]) => values.reduce((mask, value) => mask | (1 << value), 0);
+const createMask = (values: number[]) => values.reduce((mask, value) => mask | (1 << (value - 1)), 0);
 const ALL_WEEKDAYS_MASK = createMask(WEEKDAY_OPTIONS);
 const ALL_MONTHS_MASK = createMask(MONTH_OPTIONS);
 
@@ -26,9 +24,9 @@ const parseInputValue = (event: ChangeEvent<HTMLInputElement>, min: number, max:
 };
 
 const toggleMaskValue = (mask: number, value: number, enabled: boolean) => {
-    if (enabled) return mask | (1 << value);
+    if (enabled) return mask | (1 << (value - 1));
 
-    return mask & ~(1 << value);
+    return mask & ~(1 << (value - 1));
 };
 
 const InlineNumberInput: FC<{ value: number; min: number; max: number; onChange: (value: number) => void }> = (props) => {
@@ -90,18 +88,6 @@ const MatchDateSection: FC<MatchDateSectionProps> = (props) => {
             </div>
             <div className="flex items-center gap-2">
                 <input
-                    checked={mode === MODE_EXACT}
-                    className="form-check-input"
-                    id={`${sectionId}1`}
-                    name={sectionId}
-                    type="radio"
-                    onChange={() => onModeChange(MODE_EXACT)}
-                />
-                <Text>{LocalizeText('wiredfurni.params.time.exact')}</Text>
-                <InlineNumberInput max={max} min={min} value={fromValue} onChange={onFromChange} />
-            </div>
-            <div className="flex items-center gap-2">
-                <input
                     checked={mode === MODE_RANGE}
                     className="form-check-input"
                     id={`${sectionId}2`}
@@ -119,7 +105,10 @@ const MatchDateSection: FC<MatchDateSectionProps> = (props) => {
 };
 
 export const WiredConditionMatchDateView: FC<{}> = () => {
-    const { trigger = null, setIntParams = null } = useWired();
+    const { trigger = null, setIntParams = null, setStringParam = null } = useWired();
+    const [timezone, setTimezone] = useState('UTC');
+    const configuredZones = GetConfigurationValue<string>('wired.timezones', '').split(',').map(zone => zone.trim()).filter(Boolean);
+    const zones = [...new Set([...(configuredZones.length ? configuredZones : ['UTC']), timezone].filter(Boolean))];
     const currentYear = useMemo(() => new Date().getFullYear(), []);
     const [weekdayMask, setWeekdayMask] = useState(ALL_WEEKDAYS_MASK);
     const [dayMode, setDayMode] = useState(MODE_SKIP);
@@ -132,25 +121,27 @@ export const WiredConditionMatchDateView: FC<{}> = () => {
 
     useEffect(() => {
         if (!trigger) return;
+        setTimezone(trigger.stringData || configuredZones[0] || 'UTC');
 
-        setWeekdayMask(trigger.intData[0] && trigger.intData[0] > 0 ? trigger.intData[0] : ALL_WEEKDAYS_MASK);
-        setDayMode(MODE_OPTIONS.includes(trigger.intData[1]) ? trigger.intData[1] : MODE_SKIP);
-        setDayFrom(clampValue(trigger.intData[2] ?? 1, 1, 31));
-        setDayTo(clampValue(trigger.intData[3] ?? 31, 1, 31));
-        setMonthMask(trigger.intData[4] && trigger.intData[4] > 0 ? trigger.intData[4] : ALL_MONTHS_MASK);
-        setYearMode(MODE_OPTIONS.includes(trigger.intData[5]) ? trigger.intData[5] : MODE_SKIP);
+        setWeekdayMask(trigger.intData[2] ?? ALL_WEEKDAYS_MASK);
+        setDayMode(trigger.intData[0] === 1 ? MODE_RANGE : MODE_SKIP);
+        setDayFrom(clampValue(trigger.intData[3] ?? 1, 1, 31));
+        setDayTo(clampValue(trigger.intData[4] ?? 31, 1, 31));
+        setMonthMask(trigger.intData[5] ?? ALL_MONTHS_MASK);
+        setYearMode(trigger.intData[1] === 1 ? MODE_RANGE : MODE_SKIP);
         setYearFrom(clampValue(trigger.intData[6] ?? currentYear, 0, 9999));
         setYearTo(clampValue(trigger.intData[7] ?? currentYear, 0, 9999));
     }, [currentYear, trigger]);
 
     const save = () => {
+        setStringParam(timezone);
         setIntParams([
-            weekdayMask || ALL_WEEKDAYS_MASK,
-            dayMode,
+            dayMode !== MODE_SKIP ? 1 : 0,
+            yearMode !== MODE_SKIP ? 1 : 0,
+            weekdayMask,
             clampValue(dayFrom, 1, 31),
             clampValue(dayTo, 1, 31),
-            monthMask || ALL_MONTHS_MASK,
-            yearMode,
+            monthMask,
             clampValue(yearFrom, 0, 9999),
             clampValue(yearTo, 0, 9999)
         ]);
@@ -159,11 +150,17 @@ export const WiredConditionMatchDateView: FC<{}> = () => {
     return (
         <WiredConditionBaseView hasSpecialInput={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save}>
             <div className="flex flex-col gap-3">
+                <label hidden={zones.length <= 1}>
+                    {LocalizeText('wiredfurni.params.time.timezone_selection')}
+                    <select className="form-select form-select-sm" value={timezone} onChange={event => setTimezone(event.target.value)}>
+                        {zones.map(zone => <option key={zone} value={zone}>{zone}</option>)}
+                    </select>
+                </label>
                 <div className="flex flex-col gap-2">
                     <Text bold>{LocalizeText('wiredfurni.params.time.weekday_selection')}</Text>
                     <div className="flex flex-wrap gap-2">
                         {WEEKDAY_OPTIONS.map((value) => {
-                            const checked = (weekdayMask & (1 << value)) !== 0;
+                            const checked = (weekdayMask & (1 << (value - 1))) !== 0;
 
                             return (
                                 <label key={value} className="flex items-center gap-1">
@@ -195,7 +192,7 @@ export const WiredConditionMatchDateView: FC<{}> = () => {
                     <Text bold>{LocalizeText('wiredfurni.params.time.month_selection')}</Text>
                     <div className="flex flex-wrap gap-2">
                         {MONTH_OPTIONS.map((value) => {
-                            const checked = (monthMask & (1 << value)) !== 0;
+                            const checked = (monthMask & (1 << (value - 1))) !== 0;
 
                             return (
                                 <label key={value} className="flex items-center gap-1">

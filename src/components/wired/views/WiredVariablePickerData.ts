@@ -1,3 +1,5 @@
+import { CUSTOM_VARIABLE_TOKEN_PREFIX as CUSTOM_TOKEN_PREFIX, createNativeVariableToken, getNativeVariableId } from '../../../api';
+
 export type WiredVariablePickerTarget = 'user' | 'furni' | 'global' | 'context';
 export type WiredVariablePickerUsage = 'give' | 'remove' | 'change-destination' | 'change-reference' | 'condition' | 'filter-main' | 'echo';
 
@@ -5,7 +7,10 @@ export interface IWiredVariableDefinitionLike {
     availability: number;
     hasValue: boolean;
     isReadOnly?: boolean;
-    itemId: number;
+    requiresExecutionContext?: boolean;
+    /** Native wired forms key a variable by its opaque server id; the tools' definitions still carry the numeric item id. */
+    variableId?: string;
+    itemId?: number;
     name: string;
 }
 
@@ -44,7 +49,6 @@ const INTERNAL_VARIABLE_ALIASES: Record<string, string> = {
     '@teams.yellow.size': '@team_yellow_size'
 };
 
-const CUSTOM_TOKEN_PREFIX = 'custom:';
 const INTERNAL_TOKEN_PREFIX = 'internal:';
 const GROUP_TOKEN_PREFIX = 'group:';
 
@@ -200,7 +204,8 @@ const getCustomSelectable = (usage: WiredVariablePickerUsage, definition: IWired
         case 'filter-main':
             return true;
         case 'echo':
-            return definition.name.includes('.');
+            // AIR EchoVariable.variableSelectionFilter: any variable that can be read outside a running stack.
+            return !definition.requiresExecutionContext;
         case 'change-reference':
             return !!definition.hasValue;
         case 'change-destination':
@@ -235,8 +240,8 @@ const createCustomEntry = (
     usage: WiredVariablePickerUsage,
     definition: IWiredVariableDefinitionLike
 ): IWiredVariablePickerEntry => ({
-    id: `${CUSTOM_TOKEN_PREFIX}${definition.itemId}`,
-    token: `${CUSTOM_TOKEN_PREFIX}${definition.itemId}`,
+    id: definition.variableId ? createNativeVariableToken(definition.variableId) : `${CUSTOM_TOKEN_PREFIX}${definition.itemId}`,
+    token: definition.variableId ? createNativeVariableToken(definition.variableId) : `${CUSTOM_TOKEN_PREFIX}${definition.itemId}`,
     label: definition.name,
     displayLabel: definition.name,
     searchableText: definition.name,
@@ -353,16 +358,16 @@ export const createFallbackVariableEntry = (target: WiredVariablePickerTarget, t
     if (!token) return null;
 
     if (isCustomVariableToken(token)) {
-        const itemId = getCustomVariableItemId(token);
+        const variableId = getNativeVariableId(token);
 
-        if (itemId <= 0) return null;
+        if (!variableId) return null;
 
         return {
             id: token,
             token,
-            label: `#${itemId}`,
-            displayLabel: `#${itemId}`,
-            searchableText: `#${itemId}`,
+            label: `#${variableId}`,
+            displayLabel: `#${variableId}`,
+            searchableText: `#${variableId}`,
             selectable: true,
             hasValue: false,
             kind: 'custom',
@@ -370,38 +375,18 @@ export const createFallbackVariableEntry = (target: WiredVariablePickerTarget, t
         };
     }
 
-    if (isInternalVariableToken(token)) {
-        const key = getInternalVariableKey(token);
-
-        if (!key) return null;
-
-        return {
-            id: token,
-            token,
-            label: key,
-            displayLabel: key,
-            searchableText: key,
-            selectable: false,
-            hasValue: false,
-            kind: 'internal',
-            target
-        };
-    }
-
     return null;
 };
 
+/**
+ * The picker's entries are the native catalog's rows only: the catalog already carries the server's built-in
+ * and derived variables, so nothing is appended here.
+ */
 export const buildWiredVariablePickerEntries = (
     target: WiredVariablePickerTarget,
     usage: WiredVariablePickerUsage,
-    customDefinitions: IWiredVariableDefinitionLike[]
-) => {
-    const internalTarget = getNormalizedInternalTarget(target);
-    const customEntries = groupEntries([...(customDefinitions || [])].map((definition) => createCustomEntry(target, usage, definition)).sort(sortEntries));
-    const internalEntries = groupEntries(INTERNAL_VARIABLES[internalTarget].map((meta) => createInternalEntry(target, usage, meta)));
-
-    return [...customEntries, ...internalEntries];
-};
+    catalogDefinitions: IWiredVariableDefinitionLike[]
+) => groupEntries([...(catalogDefinitions || [])].map((definition) => createCustomEntry(target, usage, definition)).sort(sortEntries));
 
 export const flattenWiredVariablePickerEntries = (entries: IWiredVariablePickerEntry[]): IWiredVariablePickerEntry[] => {
     const flattened: IWiredVariablePickerEntry[] = [];

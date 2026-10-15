@@ -16,9 +16,8 @@ import {
     RoomWidgetFurniInfoUsagePolicyEnum,
     SetObjectDataMessageComposer,
     SongInfoReceivedEvent,
-    StringDataType,
     UpdateFurniturePositionComposer
-} from '@octane/renderer';
+} from '@volt/renderer';
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import { FaEraser } from 'react-icons/fa';
 import { GrFormNextLink, GrRotateLeft, GrRotateRight } from 'react-icons/gr';
@@ -46,8 +45,9 @@ import {
     UserProfileIconView
 } from '../../../../../common';
 import { Permission } from '../../../../../api/permissions';
-import { useFurniPickupGuard, useHasPermission, useMessageEvent, useOctaneEvent, useRareValues, useRoom, useWiredTools } from '../../../../../hooks';
-import { OctaneInput } from '../../../../../layout';
+import { useFurniPickupGuard, useHasPermission, useMessageEvent, useVoltEvent, useRoom, useWiredTools } from '../../../../../hooks';
+import { useWiredLabelsStore } from '../../../../../hooks/rooms/widgets/useWiredLabelsState';
+import { VoltInput } from '../../../../../layout';
 import { ImagePositionEditorView } from './ImagePositionEditorView';
 
 interface InfoStandWidgetFurniViewProps {
@@ -127,10 +127,9 @@ function getValidRoomObjectDirection(roomObject: any, isPositive: boolean) {
 export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (props) => {
     const { avatarInfo = null, onClose = null } = props;
     const { roomSession = null } = useRoom();
-    const { openInspectionForFurni, showInspectButton } = useWiredTools();
-    const canEditFurni = useHasPermission(Permission.CatalogEdit);
-    const { getValue: getRareValue } = useRareValues();
-    const rareValue = useMemo(() => (avatarInfo ? getRareValue(avatarInfo.spriteId) : null), [avatarInfo, getRareValue]);
+    const { openInspectionForFurni, showInspectButton, roomSettings } = useWiredTools();
+    const hasWiredLabel = useWiredLabelsStore((state) => !!avatarInfo && state.labels[avatarInfo.id] !== undefined);
+    const openWiredLabelSettings = useWiredLabelsStore((state) => state.openSettings);
 
     const externalImagePhotoUrl = useMemo(() => {
         if (!avatarInfo || !roomSession) return null;
@@ -168,7 +167,9 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
     const plantClassnames = GetConfigurationValue<string[]>('furni.plant.classnames', []) ?? [];
     const [godMode, setGodMode] = useState(false);
     const [canSeeFurniId, setCanSeeFurniId] = useState(false);
+    // InfoStandFurniView.groupName / groupBadgeId: both come from the group details (onGroupDetails), not from the furni's stuff data.
     const [groupName, setGroupName] = useState<string>(null);
+    const [groupBadge, setGroupBadge] = useState<string>(null);
     const [isJukeBox, setIsJukeBox] = useState<boolean>(false);
     const [isSongDisk, setIsSongDisk] = useState<boolean>(false);
     const [isBranded, setIsBranded] = useState<boolean>(false);
@@ -241,7 +242,7 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
         [furniLocationZ, sendUpdate]
     );
 
-    useOctaneEvent<NowPlayingEvent>(
+    useVoltEvent<NowPlayingEvent>(
         NowPlayingEvent.NPE_SONG_CHANGED,
         (event) => {
             setSongId(event.id);
@@ -249,7 +250,7 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
         isJukeBox || isSongDisk
     );
 
-    useOctaneEvent<NowPlayingEvent>(
+    useVoltEvent<NowPlayingEvent>(
         SongInfoReceivedEvent.SIR_TRAX_SONG_INFO_RECEIVED,
         (event) => {
             if (event.id !== songId) return;
@@ -418,6 +419,7 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
         setGodMode(godMode);
         setCanSeeFurniId(canSeeFurniId);
         setGroupName(null);
+        setGroupBadge(null);
         setIsJukeBox(furniIsJukebox);
         setIsSongDisk(furniIsSongDisk);
         setSongId(furniSongId);
@@ -426,13 +428,13 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
         if (avatarInfo.groupId) SendMessageComposer(new GroupInformationComposer(avatarInfo.groupId, false));
     }, [roomSession, avatarInfo]);
 
+    // InfoStandWidgetHandler.onGroupDetails: any details of the furni's group fill its badge and name, also the ones a click on them asked for.
     useMessageEvent<GroupInformationEvent>(GroupInformationEvent, (event) => {
         const parser = event.getParser();
 
-        if (!avatarInfo || avatarInfo.groupId !== parser.id || parser.flag) return;
+        if (!avatarInfo || avatarInfo.groupId !== parser.id) return;
 
-        if (groupName) setGroupName(null);
-
+        setGroupBadge(parser.badge);
         setGroupName(parser.title);
     });
 
@@ -626,35 +628,21 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
         [avatarInfo, pickupMode, customKeys, customValues, getFurniSettingsAsString, pickupRoomObject]
     );
 
-    const getGroupBadgeCode = useCallback(() => {
-        const stringDataType = avatarInfo.stuffData as StringDataType;
-
-        if (!stringDataType || !(stringDataType instanceof StringDataType)) return null;
-
-        return stringDataType.getValue(2);
-    }, [avatarInfo]);
-
     if (!avatarInfo) return null;
 
-    const furniTypeId = roomSession
-        ? (GetRoomEngine()
-              .getRoomObject(roomSession.roomId, avatarInfo.id, avatarInfo.isWallItem ? RoomObjectCategory.WALL : RoomObjectCategory.FLOOR)
-              ?.model?.getValue<number>(RoomObjectVariable.FURNITURE_TYPE_ID) ?? '?')
-        : '?';
     const showIds = canSeeFurniId;
-    const showEditFurni = godMode && canEditFurni && furniTypeId !== '?';
     const showBuildtools = godMode && !avatarInfo.isWallItem && canMove;
 
     return (
-        <Column alignItems="end" className="octane-furni-infostand-stack">
-            <Column className={'octane-furni-infostand relative z-30 min-w-[190px] max-w-[190px] pointer-events-auto' + (isCrackable ? ' octane-furni-infostand--crackable' : '')}>
-                <button type="button" className="octane-furni-infostand__close" aria-label={localizeWithFallback('generic.close', 'Close')} onClick={onClose} />
-                <div className="octane-furni-infostand__list">
-                    <div className="octane-furni-infostand__name">{avatarInfo.name}</div>
-                    <div className="octane-furni-infostand__rule" />
+        <Column alignItems="end" className="volt-furni-infostand-stack">
+            <Column className={'volt-furni-infostand relative z-30 min-w-[190px] max-w-[190px] pointer-events-auto' + (isCrackable ? ' volt-furni-infostand--crackable' : '')}>
+                <button type="button" className="volt-furni-infostand__close" aria-label={localizeWithFallback('generic.close', 'Close')} onClick={onClose} />
+                <div className="volt-furni-infostand__list">
+                    <div className="volt-furni-infostand__name">{avatarInfo.name}</div>
+                    <div className="volt-furni-infostand__rule" />
                     {!isBranded && (
                         <>
-                            <div className="octane-furni-infostand__image">
+                            <div className="volt-furni-infostand__image">
                                 {avatarInfo.stuffData.isUnique && (
                                     <div className="absolute top-[6px] inset-e-[2px]">
                                         <LayoutLimitedEditionCompactPlateView
@@ -694,18 +682,18 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
                                     />
                                 )}
                             </div>
-                            <div className="octane-furni-infostand__rule" />
+                            <div className="volt-furni-infostand__rule" />
                         </>
                     )}
                     {avatarInfo.ownerId !== 0 && (
-                        <div className="octane-furni-infostand__owner">
-                            {showOwnerProfileIcon && <UserProfileIconView className="octane-furni-infostand__owner-icon" userId={avatarInfo.ownerId} />}
-                            <span className="octane-furni-infostand__owner-name">{avatarInfo.ownerName}</span>
+                        <div className="volt-furni-infostand__owner">
+                            {showOwnerProfileIcon && <UserProfileIconView className="volt-furni-infostand__owner-icon" userId={avatarInfo.ownerId} />}
+                            <span className="volt-furni-infostand__owner-name">{avatarInfo.ownerName}</span>
                         </div>
                     )}
                     {(isJukeBox || isSongDisk) && (
                         <div className="contents">
-                            <div className="octane-furni-infostand__rule" />
+                            <div className="volt-furni-infostand__rule" />
                             {songId === -1 && (
                                 <Text small wrap variant="white">
                                     {LocalizeText('infostand.jukebox.text.not.playing')}
@@ -732,8 +720,8 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
                     <div className="contents">
                         {isCrackable && (
                             <>
-                                <div className="octane-furni-infostand__rule" />
-                                <div className="octane-furni-infostand__text">
+                                <div className="volt-furni-infostand__rule" />
+                                <div className="volt-furni-infostand__text">
                                     {LocalizeText(
                                         'infostand.crackable_furni.hits_remaining',
                                         ['hits', 'target'],
@@ -744,7 +732,7 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
                         )}
                         {isPlant && (
                             <>
-                                <div className="octane-furni-infostand__rule" />
+                                <div className="volt-furni-infostand__rule" />
                                 {plantDead ? (
                                     <Text small wrap variant="danger">
                                         {LocalizeText('infostand.plant.dead')}
@@ -777,58 +765,34 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
                         )}
                         {avatarInfo.groupId > 0 && (
                             <>
-                                <div className="octane-furni-infostand__rule" />
-                                <div className="octane-furni-infostand__group" onClick={() => GetGroupInformation(avatarInfo.groupId)}>
-                                    <div className="octane-furni-infostand__group-badge">
-                                        <LayoutBadgeImageView badgeCode={getGroupBadgeCode()} isGroup={true} />
+                                <div className="volt-furni-infostand__rule" />
+                                <div className="volt-furni-infostand__group" onClick={() => GetGroupInformation(avatarInfo.groupId)}>
+                                    <div className="volt-furni-infostand__group-badge">
+                                        {!!groupBadge && <LayoutBadgeImageView badgeCode={groupBadge} isGroup={true} />}
                                     </div>
-                                    <span className="octane-furni-infostand__group-name">{groupName}</span>
+                                    <span className="volt-furni-infostand__group-name">{groupName}</span>
                                 </div>
                             </>
                         )}
                         {avatarInfo.purchaseOfferId > 0 && (
-                            <div className="octane-furni-infostand__purchase">
-                                <button type="button" className="octane-furni-infostand__shop" onClick={() => processButtonAction('buy_one')}>
-                                    <span className="octane-furni-infostand__shop-icon" />
-                                    <span className="octane-furni-infostand__shop-text">{LocalizeText('infostand.button.buy')}</span>
+                            <div className="volt-furni-infostand__purchase">
+                                <button type="button" className="volt-furni-infostand__shop" onClick={() => processButtonAction('buy_one')}>
+                                    <span className="volt-furni-infostand__shop-icon" />
+                                    <span className="volt-furni-infostand__shop-text">{LocalizeText('infostand.button.buy')}</span>
                                 </button>
                             </div>
                         )}
                         {showIds && (
                             <>
-                                <div className="octane-furni-infostand__rule" />
-                                <div className="octane-furni-infostand__text">id: {avatarInfo.id}</div>
+                                <div className="volt-furni-infostand__rule" />
+                                <div className="volt-furni-infostand__text">id: {avatarInfo.id}</div>
                             </>
                         )}
-                        {rareValue && rareValue.points > 0 && (
+                        {showBuildtools && (
                             <>
-                                <div className="octane-furni-infostand__rule" />
-                                <Flex alignItems="center" gap={2}>
-                                    <Text small variant="white">
-                                        {LocalizeText('rarevalues.infostand.label')}
-                                    </Text>
-                                    <Flex alignItems="center" gap={1}>
-                                        <Text small variant="white">
-                                            {rareValue.points}
-                                        </Text>
-                                        <LayoutCurrencyIcon type={rareValue.pointsType} />
-                                    </Flex>
-                                </Flex>
-                            </>
-                        )}
-                        {(showEditFurni || showBuildtools) && (
-                            <>
-                                <div className="octane-furni-infostand__rule" />
-                                {(showEditFurni || showBuildtools) && (
+                                <div className="volt-furni-infostand__rule" />
+                                {showBuildtools && (
                                     <div className="flex gap-1 w-full">
-                                        {showEditFurni && (
-                                            <button
-                                                className="flex-1 min-w-0 text-white text-xs bg-[#418db0] hover:bg-[#3789a8] border border-[#ffffff33] rounded px-2 py-1 cursor-pointer transition-colors"
-                                                onClick={() => CreateLinkEvent(`furni-editor/open/${furniTypeId}`)}
-                                            >
-                                                {localizeWithFallback('infostand.button.edit_furni', 'Edit furni')}
-                                            </button>
-                                        )}
                                         {showBuildtools && (
                                             <button
                                                 className="flex-1 min-w-0 text-white text-xs bg-[#2a2a3a] hover:bg-[#3a3a4a] border border-[#ffffff33] rounded px-2 py-1 cursor-pointer transition-colors"
@@ -972,7 +936,7 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
                                 )}
                                 {furniKeys.length > 0 && (
                                     <>
-                                        <div className="octane-furni-infostand__rule" />
+                                        <div className="volt-furni-infostand__rule" />
                                         <div className="flex flex-col gap-1">
                                             {furniKeys.map((key, index) => {
                                                 return (
@@ -980,7 +944,7 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
                                                         <Text small wrap align="end" className="col-span-4" variant="white">
                                                             {key}
                                                         </Text>
-                                                        <OctaneInput
+                                                        <VoltInput
                                                             type="text"
                                                             className="text-black"
                                                             style={{ color: '#000' }}
@@ -997,7 +961,7 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
                         )}
                         {customKeys.length > 0 && (
                             <>
-                                <div className="octane-furni-infostand__rule" />
+                                <div className="volt-furni-infostand__rule" />
                                 <div className="flex flex-col gap-1">
                                     {customKeys.map((key, index) => {
                                         return (
@@ -1005,7 +969,7 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
                                                 <Text small wrap align="end" className="col-span-4" variant="white">
                                                     {key}
                                                 </Text>
-                                                <OctaneInput
+                                                <VoltInput
                                                     type="text"
                                                     className="text-black"
                                                     style={{ color: '#000' }}
@@ -1021,10 +985,15 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
                     </div>
                 </div>
             </Column>
-            <Flex className="octane-furni-infostand__actions" justifyContent="end">
+            <Flex className="volt-furni-infostand__actions" justifyContent="end">
                 {showInspectButton && (
                     <Button variant="dark" size={null} className="habbo-btn-black" onClick={() => openInspectionForFurni(avatarInfo.id, avatarInfo.category)}>
                         Inspect
+                    </Button>
+                )}
+                {hasWiredLabel && !avatarInfo.isWallItem && roomSettings.canModify && (
+                    <Button variant="dark" size={null} className="habbo-btn-black" onClick={() => openWiredLabelSettings(avatarInfo.id)}>
+                        {localizeWithFallback('infostand.button.label_settings', 'Settings')}
                     </Button>
                 )}
                 {canMove && (

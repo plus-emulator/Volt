@@ -1,12 +1,14 @@
-import { IWiredVariableFxConfig, IWiredVariableFxStatus, IWiredVariableFxStatusKey, wiredVariableFxStatusKey } from '@octane/renderer';
-import { createOctaneStore } from '../../state/createOctaneStore';
+import { IWiredVariableFxConfig, IWiredVariableFxStatus, IWiredVariableFxStatusKey, wiredVariableFxStatusKey } from '@volt/renderer';
+import { WIRED_FX_SHOW_MODE } from '../../api/wired/WiredVariableFx';
+import { createVoltStore } from '../../state/createVoltStore';
 
 /** A drawn value with when it last changed, which the "show when changing" mode counts from. */
 export interface IWiredVariableFxStatusEntry {
     key: string;
     status: IWiredVariableFxStatus;
     changedAt: number;
-    previousValue: number | null;
+    visibleUntil?: number;
+    previousValue: bigint | number | null;
 }
 
 export type WiredVariableFxState = {
@@ -26,7 +28,7 @@ export type WiredVariableFxActions = {
  * What the room's variable fx boxes are showing this player: the configs by fx box id and the
  * values by their wire key. The server only ever sends diffs, so the store is the whole picture.
  */
-export const useWiredVariableFxStore = createOctaneStore<WiredVariableFxState & WiredVariableFxActions>()((set) => ({
+export const useWiredVariableFxStore = createVoltStore<WiredVariableFxState & WiredVariableFxActions>()((set) => ({
     configs: {},
     statuses: {},
 
@@ -65,16 +67,20 @@ export const useWiredVariableFxStore = createOctaneStore<WiredVariableFxState & 
 
             const next: Record<string, IWiredVariableFxStatusEntry> = initializeAll ? {} : { ...state.statuses };
 
-            for (const status of statuses ?? []) {
+            for (const received of statuses ?? []) {
+                const status = initializeAll && !received.initialize ? { ...received, initialize: true } : received;
                 const key = wiredVariableFxStatusKey(status);
                 const previous = initializeAll ? null : state.statuses[key];
-                const changed = !previous || previous.status.value !== status.value;
+                const mask = !previous ? 1 : status.value > previous.status.value ? 2 : status.value < previous.status.value ? 4 : 8;
+                const config = state.configs[status.configId];
+                const reveal = !status.initialize && !!config && config.showMode === WIRED_FX_SHOW_MODE.WHEN_CHANGES && (config.updateMask & mask) !== 0;
 
                 next[key] = {
                     key,
                     status,
-                    // "Initialize" is drawn as it is, not as a change: it keeps the old timestamp.
-                    changedAt: status.initialize && previous ? previous.changedAt : changed ? now : previous.changedAt,
+                    // Only selected update kinds extend visibility; initialization never reveals it.
+                    changedAt: reveal ? now : previous?.changedAt ?? 0,
+                    visibleUntil: reveal ? now + config.showDurationMs : previous?.visibleUntil ?? 0,
                     previousValue: previous ? previous.status.value : null
                 };
             }

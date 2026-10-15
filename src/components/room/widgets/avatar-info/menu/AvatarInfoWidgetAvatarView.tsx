@@ -9,7 +9,7 @@ import {
     RoomUnitGiveHandItemComposer,
     SetRelationshipStatusComposer,
     TradingOpenComposer
-} from '@octane/renderer';
+} from '@volt/renderer';
 import { FC, useEffect, useMemo, useState } from 'react';
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import {
@@ -17,7 +17,6 @@ import {
     DispatchUiEvent,
     GetOwnRoomObject,
     GetUserProfile,
-    isHousekeepingEnabled,
     LocalizeText,
     MessengerFriend,
     ReportType,
@@ -58,7 +57,6 @@ export const AvatarInfoWidgetAvatarView: FC<AvatarInfoWidgetAvatarViewProps> = (
     // scope here) so useSyncExternalStore installs against the real
     // React dispatcher.
     const isIgnored = useIsUserIgnored(avatarInfo.name);
-    const canOpenHousekeeping = useHasPermission(Permission.HousekeepingAccess) && isHousekeepingEnabled();
     // Reactive controller level: starts from the cached value at popup
     // open time, then updates from FlatControllerAdded/Removed events
     // and from optimistic clicks so the Give/Remove Rights buttons flip
@@ -207,9 +205,6 @@ export const AvatarInfoWidgetAvatarView: FC<AvatarInfoWidgetAvatarViewProps> = (
                 case 'report':
                     report(ReportType.BULLY, { reportedUserId: avatarInfo.webID });
                     break;
-                case 'housekeeping':
-                    CreateLinkEvent(`housekeeping/user/${avatarInfo.webID}/${encodeURIComponent(avatarInfo.name)}/${encodeURIComponent(avatarInfo.figure)}`);
-                    break;
                 case 'inspect':
                     openInspectionForUser(avatarInfo.roomIndex);
                     break;
@@ -260,7 +255,7 @@ export const AvatarInfoWidgetAvatarView: FC<AvatarInfoWidgetAvatarViewProps> = (
     return (
         <ContextMenuView
             category={RoomObjectCategory.UNIT}
-            classNames={['octane-avatar-action-menu', 'octane-avatar-action-menu--classic', 'octane-avatar-action-menu--wide']}
+            classNames={['volt-avatar-action-menu', 'volt-avatar-action-menu--classic', 'volt-avatar-action-menu--wide']}
             collapsable={true}
             freezePositionOnHover={true}
             maximumVerticalLeadRatio={0.05}
@@ -309,9 +304,6 @@ export const AvatarInfoWidgetAvatarView: FC<AvatarInfoWidgetAvatarViewProps> = (
                         )}
                         <ContextMenuListItemView onClick={(event) => processAction('report')}>{LocalizeText('infostand.button.report')}</ContextMenuListItemView>
                         {showInspectButton && <ContextMenuListItemView onClick={(event) => processAction('inspect')}>Inspect</ContextMenuListItemView>}
-                        {canOpenHousekeeping && (
-                            <ContextMenuListItemView onClick={() => processAction('housekeeping')}>{LocalizeText('housekeeping.menu.send_to_hk')}</ContextMenuListItemView>
-                        )}
                         {moderateMenuHasContent && (
                             <ContextMenuListItemView onClick={(event) => processAction('moderate')}>
                                 <FaChevronRight className="right fa-icon" />
@@ -432,13 +424,13 @@ export const AvatarInfoWidgetAvatarView: FC<AvatarInfoWidgetAvatarViewProps> = (
                     <>
                         <Flex className="air-avatar-menu-relationships">
                             <ContextMenuListItemView classNames={['air-avatar-menu-sign-cell']} onClick={(event) => processAction('rship_heart')}>
-                                <div className="octane-friends-spritesheet icon-heart cursor-pointer" />
+                                <div className="volt-friends-spritesheet icon-heart cursor-pointer" />
                             </ContextMenuListItemView>
                             <ContextMenuListItemView classNames={['air-avatar-menu-sign-cell']} onClick={(event) => processAction('rship_smile')}>
-                                <div className="octane-friends-spritesheet icon-smile cursor-pointer" />
+                                <div className="volt-friends-spritesheet icon-smile cursor-pointer" />
                             </ContextMenuListItemView>
                             <ContextMenuListItemView classNames={['air-avatar-menu-sign-cell']} onClick={(event) => processAction('rship_bobba')}>
-                                <div className="octane-friends-spritesheet icon-bobba cursor-pointer" />
+                                <div className="volt-friends-spritesheet icon-bobba cursor-pointer" />
                             </ContextMenuListItemView>
                         </Flex>
                         <ContextMenuListItemView onClick={(event) => processAction('rship_none')}>

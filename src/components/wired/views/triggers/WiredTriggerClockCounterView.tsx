@@ -6,7 +6,6 @@ import { useWired } from '../../../../hooks';
 import { WiredSourceOption, WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredTriggerBaseView } from './WiredTriggerBaseView';
 
-const COUNTER_INTERACTION_TYPES = ['game_upcounter'];
 const MINUTES_MIN = 0;
 const MINUTES_MAX = 99;
 const HALF_SECONDS_MIN = 0;
@@ -18,7 +17,6 @@ const TRIGGER_FURNI_SOURCES: WiredSourceOption[] = [
 
 const normalizeMinutes = (value: number) => Math.max(MINUTES_MIN, Math.min(MINUTES_MAX, value));
 const normalizeHalfSeconds = (value: number) => Math.max(HALF_SECONDS_MIN, Math.min(HALF_SECONDS_MAX, value));
-const normalizeFurniSource = (value: number) => (TRIGGER_FURNI_SOURCES.some((option) => option.value === value) ? value : 100);
 
 const formatSeconds = (halfSeconds: number) => {
     const value = normalizeHalfSeconds(halfSeconds) / 2;
@@ -28,41 +26,30 @@ const formatSeconds = (halfSeconds: number) => {
 };
 
 export const WiredTriggerClockCounterView: FC<{}> = () => {
-    const { trigger = null, setIntParams = null, setAllowedInteractionTypes = null, setAllowedInteractionErrorKey = null } = useWired();
-    const [furniSource, setFurniSource] = useState<number>(() => {
-        if (trigger?.intData?.length > 2) return normalizeFurniSource(trigger.intData[2]);
-        return 100;
-    });
+    const { trigger = null, setIntParams = null, setFurniSources } = useWired();
+    const [furniSource, setFurniSource] = useState(100);
     const [minutes, setMinutes] = useState(0);
     const [halfSeconds, setHalfSeconds] = useState(0);
 
     const secondsLabel = useMemo(() => formatSeconds(halfSeconds), [halfSeconds]);
 
     const save = () => {
-        setIntParams([normalizeMinutes(minutes), normalizeHalfSeconds(halfSeconds), normalizeFurniSource(furniSource)]);
+        setIntParams([Math.floor(halfSeconds / 2), minutes, halfSeconds % 2]);
+        setFurniSources([furniSource]);
     };
 
     useEffect(() => {
         if (!trigger) return;
 
-        setMinutes(trigger.intData.length > 0 ? normalizeMinutes(trigger.intData[0]) : 0);
-        setHalfSeconds(trigger.intData.length > 1 ? normalizeHalfSeconds(trigger.intData[1]) : 0);
-        setFurniSource(trigger.intData.length > 2 ? normalizeFurniSource(trigger.intData[2]) : 100);
+        setMinutes(normalizeMinutes(trigger.intData[1] ?? 0));
+        setHalfSeconds(normalizeHalfSeconds((trigger.intData[0] ?? 0) * 2 + (trigger.intData[2] ?? 0)));
+        setFurniSource(trigger.furniSources[0] ?? 100);
     }, [trigger]);
-
-    useEffect(() => {
-        setAllowedInteractionTypes(COUNTER_INTERACTION_TYPES);
-        setAllowedInteractionErrorKey('wiredfurni.error.require_counter_furni');
-
-        return () => {
-            setAllowedInteractionTypes(null);
-            setAllowedInteractionErrorKey(null);
-        };
-    }, [setAllowedInteractionErrorKey, setAllowedInteractionTypes]);
 
     return (
         <WiredTriggerBaseView
             hasSpecialInput={true}
+            nativeLayout={true}
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID_BY_TYPE_OR_FROM_CONTEXT}
             save={save}
             footer={<WiredSourcesSelector showFurni={true} furniSource={furniSource} furniSources={TRIGGER_FURNI_SOURCES} onChangeFurni={setFurniSource} />}

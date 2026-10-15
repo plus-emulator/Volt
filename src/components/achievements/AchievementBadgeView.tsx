@@ -1,4 +1,4 @@
-import { AchievementData } from '@octane/renderer';
+import { AchievementData } from '@volt/renderer';
 import { FC } from 'react';
 import { AchievementUtilities } from '../../api';
 import { BaseProps, LayoutBadgeImageView } from '../../common';
@@ -16,7 +16,7 @@ export const AchievementBadgeView: FC<AchievementBadgeViewProps> = (props) => {
     return (
         <LayoutBadgeImageView
             badgeCode={AchievementUtilities.getAchievementBadgeCode(achievement)}
-            isGrayscale={!AchievementUtilities.getAchievementHasStarted(achievement)}
+            isGrayscale={AchievementUtilities.isAchievementBadgeGreyscale(achievement)}
             scale={scale}
             {...rest}
         />

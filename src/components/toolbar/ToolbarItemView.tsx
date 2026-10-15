@@ -23,9 +23,6 @@ const TOOLBAR_LABELS: Record<string, [string, string]> = {
     friendsearch: ['friendlist.search', 'Find friends'],
     message: ['toolbar.icon.label.messenger', 'Messenger'],
     modtools: ['toolbar.icon.label.modtools', 'Moderator tools'],
-    housekeeping: ['toolbar.icon.label.housekeeping', 'Housekeeping'],
-    youtube: ['toolbar.icon.label.youtube', 'YouTube'],
-    soundboard: ['toolbar.icon.label.soundboard', 'Soundboard'],
     buildheight: ['toolbar.icon.label.buildheight', 'Build height']
 };
 
@@ -39,7 +36,7 @@ export const ToolbarItemView = ({ ref, icon = null, className = null, title, 'ar
             ref={ref}
             data-toolbar-tooltip={label}
             aria-label={ariaLabel ?? label}
-            className={classNames('cursor-pointer relative', `octane-icon icon-${icon}`, className)}
+            className={classNames('cursor-pointer relative', `volt-icon icon-${icon}`, className)}
             {...rest}
         />
     );

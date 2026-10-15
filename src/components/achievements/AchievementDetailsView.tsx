@@ -1,6 +1,6 @@
-import { AchievementData } from '@octane/renderer';
+import { AchievementData } from '@volt/renderer';
 import { FC, useEffect, useState } from 'react';
-import { AchievementUtilities, GetConfigurationValue, LocalizeBadgeDescription, LocalizeBadgeName, LocalizeText } from '../../api';
+import { AchievementUtilities, GetConfigurationValue, LocalizeText } from '../../api';
 import { LayoutCurrencyIcon } from '../../common';
 import { AchievementBadgeView } from './AchievementBadgeView';
 import { AchievementText, useAirFieldWidth } from './AchievementText';
@@ -38,10 +38,10 @@ export const AchievementDetailsView: FC<AchievementDetailsViewProps> = (props) =
 
     if (!achievement) return null;
 
-    const showReward = !achievement.finalLevel && achievement.levelRewardPointType >= 0 && achievement.levelRewardPoints >= 1;
+    const showReward = AchievementUtilities.shouldShowAchievementReward(achievement);
     // The reward icon is the big currency bitmap (19x19 with its drop shadow), not the 15px wallet icon.
     const rewardIcon = ({ [-1]: 'credit', 0: 'ducket', 5: 'diamond' } as Record<number, string>)[achievement.levelRewardPointType];
-    const showProgress = achievement.displayMethod !== AchievementData.DISPLAY_METHOD_NEVER_SHOW_PROGRESS && !achievement.finalLevel;
+    const showProgress = AchievementUtilities.shouldShowAchievementProgress(achievement);
 
     return (
         <div className="air-achievement-details">
@@ -59,8 +59,16 @@ export const AchievementDetailsView: FC<AchievementDetailsViewProps> = (props) =
                     }
                 />
             </div>
-            <AchievementText background={0xcccccc} bold height={15} text={LocalizeBadgeName(badgeCode)} x={114} y={18} />
-            <AchievementText background={0xcccccc} height={45} maxWidth={238} text={LocalizeBadgeDescription(badgeCode)} x={114} y={34} />
+            {/* getBadgeName / getBadgeDesc read an empty text for a badge without localization, not the key. */}
+            <AchievementText background={0xcccccc} bold height={15} text={AchievementUtilities.getAchievementBadgeName(badgeCode)} x={114} y={18} />
+            <AchievementText
+                background={0xcccccc}
+                height={45}
+                maxWidth={238}
+                text={AchievementUtilities.getAchievementBadgeDescription(badgeCode)}
+                x={114}
+                y={34}
+            />
             {showReward && (
                 <div className="air-achievement-details-reward">
                     <AchievementText background={0xcccccc} text={LocalizeText('achievements.details.reward')} x={0} y={0} style={{ position: 'relative', width: rewardCaptionWidth }} />

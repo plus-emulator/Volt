@@ -1,7 +1,7 @@
-import { GetSessionDataManager, RoomObjectType } from '@octane/renderer';
+import { GetSessionDataManager, RoomObjectType } from '@volt/renderer';
 import { FC, UIEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChatEntryType, LocalizeText, SanitizeHtml } from '../../../../api';
-import { DraggableWindowPosition, OctaneCardContentView, OctaneCardHeaderView, OctaneCardView } from '../../../../common';
+import { DraggableWindowPosition, VoltCardContentView, VoltCardHeaderView, VoltCardView } from '../../../../common';
 import { useChatHistory, useChatWindow, useOnClickChat } from '../../../../hooks';
 import { useRoom } from '../../../../hooks/rooms';
 
@@ -31,7 +31,7 @@ export const ChatWidgetWindowView: FC<{}> = () => {
 
             if (!normalizedSearch.length) return true;
 
-            return `${chat.name} ${chat.message || ''} ${chat.originalMessage || ''} ${chat.translatedMessage || ''}`.toLowerCase().includes(normalizedSearch);
+            return `${chat.name} ${chat.message || ''}`.toLowerCase().includes(normalizedSearch);
         });
     }, [chatHistory, roomSession?.roomId, hidePets, search]);
 
@@ -75,7 +75,7 @@ export const ChatWidgetWindowView: FC<{}> = () => {
     }, [roomChatHistory.length, isAutoScrollEnabled, scrollToLatest]);
 
     return (
-        <OctaneCardView
+        <VoltCardView
             className="w-[460px] h-[240px]"
             disableDrag={false}
             style={{ pointerEvents: 'auto' }}
@@ -83,7 +83,7 @@ export const ChatWidgetWindowView: FC<{}> = () => {
             uniqueKey="chat-widget-window"
             windowPosition={DraggableWindowPosition.TOP_LEFT}
         >
-            <OctaneCardHeaderView
+            <VoltCardHeaderView
                 headerText="Chat window"
                 onCloseClick={() => {
                     setChatWindowEnabled(false);
@@ -91,7 +91,7 @@ export const ChatWidgetWindowView: FC<{}> = () => {
                     if (clearChatHistory) clearChatHistory();
                 }}
             />
-            <OctaneCardContentView className="bg-[#f2f2f2] relative" overflow="hidden">
+            <VoltCardContentView className="bg-[#f2f2f2] relative" overflow="hidden">
                 <div className="flex items-center gap-2 px-2 py-1 border-b border-black/20 bg-white/40 text-black text-[11px]">
                     <label className="flex items-center gap-1 cursor-pointer select-none">
                         <input checked={hidePets} type="checkbox" onChange={(event) => setHidePets(event.target.checked)} />
@@ -144,27 +144,7 @@ export const ChatWidgetWindowView: FC<{}> = () => {
                                 {hideBalloons && (
                                     <div onClick={onClickChat}>
                                         <b dangerouslySetInnerHTML={{ __html: SanitizeHtml(`${chat.name}: `) }} />
-                                        {!chat.showTranslation && (
-                                            <span className={messageClassName} dangerouslySetInnerHTML={{ __html: SanitizeHtml(chat.message) }} />
-                                        )}
-                                        {chat.showTranslation && (
-                                            <div className="mt-[2px] flex flex-col gap-[2px]">
-                                                <div className="flex items-start gap-1 leading-[1.15]">
-                                                    <span className="inline-block min-w-[52px] font-bold opacity-75">original:</span>
-                                                    <span
-                                                        className={messageClassName}
-                                                        dangerouslySetInnerHTML={{ __html: SanitizeHtml(chat.originalMessage || chat.message || '') }}
-                                                    />
-                                                </div>
-                                                <div className="flex items-start gap-1 leading-[1.15]">
-                                                    <span className="inline-block min-w-[52px] font-bold opacity-75">translate:</span>
-                                                    <span
-                                                        className={messageClassName}
-                                                        dangerouslySetInnerHTML={{ __html: SanitizeHtml(chat.translatedMessage || chat.message || '') }}
-                                                    />
-                                                </div>
-                                            </div>
-                                        )}
+                                        <span className={messageClassName} dangerouslySetInnerHTML={{ __html: SanitizeHtml(chat.message) }} />
                                     </div>
                                 )}
                                 {!hideBalloons && (
@@ -191,39 +171,11 @@ export const ChatWidgetWindowView: FC<{}> = () => {
                                                 className={`chat-content py-[5px] px-[6px] leading-none min-h-[25px] ${!hideAvatars ? (isOwnMessage ? 'mr-[27px]' : 'ml-[27px]') : ''}`}
                                             >
                                                 <b className="username" dangerouslySetInnerHTML={{ __html: SanitizeHtml(`${chat.name}: `) }} />
-                                                {!chat.showTranslation && (
-                                                    <span
-                                                        className={messageClassName}
-                                                        dangerouslySetInnerHTML={{ __html: SanitizeHtml(`${chat.message}`) }}
-                                                        onClick={onClickChat}
-                                                    />
-                                                )}
-                                                {chat.showTranslation && (
-                                                    <div className="mt-[2px] flex flex-col gap-[2px]" onClick={onClickChat}>
-                                                        <div className="flex items-start gap-1 leading-[1.1]">
-                                                            <span className="inline-block min-w-[52px] font-bold" style={{ opacity: 0.75 }}>
-                                                                original:
-                                                            </span>
-                                                            <span
-                                                                className={messageClassName}
-                                                                dangerouslySetInnerHTML={{
-                                                                    __html: SanitizeHtml(`${chat.originalMessage || chat.message || ''}`)
-                                                                }}
-                                                            />
-                                                        </div>
-                                                        <div className="flex items-start gap-1 leading-[1.1]">
-                                                            <span className="inline-block min-w-[52px] font-bold" style={{ opacity: 0.75 }}>
-                                                                translate:
-                                                            </span>
-                                                            <span
-                                                                className={messageClassName}
-                                                                dangerouslySetInnerHTML={{
-                                                                    __html: SanitizeHtml(`${chat.translatedMessage || chat.message || ''}`)
-                                                                }}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                )}
+                                                <span
+                                                    className={messageClassName}
+                                                    dangerouslySetInnerHTML={{ __html: SanitizeHtml(`${chat.message}`) }}
+                                                    onClick={onClickChat}
+                                                />
                                             </div>
                                         </div>
                                     </div>
@@ -244,7 +196,7 @@ export const ChatWidgetWindowView: FC<{}> = () => {
                         Go to latest message
                     </button>
                 )}
-            </OctaneCardContentView>
-        </OctaneCardView>
+            </VoltCardContentView>
+        </VoltCardView>
     );
 };

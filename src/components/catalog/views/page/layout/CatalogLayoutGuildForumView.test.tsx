@@ -69,12 +69,12 @@ describe('guild forum page', () => {
         expect(screen.getByTestId('guild-selector')).toBeInTheDocument();
     });
 
-    it('warns and blocks the purchase when the selected guild already has a forum', () => {
+    it('warns but still sells another terminal when the selected guild already has a forum', () => {
         selectGroup(7);
         renderView();
 
         expect(screen.getByText('catalog.alert.group_has_forum')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'purchase' })).toBeDisabled();
+        expect(screen.getByRole('button', { name: 'purchase' })).toBeEnabled();
     });
 
     it('sells the forum to a guild without one', () => {

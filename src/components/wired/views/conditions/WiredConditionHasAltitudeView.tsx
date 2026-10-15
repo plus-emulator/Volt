@@ -6,7 +6,6 @@ import { useWired } from '../../../../hooks';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredConditionBaseView } from './WiredConditionBaseView';
 
-const COUNTER_INTERACTION_TYPES = ['game_upcounter'];
 const MIN_ALTITUDE = 0;
 const MAX_ALTITUDE = 80;
 const ALTITUDE_STEP = 0.01;
@@ -49,14 +48,11 @@ const parseAltitude = (value: string) => {
  */
 type AltitudeVariant = 'altitude' | 'userRange' | 'furniRange' | 'furniProperty';
 
-const VARIANTS: Record<
-    AltitudeVariant,
-    { counterOnly: boolean; comparison: boolean; value: 'altitude' | 'radius' | null; users: boolean }
-> = {
-    altitude: { counterOnly: true, comparison: true, value: 'altitude', users: false },
-    userRange: { counterOnly: false, comparison: true, value: 'radius', users: true },
-    furniRange: { counterOnly: false, comparison: true, value: 'radius', users: false },
-    furniProperty: { counterOnly: false, comparison: false, value: null, users: false }
+const VARIANTS: Record<AltitudeVariant, { comparison: boolean; value: 'altitude' | 'radius' | null; users: boolean }> = {
+    altitude: { comparison: true, value: 'altitude', users: false },
+    userRange: { comparison: true, value: 'radius', users: true },
+    furniRange: { comparison: true, value: 'radius', users: false },
+    furniProperty: { comparison: false, value: null, users: false }
 };
 
 const RANGE_COMPARISON_LABELS: Record<number, { key: string; fallback: string }> = {
@@ -77,11 +73,18 @@ interface WiredConditionHasAltitudeViewProps {
 export const WiredConditionHasAltitudeView: FC<WiredConditionHasAltitudeViewProps> = ({ variant = 'altitude' }) => {
     const spec = VARIANTS[variant];
 
-    const { trigger = null, setIntParams = null, setStringParam = null, setAllowedInteractionTypes = null, setAllowedInteractionErrorKey = null } = useWired();
+    const {
+        trigger = null,
+        setIntParams = null,
+        setStringParam = null,
+        setFurniSources,
+        setUserSources,
+        quantifier: nativeQuantifier,
+        setQuantifier: setNativeQuantifier
+    } = useWired();
     const [comparison, setComparison] = useState(1);
     const [furniSource, setFurniSource] = useState<number>(() => {
-        if (trigger?.intData?.length > 1) return trigger.intData[1];
-        return (trigger?.selectedItems?.length ?? 0) > 0 ? 100 : 0;
+        return trigger?.furniSources[0] ?? 100;
     });
     const [quantifier, setQuantifier] = useState(0);
     const [showAdvanced, setShowAdvanced] = useState(false);
@@ -89,37 +92,16 @@ export const WiredConditionHasAltitudeView: FC<WiredConditionHasAltitudeViewProp
     const [altitudeInput, setAltitudeInput] = useState('0');
 
     useEffect(() => {
-        if (!spec.counterOnly) return;
-
-        setAllowedInteractionTypes(COUNTER_INTERACTION_TYPES);
-        setAllowedInteractionErrorKey('wiredfurni.error.require_counter_furni');
-
-        return () => {
-            setAllowedInteractionTypes(null);
-            setAllowedInteractionErrorKey(null);
-        };
-    }, [spec.counterOnly, setAllowedInteractionErrorKey, setAllowedInteractionTypes]);
-
-    useEffect(() => {
         if (!trigger) return;
 
-        const sourceSlot = spec.comparison ? 1 : 0;
-        const quantifierSlot = sourceSlot + 1;
-        const fallbackSource = (trigger.selectedItems?.length ?? 0) > 0 ? 100 : 0;
-
-        setComparison(spec.comparison && trigger.intData.length > 0 ? trigger.intData[0] : 1);
-        setFurniSource(trigger.intData.length > sourceSlot ? trigger.intData[sourceSlot] : fallbackSource);
-        setQuantifier(trigger.intData.length > quantifierSlot ? trigger.intData[quantifierSlot] : 0);
-        setShowAdvanced(
-            trigger.intData.length > sourceSlot
-                ? trigger.intData[sourceSlot] !== 0 || trigger.intData[quantifierSlot] !== 0
-                : false
-        );
-
-        const nextAltitude = parseAltitude(trigger.stringData);
+        setComparison(trigger.intData[1] ?? 1);
+        setFurniSource(trigger.furniSources[0] ?? 100);
+        setQuantifier(nativeQuantifier);
+        setShowAdvanced((trigger.furniSources[0] ?? 100) !== 100 || nativeQuantifier !== 0);
+        const nextAltitude = (trigger.intData[0] ?? 0) / 100;
         setAltitude(nextAltitude);
         setAltitudeInput(formatAltitude(nextAltitude));
-    }, [spec.comparison, trigger]);
+    }, [spec.comparison, trigger, nativeQuantifier]);
 
     const updateAltitude = (value: number) => {
         const nextValue = clampAltitude(value);
@@ -151,9 +133,10 @@ export const WiredConditionHasAltitudeView: FC<WiredConditionHasAltitudeViewProp
     };
 
     const save = () => {
-        // furniProperty reads [source, quantifier]; the others keep the comparison in slot 0.
-        setIntParams(spec.comparison ? [comparison, furniSource, quantifier] : [furniSource, quantifier]);
-        setStringParam(spec.value ? formatAltitude(altitude) : '');
+        setIntParams([Math.round(altitude * 100), comparison]);
+        setFurniSources([furniSource]);
+        setNativeQuantifier(quantifier);
+        setStringParam('');
     };
 
     return (
@@ -234,7 +217,13 @@ export const WiredConditionHasAltitudeView: FC<WiredConditionHasAltitudeViewProp
                         />
                     </div>
                     <div className="flex flex-col gap-1">
-                        <Slider max={MAX_ALTITUDE} min={MIN_ALTITUDE} step={ALTITUDE_STEP} value={altitude} onChange={(event) => updateAltitude(event as number)} />
+                        <Slider
+                            max={MAX_ALTITUDE}
+                            min={MIN_ALTITUDE}
+                            step={ALTITUDE_STEP}
+                            value={altitude}
+                            onChange={(event) => updateAltitude(event as number)}
+                        />
                         <Text small>{formatAltitude(altitude)}</Text>
                     </div>
                 </>

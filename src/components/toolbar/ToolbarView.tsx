@@ -1,20 +1,20 @@
-import { CreateLinkEvent, Dispose, DropBounce, EaseOut, FindNewFriendsMessageComposer, GetSessionDataManager, JumpBy, Motions, OctaneToolbarAnimateIconEvent, PerkEnum, Queue, SessionDataPreferencesEvent, Wait, YouTubeRoomSettingsEvent } from '@octane/renderer';
+import { CreateLinkEvent, Dispose, DropBounce, EaseOut, FindNewFriendsMessageComposer, GetSessionDataManager, JumpBy, Motions, VoltToolbarAnimateIconEvent, PerkEnum, Queue, SessionDataPreferencesEvent, Wait } from '@volt/renderer';
 import { AnimatePresence, motion, Variants } from 'framer-motion';
 import { CSSProperties, FC, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Permission } from '../../api/permissions';
-import { GetConfigurationValue, isHousekeepingEnabled, localizeWithFallback, MessengerIconState, OpenMessengerChat, SendMessageComposer, setYoutubeRoomEnabled, VisitDesktop } from '../../api';
+import { GetConfigurationValue, localizeWithFallback, MessengerIconState, OpenMessengerChat, SendMessageComposer, VisitDesktop } from '../../api';
 import dividerImg from '../../assets/images/toolbar/air/divider.png';
 import memenuBgImg from '../../assets/images/toolbar/air/memenu-bg.png';
 import memenuCircleImg from '../../assets/images/toolbar/air/memenu-circle.png';
 import { Flex, LayoutAvatarImageView, LayoutItemCountView } from '../../common';
-import { useAchievements, useBuildHeight, useDailyTasks, useFriends, useHasPermission, useInventoryUnseenTracker, useMessageEvent, useMessenger, useOctaneEvent, useOpenIssueCount, useRewardTracks, useSessionInfo, useWiredTools } from '../../hooks';
+import { useAchievements, useBuildHeight, useDailyTasks, useFriends, useHasPermission, useInventoryUnseenTracker, useMessageEvent, useMessenger, useVoltEvent, useOpenIssueCount, useRewardTracks, useSessionInfo, useWiredTools } from '../../hooks';
+import { useGroupForumUnreadStore } from '../../state/groupForumUnreadStore';
 import { usePerkAllowed } from '../../state/perkAllowancesStore';
 import { AIR_RAISED_CHAT_BOTTOM } from './bottomDockLayout';
 import { ToolbarItemView } from './ToolbarItemView';
 import { ToolbarMeView } from './ToolbarMeView';
 import { ToolbarProgressionView } from './ToolbarProgressionView';
 import { ToolbarUnseenCountView } from './ToolbarUnseenCountView';
-import { YouTubePlayerView } from './YouTubePlayerView';
 
 const containerVariants: Variants = {
     hidden: { transition: { staggerChildren: 0.015, staggerDirection: -1 } },
@@ -63,7 +63,6 @@ export const ToolbarView: FC<{ isInRoom: boolean }> = props =>
     const [ staffStackBottom, setStaffStackBottom ] = useState<number | null>(null);
     const useGuideTool = usePerkAllowed(PerkEnum.USE_GUIDE_TOOL);
     const cameraAllowed = usePerkAllowed(PerkEnum.CAMERA);
-    const [ youtubeEnabled, setYoutubeEnabled ] = useState(false);
     const leftDockRef = useRef<HTMLDivElement>(null);
     const rightDockRef = useRef<HTMLDivElement>(null);
     const meSlotRef = useRef<HTMLDivElement>(null);
@@ -77,13 +76,13 @@ export const ToolbarView: FC<{ isInRoom: boolean }> = props =>
     const { unseenCount: unseenRewardTrackCount = 0 } = useRewardTracks();
     // HabboToolbar.setUnseenItemCount("HTIE_ICON_PROGRESSION", unseenProgMenuCount): achievements + daily tasks + reward track rewards.
     const unseenProgMenuCount = getTotalUnseen + unseenDailyTaskCount + unseenRewardTrackCount;
+    // HabboToolbar.onUnseenForumsCountUpdate -> setUnseenItemCount("HTIE_ICON_MEMENU", unseenMeMenuCount): the Me menu counts the forums with unread messages.
+    const unreadForumsCount = useGroupForumUnreadStore((state) => state.unreadForumsCount);
     const { requests = [] } = useFriends();
     const { iconState = MessengerIconState.HIDDEN } = useMessenger();
     const { openMonitor, showToolbarButton } = useWiredTools();
     const { available: buildHeightAvailable, toggle: toggleBuildHeight } = useBuildHeight();
     const isMod = useHasPermission(Permission.ModerationTool);
-    const isHk = useHasPermission(Permission.HousekeepingAccess);
-    const hkEnabled = useMemo(() => isHousekeepingEnabled(), []);
     const openIssueCount = useOpenIssueCount();
     const openTicketsCount = isMod ? openIssueCount : 0;
     const visibilityVariant = 'visible';
@@ -122,22 +121,6 @@ export const ToolbarView: FC<{ isInRoom: boolean }> = props =>
         visible: { opacity: 1, y: 0, pointerEvents: 'auto' }
     }), []);
 
-    useMessageEvent<YouTubeRoomSettingsEvent>(YouTubeRoomSettingsEvent, event =>
-    {
-        const enabled = event.getParser().youtubeEnabled;
-        setYoutubeEnabled(enabled);
-        setYoutubeRoomEnabled(enabled);
-    });
-
-    useEffect(() =>
-    {
-        if(!isInRoom)
-        {
-            setYoutubeEnabled(false);
-            setYoutubeRoomEnabled(false);
-        }
-    }, [ isInRoom ]);
-
     useEffect(() =>
     {
         const query = window.matchMedia('(pointer: coarse), (hover: none)');
@@ -173,7 +156,7 @@ export const ToolbarView: FC<{ isInRoom: boolean }> = props =>
         }
     }, [ leftCollapsed ]);
 
-    useOctaneEvent<SessionDataPreferencesEvent>(SessionDataPreferencesEvent.UPDATED, event => setRightCollapsed(!(event.uiFlags & FRIEND_BAR_UI_FLAG)));
+    useVoltEvent<SessionDataPreferencesEvent>(SessionDataPreferencesEvent.UPDATED, event => setRightCollapsed(!(event.uiFlags & FRIEND_BAR_UI_FLAG)));
 
     const toggleFriendBar = (collapsed: boolean) =>
     {
@@ -185,7 +168,7 @@ export const ToolbarView: FC<{ isInRoom: boolean }> = props =>
     {
         const measure = () =>
         {
-            const roomTools = document.querySelector('.octane-room-tools-container') as HTMLElement | null;
+            const roomTools = document.querySelector('.volt-room-tools-container') as HTMLElement | null;
             const next = roomTools
                 ? Math.max(8, Math.round(window.innerHeight - roomTools.getBoundingClientRect().top + 15))
                 : null;
@@ -243,9 +226,8 @@ export const ToolbarView: FC<{ isInRoom: boolean }> = props =>
         };
     }, [ isMeExpanded, isProgressionExpanded, leftCollapsed, touchLayout ]);
 
-    const openYouTubePlayer = () => window.dispatchEvent(new CustomEvent('youtube:toggle'));
 
-    useOctaneEvent<OctaneToolbarAnimateIconEvent>(OctaneToolbarAnimateIconEvent.ANIMATE_ICON, event =>
+    useVoltEvent<VoltToolbarAnimateIconEvent>(VoltToolbarAnimateIconEvent.ANIMATE_ICON, event =>
     {
         const animationIconToToolbar = (iconName: string, image: HTMLImageElement, x: number, y: number) =>
         {
@@ -284,7 +266,6 @@ export const ToolbarView: FC<{ isInRoom: boolean }> = props =>
 
     return (
         <>
-            {youtubeEnabled && <YouTubePlayerView />}
 
             <AnimatePresence>
                 {!touchLayout && isProgressionExpanded && (
@@ -339,7 +320,7 @@ export const ToolbarView: FC<{ isInRoom: boolean }> = props =>
                 animate={visibilityVariant}
                 variants={shellVariants}
                 transition={SHELL_TRANSITION}
-                className={`octane-toolbar octane-toolbar-hobba absolute z-[70] ${desktopBlockClasses}`}
+                className={`volt-toolbar volt-toolbar-hobba absolute z-[70] ${desktopBlockClasses}`}
             />
 
             <motion.div
@@ -430,6 +411,7 @@ export const ToolbarView: FC<{ isInRoom: boolean }> = props =>
                             <LayoutAvatarImageView airMeMenu={true} direction={3} figure={userFigure} />
                         </motion.div>
                         <img src={memenuCircleImg} alt="" className="tb-memenu-circle" />
+                        <ToolbarUnseenCountView count={unreadForumsCount} />
                     </motion.div>
                     {isInRoom && showToolbarButton && (
                         <motion.div variants={itemVariants} className="tb-slot tb-slot-tall">
@@ -444,11 +426,6 @@ export const ToolbarView: FC<{ isInRoom: boolean }> = props =>
                     <img src={dividerImg} alt="" className="tb-divider" />
                     {!leftCollapsed && (
                         <>
-                            {isInRoom && youtubeEnabled && (
-                                <motion.div variants={itemVariants} className="tb-slot">
-                                    <ToolbarItemView icon="youtube" onClick={openYouTubePlayer} className="tb-icon" />
-                                </motion.div>
-                            )}
                             {isInRoom && buildHeightAvailable && (
                                 <motion.div variants={itemVariants} className="tb-slot">
                                     <ToolbarItemView icon="buildheight" onClick={toggleBuildHeight} className="tb-icon" />
@@ -460,11 +437,6 @@ export const ToolbarView: FC<{ isInRoom: boolean }> = props =>
                                     {openTicketsCount > 0 && (
                                         <LayoutItemCountView count={openTicketsCount} className="pointer-events-none absolute -right-1 -top-1 z-10" />
                                     )}
-                                </motion.div>
-                            )}
-                            {isHk && hkEnabled && (
-                                <motion.div variants={itemVariants} className="tb-slot">
-                                    <ToolbarItemView icon="housekeeping" onClick={() => CreateLinkEvent('housekeeping/toggle')} className="tb-icon" />
                                 </motion.div>
                             )}
                         </>
@@ -526,7 +498,7 @@ export const ToolbarView: FC<{ isInRoom: boolean }> = props =>
                 animate={visibilityVariant}
                 variants={mobileNavVariants}
                 transition={NAV_TRANSITION}
-                className={`absolute left-1/2 bottom-0 z-[71] flex w-[95vw] -translate-x-1/2 items-center overflow-visible ${mobileOnlyClasses} ${isInRoom ? 'octane-toolbar-mobile-hobba px-[6px] py-[4px] mb-[3px]' : ''}`}
+                className={`absolute left-1/2 bottom-0 z-[71] flex w-[95vw] -translate-x-1/2 items-center overflow-visible ${mobileOnlyClasses} ${isInRoom ? 'volt-toolbar-mobile-hobba px-[6px] py-[4px] mb-[3px]' : ''}`}
             >
                 <motion.div
                     variants={containerVariants}
@@ -576,8 +548,8 @@ export const ToolbarView: FC<{ isInRoom: boolean }> = props =>
                             <LayoutAvatarImageView airMeMenu={true} direction={3} figure={userFigure} />
                         </motion.div>
                         <img src={memenuCircleImg} alt="" className="tb-memenu-circle" />
-                        {unseenProgMenuCount > 0 && (
-                            <LayoutItemCountView count={unseenProgMenuCount} className="pointer-events-none absolute -right-1 -top-1 z-10" />
+                        {(unseenProgMenuCount + unreadForumsCount) > 0 && (
+                            <LayoutItemCountView count={unseenProgMenuCount + unreadForumsCount} className="pointer-events-none absolute -right-1 -top-1 z-10" />
                         )}
                     </motion.div>
                     {isInRoom && (
@@ -591,11 +563,6 @@ export const ToolbarView: FC<{ isInRoom: boolean }> = props =>
                     {isInRoom && showToolbarButton && (
                         <motion.div variants={itemVariants}>
                             <ToolbarItemView icon="wired-tools" onClick={openMonitor} className="tb-icon" />
-                        </motion.div>
-                    )}
-                    {isInRoom && youtubeEnabled && (
-                        <motion.div variants={itemVariants}>
-                            <ToolbarItemView icon="youtube" onClick={openYouTubePlayer} className="tb-icon" />
                         </motion.div>
                     )}
                     {isInRoom && buildHeightAvailable && (
@@ -634,11 +601,6 @@ export const ToolbarView: FC<{ isInRoom: boolean }> = props =>
                     <motion.div variants={itemVariants} className="relative">
                         <ToolbarItemView icon="modtools" onClick={() => CreateLinkEvent('mod-tools/show')} className="tb-icon" />
                         {openTicketsCount > 0 && <LayoutItemCountView count={openTicketsCount} className="pointer-events-none absolute -right-1 -top-1 z-10" />}
-                    </motion.div>
-                )}
-                {isHk && hkEnabled && (
-                    <motion.div variants={itemVariants}>
-                        <ToolbarItemView icon="housekeeping" onClick={() => CreateLinkEvent('housekeeping/toggle')} className="tb-icon" />
                     </motion.div>
                 )}
                 {/* Below the compact breakpoint the right rail's social icons

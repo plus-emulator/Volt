@@ -9,7 +9,7 @@ import {
     ThreadMessagesMessageEvent,
     UpdateMessageMessageEvent,
     UpdateThreadMessageEvent
-} from '@octane/renderer';
+} from '@volt/renderer';
 import { FC, useEffect, useRef, useState } from 'react';
 import { LocalizeText, ReportType, SendMessageComposer } from '../../../../api';
 import hideIcon from '../../../../assets/images/groups/native/forum_forum_hide.png';
@@ -38,7 +38,8 @@ interface GroupForumThreadViewProps {
     initialPageIndex: number;
     scrollIndex: number;
     onBack: () => void;
-    onMessagesSeen: (messageId: number) => void;
+    /** GroupForumController.updateUnreadMessageCounts(messageId, threadId, messageIndex). */
+    onMessagesSeen: (messageId: number, threadId: number, messageIndex: number) => void;
     onReply: (subject: string, quote?: string) => void;
 }
 
@@ -49,11 +50,12 @@ export const GroupForumThreadView: FC<GroupForumThreadViewProps> = ({ forumData,
     const viewportRef = useRef<HTMLDivElement>(null);
     const pendingScroll = useRef<number>(scrollIndex);
     const { report = null } = useHelp();
-    const canModerate = forumData?.hasModeratePermissionError ?? false;
+    const canModerate = forumData?.canModerate ?? false;
+    const isStaff = forumData?.isStaff ?? false;
     const canReport = forumData?.canReport ?? false;
-    const canPost = forumData?.hasPostMessagePermissionError ?? false;
+    const canPost = forumData?.canPostMessage ?? false;
     const totalMessages = thread?.totalMessages ?? messages.length;
-    const pageCount = Math.max(1, Math.ceil(totalMessages / FORUM_PAGE_SIZE));
+    const pageCount = Math.ceil(totalMessages / FORUM_PAGE_SIZE);
 
     useMessageEvent<ThreadMessagesMessageEvent>(ThreadMessagesMessageEvent, (event) => {
         const parser = event.getParser();
@@ -63,16 +65,25 @@ export const GroupForumThreadView: FC<GroupForumThreadViewProps> = ({ forumData,
         setMessages(parser.messages);
 
         // updateUnreadMessageCounts: the newest message of the page counts as seen; the marker is sent when the forum is left (GroupForumController.markForumAsRead).
-        if (parser.messages.length > 0) onMessagesSeen(parser.messages[parser.messages.length - 1].messageId);
+        if (parser.messages.length > 0) {
+            const last = parser.messages[parser.messages.length - 1];
+
+            onMessagesSeen(last.messageId, last.threadId, last.messageIndex);
+        }
     });
 
+    // GroupForumController.onPostMessageMessage: the page that holds the new message is asked for, so the window goes to it.
     useMessageEvent<PostMessageMessageEvent>(PostMessageMessageEvent, (event) => {
         const parser = event.getParser();
 
         if (parser.groupId !== groupId || parser.threadId !== threadId) return;
 
-        setMessages((previous) => (previous.length < FORUM_PAGE_SIZE ? [...previous, parser.message] : previous));
-        setThread((previous) => (previous ? Object.assign(Object.create(Object.getPrototypeOf(previous)), previous, { _totalMessages: previous.totalMessages + 1 }) : previous));
+        const page = Math.floor(parser.message.messageIndex / FORUM_PAGE_SIZE);
+
+        setThread((previous) => (previous ? Object.assign(Object.create(Object.getPrototypeOf(previous)), previous, { _totalMessages: Math.max(previous.totalMessages, parser.message.messageIndex + 1) }) : previous));
+
+        if (page !== pageIndex) setPageIndex(page);
+        else SendMessageComposer(new GetMessagesMessageComposer(groupId, threadId, page * FORUM_PAGE_SIZE, FORUM_PAGE_SIZE));
     });
 
     useMessageEvent<UpdateMessageMessageEvent>(UpdateMessageMessageEvent, (event) => {
@@ -104,7 +115,7 @@ export const GroupForumThreadView: FC<GroupForumThreadViewProps> = ({ forumData,
 
         pendingScroll.current = 0;
 
-        const target = viewport.querySelectorAll<HTMLElement>('.octane-forum__message')[index];
+        const target = viewport.querySelectorAll<HTMLElement>('.volt-forum__message')[index];
 
         if (target) viewport.scrollTop = target.offsetTop;
     }, [messages]);
@@ -117,8 +128,20 @@ export const GroupForumThreadView: FC<GroupForumThreadViewProps> = ({ forumData,
 
     const quoteOf = (message: MessageData) => forumQuote(message);
 
-    const moderate = (message: MessageData) => {
-        SendMessageComposer(new ModerateMessageMessageComposer(groupId, threadId, message.messageId, message.state === MESSAGE_HIDDEN_BY_ADMIN ? MESSAGE_VISIBLE : MESSAGE_HIDDEN_BY_ADMIN));
+    // MessageListView.handleButtonVisibility: moderators hide a message, show one hidden by an admin again, and only staff show one deleted by staff.
+    const hideActionOf = (message: MessageData): 'hide' | 'unhide' | null => {
+        if (!canModerate) return null;
+        if (message.state === MESSAGE_HIDDEN_BY_ADMIN) return 'unhide';
+        if (message.state === MESSAGE_DELETED_BY_STAFF) return isStaff ? 'unhide' : null;
+
+        return 'hide';
+    };
+
+    // GroupForumController.deleteMessage hides with 10, or 20 for staff; unDeleteMessage sends 1.
+    const moderate = (message: MessageData, action: 'hide' | 'unhide') => {
+        const state = action === 'unhide' ? MESSAGE_VISIBLE : isStaff ? MESSAGE_DELETED_BY_STAFF : MESSAGE_HIDDEN_BY_ADMIN;
+
+        SendMessageComposer(new ModerateMessageMessageComposer(groupId, threadId, message.messageId, state));
     };
 
     const subject = thread?.header ?? '';
@@ -135,28 +158,30 @@ export const GroupForumThreadView: FC<GroupForumThreadViewProps> = ({ forumData,
     return (
         <>
             <GroupText background={FORUM_SURFACE} height={25} overrides={flatText(16, { bold: true, color: 0xa6a6a2 })} text={subject} width={541} x={0} y={115} />
-            <div className="octane-forum__list">
-                <ClassicScrollAreaView className="octane-forum__scroll is-messages" contentClassName="octane-forum__scroll-content" minThumbSize={26} scrollStep={127} viewportRef={viewportRef}>
+            <div className="volt-forum__list">
+                <ClassicScrollAreaView className="volt-forum__scroll is-messages" contentClassName="volt-forum__scroll-content" minThumbSize={26} scrollStep={127} viewportRef={viewportRef}>
                     {messages.map((message) => {
                         const isHiddenByAdmin = message.state === MESSAGE_HIDDEN_BY_ADMIN;
                         const isDeleted = message.state === MESSAGE_DELETED_BY_STAFF;
-                        const isHidden = isHiddenByAdmin || isDeleted;
                         const panelColor = isDeleted ? 0xffdfd2 : isHiddenByAdmin ? 0xd7d7cf : 0xc6eff9;
                         const textColor = isDeleted ? 0xffc6ba : isHiddenByAdmin ? 0xe9e9e0 : 0xffffff;
-                        const showText = !isHidden || canModerate || isDeleted;
-                        const getText = (): string => {
-                            if (isDeleted) return LocalizeText('groupforum.view.message_hidden_by_staff');
-                            if (isHiddenByAdmin && !canModerate) return LocalizeText('groupforum.view.message_hidden_by_admin', ['ADMIN_NAME', 'admin_name'], [message.adminName, message.adminName]);
+                        // MessageListView.createListItem: a message deleted by staff reads as such for everyone but staff, any other hidden one for everyone but moderators.
+                        const isModerationMessage = (isDeleted && !isStaff) || (message.state > 1 && !canModerate);
+                        const getModerationMessage = (): string => {
+                            if (isHiddenByAdmin) return LocalizeText('groupforum.view.message_hidden_by_admin', ['ADMIN_NAME', 'admin_name'], [message.adminName, message.adminName]);
+                            if (isDeleted) return LocalizeText('groupforum.view.message_hidden_by_staff', ['ADMIN_NAME', 'admin_name'], [message.adminName, message.adminName]);
 
-                            return message.messageText;
+                            return '';
                         };
-                        const text = getText();
-                        const actions = (canModerate && !isDeleted ? 1 : 0) + (canReport ? 1 : 0) + 1;
+                        const text = isModerationMessage ? getModerationMessage() : message.messageText;
+                        const showText = !!text;
+                        const hideAction = hideActionOf(message);
+                        const actions = (hideAction ? 1 : 0) + (canReport ? 1 : 0) + 1;
                         const actionsWidth = actions * 22;
 
                         return (
-                            <div key={message.messageId} className="octane-forum__message">
-                                <div className="octane-forum__message-bar">
+                            <div key={message.messageId} className="volt-forum__message">
+                                <div className="volt-forum__message-bar">
                                     <GroupText background={0x227aad} overrides={flatText(12, { color: 0xeeeeee })} text={forumAge(message.creationTime)} x={0} y={4} />
                                     <GroupText
                                         align="center"
@@ -167,24 +192,24 @@ export const GroupForumThreadView: FC<GroupForumThreadViewProps> = ({ forumData,
                                         x={ITEM_WIDTH - actionsWidth - 40}
                                         y={4}
                                     />
-                                    <div className="octane-forum__message-actions" style={{ width: actionsWidth }}>
-                                        {canModerate && !isDeleted && (
-                                            <button className="octane-forum__action is-hide" type="button" onClick={() => moderate(message)}>
-                                                <img alt="" draggable={false} src={isHiddenByAdmin ? unhideIcon : hideIcon} style={{ left: 4, top: 5 }} />
+                                    <div className="volt-forum__message-actions" style={{ width: actionsWidth }}>
+                                        {hideAction && (
+                                            <button className="volt-forum__action is-hide" type="button" onClick={() => moderate(message, hideAction)}>
+                                                <img alt="" draggable={false} src={hideAction === 'unhide' ? unhideIcon : hideIcon} style={{ left: 4, top: 5 }} />
                                             </button>
                                         )}
                                         {canReport && (
-                                            <button className="octane-forum__action is-report" type="button" onClick={() => report(ReportType.MESSAGE, { groupId, threadId, messageId: message.messageId })}>
+                                            <button className="volt-forum__action is-report" type="button" onClick={() => report(ReportType.MESSAGE, { groupId, threadId, messageId: message.messageId })}>
                                                 <img alt="" draggable={false} src={reportIcon} style={{ left: 2, top: 6 }} />
                                             </button>
                                         )}
-                                        <button className="octane-forum__action is-reply" disabled={!canReply} type="button" onClick={() => onReply(subject, quoteOf(message))}>
+                                        <button className="volt-forum__action is-reply" disabled={!canReply} type="button" onClick={() => onReply(subject, quoteOf(message))}>
                                             <img alt="" draggable={false} src={replyIcon} style={{ left: 2, top: 6 }} />
                                         </button>
                                     </div>
                                 </div>
-                                <div className="octane-forum__message-body">
-                                    <div className="octane-forum__message-author" style={{ background: '#' + panelColor.toString(16).padStart(6, '0') }}>
+                                <div className="volt-forum__message-body">
+                                    <div className="volt-forum__message-author" style={{ background: '#' + panelColor.toString(16).padStart(6, '0') }}>
                                         <GroupText background={panelColor} overrides={{ bold: true }} text={message.authorName} x={2} y={5} />
                                         <GroupText
                                             background={panelColor}
@@ -192,11 +217,11 @@ export const GroupForumThreadView: FC<GroupForumThreadViewProps> = ({ forumData,
                                             x={2}
                                             y={23}
                                         />
-                                        <div className="octane-forum__message-avatar">
+                                        <div className="volt-forum__message-avatar">
                                             <LayoutAvatarImageView direction={2} figure={message.authorFigure} />
                                         </div>
                                     </div>
-                                    <div className="octane-forum__message-text" style={{ background: '#' + textColor.toString(16).padStart(6, '0') }}>
+                                    <div className="volt-forum__message-text" style={{ background: '#' + textColor.toString(16).padStart(6, '0') }}>
                                         {showText && (
                                             <GroupText background={textColor} overrides={flatText(12)} text={text} width={ITEM_WIDTH - 130 - 12} wrap x={8} y={4} />
                                         )}
@@ -207,13 +232,13 @@ export const GroupForumThreadView: FC<GroupForumThreadViewProps> = ({ forumData,
                     })}
                 </ClassicScrollAreaView>
             </div>
-            <div className="octane-forum__footer">
+            <div className="volt-forum__footer">
                 <ForumButton label={LocalizeText('groupforum.view.back')} width={95} x={10} onClick={onBack} />
                 <ForumButton disabled={!canReply} label={LocalizeText('groupforum.view.reply')} right={178} tint="blue" width={95} onClick={() => onReply(subject)} />
                 <ForumPager pageCount={pageCount} pageIndex={pageIndex} onPage={setPageIndex} />
             </div>
             {statusText && (
-                <div className="octane-forum__status">
+                <div className="volt-forum__status">
                     <GroupText align="center" background={FORUM_SURFACE} overrides={flatText(11)} text={stripTags(statusText)} width={300} x={3} y={3} />
                 </div>
             )}

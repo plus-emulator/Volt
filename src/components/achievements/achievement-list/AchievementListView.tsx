@@ -1,5 +1,6 @@
-import { AchievementData } from '@octane/renderer';
+import { AchievementData } from '@volt/renderer';
 import { CSSProperties, FC, useState } from 'react';
+import { AchievementListLayout } from '../../../api';
 import { ClassicScrollAreaView } from '../../../common';
 import { useAchievementListScrollStore } from '../achievementListScrollStore';
 import { useAirScrollInput } from '../useAirScrollInput';
@@ -14,14 +15,14 @@ const rememberScroll = (scrollTop: number) => useAchievementListScrollStore.setS
 
 interface AchievementListViewProps {
     achievements: AchievementData[];
-    isScrollable: boolean;
+    layout: AchievementListLayout;
 }
 
 export const AchievementListView: FC<AchievementListViewProps> = (props) => {
-    const { achievements = [], isScrollable } = props;
+    const { achievements = [], layout } = props;
+    const { columns, isScrollable, slotCount } = layout;
     const [viewport, setViewport] = useState<HTMLDivElement>(null);
     const [initialScrollTop] = useState(() => useAchievementListScrollStore.getState().scrollTop);
-    const itemCount = Math.max(isScrollable ? 10 : 12, achievements.length);
 
     useAirScrollInput(viewport, {
         wheelStep: WHEEL_STEP,
@@ -31,8 +32,8 @@ export const AchievementListView: FC<AchievementListViewProps> = (props) => {
     });
 
     const grid = (
-        <div className="air-achievements-list-grid" style={{ '--air-achievement-columns': isScrollable ? 5 : 6 } as CSSProperties}>
-            {Array.from({ length: itemCount }, (_, index) => {
+        <div className="air-achievements-list-grid" style={{ '--air-achievement-columns': columns } as CSSProperties}>
+            {Array.from({ length: slotCount }, (_, index) => {
                 const achievement = achievements?.[index] ?? null;
 
                 return <AchievementListItemView key={achievement?.achievementId ?? `empty-${index}`} achievement={achievement} />;

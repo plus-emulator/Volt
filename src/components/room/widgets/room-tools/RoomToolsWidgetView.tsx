@@ -1,34 +1,12 @@
-import { CreateLinkEvent, GetGuestRoomResultEvent, GetRoomEngine, GetSessionDataManager, RateFlatMessageComposer, RoomEngineEvent, RoomGeometry } from '@octane/renderer';
+import { CreateLinkEvent, GetGuestRoomResultEvent, GetRoomEngine, GetSessionDataManager, RateFlatMessageComposer, RoomEngineEvent } from '@volt/renderer';
 import { CSSProperties, FC, useEffect, useState } from 'react';
 import { GetConfigurationValue, LocalizeText, SendMessageComposer, TryVisitRoom } from '../../../../api';
 import { localizeWithFallback } from '../../../../api/utils/localizeWithFallback';
-import { useAchievements, useMessageEvent, useNavigatorData, useOctaneEvent, useRoom } from '../../../../hooks';
+import { useAchievements, useMessageEvent, useNavigatorData, useVoltEvent, useRoom } from '../../../../hooks';
 import { classNames } from '../../../../layout';
-import { getRegisteredPlugins, IOctanePlugin, subscribePlugins } from '../../../plugins/OctanePluginApi';
+import { getRegisteredPlugins, IVoltPlugin, subscribePlugins } from '../../../plugins/VoltPluginApi';
 import { getRoomHistoryList, useRoomToolsHistoryStore } from './roomToolsHistoryStore';
-import { applyRoomZoom } from './roomZoom.helpers';
-
-const ROOM_ZOOM_SCALES = [0.5, 1, 2, 4, 8, 16];
-
-const getNearestZoomScale = (scale: number) => {
-    if (Number.isNaN(scale) || scale <= 0) return 1;
-
-    return ROOM_ZOOM_SCALES.reduce((nearest, current) => (Math.abs(current - scale) < Math.abs(nearest - scale) ? current : nearest), ROOM_ZOOM_SCALES[0]);
-};
-
-const getNextZoomScale = (scale: number, direction: number) => {
-    const currentScale = getNearestZoomScale(scale);
-
-    if (direction > 0) {
-        return ROOM_ZOOM_SCALES.find((zoomScale) => zoomScale > currentScale + 0.001) ?? currentScale;
-    }
-
-    if (direction < 0) {
-        return [...ROOM_ZOOM_SCALES].reverse().find((zoomScale) => zoomScale < currentScale - 0.001) ?? currentScale;
-    }
-
-    return currentScale;
-};
+import { applyRoomZoom, getLogicalRoomZoomScale, getNearestZoomScale, getNextZoomScale } from './roomZoom.helpers';
 
 // UI flag 2 (SessionDataManager.setRoomToolsState): set while the room tools are expanded; new users start collapsed.
 const ROOM_TOOLS_UI_FLAG = 2;
@@ -48,7 +26,7 @@ export const RoomToolsWidgetView: FC<{}> = (props) => {
     const [isOpenHistory, setIsOpenHistory] = useState<boolean>(false);
     const historyEntries = useRoomToolsHistoryStore((state) => state.entries);
     const historyIndex = useRoomToolsHistoryStore((state) => state.index);
-    const [plugins, setPlugins] = useState<IOctanePlugin[]>([]);
+    const [plugins, setPlugins] = useState<IVoltPlugin[]>([]);
     const { navigatorData } = useNavigatorData();
     const { hasWiredAchievements } = useAchievements();
     const { roomSession = null } = useRoom();
@@ -61,11 +39,7 @@ export const RoomToolsWidgetView: FC<{}> = (props) => {
     const getLogicalZoomScale = () => {
         if (!roomSession) return 1;
 
-        const displayScale = GetRoomEngine().getRoomInstanceRenderingCanvasScale(roomSession.roomId, 1);
-        const geometry = GetRoomEngine().getRoomInstanceGeometry(roomSession.roomId, 1);
-        const geometryRatio = geometry ? geometry.scale / RoomGeometry.SCALE_ZOOMED_IN : 1;
-
-        return getNearestZoomScale(displayScale * geometryRatio);
+        return getLogicalRoomZoomScale(roomSession.roomId);
     };
 
     const applyZoomScale = (logicalScale: number) => {
@@ -166,7 +140,7 @@ export const RoomToolsWidgetView: FC<{}> = (props) => {
 
     // The renderer can be zoomed from outside this toolbar (keyboard shortcuts,
     // other widgets), so resync the displayed level whenever the engine reports it.
-    useOctaneEvent<RoomEngineEvent>(RoomEngineEvent.ROOM_ZOOMED, (event) => {
+    useVoltEvent<RoomEngineEvent>(RoomEngineEvent.ROOM_ZOOMED, (event) => {
         if (!roomSession || event.roomId !== roomSession.roomId) return;
 
         updateZoomScale();
@@ -201,10 +175,10 @@ export const RoomToolsWidgetView: FC<{}> = (props) => {
 
     return (
         <div
-            className={classNames('octane-room-tools-container', !isToolsOpen && 'is-collapsed')}
+            className={classNames('volt-room-tools-container', !isToolsOpen && 'is-collapsed')}
             style={{ '--room-tools-height': `${windowHeight}px` } as CSSProperties}
         >
-            <div className="octane-room-tools">
+            <div className="volt-room-tools">
                 <div className="room-tools-list">
                     <div className="room-tools-zoom-row">
                         <span className="room-tools-zoom-text">{LocalizeText('room.zoom.text', ['zoom_level'], [getZoomText(zoomScale)])}</span>
@@ -231,7 +205,7 @@ export const RoomToolsWidgetView: FC<{}> = (props) => {
                             onClick={() => !tool.disabled && handleToolClick(tool.action)}
                         >
                             <div className="room-tool-icon">
-                                <div className={classNames('octane-icon', tool.icon)} />
+                                <div className={classNames('volt-icon', tool.icon)} />
                             </div>
                             <span className="room-tool-label">{tool.label}</span>
                         </div>
@@ -239,7 +213,7 @@ export const RoomToolsWidgetView: FC<{}> = (props) => {
                     {plugins.map((plugin) => (
                         <div key={plugin.name} className="room-tool-row" title={plugin.label} onClick={() => plugin.onOpen()}>
                             <div className="room-tool-icon">
-                                <div className={classNames('octane-icon', plugin.icon || 'icon-cog')} />
+                                <div className={classNames('volt-icon', plugin.icon || 'icon-cog')} />
                             </div>
                             <span className="room-tool-label">{plugin.label}</span>
                         </div>
@@ -248,7 +222,7 @@ export const RoomToolsWidgetView: FC<{}> = (props) => {
                         <div
                             className={classNames(
                                 'room-history-back',
-                                'octane-icon',
+                                'volt-icon',
                                 canGoBack ? 'cursor-pointer icon-room-history-back-enabled' : 'icon-room-history-back-disabled'
                             )}
                             title={LocalizeText('room.history.button.back.tooltip')}
@@ -257,7 +231,7 @@ export const RoomToolsWidgetView: FC<{}> = (props) => {
                         <div
                             className={classNames(
                                 'room-history-open',
-                                'octane-icon',
+                                'volt-icon',
                                 hasHistory ? 'cursor-pointer icon-room-history-enabled' : 'icon-room-history-disabled'
                             )}
                             title={LocalizeText('room.history.button.tooltip')}
@@ -266,7 +240,7 @@ export const RoomToolsWidgetView: FC<{}> = (props) => {
                         <div
                             className={classNames(
                                 'room-history-forward',
-                                'octane-icon',
+                                'volt-icon',
                                 canGoNext ? 'cursor-pointer icon-room-history-next-enabled' : 'icon-room-history-next-disabled'
                             )}
                             title={LocalizeText('room.history.button.forward.tooltip')}
@@ -279,7 +253,7 @@ export const RoomToolsWidgetView: FC<{}> = (props) => {
                 <span className="room-tools-collapse-arrow" />
             </button>
             {historyOpen && (
-                <div className="octane-room-tools-history">
+                <div className="volt-room-tools-history">
                     {roomHistory.map((history) => (
                         <div key={history.roomId} className="room-history-item" onClick={() => TryVisitRoom(history.roomId)}>
                             <span className="room-history-item-name">{history.roomName}</span>

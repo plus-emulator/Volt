@@ -1,15 +1,16 @@
 import {
     ContextMenuEnum,
+    CreateLinkEvent,
     GetRoomEngine,
     GroupFurniContextMenuInfoMessageEvent,
     GroupFurniContextMenuInfoMessageParser,
     RoomEngineTriggerWidgetEvent,
     RoomObjectCategory,
     RoomObjectVariable
-} from '@octane/renderer';
+} from '@volt/renderer';
 import { useState } from 'react';
 import { IsOwnerOfFurniture, TryJoinGroup, TryVisitRoom } from '../../../../api';
-import { useMessageEvent, useOctaneEvent } from '../../../events';
+import { useMessageEvent, useVoltEvent } from '../../../events';
 import { useRoom } from '../../useRoom';
 
 export const MONSTERPLANT_SEED_CONFIRMATION: string = 'MONSTERPLANT_SEED_CONFIRMATION';
@@ -71,13 +72,17 @@ const useFurnitureContextMenuWidgetState = () => {
                 case 'go_to_group_homeroom':
                     if (groupData) TryVisitRoom(groupData.guildHomeRoomId);
                     break;
+                case 'open_forum':
+                    // GuildFurnitureContextMenuView "open_forum" (shown when the group has a readable forum): the link groupforum/<group id>.
+                    if (groupData) CreateLinkEvent(`groupforum/${groupData.guildId}`);
+                    break;
             }
         }
 
         onClose();
     };
 
-    useOctaneEvent<RoomEngineTriggerWidgetEvent>(
+    useVoltEvent<RoomEngineTriggerWidgetEvent>(
         [
             RoomEngineTriggerWidgetEvent.OPEN_FURNI_CONTEXT_MENU,
             RoomEngineTriggerWidgetEvent.CLOSE_FURNI_CONTEXT_MENU,

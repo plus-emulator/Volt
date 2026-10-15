@@ -1,10 +1,9 @@
-import { IWiredLogEntry, WiredLogPageEvent, WiredRoomLogsPageComposer } from '@octane/renderer';
+import { IWiredLogEntry, WiredLogPageEvent, WiredRoomLogsPageComposer } from '@volt/renderer';
 import { useEffect, useRef, useState } from 'react';
 import { localizeWithFallback, SendMessageComposer } from '../../api';
-import { Button, DraggableWindowPosition, OctaneCardContentView, OctaneCardHeaderView, OctaneCardView, Text } from '../../common';
+import { Button, DraggableWindowPosition, VoltCardContentView, VoltCardHeaderView, VoltCardView, Text } from '../../common';
 import { useMessageEvent } from '../../hooks';
 import { useWiredPageRequests } from '../../hooks/wired-tools/useWiredPageRequests';
-import { MONITOR_ERROR_INFO, MONITOR_LOG_ORDER } from './WiredCreatorTools.constants';
 import { WiredPagedTable, WiredTableCell, WiredTableColumn } from './WiredPagedTable';
 import { calculateLastPage, NO_PAGE } from './WiredPaging.helpers';
 
@@ -14,10 +13,12 @@ export const WIRED_ROOM_LOGS_PAGE_SIZE = 50;
 const REQUEST_PAGE_RATELIMIT = 300;
 const REFRESH_TIME_MS = 2500;
 const FILTER_MAX_CHARS = 400;
-/** Habbo's log levels, by the number the server sends: engine notes are warnings and errors, and
- * "write to logs" boxes can write at any of the four. */
-const LOG_LEVELS = ['DEBUG', 'INFO', 'WARNING', 'ERROR'];
-const LEVEL_CLASS: Record<number, string> = { 0: 'text-[#6b6b6b]', 1: 'text-[#1f5fa8]', 2: 'text-[#b36b00]', 3: 'text-[#c70d0d]' };
+/** Habbo's log levels, by the number the server sends (default texts wiredmenu.logs_overview.log_level.N): engine notes are
+ * errors, and "write to logs" boxes can write at any of the four. */
+const LOG_LEVELS = ['INFO', 'WARN', 'ERROR', 'DEBUG'];
+const LEVEL_CLASS: Record<number, string> = { 0: 'text-[#1f5fa8]', 1: 'text-[#b36b00]', 2: 'text-[#c70d0d]', 3: 'text-[#6b6b6b]' };
+/** The two log sources of the official list: the engine's own notes and the lines wired boxes wrote (observed: Write to Logs is 1). */
+const LOG_SOURCES = ['System', 'Wired'];
 
 interface LogPage {
     totalEntries: number;
@@ -33,11 +34,11 @@ export interface WiredRoomLogsViewProps {
 }
 
 const sourceLabel = (source: number): string => {
-    const name = MONITOR_LOG_ORDER[source];
+    const name = LOG_SOURCES[source];
 
     if (!name) return String(source);
 
-    return MONITOR_ERROR_INFO[name]?.title ?? name;
+    return localizeWithFallback(`wiredmenu.logs_overview.log_source.${source}`, name);
 };
 
 const levelLabel = (level: number): string => LOG_LEVELS[level] ?? String(level);
@@ -182,7 +183,7 @@ export const WiredRoomLogsView = ({ onClose }: WiredRoomLogsViewProps) => {
 
     return (
         // Official logs_overview: frame 3, 700 wide, 508 high, resizable in height between 380 and 700.
-        <OctaneCardView
+        <VoltCardView
             className="h-[508px] max-h-[700px] min-h-[380px] w-[700px]"
             frameStyle={3}
             resizeAxis="vertical"
@@ -192,8 +193,8 @@ export const WiredRoomLogsView = ({ onClose }: WiredRoomLogsViewProps) => {
             offsetLeft={40}
             offsetTop={40}
         >
-            <OctaneCardHeaderView headerText={localizeWithFallback('wiredmenu.logs_overview.title', 'Wired room logs')} onCloseClick={onClose} />
-            <OctaneCardContentView className="text-black bg-[#f4efe3] p-3 flex flex-col gap-3 min-h-0" overflow="hidden">
+            <VoltCardHeaderView headerText={localizeWithFallback('wiredmenu.logs_overview.title', 'Wired room logs')} onCloseClick={onClose} />
+            <VoltCardContentView className="text-black bg-[#f4efe3] p-3 flex flex-col gap-3 min-h-0" overflow="hidden">
                 <div className="rounded border border-[#c8c2b2] bg-white p-3 flex items-center justify-between gap-3">
                     <Text>
                         {localizeWithFallback(
@@ -239,7 +240,7 @@ export const WiredRoomLogsView = ({ onClose }: WiredRoomLogsViewProps) => {
                             }}
                         >
                             <option value={-1}>{localizeWithFallback('wiredmenu.logs_overview.log_source.all', 'All')}</option>
-                            {MONITOR_LOG_ORDER.map((name, index) => (
+                            {LOG_SOURCES.map((name, index) => (
                                 <option key={name} value={index}>
                                     {sourceLabel(index)}
                                 </option>
@@ -280,7 +281,7 @@ export const WiredRoomLogsView = ({ onClose }: WiredRoomLogsViewProps) => {
                     scrollResetKey={scrollKey}
                     bodyClassName="min-h-0 grow"
                 />
-            </OctaneCardContentView>
-        </OctaneCardView>
+            </VoltCardContentView>
+        </VoltCardView>
     );
 };

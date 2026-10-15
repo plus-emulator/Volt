@@ -7,10 +7,10 @@ import {
     RoomEngineEvent,
     RoomGeometry,
     RoomSessionEvent
-} from '@octane/renderer';
+} from '@volt/renderer';
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import { CameraEffectSelection, deleteTrustedCamera, GetConfigurationValue, LocalizeText, NotificationAlertType } from '../../api';
-import { useAchievements, useCamera, useNotification, useOctaneEvent, useRoom } from '../../hooks';
+import { useAchievements, useCamera, useNotification, useVoltEvent, useRoom } from '../../hooks';
 import { getCameraAchievementLevel } from './CameraAirUtilities';
 import { CameraWidgetCaptureView } from './views/CameraWidgetCaptureView';
 import { CameraWidgetCheckoutView } from './views/CameraWidgetCheckoutView';
@@ -48,11 +48,17 @@ export const CameraWidgetView: FC<{}> = (props) => {
         setCameraRoll = null,
         price = { credits: 0, duckets: 0, publishDucketPrice: 0 }
     } = useCamera();
-    const { achievementCategories = [] } = useAchievements();
+    const { achievementCategories = [], ensureAchievementsInitialized = null } = useAchievements();
     const { simpleAlert = null } = useNotification();
     const { roomSession = null } = useRoom();
 
     const myLevel = useMemo(() => getCameraAchievementLevel(achievementCategories), [achievementCategories]);
+
+    // The official CameraWidget asks the quest engine to load the achievement list (ensureAchievementsInitialized) when a
+    // room creates it, so the photo lab can read the CameraPhotoCount level without the achievements window being opened.
+    useEffect(() => {
+        if (roomSession && ensureAchievementsInitialized) ensureAchievementsInitialized();
+    }, [roomSession, ensureAchievementsInitialized]);
 
     const openCamera = useCallback(() => {
         if (!roomSession) return;
@@ -120,12 +126,12 @@ export const CameraWidgetView: FC<{}> = (props) => {
         setMode(MODE_CHECKOUT);
     };
 
-    useOctaneEvent<RoomSessionEvent>(RoomSessionEvent.ENDED, (event) => {
+    useVoltEvent<RoomSessionEvent>(RoomSessionEvent.ENDED, (event) => {
         setSelectedPictureIndex(-1);
         setMode(MODE_NONE);
     });
 
-    useOctaneEvent<RoomEngineEvent>(RoomEngineEvent.ROOM_ZOOMED, (event) => {
+    useVoltEvent<RoomEngineEvent>(RoomEngineEvent.ROOM_ZOOMED, (event) => {
         if (!roomSession || event.roomId !== roomSession.roomId || isDefaultRoomZoom(event.roomId)) return;
 
         setSelectedPictureIndex(-1);

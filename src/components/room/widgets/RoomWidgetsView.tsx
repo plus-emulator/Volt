@@ -6,11 +6,11 @@ import {
     RoomId,
     RoomSessionErrorMessageEvent,
     RoomZoomEvent
-} from '@octane/renderer';
+} from '@volt/renderer';
 import { FC } from 'react';
 import { DispatchUiEvent, LocalizeText, NotificationAlertType, RoomWidgetUpdateRoomObjectEvent } from '../../../api';
 import { WidgetErrorBoundary } from '../../../common';
-import { useOctaneEvent, useNotification, usePollSubscriptions, useRoom } from '../../../hooks';
+import { useNotification, useObjectRemoveConfirm, usePollSubscriptions, useRoom, useVoltEvent } from '../../../hooks';
 import { AvatarInfoWidgetView } from './avatar-info/AvatarInfoWidgetView';
 import { BuildHeightWidgetView } from './BuildHeightWidgetView';
 import { ChatWidgetView } from './chat/ChatWidgetView';
@@ -20,29 +20,36 @@ import { UserChooserWidgetView } from './choosers/UserChooserWidgetView';
 import { DoorbellWidgetView } from './doorbell/DoorbellWidgetView';
 import { FriendRequestWidgetView } from './friend-request/FriendRequestWidgetView';
 import { FurnitureWidgetsView } from './furniture/FurnitureWidgetsView';
+import { FurnitureLabelSettingsView } from './furniture-label/FurnitureLabelSettingsView';
+import { FurnitureLabelWidgetView } from './furniture-label/FurnitureLabelWidgetView';
 import { PetPackageWidgetView } from './pet-package/PetPackageWidgetView';
 import { RoomKeybindView } from './RoomKeybindView';
 import { RoomFilterWordsWidgetView } from './room-filter-words/RoomFilterWordsWidgetView';
 import { RoomThumbnailWidgetView } from './room-thumbnail/RoomThumbnailWidgetView';
 import { RoomToolsWidgetView } from './room-tools/RoomToolsWidgetView';
 import { applyRoomZoom } from './room-tools/roomZoom.helpers';
+import { VariableLeaderboardOverlayView } from './variable-leaderboard/VariableLeaderboardOverlayView';
+import { WiredLinkWidgetView } from './wired-link/WiredLinkWidgetView';
 import { WordQuizWidgetView } from './word-quiz/WordQuizWidgetView';
 
-const MAX_ZOOM_SHIFT = 3;
+// Level 5 is 16x, the top AIR zoom step (RoomDesktop ROOM_ZOOM_SCALES), as on the zoom buttons.
+const MAX_ZOOM_SHIFT = 4;
 
 export const RoomWidgetsView: FC<{}> = (props) => {
     const { roomSession = null } = useRoom();
     const { simpleAlert = null } = useNotification();
 
     usePollSubscriptions();
+    useObjectRemoveConfirm();
 
-    useOctaneEvent<RoomZoomEvent>(RoomZoomEvent.ROOM_ZOOM, (event) => {
+    useVoltEvent<RoomZoomEvent>(RoomZoomEvent.ROOM_ZOOM, (event) => {
         const level = Number.isFinite(event.level) ? Math.floor(event.level) : 1;
-        const logicalScale = level < 1 ? 0.5 : (1 << Math.min(level - 1, MAX_ZOOM_SHIFT));
-        applyRoomZoom(event.roomId, logicalScale, event.isFlipForced);
+        const logicalScale = level < 1 ? 0.5 : 1 << Math.min(level - 1, MAX_ZOOM_SHIFT);
+        // A ctrl+alt(+shift) click zooms around the pointer (AIR handleRoomCanvasMouseEvent).
+        applyRoomZoom(event.roomId, logicalScale, event.isFlipForced, event.point ?? null);
     });
 
-    useOctaneEvent<RoomEngineObjectEvent>(
+    useVoltEvent<RoomEngineObjectEvent>(
         [
             RoomEngineTriggerWidgetEvent.REQUEST_TEASER,
             RoomEngineTriggerWidgetEvent.REQUEST_ECOTRONBOX,
@@ -106,7 +113,7 @@ export const RoomWidgetsView: FC<{}> = (props) => {
         }
     );
 
-    useOctaneEvent<RoomSessionErrorMessageEvent>(
+    useVoltEvent<RoomSessionErrorMessageEvent>(
         [
             RoomSessionErrorMessageEvent.RSEME_KICKED,
             RoomSessionErrorMessageEvent.RSEME_PETS_FORBIDDEN_IN_HOTEL,
@@ -174,6 +181,12 @@ export const RoomWidgetsView: FC<{}> = (props) => {
     return (
         <WidgetErrorBoundary name="RoomWidgets">
             <div className="absolute top-0 left-0 pointer-events-none size-full">
+                <WidgetErrorBoundary name="VariableLeaderboard">
+                    <VariableLeaderboardOverlayView />
+                </WidgetErrorBoundary>
+                <WidgetErrorBoundary name="FurnitureLabel">
+                    <FurnitureLabelWidgetView />
+                </WidgetErrorBoundary>
                 <WidgetErrorBoundary name="FurnitureWidgets">
                     <FurnitureWidgetsView />
                 </WidgetErrorBoundary>
@@ -219,6 +232,12 @@ export const RoomWidgetsView: FC<{}> = (props) => {
             </WidgetErrorBoundary>
             <WidgetErrorBoundary name="FriendRequestWidget">
                 <FriendRequestWidgetView />
+            </WidgetErrorBoundary>
+            <WidgetErrorBoundary name="FurnitureLabelSettings">
+                <FurnitureLabelSettingsView />
+            </WidgetErrorBoundary>
+            <WidgetErrorBoundary name="WiredLink">
+                <WiredLinkWidgetView />
             </WidgetErrorBoundary>
         </WidgetErrorBoundary>
     );

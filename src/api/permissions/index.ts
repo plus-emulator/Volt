@@ -1,4 +1,4 @@
-import { GetSessionDataManager } from '@octane/renderer';
+import { GetSessionDataManager } from '@volt/renderer';
 
 export const Permission = {
     ModerationTool: 'moderation.tool',
@@ -6,15 +6,9 @@ export const Permission = {
     Ambassador: 'ambassador',
     CampaignCalendarForce: 'campaign.calendar.force',
     CameraUse: 'camera.use',
-    CatalogEdit: 'catalog.edit',
-    FurniEdit: 'furni.edit',
-    FurniDelete: 'furni.delete',
     RoomDiceCloseAny: 'room.dice.close_any',
-    HousekeepingAccess: 'housekeeping.access',
     RewardTrackManage: 'rewardtrack.manage',
     NavigatorStaffPick: 'navigator.staff_pick',
-    FortuneWheelManage: 'fortune_wheel.manage',
-    HousekeepingRolesManage: 'housekeeping.roles.manage',
     NavigatorCategoriesStaff: 'navigator.categories.staff',
     NavigatorEventsModerate: 'navigator.events.moderate',
     CatalogGiftStaff: 'catalog.gift.staff',

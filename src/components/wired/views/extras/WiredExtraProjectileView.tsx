@@ -2,9 +2,7 @@ import { FC, PropsWithChildren, useEffect, useMemo, useState } from 'react';
 import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import {
     clampProjectileParam,
-    decodeProjectileTokens,
     defaultProjectileParams,
-    encodeProjectileTokens,
     isProjectileVariableEnabled,
     LocalizeText,
     localizeWithFallback,
@@ -36,23 +34,21 @@ import {
     PROJECTILE_PARAM_TIME_IS_VARIABLE,
     PROJECTILE_PARAM_TIME_PER_TILE,
     PROJECTILE_PARAM_TIME_TARGET,
+    PROJECTILE_PARAM_COUNT,
     PROJECTILE_PARAM_TIME_USER_SOURCE,
     toggleProjectileVariable,
     WiredFurniType
 } from '../../../../api';
 import { Text } from '../../../../common';
 import { WiredLegacySlider as Slider } from '../WiredSlider';
-import { useWired, useWiredTools } from '../../../../hooks';
+import { useWired } from '../../../../hooks';
 import { WiredFurniSelectorView } from '../WiredFurniSelectorView';
-import { sortWiredSourceOptions, USER_SOURCES, useAvailableUserSources, WiredSourceOption } from '../WiredSourcesSelector';
+import { nativeSourceOptions, WiredSourceOption } from '../WiredSourcesSelector';
 import { WiredVariablePicker } from '../WiredVariablePicker';
-import {
-    buildWiredVariablePickerEntries,
-    createFallbackVariableEntry,
-    flattenWiredVariablePickerEntries,
-    normalizeVariableTokenFromWire,
-    WiredVariablePickerTarget
-} from '../WiredVariablePickerData';
+import { buildWiredVariablePickerEntries, createFallbackVariableEntry, flattenWiredVariablePickerEntries, WiredVariablePickerTarget } from '../WiredVariablePickerData';
+import { createNativeVariableToken, getNativeVariableId } from '../../../../api';
+import { WIRED_VARIABLE_ABSENT, tokenOfVariableSlot, variableSlotOf } from '../../../../api';
+import { useWiredNativeVariables } from '../../../../hooks';
 import { WiredExtraBaseView } from './WiredExtraBaseView';
 import { WiredProjectileDirectionGrid } from './WiredProjectileDirectionGrid';
 
@@ -75,26 +71,13 @@ const DISTANCE_AXES: Array<{ fallback: string; key: string; param: number }> = [
     { fallback: 'Height', key: 'height', param: PROJECTILE_PARAM_DISTANCE_BY_HEIGHT }
 ];
 
-/** Variable targets as the server numbers them. */
+/** Native merged variable target codes. */
 const VARIABLE_TARGETS: Array<{ key: WiredVariablePickerTarget; value: number; fallback: string }> = [
-    { key: 'furni', value: 1, fallback: 'Furni' },
-    { key: 'user', value: 0, fallback: 'User' },
-    { key: 'global', value: 3, fallback: 'Global' },
-    { key: 'context', value: 2, fallback: 'Context' }
+    { key: 'furni', value: 0, fallback: 'Furni' },
+    { key: 'user', value: 1, fallback: 'User' },
+    { key: 'global', value: -10, fallback: 'Global' },
+    { key: 'context', value: -20, fallback: 'Context' }
 ];
-
-const SOURCE_TRIGGER = 0;
-const SOURCE_PROJECTILES = 101;
-
-const FURNI_SOURCES: WiredSourceOption[] = sortWiredSourceOptions(
-    [
-        { value: SOURCE_TRIGGER, label: 'wiredfurni.params.sources.furni.0' },
-        { value: SOURCE_PROJECTILES, label: 'wiredfurni.params.sources.furni.101' },
-        { value: 200, label: 'wiredfurni.params.sources.furni.200' },
-        { value: 201, label: 'wiredfurni.params.sources.furni.201' }
-    ],
-    'furni'
-);
 
 type SectionKey = 'info' | 'direction' | 'trajectory' | 'time' | 'rotation' | 'variables';
 
@@ -117,13 +100,13 @@ const ProjectileSection: FC<PropsWithChildren<{ title: string; open: boolean; fi
 
     return (
         <>
-            {!first && <div className="octane-wired__divider" />}
-            <div className="octane-wired__projectile-section">
-                <button aria-expanded={open} className="octane-wired__projectile-section-header" type="button" onClick={onToggle}>
+            {!first && <div className="volt-wired__divider" />}
+            <div className="volt-wired__projectile-section">
+                <button aria-expanded={open} className="volt-wired__projectile-section-header" type="button" onClick={onToggle}>
                     <Text bold>{title}</Text>
-                    {open ? <FaChevronUp className="octane-wired__projectile-chevron" /> : <FaChevronDown className="octane-wired__projectile-chevron" />}
+                    {open ? <FaChevronUp className="volt-wired__projectile-chevron" /> : <FaChevronDown className="volt-wired__projectile-chevron" />}
                 </button>
-                {open && <div className="octane-wired__projectile-section-body">{children}</div>}
+                {open && <div className="volt-wired__projectile-section-body">{children}</div>}
             </div>
         </>
     );
@@ -144,7 +127,7 @@ const NumberField: FC<{ disabled?: boolean; label: string; value: number; onChan
     <label className={`flex items-center justify-between gap-2 ${disabled ? 'opacity-50' : ''}`}>
         <Text small>{label}</Text>
         <input
-            className="form-control form-control-sm octane-wired__projectile-number"
+            className="form-control form-control-sm volt-wired__projectile-number"
             disabled={disabled}
             type="number"
             value={value}
@@ -153,10 +136,10 @@ const NumberField: FC<{ disabled?: boolean; label: string; value: number; onChan
     </label>
 );
 
-const SourceSelect: FC<{ label: string; options: WiredSourceOption[]; value: number; onChange: (value: number) => void }> = ({ label, options, value, onChange }) => (
+const SourceSelect: FC<{ label: string; options: WiredSourceOption[]; value: number; disabled?: boolean; onChange: (value: number) => void }> = ({ label, options, value, disabled = false, onChange }) => (
     <label className="flex items-center justify-between gap-2">
         <Text small>{label}</Text>
-        <select aria-label={label} className="form-select form-select-sm" value={value} onChange={(event) => onChange(parseInt(event.target.value, 10))}>
+        <select aria-label={label} className="form-select form-select-sm" disabled={disabled} value={value} onChange={(event) => onChange(parseInt(event.target.value, 10))}>
             {options.map((option) => (
                 <option key={option.value} value={option.value}>
                     {LocalizeText(option.label)}
@@ -176,6 +159,7 @@ interface ValueOrVariableProps {
     userSource: number;
     furniSource: number;
     userSources: WiredSourceOption[];
+    furniSources: WiredSourceOption[];
     onValue: (value: number) => void;
     onFromVariable: (fromVariable: boolean) => void;
     onTarget: (target: number) => void;
@@ -187,7 +171,7 @@ interface ValueOrVariableProps {
 /** Habbo's "set value / from variable" pair, as the time per tile and the distance use it. */
 const ValueOrVariable: FC<ValueOrVariableProps> = (props) => {
     const { name, label, value, fromVariable, target, token, userSource, furniSource, userSources } = props;
-    const { userVariableDefinitions = [], furniVariableDefinitions = [], roomVariableDefinitions = [], contextVariableDefinitions = [] } = useWiredTools();
+    const { userVariableDefinitions = [], furniVariableDefinitions = [], roomVariableDefinitions = [], contextVariableDefinitions = [] } = useWiredNativeVariables();
     const targetKey = targetKeyOf(target);
 
     const entries = useMemo(() => {
@@ -215,7 +199,7 @@ const ValueOrVariable: FC<ValueOrVariableProps> = (props) => {
                 <Text small>{label}</Text>
                 <input
                     aria-label={label}
-                    className="form-control form-control-sm octane-wired__projectile-number ms-auto"
+                    className="form-control form-control-sm volt-wired__projectile-number ms-auto"
                     disabled={fromVariable}
                     type="number"
                     value={value}
@@ -227,7 +211,7 @@ const ValueOrVariable: FC<ValueOrVariableProps> = (props) => {
                 <Text small>{LocalizeText('wiredfurni.params.variables.reference_value.from_variable')}</Text>
             </label>
             {fromVariable && (
-                <div className="flex flex-col gap-1 octane-wired__projectile-indent">
+                <div className="flex flex-col gap-1 volt-wired__projectile-indent">
                     <select
                         aria-label={`${label} variable type`}
                         className="form-select form-select-sm"
@@ -248,7 +232,7 @@ const ValueOrVariable: FC<ValueOrVariableProps> = (props) => {
                         <SourceSelect label={text('variable_source', 'Read it from:')} options={userSources} value={userSource} onChange={props.onUserSource} />
                     )}
                     {targetKey === 'furni' && (
-                        <SourceSelect label={text('variable_source', 'Read it from:')} options={FURNI_SOURCES} value={furniSource} onChange={props.onFurniSource} />
+                        <SourceSelect label={text('variable_source', 'Read it from:')} options={props.furniSources} value={furniSource} onChange={props.onFurniSource} />
                     )}
                 </div>
             )}
@@ -257,21 +241,29 @@ const ValueOrVariable: FC<ValueOrVariableProps> = (props) => {
 };
 
 export const WiredExtraProjectileView: FC<{}> = () => {
-    const { trigger = null, setIntParams = null, setStringParam = null } = useWired();
+    const { trigger = null, setIntParams = null, setStringParam = null, setVariableIds = null, setUserSources = null, setFurniSources = null } = useWired();
     const [params, setParams] = useState<number[]>(defaultProjectileParams);
     const [timeToken, setTimeToken] = useState('');
     const [distanceToken, setDistanceToken] = useState('');
     const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>(INITIALLY_OPEN);
-    const userSources = sortWiredSourceOptions(useAvailableUserSources(trigger, USER_SOURCES), 'users');
+    const userSources = nativeSourceOptions(trigger?.inputSources?.usersAllowed[1], 'users');
 
     useEffect(() => {
         if (!trigger) return;
 
-        const [time, distance] = decodeProjectileTokens(trigger.stringData);
+        // variableIds: [0] the time variable, [1] the distance variable; an empty entry is "not from a variable".
+        // The first 19 ints are the card's params; the five sources are the U and F tails (time user U0, shooter U1,
+        // distance user U2; time furni F1, distance furni F2), read back into the same slots the form edits.
+        const nextParams = normalizeProjectileParams(trigger.intData);
 
-        setParams(normalizeProjectileParams(trigger.intData));
-        setTimeToken(normalizeVariableTokenFromWire(time));
-        setDistanceToken(normalizeVariableTokenFromWire(distance));
+        nextParams[PROJECTILE_PARAM_TIME_USER_SOURCE] = trigger.userSources[0] ?? 0;
+        nextParams[PROJECTILE_PARAM_SHOOTER_SOURCE] = trigger.userSources[1] ?? 0;
+        nextParams[PROJECTILE_PARAM_DISTANCE_USER_SOURCE] = trigger.userSources[2] ?? 0;
+        nextParams[PROJECTILE_PARAM_TIME_FURNI_SOURCE] = trigger.furniSources[1] ?? trigger.inputSources?.furniDefaults[1] ?? 0;
+        nextParams[PROJECTILE_PARAM_DISTANCE_FURNI_SOURCE] = trigger.furniSources[2] ?? 0;
+        setParams(nextParams);
+        setTimeToken(tokenOfVariableSlot(trigger.variableIds[0]));
+        setDistanceToken(tokenOfVariableSlot(trigger.variableIds[1]));
     }, [trigger]);
 
     const setParam = (index: number, value: number) =>
@@ -289,8 +281,11 @@ export const WiredExtraProjectileView: FC<{}> = () => {
     const distanceFromVariable = params[PROJECTILE_PARAM_DISTANCE_IS_VARIABLE] === 1;
 
     const save = () => {
-        setIntParams(normalizeProjectileParams(params));
-        setStringParam(encodeProjectileTokens(timeFromVariable ? timeToken : '', distanceFromVariable ? distanceToken : ''));
+        setIntParams(normalizeProjectileParams(params).slice(0, PROJECTILE_PARAM_COUNT));
+        setUserSources([params[PROJECTILE_PARAM_TIME_USER_SOURCE], params[PROJECTILE_PARAM_SHOOTER_SOURCE], params[PROJECTILE_PARAM_DISTANCE_USER_SOURCE]]);
+        setFurniSources([100, params[PROJECTILE_PARAM_TIME_FURNI_SOURCE], params[PROJECTILE_PARAM_DISTANCE_FURNI_SOURCE]]);
+        setStringParam('');
+        setVariableIds([timeFromVariable ? variableSlotOf(timeToken) : WIRED_VARIABLE_ABSENT, distanceFromVariable ? variableSlotOf(distanceToken) : WIRED_VARIABLE_ABSENT]);
     };
 
     return (
@@ -302,7 +297,7 @@ export const WiredExtraProjectileView: FC<{}> = () => {
             showSelection={false}
             validate={() => !(scalesTime && timeFromVariable && !timeToken) && !(distanceMode !== PROJECTILE_DISTANCE_NORMAL && distanceFromVariable && !distanceToken)}
         >
-            <div className="octane-wired__projectile">
+            <div className="volt-wired__projectile">
                 <ProjectileSection first open={openSections.info} title={text('info', 'Usage info:')} onToggle={() => toggleSection('info')}>
                     <Text small>
                         {text(
@@ -323,7 +318,7 @@ export const WiredExtraProjectileView: FC<{}> = () => {
                         <select
                             aria-label={text('system', 'System:')}
                             className="form-select form-select-sm"
-                            disabled={!rotates && !changesShooter}
+                            disabled={!rotates}
                             value={params[PROJECTILE_PARAM_DIRECTIONAL_SYSTEM]}
                             onChange={(event) => setParam(PROJECTILE_PARAM_DIRECTIONAL_SYSTEM, parseInt(event.target.value, 10))}
                         >
@@ -334,22 +329,24 @@ export const WiredExtraProjectileView: FC<{}> = () => {
                             ))}
                         </select>
                     </div>
-                    <WiredProjectileDirectionGrid disabled={!rotates && !changesShooter} system={params[PROJECTILE_PARAM_DIRECTIONAL_SYSTEM]} />
+                    <WiredProjectileDirectionGrid disabled={!rotates} system={params[PROJECTILE_PARAM_DIRECTIONAL_SYSTEM]} />
                     <Checkbox
                         checked={changesShooter}
+                        disabled={!rotates}
                         label={text('shooter', "Visually change the shooter's direction")}
                         onChange={(checked) => setFlag(PROJECTILE_PARAM_CHANGE_SHOOTER_DIRECTION, checked)}
                     />
-                    <div className="flex flex-col gap-1 octane-wired__projectile-indent">
+                    <div className="flex flex-col gap-1 volt-wired__projectile-indent">
                         <Checkbox
                             checked={params[PROJECTILE_PARAM_BUNNY_HOP] === 1}
-                            disabled={!changesShooter}
+                            disabled={!rotates || !changesShooter}
                             label={text('bunny_hop', 'Do a little hop when shooting sideways')}
                             onChange={(checked) => setFlag(PROJECTILE_PARAM_BUNNY_HOP, checked)}
                         />
                         {changesShooter && (
                             <SourceSelect
                                 label={text('shooter.source', 'Shooter:')}
+                                disabled={!rotates}
                                 options={userSources}
                                 value={params[PROJECTILE_PARAM_SHOOTER_SOURCE]}
                                 onChange={(value) => setParam(PROJECTILE_PARAM_SHOOTER_SOURCE, value)}
@@ -374,7 +371,7 @@ export const WiredExtraProjectileView: FC<{}> = () => {
                         ))}
                     </div>
                     {distanceMode !== PROJECTILE_DISTANCE_NORMAL && (
-                        <div className="octane-wired__projectile-indent">
+                        <div className="volt-wired__projectile-indent">
                             <ValueOrVariable
                                 fromVariable={distanceFromVariable}
                                 furniSource={params[PROJECTILE_PARAM_DISTANCE_FURNI_SOURCE]}
@@ -383,7 +380,8 @@ export const WiredExtraProjectileView: FC<{}> = () => {
                                 target={params[PROJECTILE_PARAM_DISTANCE_TARGET]}
                                 token={distanceToken}
                                 userSource={params[PROJECTILE_PARAM_DISTANCE_USER_SOURCE]}
-                                userSources={userSources}
+                                userSources={nativeSourceOptions(trigger?.inputSources?.usersAllowed[2], 'users')}
+                                furniSources={nativeSourceOptions(trigger?.inputSources?.furniAllowed[2], 'furni')}
                                 value={params[PROJECTILE_PARAM_DISTANCE_TILES]}
                                 onFromVariable={(fromVariable) => setFlag(PROJECTILE_PARAM_DISTANCE_IS_VARIABLE, fromVariable)}
                                 onFurniSource={(source) => setParam(PROJECTILE_PARAM_DISTANCE_FURNI_SOURCE, source)}
@@ -427,7 +425,8 @@ export const WiredExtraProjectileView: FC<{}> = () => {
                                 target={params[PROJECTILE_PARAM_TIME_TARGET]}
                                 token={timeToken}
                                 userSource={params[PROJECTILE_PARAM_TIME_USER_SOURCE]}
-                                userSources={userSources}
+                                userSources={nativeSourceOptions(trigger?.inputSources?.usersAllowed[0], 'users')}
+                                furniSources={nativeSourceOptions(trigger?.inputSources?.furniAllowed[1], 'furni')}
                                 value={params[PROJECTILE_PARAM_TIME_PER_TILE]}
                                 onFromVariable={(fromVariable) => setFlag(PROJECTILE_PARAM_TIME_IS_VARIABLE, fromVariable)}
                                 onFurniSource={(source) => setParam(PROJECTILE_PARAM_TIME_FURNI_SOURCE, source)}
@@ -437,7 +436,7 @@ export const WiredExtraProjectileView: FC<{}> = () => {
                                 onValue={(value) => setParam(PROJECTILE_PARAM_TIME_PER_TILE, value)}
                             />
                             <Text small>{text('time.distance_by', 'Measure the distance by:')}</Text>
-                            <div className="flex items-center gap-3 octane-wired__projectile-indent">
+                            <div className="flex items-center gap-3 volt-wired__projectile-indent">
                                 {DISTANCE_AXES.map((axis) => (
                                     <Checkbox
                                         key={axis.key}

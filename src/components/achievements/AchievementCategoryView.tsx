@@ -1,5 +1,5 @@
 import { FC } from 'react';
-import { AchievementCategory } from '../../api';
+import { AchievementCategory, getAchievementListLayout } from '../../api';
 import { useAchievements } from '../../hooks';
 import { AchievementDetailsView } from './AchievementDetailsView';
 import { AchievementListView } from './achievement-list';
@@ -14,9 +14,12 @@ export const AchievementCategoryView: FC<AchievementCategoryViewProps> = (props)
 
     if (!category) return null;
 
+    // The column count and scrollbar follow the whole category, the tiles only the achievements it shows.
+    const layout = getAchievementListLayout(category.achievements.length, visibleAchievements.length);
+
     return (
         <div className="air-achievements-category-body">
-            <AchievementListView achievements={visibleAchievements} isScrollable={category.achievements.length > 24} />
+            <AchievementListView achievements={visibleAchievements} layout={layout} />
             {!!selectedAchievement && <AchievementDetailsView achievement={selectedAchievement} />}
         </div>
     );

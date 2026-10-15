@@ -17,10 +17,10 @@ import { WiredVariablePicker } from '../WiredVariablePicker';
 import { buildWiredVariablePickerEntries, createFallbackVariableEntry, flattenWiredVariablePickerEntries, WiredVariablePickerTarget } from '../WiredVariablePickerData';
 
 export const WIRED_ARRAY_TARGETS: Array<{ label: string; target: WiredVariablePickerTarget; type: number }> = [
-    { label: 'wiredfurni.params.variables.furni', target: 'furni', type: WIRED_ARRAY_TYPE_FURNI },
-    { label: 'wiredfurni.params.variables.room', target: 'global', type: WIRED_ARRAY_TYPE_ROOM },
-    { label: 'wiredfurni.params.variables.user', target: 'user', type: WIRED_ARRAY_TYPE_USER },
-    { label: 'wiredfurni.params.variables.context', target: 'context', type: WIRED_ARRAY_TYPE_CONTEXT }
+    { label: 'wiredfurni.params.sourcetype.furni', target: 'furni', type: WIRED_ARRAY_TYPE_FURNI },
+    { label: 'wiredfurni.params.sourcetype.global', target: 'global', type: WIRED_ARRAY_TYPE_ROOM },
+    { label: 'wiredfurni.params.sourcetype.users', target: 'user', type: WIRED_ARRAY_TYPE_USER },
+    { label: 'wiredfurni.params.sourcetype.context', target: 'context', type: WIRED_ARRAY_TYPE_CONTEXT }
 ];
 
 const FALLBACK_TARGET_LABELS: Record<number, string> = {

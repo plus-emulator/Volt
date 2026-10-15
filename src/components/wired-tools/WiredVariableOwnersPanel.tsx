@@ -1,7 +1,7 @@
-import { IWiredVariableHolder } from '@octane/renderer';
+import { IWiredVariableHolder } from '@volt/renderer';
 import { ReactNode } from 'react';
 import { localizeWithFallback } from '../../api';
-import { Button, DraggableWindowPosition, OctaneCardContentView, OctaneCardHeaderView, OctaneCardView, Text } from '../../common';
+import { Button, DraggableWindowPosition, VoltCardContentView, VoltCardHeaderView, VoltCardView, Text } from '../../common';
 import { WiredPageRequests } from '../../hooks/wired-tools/useWiredPageRequests';
 import { VariablesElementType } from './WiredCreatorTools.types';
 import { WiredPagedTable, WiredTableCell, WiredTableColumn } from './WiredPagedTable';
@@ -24,11 +24,11 @@ export interface WiredOwnersFilter {
     onChange: (value: string) => void;
 }
 
-export interface WiredVariableOwnersPanelProps {
+export interface WiredVariableOwnersPanelProps<T extends number | bigint = number> {
     variableName: string;
     variablesType: VariablesElementType;
     hasValue: boolean;
-    holders: IWiredVariableHolder[];
+    holders: IWiredVariableHolder<T>[];
     describeHolder: (entityType: number, entityId: number, entityName: string) => WiredHolderDescription;
     currentPage: number;
     totalEntries: number;
@@ -36,9 +36,9 @@ export interface WiredVariableOwnersPanelProps {
     requests: WiredPageRequests;
     scrollResetKey: number;
     filters: WiredOwnersFilter[];
-    onManage: (holder: IWiredVariableHolder) => void;
+    onManage: (holder: IWiredVariableHolder<T>) => void;
     /** Adds a delete link next to "Manage". */
-    onDelete?: (holder: IWiredVariableHolder) => void;
+    onDelete?: (holder: IWiredVariableHolder<T>) => void;
     /** Turns user names into profile links. */
     onOpenUserProfile?: (entityId: number) => void;
     onClose: () => void;
@@ -55,7 +55,7 @@ const LINK_CLASS = 'text-[#1b57b2] underline underline-offset-2';
  * The "Variable Management" window: who holds a variable, a page at a time, with filter menus,
  * refresh and a "Manage" link per holder. It shows what it is handed; the caller fetches.
  */
-export const WiredVariableOwnersPanel = (props: WiredVariableOwnersPanelProps) => {
+export const WiredVariableOwnersPanel = <T extends number | bigint = number>(props: WiredVariableOwnersPanelProps<T>) => {
     const {
         variableName,
         variablesType,
@@ -105,7 +105,7 @@ export const WiredVariableOwnersPanel = (props: WiredVariableOwnersPanelProps) =
 
     const noValueLabel = hasValue ? '/' : localizeWithFallback('wiredmenu.variable_management.no_value', 'Not supported');
 
-    const getCell = (holder: IWiredVariableHolder, columnId: string): WiredTableCell => {
+    const getCell = (holder: IWiredVariableHolder<T>, columnId: string): WiredTableCell => {
         const description = describeHolder(holder.entityType, holder.entityId, holder.entityName);
 
         switch (columnId) {
@@ -147,7 +147,7 @@ export const WiredVariableOwnersPanel = (props: WiredVariableOwnersPanelProps) =
     };
 
     return (
-        <OctaneCardView
+        <VoltCardView
             className="min-w-[860px] max-w-[860px] max-h-[620px]"
             theme="primary-slim"
             uniqueKey={uniqueKey}
@@ -155,8 +155,8 @@ export const WiredVariableOwnersPanel = (props: WiredVariableOwnersPanelProps) =
             offsetLeft={offsetLeft}
             offsetTop={offsetTop}
         >
-            <OctaneCardHeaderView headerText={localizeWithFallback('wiredmenu.variable_management.title', 'Variable Management')} onCloseClick={onClose} />
-            <OctaneCardContentView className="text-black bg-[#f4efe3] p-3 flex flex-col gap-3" overflow="hidden">
+            <VoltCardHeaderView headerText={localizeWithFallback('wiredmenu.variable_management.title', 'Variable Management')} onCloseClick={onClose} />
+            <VoltCardContentView className="text-black bg-[#f4efe3] p-3 flex flex-col gap-3" overflow="hidden">
                 <div className="rounded border border-[#c8c2b2] bg-white p-3 flex items-center justify-between gap-3">
                     <div className="grow flex flex-col items-center text-center">
                         <Text>
@@ -206,7 +206,7 @@ export const WiredVariableOwnersPanel = (props: WiredVariableOwnersPanelProps) =
                     scrollResetKey={scrollResetKey}
                     bodyClassName="h-[360px]"
                 />
-            </OctaneCardContentView>
-        </OctaneCardView>
+            </VoltCardContentView>
+        </VoltCardView>
     );
 };

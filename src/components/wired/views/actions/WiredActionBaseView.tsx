@@ -1,9 +1,9 @@
-import { WiredActionDefinition } from '@octane/renderer';
+import { WiredActionDefinition } from '@volt/renderer';
 import { CSSProperties, FC, PropsWithChildren, ReactNode, useEffect } from 'react';
-import { GetWiredTimeLocale, LocalizeText, WiredFurniType, WIRED_SLIDER_PULSES } from '../../../../api';
+import { GetWiredTimeLocale, LocalizeText, WiredFurniType } from '../../../../api';
 import { Slider, Text } from '../../../../common';
 import { useWired } from '../../../../hooks';
-import { WiredSliderSection } from '../WiredSlider';
+import { WiredActionDelaySection } from './WiredActionDelaySection';
 import { WiredBaseView } from '../WiredBaseView';
 
 export interface WiredActionBaseViewProps {
@@ -53,24 +53,14 @@ export const WiredActionBaseView: FC<PropsWithChildren<WiredActionBaseViewProps>
             nativeLayout={nativeLayout}
             delay={
                 !hideDelay && (
-                    <WiredSliderSection
-                        className="octane-wired__section--delay"
-                        converter={WIRED_SLIDER_PULSES}
-                        max={20}
-                        min={0}
-                        titleKey="wiredfurni.params.delay"
-                        unit="seconds"
-                        value={actionDelay}
-                        withInput={false}
-                        onChange={setActionDelay}
-                    />
+                    <WiredActionDelaySection className="volt-wired__section--delay" value={actionDelay} onChange={setActionDelay} />
                 )
             }
             legacyDelay={
                 !hideDelay && (
                     <>
-                        {!!children && <div className="octane-wired__divider" />}
-                        <div className="flex flex-col octane-wired__section octane-wired__section--delay">
+                        {!!children && <div className="volt-wired__divider" />}
+                        <div className="flex flex-col volt-wired__section volt-wired__section--delay">
                             <Text bold>{LocalizeText('wiredfurni.params.delay', ['seconds'], [GetWiredTimeLocale(actionDelay)])}</Text>
                             <Slider max={20} min={0} value={actionDelay} onChange={(event) => setActionDelay(event)} />
                         </div>

@@ -22,12 +22,13 @@ const TARGET_FURNI = 1;
 const TARGET_GLOBAL = 3;
 
 // Where a change may come from; the server labels each write and the trigger keeps a bit mask of
-// the origins it listens to (-1 = every origin, which is also what a box saved before the mask means).
+// the native origins it listens to (-1 = every origin).
 const ORIGIN_ALL = -1;
 const ORIGIN_OPTIONS = [
-    { bit: 0, key: 'wiredfurni.params.variables.trigger_origin.0', fallback: 'A wired box in this room' },
-    { bit: 1, key: 'wiredfurni.params.variables.trigger_origin.1', fallback: 'The web API' },
-    { bit: 2, key: 'wiredfurni.params.variables.trigger_origin.2', fallback: 'The creator tools' }
+    { bit: 0, key: 'wiredfurni.params.variables.trigger_origin.0', fallback: 'This room' },
+    { bit: 1, key: 'wiredfurni.params.variables.trigger_origin.1', fallback: 'Another room' },
+    { bit: 2, key: 'wiredfurni.params.variables.trigger_origin.2', fallback: 'Inspection' },
+    { bit: 3, key: 'wiredfurni.params.variables.trigger_origin.3', fallback: 'External' }
 ] as const;
 const ORIGIN_EVERY_BIT = ORIGIN_OPTIONS.reduce((mask, option) => mask | (1 << option.bit), 0);
 
@@ -156,15 +157,15 @@ export const WiredTriggerVariableChangedView: FC<{}> = () => {
 
     return (
         <WiredTriggerBaseView hasSpecialInput={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save}>
-            <div className="octane-wired__give-var octane-wired__give-var--trigger-variable">
-                <div className="octane-wired__give-var-heading">
+            <div className="volt-wired__give-var volt-wired__give-var--trigger-variable">
+                <div className="volt-wired__give-var-heading">
                     <Text>{LocalizeText('wiredfurni.params.variables.variable_selection')}</Text>
-                    <div className="octane-wired__give-var-targets">
+                    <div className="volt-wired__give-var-targets">
                         {TARGET_BUTTONS.map((button) => (
                             <button
                                 key={button.key}
                                 type="button"
-                                className={`octane-wired__give-var-target octane-wired__give-var-target--${button.key} ${targetType === button.key ? 'is-active' : ''}`}
+                                className={`volt-wired__give-var-target volt-wired__give-var-target--${button.key} ${targetType === button.key ? 'is-active' : ''}`}
                                 onClick={() => {
                                     if (targetType === button.key) return;
 
@@ -185,7 +186,7 @@ export const WiredTriggerVariableChangedView: FC<{}> = () => {
                     onSelect={(entry) => setVariableToken(entry.token)}
                 />
 
-                <div className="octane-wired__divider" />
+                <div className="volt-wired__divider" />
 
                 <div className="flex flex-col gap-1">
                     <Text bold>{LocalizeText('wiredfurni.params.variables.trigger_options')}</Text>
@@ -256,7 +257,7 @@ export const WiredTriggerVariableChangedView: FC<{}> = () => {
                     </label>
                 </div>
 
-                <div className="octane-wired__divider" />
+                <div className="volt-wired__divider" />
 
                 <div className="flex flex-col gap-1">
                     <Text bold>{localizeWithFallback('wiredfurni.params.variables.trigger_origin', 'Changed by:')}</Text>

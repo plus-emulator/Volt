@@ -5,8 +5,6 @@ import { useWired } from '../../../../hooks';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredActionBaseView } from './WiredActionBaseView';
 
-const COUNTER_INTERACTION_TYPES = ['game_upcounter', 'game_timer', 'wf_game_upcounter*', 'fball_counter', 'bb_counter', 'es_counter'];
-
 const CONTROL_OPTIONS = [
     { value: 0, label: 'wiredfurni.params.clock_control.0' },
     { value: 1, label: 'wiredfurni.params.clock_control.1' },
@@ -22,33 +20,24 @@ const normalizeControl = (value: number) => {
 };
 
 export const WiredActionControlClockView: FC<{}> = () => {
-    const { trigger = null, setIntParams = null, setAllowedInteractionTypes = null, setAllowedInteractionErrorKey = null } = useWired();
+    const { trigger = null, setIntParams = null, setFurniSources = null } = useWired();
     const [control, setControl] = useState(0);
     const [furniSource, setFurniSource] = useState<number>(() => {
-        if (trigger?.intData?.length > 1) return trigger.intData[1];
+        if (trigger?.furniSources?.length) return trigger.furniSources[0];
         return (trigger?.selectedItems?.length ?? 0) > 0 ? 100 : 0;
     });
 
     const save = () => {
-        setIntParams([control, furniSource]);
+        setIntParams([control]);
+        setFurniSources([furniSource]);
     };
 
     useEffect(() => {
         if (!trigger) return;
 
         setControl(trigger.intData.length > 0 ? normalizeControl(trigger.intData[0]) : 0);
-        setFurniSource(trigger.intData.length > 1 ? trigger.intData[1] : (trigger.selectedItems?.length ?? 0) > 0 ? 100 : 0);
+        setFurniSource(trigger.furniSources[0]);
     }, [trigger]);
-
-    useEffect(() => {
-        setAllowedInteractionTypes(COUNTER_INTERACTION_TYPES);
-        setAllowedInteractionErrorKey('wiredfurni.error.require_counter_furni');
-
-        return () => {
-            setAllowedInteractionTypes(null);
-            setAllowedInteractionErrorKey(null);
-        };
-    }, [setAllowedInteractionErrorKey, setAllowedInteractionTypes]);
 
     return (
         <WiredActionBaseView

@@ -2,7 +2,7 @@ import { FC, useEffect, useMemo, useState } from 'react';
 import { LocalizeText, localizeWithFallback, WiredFurniType } from '../../../../api';
 import { Text } from '../../../../common';
 import { useWired } from '../../../../hooks';
-import { OctaneInput } from '../../../../layout';
+import { VoltInput } from '../../../../layout';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredExtraBaseView } from './WiredExtraBaseView';
 import { WiredPlaceholderPreview } from './WiredPlaceholderPreview';
@@ -46,7 +46,7 @@ const splitStringData = (value: string) => {
 const escapeHtml = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
 export const WiredExtraTextOutputFurniNameView: FC<{}> = () => {
-    const { trigger = null, setIntParams = null, setStringParam = null } = useWired();
+    const { trigger = null, setIntParams = null, setStringParam = null, setFurniSources = null } = useWired();
     const [placeholderName, setPlaceholderName] = useState(DEFAULT_PLACEHOLDER_NAME);
     const [placeholderType, setPlaceholderType] = useState(TYPE_SINGLE);
     const [delimiter, setDelimiter] = useState(DEFAULT_DELIMITER);
@@ -60,7 +60,7 @@ export const WiredExtraTextOutputFurniNameView: FC<{}> = () => {
         setPlaceholderName(normalizePlaceholderName(nextPlaceholderName));
         setDelimiter(normalizeDelimiter(nextDelimiter));
         setPlaceholderType(normalizePlaceholderType(trigger.intData.length > 0 ? trigger.intData[0] : TYPE_SINGLE));
-        setFurniSource(normalizeFurniSource(trigger.intData.length > 1 ? trigger.intData[1] : 0));
+        setFurniSource(normalizeFurniSource(trigger.furniSources.length > 0 ? trigger.furniSources[0] : 0));
     }, [trigger]);
 
     const previewToken = useMemo(() => {
@@ -72,7 +72,8 @@ export const WiredExtraTextOutputFurniNameView: FC<{}> = () => {
     const previewHtml = useMemo(() => LocalizeText('wiredfurni.params.texts.placeholder_preview', ['placeholder'], [escapeHtml(previewToken)]), [previewToken]);
 
     const save = () => {
-        setIntParams([normalizePlaceholderType(placeholderType), normalizeFurniSource(furniSource)]);
+        setIntParams([normalizePlaceholderType(placeholderType)]);
+        setFurniSources([normalizeFurniSource(furniSource)]);
         setStringParam(`${normalizePlaceholderName(placeholderName)}\t${normalizeDelimiter(delimiter)}`);
     };
 
@@ -87,7 +88,7 @@ export const WiredExtraTextOutputFurniNameView: FC<{}> = () => {
             <div className="flex flex-col gap-2">
                 <div className="flex flex-col gap-1">
                     <Text>{LocalizeText('wiredfurni.params.texts.placeholder_name')}</Text>
-                    <OctaneInput
+                    <VoltInput
                         maxLength={MAX_PLACEHOLDER_NAME_LENGTH}
                         type="text"
                         value={placeholderName}
@@ -121,7 +122,7 @@ export const WiredExtraTextOutputFurniNameView: FC<{}> = () => {
                 {placeholderType === TYPE_MULTIPLE && (
                     <div className="flex flex-col gap-1">
                         <Text>{LocalizeText('wiredfurni.params.texts.select_delimiter')}</Text>
-                        <OctaneInput
+                        <VoltInput
                             maxLength={MAX_DELIMITER_LENGTH}
                             type="text"
                             value={delimiter}

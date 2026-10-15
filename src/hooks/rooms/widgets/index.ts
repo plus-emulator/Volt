@@ -1,6 +1,6 @@
 export * from './furniture';
 export * from './useAvatarInfoWidget';
-export * from './useChatCommandSelector';
+export * from './useChatHelpButton';
 export * from './useChatInputWidget';
 export * from './useChatWidget';
 export * from './useDoorbellActions';
@@ -22,3 +22,4 @@ export * from './useUserChooserState';
 export * from './useUserChooserWidget';
 export * from './useWordQuizWidget';
 export * from './useFurniPickupGuard';
+export * from './useObjectRemoveConfirm';

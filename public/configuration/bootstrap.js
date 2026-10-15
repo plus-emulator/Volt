@@ -1,16 +1,11 @@
 (() => {
-  // Lift hand-off credentials out of the URL before the first request so they
-  // never reach history or Referer headers; the app reads them from memory.
+  // Lift the website's SSO ticket out of the URL before the first request so it
+  // never reaches history or Referer headers; the app reads it from memory.
   (() => {
     const url = new URL(location.href);
-    const keys = [ "sso", "token", "token_exp" ];
-    window.__octaneLaunchCredentials = {
-      ssoTicket: url.searchParams.get("sso") || "",
-      rememberToken: url.searchParams.get("token") || "",
-      rememberExpiresAt: Number(url.searchParams.get("token_exp") || 0) || 0
-    };
-    if(keys.some((key) => url.searchParams.has(key))) {
-      keys.forEach((key) => url.searchParams.delete(key));
+    window.__voltLaunchCredentials = { ssoTicket: url.searchParams.get("sso") || "" };
+    if(url.searchParams.has("sso")) {
+      url.searchParams.delete("sso");
       history.replaceState(history.state, "", url.toString());
     }
   })();
@@ -23,7 +18,7 @@
   };
 
   const LOADER_BASE = getBase();
-  window.__octaneLoaderBase = LOADER_BASE.href;
+  window.__voltLoaderBase = LOADER_BASE.href;
 
   const withCacheBust = (url) => {
     url.searchParams.set("v", Date.now().toString(36));
@@ -95,11 +90,11 @@
       if(!response.ok) throw new Error("HTTP " + response.status);
       const payload = await response.json();
       if(payload && typeof payload === "object") {
-        window.__octaneClientMode = payload;
+        window.__voltClientMode = payload;
         return payload;
       }
     } catch(error) {
-      console.warn("[Octane] client-mode fetch failed:", error?.message || error);
+      console.warn("[Volt] client-mode fetch failed:", error?.message || error);
     }
     return null;
   };
@@ -148,7 +143,7 @@
     };
 
     const modeText = await fetchSecureConfig("client-mode.json");
-    window.__octaneClientMode = JSON.parse(modeText);
+    window.__voltClientMode = JSON.parse(modeText);
 
     const loaderText = await fetchSecureConfig("asset-loader.js");
     await importTextModule(loaderText);
@@ -164,7 +159,7 @@
         await loadSecureBootstrap(apiBase);
         return;
       } catch(error) {
-        console.warn("[Octane] Secure bootstrap fallback:", error?.message || error);
+        console.warn("[Volt] Secure bootstrap fallback:", error?.message || error);
       }
     }
 

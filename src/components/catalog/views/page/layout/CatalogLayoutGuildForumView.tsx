@@ -17,10 +17,13 @@ export const CatalogLayouGuildForumView: FC<CatalogLayoutProps> = (props) => {
     const { data: groups = null } = useUserGroups();
 
     const teaserImage = page.localization.getImage(1);
+    // GuildSelectorCatalogWidget.populateAndSelectFavorite toggles the purchase widget on any group membership at all.
     const hasGroups = !!(groups && groups.length);
     // The guild selector stores the chosen guild id as the purchase parameter.
     const selectedGroupId = purchaseOptions?.extraData ?? null;
     const selectedGroup = (selectedGroupId && groups?.find((group) => group.groupId.toString() === selectedGroupId)) || null;
+    // GuildForumSelectorCatalogWidget.selectGroup: a group with a forum only gets the warning that this buys another terminal for it
+    // (warningWidget, ${catalog.alert.group_has_forum}); the purchase stays open.
     const selectedGroupHasForum = !!selectedGroup?.hasForum;
 
     return (
@@ -29,7 +32,7 @@ export const CatalogLayouGuildForumView: FC<CatalogLayoutProps> = (props) => {
             <Grid overflow="hidden">
                 <Column overflow="hidden" size={8}>
                     <div
-                        className="octane-catalog-forum-text grow! min-h-0 overflow-auto text-black"
+                        className="volt-catalog-forum-text grow! min-h-0 overflow-auto text-black"
                         dangerouslySetInnerHTML={{ __html: SanitizeHtml(page.localization.getText(1)) }}
                     />
                     {!!currentOffer && (
@@ -38,17 +41,17 @@ export const CatalogLayouGuildForumView: FC<CatalogLayoutProps> = (props) => {
                                 <CatalogGuildBadgeWidgetView className="shrink-0" />
                                 <CatalogTotalPriceWidget />
                                 <div className="grow! min-w-0">
-                                    <CatalogGuildSelectorWidgetView ownerOnly />
+                                    <CatalogGuildSelectorWidgetView forumSelector />
                                 </div>
                             </Flex>
                             {selectedGroupHasForum && (
-                                <div className="octane-catalog-forum-warning text-center text-[11px] text-[#a81a12]" role="alert">
+                                <div className="volt-catalog-forum-warning text-center text-[11px] text-[#a81a12]" role="alert">
                                     {LocalizeText('catalog.alert.group_has_forum')}
                                 </div>
                             )}
                             {hasGroups && (
                                 <div className="flex justify-center">
-                                    <CatalogPurchaseWidgetView disabled={selectedGroupHasForum} noGiftOption={true} />
+                                    <CatalogPurchaseWidgetView noGiftOption={true} />
                                 </div>
                             )}
                         </div>
