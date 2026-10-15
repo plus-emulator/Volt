@@ -92,7 +92,12 @@ export const WiredVariableActionEditor: FC<{ kind: 'give' | 'remove' | 'change' 
     );
     const referenceTitle = LocalizeText(kind === 'give' ? 'wiredfurni.params.variables.value_settings.initial_value' : 'wiredfurni.params.variables.reference_value');
     return <WiredActionBaseView nativeLayout hasSpecialInput requiresFurni={pickSlots.length ? WiredFurniType.STUFF_SELECTION_OPTION_BY_ID : WiredFurniType.STUFF_SELECTION_OPTION_NONE} selectionPreview={<></>} save={save} validate={validate} footerCollapsible={false}
-        footer={sourceControl(0, target, kind === 'remove' ? 'wiredfurni.params.sources.merged.title.variables' : 'wiredfurni.params.sources.merged.title.variables_destination')}>
+        footer={<>
+            {sourceControl(0, target, kind === 'remove' ? 'wiredfurni.params.sources.merged.title.variables' : 'wiredfurni.params.sources.merged.title.variables_destination')}
+            {/* AIR ChangeVariable/GiveVariable.mergedSelections [[0,0],[1,1]]: the reference holder is the second footer section,
+                disabled without an operand or with the same holder (isInputSourceDisabled). */}
+            {kind !== 'remove' && sourceControl(1, referenceTarget, 'wiredfurni.params.sources.merged.title.variables_reference', referenceDisabled || effectiveSameHolder)}
+        </>}>
         <FurniPickSlotButtons slots={[...new Set(pickSlots)].map(slot => ({ slot: slot as 0 | 1, count: slot === 0 ? furniIds.length : secondaryFurniIds.length }))} />
         <WiredSection title={LocalizeText('wiredfurni.params.variables.variable_selection')} headerOption={<WiredSourceTypeSelector types={kind === 'change' ? ['furni', 'user', 'global', 'context'] : ['furni', 'user', 'context']} value={target} onChange={next => { setTarget(next); setVariable(''); }} />}>
             <WiredVariablePicker entries={entries} recentScope="variable-effects" selectedToken={variable} onSelect={entry => setVariable(entry.token)} />
@@ -103,6 +108,6 @@ export const WiredVariableActionEditor: FC<{ kind: 'give' | 'remove' | 'change' 
             min={-2147483648} max={2147483647} option={option} onOptionChange={setOption} literal={0} onLiteralChange={value => setLiteral(String(value))} literalText={literal} onLiteralTextChange={setLiteral}
             target={referenceTarget} onTargetChange={setReferenceTarget} variableToken={reference} onVariableTokenChange={setReference} disabled={referenceDisabled} onValidityChange={setValidInput}
             primaryTarget={target} sameHolder={sameHolder} onSameHolderChange={setSameHolder}
-            popupSources={sourceControl(1, referenceTarget, 'wiredfurni.params.sources.merged.title.variables', effectiveSameHolder)} />}
+ />}
     </WiredActionBaseView>;
 };

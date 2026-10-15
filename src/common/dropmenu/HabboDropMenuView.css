@@ -176,7 +176,7 @@
 /* WiredStyle Illumina dropmenu_100: 22px frame, 19px rows, native font and atlas. */
 .habbo-dropmenu.habbo-dropmenu--illumina,
 .habbo-dropmenu-popup.habbo-dropmenu--illumina {
-    border-image: none !important;
+    border-image-source: none !important;
     font: 400 12px/14px HabboAirUbuntu, UbuntuRegular, sans-serif !important;
     font-kerning: normal;
 }

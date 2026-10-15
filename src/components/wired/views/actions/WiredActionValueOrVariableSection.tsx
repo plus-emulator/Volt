@@ -252,8 +252,9 @@ const NativeValueOrVariable: FC<WiredActionValueOrVariableSectionProps & { entri
     return (
         <Container {...(props.inline ? {} : { title })}>
             <div style={{ position: 'relative' }}>
-                <div className={`volt-wired__input-box ${valid ? '' : 'is-invalid'}`} style={{ display: 'flex', width: '100%' }}>
-                    <input className="volt-wired__input-field volt-wired__input-field--stretch" type="text" style={{ minWidth: 0, flex: '1 1 0', width: 0 }} aria-label={title} disabled={disabled} value={text} onChange={event => edit(event.target.value)} />
+                {/* The field is absolutely placed by .volt-wired__input-field; the target icon and chooser button sit at the right edge. */}
+                <div className={`volt-wired__input-box ${valid ? '' : 'is-invalid'}`} style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
+                    <input className="volt-wired__input-field volt-wired__input-field--stretch" type="text" style={{ width: `calc(100% - ${option === WIRED_VALUE_OPTION_VARIABLE ? 46 : 27}px)` }} aria-label={title} disabled={disabled} value={text} onChange={event => edit(event.target.value)} />
                     {option === WIRED_VALUE_OPTION_VARIABLE && <span title={target} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 19, minWidth: 19, zIndex: 1 }}><img src={{ furni: nativeFurniIcon, user: nativeUserIcon, global: nativeGlobalIcon, context: nativeContextIcon }[target]} alt={target} draggable={false} style={{ imageRendering: 'pixelated' }} /></span>}
                     <button type="button" aria-label={localizeWithFallback('wiredfurni.params.variables.reference_value.popup', 'Choose variable')} disabled={disabled} onClick={() => setOpen(value => !value)} style={{ width: 19, minWidth: 19, border: 0, padding: 0, background: 'transparent', zIndex: 1 }}>
                         <img src={variableIcon} alt="" draggable={false} style={{ imageRendering: 'pixelated' }} />
