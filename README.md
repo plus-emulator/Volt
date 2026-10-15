@@ -125,6 +125,8 @@ CI runs the type check, the hooks lint and the tests on pushes and pull requests
 
 Every push to `main` builds the client with `yarn vite build` against Volt-Renderer `main` and publishes a GitHub release tagged `client-v<package version>-<short sha>` with `volt-client.zip` (the contents of `dist/`). Hotel installers download the latest release.
 
+Release runs queue instead of replacing pending merges (up to GitHub's 100-run queue limit). Assets upload to a draft before publication; rerunning a failed workflow resumes the draft, and an already published tag is left unchanged. Upstream-sync merges explicitly dispatch the release workflow for the merged commit. To retry manually, run **Build & Publish Client Release** on `main`; the optional `commit` input selects the exact commit to rebuild.
+
 `install.sh` / `install.bat` (both run `install.mjs`) automate the setup steps above: they check Node against `.nvmrc` and `package.json`, clone Volt-Renderer to `../Volt-Renderer` if missing, run `yarn install` in both repositories, link `node_modules/@volt/renderer`, copy the three configuration files, ask for the JSON mode and URLs, and run `yarn build`. `node install.mjs --help` lists the flags; `--non-interactive` with `--socket-url=...` and friends runs it unattended.
 
 ## Licence
