@@ -16,7 +16,7 @@ import {
 } from '@volt/renderer';
 import { useCallback } from 'react';
 import { HasPermission, Permission } from '../../../api/permissions';
-import { ChatMessageTypeEnum, GetClubMemberLevel, GetConfigurationValue, LocalizeText, SendMessageComposer } from '../../../api';
+import { CanOpenUserChooser, ChatMessageTypeEnum, GetClubMemberLevel, GetConfigurationValue, LocalizeText, SendMessageComposer } from '../../../api';
 import { useNotification } from '../../notification';
 import { useWiredToolsActions } from '../../wired-tools';
 import { useRoom } from '../useRoom';
@@ -196,7 +196,8 @@ export const useChatInputActions = () => {
                         CreateLinkEvent('furni-chooser/');
                         return null;
                     case ':chooser':
-                        CreateLinkEvent('user-chooser/');
+                        if (CanOpenUserChooser(roomSession)) CreateLinkEvent('user-chooser/');
+
                         return null;
                     case ':floor':
                         if ((roomSession?.controllerLevel ?? 0) >= RoomControllerLevel.ROOM_OWNER) CreateLinkEvent('floor-editor/show');
