@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process';
-import { copyFile, readFile, writeFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { copyFile, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { existsSync, lstatSync, readFileSync, realpathSync } from 'node:fs';
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { platform } from 'node:os';
@@ -10,10 +10,10 @@ import { stdin as input, stdout as output } from 'node:process';
 import { DEFAULT_JSON_MODE, normalizeJsonModeAnswer, VALID_JSON_MODES } from './scripts/json-mode.mjs';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
-const DEFAULT_RENDERER_REPO_URL = 'https://github.com/duckietm/Octane-Renderer.git';
-// Sibling folder names the client's vite.config / tsconfig already know how to resolve.
+const DEFAULT_RENDERER_REPO_URL = 'https://github.com/plus-emulator/Volt-Renderer.git';
+// Sibling folder names vite.config.mjs and tsconfig.json already know how to resolve.
 // Auto-detection walks these in order; a fresh clone defaults to the first one.
-const RENDERER_DIR_CANDIDATES = ['Volt-Renderer', 'renderer'];
+const RENDERER_DIR_CANDIDATES = ['Volt-Renderer', 'volt-renderer', 'Octane-Renderer', 'octane-renderer', 'renderer'];
 const DEFAULT_RENDERER_DIR_NAME = RENDERER_DIR_CANDIDATES[0];
 // Resolved in main() from --renderer-repo / --renderer-dir / VOLT_RENDERER_DIR / auto-detection.
 let RENDERER_REPO_URL = DEFAULT_RENDERER_REPO_URL;
@@ -21,7 +21,36 @@ let RENDERER_DIR = resolve(ROOT, '..', DEFAULT_RENDERER_DIR_NAME);
 const CONFIG_DIR = join(ROOT, 'public', 'configuration');
 const VOLT_BUILD_FILE = join(ROOT, '.volt-build.json');
 const IS_WINDOWS = platform() === 'win32';
-const MIN_NODE_MAJOR = 18;
+
+// The Node version comes from .nvmrc (major) and package.json "engines" (minimum), the yarn major from "packageManager".
+function readProjectRequirements() {
+    const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
+    const nvmrcPath = join(ROOT, '.nvmrc');
+    const nvmrc = existsSync(nvmrcPath) ? readFileSync(nvmrcPath, 'utf8').trim().replace(/^v/, '') : null;
+    const engine = /(\d+)\.(\d+)\.(\d+)/.exec(pkg.engines?.node ?? '');
+    const nvmrcMajor = nvmrc ? parseInt(nvmrc, 10) : NaN;
+    const minNode = engine
+        ? engine.slice(1, 4).map(Number)
+        : [Number.isNaN(nvmrcMajor) ? 22 : nvmrcMajor, 0, 0];
+    const yarn = /^yarn@(\d+)/.exec(pkg.packageManager ?? '');
+    return {
+        nvmrc,
+        nvmrcMajor: Number.isNaN(nvmrcMajor) ? null : nvmrcMajor,
+        minNode,
+        yarnMajor: yarn ? parseInt(yarn[1], 10) : null,
+        packageManager: pkg.packageManager ?? null
+    };
+}
+
+const REQUIREMENTS = readProjectRequirements();
+const MIN_NODE_LABEL = REQUIREMENTS.minNode.join('.');
+
+function compareVersions(a, b) {
+    for (let i = 0; i < 3; i++) {
+        if ((a[i] ?? 0) !== (b[i] ?? 0)) return (a[i] ?? 0) - (b[i] ?? 0);
+    }
+    return 0;
+}
 
 const KEY_SPECS = {
     'socket.url':           { type: 'url',       schemes: ['ws:', 'wss:'],     flag: 'socket-url' },
@@ -44,7 +73,7 @@ const FLAG_TO_KEY = Object.fromEntries(
 
 const CONFIG_FILES = [
     {
-        example: 'renderer-config.example',
+        example: 'renderer-config.json.example.json',
         target: 'renderer-config.json',
         keys: ['socket.url', 'api.url', 'asset.url', 'image.library.url', 'hof.furni.url']
     },
@@ -63,8 +92,8 @@ const CONFIG_FILES = [
 const STEPS = [
     'Check prerequisites',
     'Resolve / clone renderer',
-    'Setup renderer (yarn install + yarn link)',
-    'Setup client (yarn install + yarn link)',
+    'Install renderer dependencies (yarn install)',
+    'Install client dependencies (yarn install) + link renderer',
     'Copy config files',
     'Choose JSON parsing mode',
     'Configure URLs',
@@ -122,9 +151,9 @@ function runShell(cmdString, cwd) {
     });
 }
 
-function runCapture(cmdString) {
+function runCapture(cmdString, cwd = ROOT) {
     return new Promise((resolveFn, rejectFn) => {
-        const child = spawn(cmdString, { shell: true, stdio: ['ignore', 'pipe', 'pipe'] });
+        const child = spawn(cmdString, { shell: true, cwd, stdio: ['ignore', 'pipe', 'pipe'] });
         let stdout = '';
         let stderr = '';
         child.stdout.on('data', d => { stdout += d.toString(); });
@@ -235,21 +264,21 @@ function printUsage() {
         '  --json-mode=<jsonc|legacy|auto>     Choose the JSON parsing mode without prompting',
         '  --renderer-dir=<path>               Renderer folder (absolute, or relative to the parent dir).',
         '                                      Default: auto-detect ' + RENDERER_DIR_CANDIDATES.join(' / ') + ', else "' + DEFAULT_RENDERER_DIR_NAME + '". Env: VOLT_RENDERER_DIR',
-        '  --renderer-repo=<url>               Git URL to clone the renderer from (default: duckietm/Octane-Renderer)',
+        '  --renderer-repo=<url>               Git URL to clone the renderer from (default: ' + DEFAULT_RENDERER_REPO_URL + ')',
         '  --skip-build                        Skip the final yarn build',
         '  --skip-clone                        Skip cloning the renderer',
-        '  --skip-link                         Skip yarn link calls (useful when re-running)',
+        '  --skip-link                         Skip linking node_modules/@volt/renderer (only yarn typecheck needs it)',
         '  --help, -h                          Show this help and exit',
         '',
         'URL override flags (override interactive prompts; combine with --non-interactive for fully automated runs):',
         flagList,
         '',
         'Steps performed:',
-        '  1. Check Node >= ' + MIN_NODE_MAJOR + ', yarn, git',
+        '  1. Check Node >= ' + MIN_NODE_LABEL + (REQUIREMENTS.nvmrc ? ' (.nvmrc: ' + REQUIREMENTS.nvmrc + ')' : '') + ', yarn ' + (REQUIREMENTS.yarnMajor ?? '') + ' (corepack), git',
         '  2. Resolve the renderer dir (--renderer-dir / VOLT_RENDERER_DIR / interactive prompt / auto-detect ' + RENDERER_DIR_CANDIDATES.join(' or ') + '), cloning to ../' + DEFAULT_RENDERER_DIR_NAME + ' if absent',
-        '  3. yarn install + yarn link in the renderer',
-        '  4. yarn install + yarn link "@volt/renderer" in this project',
-        '  5. Copy public/configuration/*.example -> *.json (keeps existing files)',
+        '  3. yarn install in the renderer',
+        '  4. yarn install in this project, then link node_modules/@volt/renderer to the renderer (for yarn typecheck)',
+        '  5. Copy the example configs in public/configuration -> ' + CONFIG_FILES.map(f => f.target).join(', ') + ' (keeps existing files)',
         '  6. Choose JSON parsing mode (jsonc recommended) -> writes .volt-build.json',
         '  7. Prompt for URLs and patch the JSON config files',
         '  8. yarn build (honours the JSON mode chosen at step 6)',
@@ -259,19 +288,28 @@ function printUsage() {
 
 async function checkPrereqs() {
     const nodeVer = process.versions.node;
-    const major = parseInt(nodeVer.split('.')[0], 10);
-    if (Number.isNaN(major) || major < MIN_NODE_MAJOR) {
-        throw new Error('Node >= ' + MIN_NODE_MAJOR + ' required (you have v' + nodeVer + '). Install from https://nodejs.org/');
+    const current = nodeVer.split('.').map(n => parseInt(n, 10));
+    const nvmrcHint = REQUIREMENTS.nvmrc ? ' (.nvmrc pins ' + REQUIREMENTS.nvmrc + '; with nvm: nvm install && nvm use)' : '';
+    if (current.some(Number.isNaN) || compareVersions(current, REQUIREMENTS.minNode) < 0) {
+        throw new Error('Node >= ' + MIN_NODE_LABEL + ' required (you have v' + nodeVer + ')' + nvmrcHint + '. Install from https://nodejs.org/');
+    }
+    if (REQUIREMENTS.nvmrcMajor !== null && current[0] !== REQUIREMENTS.nvmrcMajor) {
+        warn('Node v' + nodeVer + ' differs from the major version in .nvmrc (' + REQUIREMENTS.nvmrc + '); CI and releases use ' + REQUIREMENTS.nvmrc + '.');
     }
     ok('Node v' + nodeVer);
 
+    // Run inside the project so corepack picks the yarn version pinned by "packageManager".
+    let yarnVersion;
     try {
-        const v = await runCapture('yarn --version');
-        ok('yarn ' + v);
+        yarnVersion = await runCapture('yarn --version', ROOT);
     } catch {
-        const hint = IS_WINDOWS ? 'npm i -g yarn' : 'sudo npm i -g yarn';
-        throw new Error('yarn not found on PATH. Install with: ' + hint);
+        throw new Error('yarn not found on PATH. Enable it with: corepack enable  (ships with Node; pins ' + (REQUIREMENTS.packageManager ?? 'yarn') + ')');
     }
+    const yarnMajor = parseInt(yarnVersion, 10);
+    if (REQUIREMENTS.yarnMajor !== null && yarnMajor !== REQUIREMENTS.yarnMajor) {
+        throw new Error('yarn ' + yarnVersion + ' found, but this project uses ' + REQUIREMENTS.packageManager + '. Run: corepack enable');
+    }
+    ok('yarn ' + yarnVersion);
 
     try {
         const v = await runCapture('git --version');
@@ -284,8 +322,8 @@ async function checkPrereqs() {
 
 // Resolve which sibling folder is the renderer SDK, honouring (in priority order):
 //   1. --renderer-dir=<path>      2. VOLT_RENDERER_DIR env   (both skip the prompt)
-//   3. interactive prompt — the operator chooses (default = a detected folder, else ./volt-renderer)
-//   4. --non-interactive: first existing folder among RENDERER_DIR_CANDIDATES, else ./volt-renderer
+//   3. interactive prompt — the operator chooses (default = a detected folder, else ../Volt-Renderer)
+//   4. --non-interactive: first existing folder among RENDERER_DIR_CANDIDATES, else ../Volt-Renderer
 // A chosen/explicit path may be absolute or relative to the parent of the client.
 async function resolveRendererDir(opts) {
     const parent = resolve(ROOT, '..');
@@ -332,8 +370,8 @@ async function resolveRendererDir(opts) {
 async function cloneRenderer(opts) {
     RENDERER_DIR = await resolveRendererDir(opts);
     ok('Renderer dir: ' + RENDERER_DIR);
-    if (!RENDERER_DIR_CANDIDATES.includes(basename(RENDERER_DIR))) {
-        warn('Custom renderer folder "' + basename(RENDERER_DIR) + '": vite.config resolves it via path alias, but ui/tsconfig.json only lists [' + RENDERER_DIR_CANDIDATES.join(', ') + ']. Add this path under "paths" there so tsc/IDE type-resolution works.');
+    if (!RENDERER_DIR_CANDIDATES.includes(basename(RENDERER_DIR)) || resolve(dirname(RENDERER_DIR)) !== resolve(ROOT, '..')) {
+        warn('Custom renderer folder ' + RENDERER_DIR + ': vite.config.mjs and tsconfig.json only look for ../' + RENDERER_DIR_CANDIDATES.join(', ../') + ' next to this repository, so yarn start / yarn build will not find it there.');
     }
     if (opts.skipClone) { info('--skip-clone: not cloning the renderer'); summary.rendererSkipped = true; return; }
     if (existsSync(RENDERER_DIR)) {
@@ -351,22 +389,30 @@ async function setupRenderer(opts) {
         throw new Error('Renderer directory not found: ' + RENDERER_DIR + '. Re-run without --skip-clone or clone it manually.');
     }
     await runShell('yarn install', RENDERER_DIR);
-    if (opts.skipLink) { info('--skip-link: skipping yarn link in renderer'); return; }
-    try {
-        await runShell('yarn link', RENDERER_DIR);
-    } catch (e) {
-        warn('yarn link in renderer failed (likely already linked): ' + e.message);
+}
+
+// vite.config.mjs and tsconfig.json read the renderer straight from the sibling folder; only `yarn typecheck`
+// also needs node_modules/@volt/renderer, which is a plain symlink (a junction on Windows, no admin rights needed).
+async function linkRenderer() {
+    const linkDir = join(ROOT, 'node_modules', '@volt');
+    const link = join(linkDir, 'renderer');
+    const target = realpathSync(RENDERER_DIR);
+    let existing = null;
+    try { existing = lstatSync(link); } catch {}
+    if (existing) {
+        if (existing.isSymbolicLink() && realpathSync(link) === target) { ok('node_modules/@volt/renderer already links to ' + target); return; }
+        if (!existing.isSymbolicLink()) { warn('node_modules/@volt/renderer exists and is not a link - leaving it alone.'); return; }
+        await rm(link, { force: true });
     }
+    await mkdir(linkDir, { recursive: true });
+    await symlink(target, link, IS_WINDOWS ? 'junction' : 'dir');
+    ok('Linked node_modules/@volt/renderer -> ' + target);
 }
 
 async function setupClient(opts) {
     await runShell('yarn install', ROOT);
-    if (opts.skipLink) { info('--skip-link: skipping yarn link in client'); return; }
-    try {
-        await runShell('yarn link "@volt/renderer"', ROOT);
-    } catch (e) {
-        warn('yarn link "@volt/renderer" failed (likely already linked): ' + e.message);
-    }
+    if (opts.skipLink) { info('--skip-link: not linking node_modules/@volt/renderer'); return; }
+    await linkRenderer();
 }
 
 async function writeJsonMode(mode) {
