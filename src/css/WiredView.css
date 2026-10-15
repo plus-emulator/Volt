@@ -2022,6 +2022,24 @@
     width: calc(100% - 8px);
 }
 
+/* ValueOrVariableInputPreset reserves space on the right for its chooser icons.
+   Keep this field in the flex row; the ordinary input's absolute positioning
+   otherwise leaves a zero-width field underneath the first icon. */
+.volt-wired__value-input {
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 2px 4px;
+}
+
+.volt-wired .volt-wired__value-input .volt-wired__input-field {
+    position: static;
+    flex: 1 1 0;
+    min-width: 0;
+    width: 0;
+}
+
 .volt-wired__input-limit {
     position: absolute;
     right: 0;
