@@ -90,6 +90,9 @@ jobs:
           ref: ${{ steps.renderer.outputs.ref }}
           path: volt-renderer
 
+      - name: Test release publication
+        run: python3 volt/.github/scripts/test_publish_release.py
+
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
