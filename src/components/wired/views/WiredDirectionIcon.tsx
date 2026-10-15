@@ -10,6 +10,10 @@ import volterMove1 from '../../../assets/images/wired/icon_wired_dir_se.png';
 import volterMove7 from '../../../assets/images/wired/icon_wired_dir_sw.png';
 import volterMoveDiag from '../../../assets/images/wired/icon_wired_dir_vertical_random.png';
 import volterMove6 from '../../../assets/images/wired/icon_wired_dir_w.png';
+import illuminaRotateCw from '../../../assets/images/wired/native/rotate_cw.png';
+import illuminaRotateCcw from '../../../assets/images/wired/native/rotate_ccw.png';
+import volterRotateCw from '../../../assets/images/wired/icon_wired_rotate_clockwise.png';
+import volterRotateCcw from '../../../assets/images/wired/icon_wired_rotate_counter_clockwise.png';
 import illuminaMove0 from '../../../assets/images/wired/native/move_0.png';
 import illuminaMove1 from '../../../assets/images/wired/native/move_1.png';
 import illuminaMove2 from '../../../assets/images/wired/native/move_2.png';
@@ -30,7 +34,7 @@ export const WIRED_DIRECTION_GRID = [
 ];
 
 /** AIR icon asset suffix: a room direction 0-7 (move_<n>) or one of move_rotate's random moves. */
-export type WiredMoveIconName = number | 'diag' | 'vrt' | 'rnd';
+export type WiredMoveIconName = number | 'diag' | 'vrt' | 'rnd' | 'rotate_cw' | 'rotate_ccw';
 
 /*
  * AIR resolves "move_<name>" to wired_styles_<style>_move_<name>, so Illumina draws plain arrows and the
@@ -47,6 +51,8 @@ const ILLUMINA_MOVE_ICONS: Record<string, string> = {
     7: illuminaMove7,
     diag: illuminaMoveDiag,
     vrt: illuminaMoveVrt,
+    rotate_cw: illuminaRotateCw,
+    rotate_ccw: illuminaRotateCcw,
     rnd: illuminaMoveRnd
 };
 
@@ -61,6 +67,8 @@ const VOLTER_MOVE_ICONS: Record<string, string> = {
     7: volterMove7,
     diag: volterMoveDiag,
     vrt: volterMoveVrt,
+    rotate_cw: volterRotateCw,
+    rotate_ccw: volterRotateCcw,
     rnd: volterMoveRnd
 };
 
@@ -80,7 +88,7 @@ export const WiredDirectionIcon: FC<WiredDirectionIconProps> = (props) => {
 
     return (
         <span className="inline-flex flex-col items-center justify-center leading-none">
-            {showImage && <img alt="" className={`h-auto w-auto object-contain ${selected ? 'brightness-100' : 'opacity-90'}`} draggable={false} src={src} />}
+            {showImage && <img alt="" className={`h-auto w-auto object-contain ${native || selected ? 'brightness-100' : 'opacity-90'}`} draggable={false} src={src} />}
             {debugValue !== null && debugValue !== undefined && <span className={`${showImage ? 'mt-[1px]' : ''} text-[9px] text-black`}>{debugValue}</span>}
         </span>
     );

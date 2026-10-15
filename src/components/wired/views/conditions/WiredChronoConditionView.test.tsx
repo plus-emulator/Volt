@@ -1,0 +1,54 @@
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { PropsWithChildren } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { WiredNativeContext } from '../WiredNativeContext';
+const setIntParams = vi.fn(), setStringParam = vi.fn();
+let trigger: { intData: number[]; stringData: string };
+let base: { save: () => void; nativeLayout: boolean };
+vi.mock('../../../../hooks', () => ({ useWired: () => ({ trigger, setIntParams, setStringParam }) }));
+vi.mock('../../../../api', async original => ({ ...await original<object>(), LocalizeText: (key: string) => key, GetConfigurationValue: () => 'UTC,Europe/Berlin' }));
+vi.mock('../WiredText', () => ({ WiredText: ({ text }: { text: string }) => <span>{text}</span> }));
+vi.mock('../../../mod-tools/native/NativeSkinView', () => ({ NativeSkinView: () => null }));
+vi.mock('../../../../common/native-text/NativeText', () => ({ NativeText: ({ text }: { text: string }) => <span>{text}</span> }));
+vi.mock('./WiredConditionBaseView', () => ({ WiredConditionBaseView: (props: PropsWithChildren<typeof base>) => { base = props; return <WiredNativeContext.Provider value={true}>{props.children}</WiredNativeContext.Provider>; } }));
+import { WiredConditionMatchDateView } from './WiredConditionMatchDateView';
+import { WiredConditionMatchTimeView } from './WiredConditionMatchTimeView';
+afterEach(cleanup);
+beforeEach(() => { vi.clearAllMocks(); trigger = { intData: [], stringData: 'Europe/Berlin' }; });
+const fields = (container: HTMLElement, name: string) => Array.from(container.querySelectorAll<HTMLInputElement>(`input[name="chrono-${name}"]`));
+describe('AIR chronological conditions', () => {
+    it('reopens exact hour/minute and a second range without changing the nine-field wire layout', () => {
+        trigger.intData = [1, 1, 1, 10, 20, 15, 15, 12, 12];
+        const { container } = render(<WiredConditionMatchTimeView />);
+        expect(base.nativeLayout).toBe(true);
+        expect(fields(container, 'hour')[1]).toBeChecked();
+        expect(fields(container, 'minute')[1]).toBeChecked();
+        expect(fields(container, 'second')[2]).toBeChecked();
+        expect(screen.getByLabelText('wiredfurni.params.time.hour_selection from')).toBeDisabled();
+        act(() => base.save());
+        expect(setIntParams).toHaveBeenLastCalledWith(trigger.intData);
+        expect(setStringParam).toHaveBeenLastCalledWith('Europe/Berlin');
+    });
+    it('keeps range drafts when switching to exact and resets skipped wire bounds to the native default', () => {
+        trigger.intData = [0, 0, 1, 40, 50, 2, 3, 8, 17];
+        const { container } = render(<WiredConditionMatchTimeView />);
+        fireEvent.click(fields(container, 'hour')[1]);
+        fireEvent.change(screen.getByLabelText('wiredfurni.params.time.hour_selection exact'), { target: { value: '12' } });
+        act(() => base.save());
+        expect(setIntParams).toHaveBeenLastCalledWith([0, 0, 1, 0, 0, 0, 0, 12, 12]);
+        fireEvent.click(fields(container, 'hour')[2]); act(() => base.save());
+        expect(setIntParams).toHaveBeenLastCalledWith([0, 0, 1, 0, 0, 0, 0, 8, 17]);
+        fireEvent.click(fields(container, 'hour')[0]); act(() => base.save());
+        expect(setIntParams).toHaveBeenLastCalledWith([0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    });
+    it('uses date masks, exact day and year range with two/three-column groups', () => {
+        trigger.intData = [1, 1, 5, 15, 15, 33, 2026, 2030];
+        const { container } = render(<WiredConditionMatchDateView />);
+        expect(fields(container, 'day')[1]).toBeChecked(); expect(fields(container, 'year')[2]).toBeChecked();
+        expect(container.querySelectorAll('input[type="checkbox"]')).toHaveLength(19);
+        expect(container.querySelector('[style*="repeat(2,"]')).toBeTruthy(); expect(container.querySelector('[style*="repeat(3,"]')).toBeTruthy();
+        act(() => base.save()); expect(setIntParams).toHaveBeenLastCalledWith(trigger.intData);
+        fireEvent.click(screen.getByRole('checkbox', { name: 'wiredfurni.params.time.weekday.2' })); act(() => base.save());
+        expect(setIntParams).toHaveBeenLastCalledWith([1, 1, 7, 15, 15, 33, 2026, 2030]);
+    });
+});

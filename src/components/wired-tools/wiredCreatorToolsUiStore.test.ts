@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createEmptyMonitorSnapshot } from './WiredCreatorTools.helpers';
-import { useWiredCreatorToolsUiStore } from './wiredCreatorToolsUiStore';
+import { openWiredMenuLink, useWiredCreatorToolsUiStore } from './wiredCreatorToolsUiStore';
 
 const INITIAL = {
     isVisible: false,
@@ -473,5 +473,25 @@ describe('useWiredCreatorToolsUiStore', () => {
             expect(state.selectedManagedHolderVariableId).toBe(11);
             expect(state.managedGiveVariableItemId).toBe(33);
         });
+    });
+});
+
+
+describe('native Wired editor menu links', () => {
+    const definitions = { furni: [], user: [], global: [], context: [{ key: '@event.transaction_failed.reason' }] };
+    beforeEach(() => useWiredCreatorToolsUiStore.setState(INITIAL));
+    it('opens the existing menu and focuses the transaction failure reason in context variables', () => {
+        expect(openWiredMenuLink('wiredmenu/open/variable_overview/@event.transaction_failed.reason', definitions)).toBe(true);
+        const state = useWiredCreatorToolsUiStore.getState();
+        expect(state.isVisible).toBe(true);
+        expect(state.activeTab).toBe('variables');
+        expect(state.variablesType).toBe('context');
+        expect(state.selectedVariableKeys.context).toBe('@event.transaction_failed.reason');
+    });
+    it('opens the editor header menu link without losing the existing tab or accepting unrelated links', () => {
+        useWiredCreatorToolsUiStore.getState().setActiveTab('settings');
+        expect(openWiredMenuLink('wiredmenu/open', definitions)).toBe(true);
+        expect(useWiredCreatorToolsUiStore.getState().activeTab).toBe('settings');
+        expect(openWiredMenuLink('other/open', definitions)).toBe(false);
     });
 });

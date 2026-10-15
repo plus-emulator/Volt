@@ -1,114 +1,27 @@
 import { FC, useEffect, useState } from 'react';
-import { LocalizeText, WiredFurniType } from '../../../../api';
-import { Text } from '../../../../common';
+import { LocalizeText, localizeWithFallback, normalizeWiredVariableName, WiredFurniType } from '../../../../api';
 import { useWired } from '../../../../hooks';
-import { VoltInput } from '../../../../layout';
+import { WiredRadioGroup } from '../WiredOptions';
+import { WiredSection } from '../WiredSection';
+import { WiredText } from '../WiredText';
 import { WiredExtraBaseView } from './WiredExtraBaseView';
+import { WiredVariableNameSection } from './WiredExtraUserVariableView';
 
-const AVAILABILITY_ROOM_ACTIVE = 1;
-const AVAILABILITY_PERMANENT = 10;
-const AVAILABILITY_SHARED = 11;
-const MAX_NAME_LENGTH = 40;
-
-const normalizeVariableName = (value: string) => {
-    let normalizedValue = (value ?? '').replace(/[\t\r\n]/g, '');
-
-    if (normalizedValue.includes('=')) normalizedValue = normalizedValue.substring(0, normalizedValue.indexOf('=')).trim();
-
-    while (normalizedValue.startsWith('@') || normalizedValue.startsWith('~')) {
-        normalizedValue = normalizedValue.substring(1);
-    }
-
-    normalizedValue = normalizedValue.replace(/\s+/g, '_');
-    normalizedValue = normalizedValue.replace(/[^A-Za-z0-9_]/g, '');
-
-    return normalizedValue.slice(0, MAX_NAME_LENGTH);
-};
-
-const handleVariableNameKeyDown = (event: React.KeyboardEvent<HTMLInputElement>, setValue: (value: string) => void) => {
-    if (event.key !== ' ') return;
-
-    event.preventDefault();
-
-    const input = event.currentTarget;
-    const start = input.selectionStart ?? input.value.length;
-    const end = input.selectionEnd ?? start;
-    const nextValue = `${input.value.substring(0, start)}_${input.value.substring(end)}`;
-
-    setValue(normalizeVariableName(nextValue));
-
-    window.requestAnimationFrame(() => input.setSelectionRange(Math.min(start + 1, input.value.length + 1), Math.min(start + 1, input.value.length + 1)));
-};
-
-export const WiredExtraRoomVariableView: FC<{}> = () => {
-    const { trigger = null, setIntParams = null, setStringParam = null } = useWired();
+/** AIR GlobalVariable: name, read-only current-value inspection, availability. */
+export const WiredExtraRoomVariableView: FC = () => {
+    const { trigger, setIntParams, setStringParam } = useWired();
     const [variableName, setVariableName] = useState('');
-    const [availability, setAvailability] = useState(AVAILABILITY_ROOM_ACTIVE);
-
+    const [availability, setAvailability] = useState(1);
+    const current = trigger?.contexts?.find(context => context.type === 3);
     useEffect(() => {
         if (!trigger) return;
-
-        setVariableName(normalizeVariableName(trigger.stringData));
-        const nextAvailability = trigger.intData.length > 0 ? trigger.intData[0] : AVAILABILITY_ROOM_ACTIVE;
-
-        setAvailability(nextAvailability === AVAILABILITY_PERMANENT || nextAvailability === AVAILABILITY_SHARED ? nextAvailability : AVAILABILITY_ROOM_ACTIVE);
+        setVariableName(normalizeWiredVariableName(trigger.stringData));
+        setAvailability(trigger.intData[0] === 10 || trigger.intData[0] === 11 ? trigger.intData[0] : 1);
     }, [trigger]);
-
-    const save = () => {
-        setStringParam(normalizeVariableName(variableName));
-        // owned: [availability]; the room value lives in the variable store, not in the definition.
-        setIntParams([availability]);
-    };
-
-    return (
-        <WiredExtraBaseView hasSpecialInput={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save} cardStyle={{ width: 400 }}>
-            <div className="flex flex-col gap-2">
-                <div className="flex flex-col gap-1">
-                    <Text>{LocalizeText('wiredfurni.params.variables.variable_name')}</Text>
-                    <VoltInput
-                        maxLength={MAX_NAME_LENGTH}
-                        type="text"
-                        value={variableName}
-                        onChange={(event) => setVariableName(normalizeVariableName(event.target.value))}
-                        onKeyDown={(event) => handleVariableNameKeyDown(event, setVariableName)}
-                    />
-                </div>
-
-                <div className="flex flex-col gap-1">
-                    <Text>{LocalizeText('wiredfurni.params.variables.availability')}</Text>
-                    <label className="flex items-center gap-1 cursor-pointer">
-                        <input
-                            checked={availability === AVAILABILITY_ROOM_ACTIVE}
-                            className="form-check-input"
-                            name="wiredRoomVariableAvailability"
-                            type="radio"
-                            onChange={() => setAvailability(AVAILABILITY_ROOM_ACTIVE)}
-                        />
-                        <Text>{LocalizeText('wiredfurni.params.variables.availability.1')}</Text>
-                    </label>
-                    <label className="flex items-center gap-1 cursor-pointer">
-                        <input
-                            checked={availability === AVAILABILITY_PERMANENT}
-                            className="form-check-input"
-                            name="wiredRoomVariableAvailability"
-                            type="radio"
-                            onChange={() => setAvailability(AVAILABILITY_PERMANENT)}
-                        />
-                        <Text>{LocalizeText('wiredfurni.params.variables.availability.10')}</Text>
-                    </label>
-                    <label className="flex items-center gap-1 cursor-pointer">
-                        <input
-                            checked={availability === AVAILABILITY_SHARED}
-                            className="form-check-input"
-                            name="wiredRoomVariableAvailability"
-                            type="radio"
-                            onChange={() => setAvailability(AVAILABILITY_SHARED)}
-                        />
-                        <Text>{LocalizeText('wiredfurni.params.variables.availability.11')}</Text>
-                    </label>
-                </div>
-
-            </div>
-        </WiredExtraBaseView>
-    );
+    const save = () => { setStringParam(normalizeWiredVariableName(variableName)); setIntParams([availability]); };
+    return <WiredExtraBaseView nativeLayout hasSpecialInput requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save}>
+        <WiredVariableNameSection value={variableName} onChange={setVariableName} />
+        <WiredSection title={LocalizeText('wiredfurni.params.variables.inspection')}><WiredText text={localizeWithFallback('wiredfurni.params.variables.inspection.current_value', 'Current value: %value%', ['value'], [current?.type === 3 ? String(current.value) : '—'])} /></WiredSection>
+        <WiredSection title={LocalizeText('wiredfurni.params.variables.availability')}><WiredRadioGroup name="wiredRoomVariableAvailability" value={availability} onChange={setAvailability} options={[1, 10, 11].map(id => ({ id, label: LocalizeText(`wiredfurni.params.variables.availability.${id}`) }))} /></WiredSection>
+    </WiredExtraBaseView>;
 };

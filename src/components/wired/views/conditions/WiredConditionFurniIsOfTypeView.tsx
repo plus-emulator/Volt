@@ -1,9 +1,11 @@
-import { FC, useCallback, useEffect, useRef, useState } from 'react';
-import { LocalizeText, WiredFurniType, WiredSelectionVisualizer } from '../../../../api';
-import { Text } from '../../../../common';
+import { FC, PropsWithChildren, useCallback, useEffect, useRef, useState } from 'react';
+import { WiredFurniType, WiredSelectionVisualizer } from '../../../../api';
 import { useWired } from '../../../../hooks';
 import { WiredFurniSelectionSourceRow } from '../WiredFurniSelectionSourceRow';
 import { FURNI_SOURCES, sortWiredSourceOptions, WiredSourceOption } from '../WiredSourcesSelector';
+import { useWiredNative } from '../WiredNativeContext';
+import { WIRED_ADVANCED_SURFACE_COLOR, WiredSurfaceContext } from '../WiredText';
+import { WiredQuantifierSection } from '../WiredOptions';
 import { WiredConditionBaseView } from './WiredConditionBaseView';
 
 const SOURCE_TRIGGER = 0;
@@ -15,6 +17,11 @@ const MATCH_FURNI_SOURCES: WiredSourceOption[] = sortWiredSourceOptions(
 );
 
 type SelectionMode = 'primary' | 'secondary';
+
+const AlwaysAdvanced: FC<PropsWithChildren> = ({ children }) => useWiredNative()
+    ? <WiredSurfaceContext.Provider value={WIRED_ADVANCED_SURFACE_COLOR}><div className="volt-wired__native-advanced-body">{children}</div></WiredSurfaceContext.Provider>
+    : <>{children}</>;
+
 
 interface WiredConditionFurniIsOfTypeViewProps {
     negative?: boolean;
@@ -167,57 +174,43 @@ export const WiredConditionFurniIsOfTypeView: FC<WiredConditionFurniIsOfTypeView
     ]);
 
     const selectionLimit = trigger?.maximumItemSelectionCount ?? 0;
-    const quantifierKeyPrefix = negative ? 'wiredfurni.params.quantifier.furni.neg' : 'wiredfurni.params.quantifier.furni';
 
     return (
         <WiredConditionBaseView
             hasSpecialInput={true}
+            nativeLayout={true}
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID_OR_BY_TYPE}
             save={save}
             selectionPreview={
-                <div className="flex flex-col gap-2">
+                <AlwaysAdvanced>
+                    <WiredQuantifierSection name="stuffIsQuantifier" kind="furni" negative={negative} value={quantifier} onChange={setQuantifier} />
                     <WiredFurniSelectionSourceRow
                         title="wiredfurni.params.sources.furni.title.match.0"
                         options={MATCH_FURNI_SOURCES}
                         value={matchSource}
-                        selectionKind="primary"
-                        selectionActive={selectionMode === 'primary'}
-                        selectionCount={primaryFurniIds.length}
+                        selectionKind={matchSource === SOURCE_SECONDARY_SELECTED ? 'secondary' : 'primary'}
+                        selectionActive={selectionMode === (matchSource === SOURCE_SECONDARY_SELECTED ? 'secondary' : 'primary')}
+                        selectionCount={matchSource === SOURCE_SECONDARY_SELECTED ? secondaryFurniIds.length : primaryFurniIds.length}
                         selectionLimit={selectionLimit}
-                        selectionEnabledValues={[SOURCE_SELECTED]}
+                        selectionEnabledValues={[SOURCE_SELECTED, SOURCE_SECONDARY_SELECTED]}
                         onChange={setMatchSource}
-                        onSelectionActivate={() => switchSelection('primary')}
+                        onSelectionActivate={() => switchSelection(matchSource === SOURCE_SECONDARY_SELECTED ? 'secondary' : 'primary')}
                     />
                     <WiredFurniSelectionSourceRow
                         title="wiredfurni.params.sources.furni.title.match.1"
                         options={MATCH_FURNI_SOURCES}
                         value={compareSource}
-                        selectionKind="secondary"
-                        selectionActive={selectionMode === 'secondary'}
-                        selectionCount={secondaryFurniIds.length}
+                        selectionKind={compareSource === SOURCE_SECONDARY_SELECTED ? 'secondary' : 'primary'}
+                        selectionActive={selectionMode === (compareSource === SOURCE_SECONDARY_SELECTED ? 'secondary' : 'primary')}
+                        selectionCount={compareSource === SOURCE_SECONDARY_SELECTED ? secondaryFurniIds.length : primaryFurniIds.length}
                         selectionLimit={selectionLimit}
-                        selectionEnabledValues={[SOURCE_SECONDARY_SELECTED]}
+                        selectionEnabledValues={[SOURCE_SELECTED, SOURCE_SECONDARY_SELECTED]}
                         onChange={setCompareSource}
-                        onSelectionActivate={() => switchSelection('secondary')}
+                        onSelectionActivate={() => switchSelection(compareSource === SOURCE_SECONDARY_SELECTED ? 'secondary' : 'primary')}
                     />
-                </div>
+                </AlwaysAdvanced>
             }
         >
-            <div className="flex flex-col gap-2">
-                <Text bold>{LocalizeText('wiredfurni.params.quantifier_selection')}</Text>
-                {[0, 1].map((value) => (
-                    <label key={value} className="flex items-center gap-1">
-                        <input
-                            checked={quantifier === value}
-                            className="form-check-input"
-                            name="stuffIsQuantifier"
-                            type="radio"
-                            onChange={() => setQuantifier(value)}
-                        />
-                        <Text>{LocalizeText(`${quantifierKeyPrefix}.${value}`)}</Text>
-                    </label>
-                ))}
-            </div>
         </WiredConditionBaseView>
     );
 };

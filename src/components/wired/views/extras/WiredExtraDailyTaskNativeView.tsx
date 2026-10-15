@@ -1,8 +1,8 @@
 import { FC, useEffect, useState } from 'react';
 import { handleWiredVariableNameKeyDown, localizeWithFallback, normalizeWiredVariableName, WIRED_VARIABLE_NAME_MAX, WiredFurniType } from '../../../../api';
-import { Text } from '../../../../common';
 import { useWired } from '../../../../hooks';
-import { VoltInput } from '../../../../layout';
+import { WiredSection } from '../WiredSection';
+import { WiredTextInput } from '../WiredTextInput';
 import { WiredExtraBaseView } from './WiredExtraBaseView';
 
 const DAILY_TASK_TEXT_MAX_LENGTH = 100;
@@ -34,29 +34,23 @@ export const WiredExtraDailyTaskNativeView: FC<{}> = () => {
     };
 
     return (
-        <WiredExtraBaseView hasSpecialInput={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save} cardStyle={{ width: 380 }}>
-            <div className="flex flex-col gap-2">
-                <div className="flex flex-col gap-1">
-                    <Text>{localizeWithFallback('wiredfurni.params.variables.variable_name', 'Variable name:')}</Text>
-                    <VoltInput
-                        maxLength={WIRED_VARIABLE_NAME_MAX}
-                        type="text"
-                        value={variableName}
-                        onChange={(event) => setVariableName(normalizeWiredVariableName(event.target.value))}
-                        onKeyDown={(event) => handleWiredVariableNameKeyDown(event, setVariableName)}
-                    />
-                </div>
-                <div className="flex flex-col gap-1">
-                    <Text>{localizeWithFallback('wiredfurni.params.variables.daily_task_name', 'Daily task code:')}</Text>
-                    <VoltInput
-                        maxLength={DAILY_TASK_TEXT_MAX_LENGTH}
-                        placeholder="1234.."
-                        type="text"
-                        value={taskText}
-                        onChange={(event) => setTaskText(event.target.value.replace(/[\t\r\n]/g, ''))}
-                    />
-                </div>
-            </div>
+        <WiredExtraBaseView hasSpecialInput={true} nativeLayout={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save}>
+            <WiredSection title={localizeWithFallback('wiredfurni.params.variables.variable_name', 'Variable name:')}>
+                <WiredTextInput
+                    maxLength={WIRED_VARIABLE_NAME_MAX}
+                    value={variableName}
+                    onChange={(value) => setVariableName(normalizeWiredVariableName(value))}
+                    onKeyDown={(event) => handleWiredVariableNameKeyDown(event, setVariableName)}
+                />
+            </WiredSection>
+            <WiredSection title={localizeWithFallback('wiredfurni.params.variables.daily_task_name', 'Daily task code:')}>
+                <WiredTextInput
+                    maxLength={DAILY_TASK_TEXT_MAX_LENGTH}
+                    placeholder="1234.."
+                    value={taskText}
+                    onChange={(value) => setTaskText(value.replace(/[\t\r\n]/g, ''))}
+                />
+            </WiredSection>
         </WiredExtraBaseView>
     );
 };

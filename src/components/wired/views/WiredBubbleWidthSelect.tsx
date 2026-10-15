@@ -1,6 +1,9 @@
 import { FC } from 'react';
 import { localizeWithFallback } from '../../../api';
 import { Text } from '../../../common';
+import { useWiredNative } from './WiredNativeContext';
+import { WiredCollapsibleSection } from './WiredCollapsibleSection';
+import { WiredDropdown } from './WiredDropdown';
 
 /** -1 keeps the room setting; 0, 1 and 2 are wide, normal and thin, as the room setting names them. */
 export const WIRED_BUBBLE_WIDTH_OPTIONS: number[] = [-1, 0, 1, 2];
@@ -18,15 +21,26 @@ export interface WiredBubbleWidthSelectProps {
 }
 
 /** The bubble-width picker the official messaging boxes carry, shared by every box that talks. */
-export const WiredBubbleWidthSelect: FC<WiredBubbleWidthSelectProps> = ({ value, onChange }) => (
-    <label className="flex flex-col gap-1">
-        <Text bold>{localizeWithFallback('wiredfurni.params.show_message.bubble_width.title', 'Bubble width')}</Text>
-        <select className="form-select form-select-sm" value={value} onChange={(event) => onChange(Number(event.target.value))}>
-            {WIRED_BUBBLE_WIDTH_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                    {localizeWithFallback(`wiredfurni.params.show_message.bubble_width.${option}`, FALLBACKS[option])}
-                </option>
-            ))}
-        </select>
-    </label>
-);
+export const WiredBubbleWidthSelect: FC<WiredBubbleWidthSelectProps> = ({ value, onChange }) => {
+    const native = useWiredNative();
+    const title = localizeWithFallback('wiredfurni.params.show_message.bubble_width.title', 'Bubble width');
+    if (native) return (
+        <WiredCollapsibleSection title={title}>
+            <WiredDropdown caption={title} value={value} onChange={onChange} options={WIRED_BUBBLE_WIDTH_OPTIONS.map(id => ({
+                id, label: localizeWithFallback(`wiredfurni.params.show_message.bubble_width.${id}`, FALLBACKS[id])
+            }))} />
+        </WiredCollapsibleSection>
+    );
+    return (
+        <label className="flex flex-col gap-1">
+            <Text bold>{localizeWithFallback('wiredfurni.params.show_message.bubble_width.title', 'Bubble width')}</Text>
+            <select className="form-select form-select-sm" value={value} onChange={(event) => onChange(Number(event.target.value))}>
+                {WIRED_BUBBLE_WIDTH_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                        {localizeWithFallback(`wiredfurni.params.show_message.bubble_width.${option}`, FALLBACKS[option])}
+                    </option>
+                ))}
+            </select>
+        </label>
+    );
+};

@@ -1,8 +1,9 @@
 import { FC, useEffect, useState } from 'react';
 import { LocalizeText, WiredFurniType } from '../../../../api';
-import { Text } from '../../../../common';
 import { useWired } from '../../../../hooks';
 import { WIRED_DIRECTION_GRID, WiredDirectionIcon } from '../WiredDirectionIcon';
+import { WiredRadioGroup, WiredCheckboxOption } from '../WiredOptions';
+import { WiredSection } from '../WiredSection';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredActionBaseView } from './WiredActionBaseView';
 
@@ -33,7 +34,7 @@ export const WiredActionMoveAndRotateFurniView: FC<{}> = (props) => {
 
         setFurniSource(trigger.furniSources[0]);
 
-        setBlockOnUserCollision(trigger.intData[2] === 1);
+        setBlockOnUserCollision((trigger.intData[2] ?? 0) !== 0);
     }, [trigger]);
 
     const onChangeFurniSource = (next: number) => setFurniSource(next);
@@ -43,68 +44,20 @@ export const WiredActionMoveAndRotateFurniView: FC<{}> = (props) => {
     return (
         <WiredActionBaseView
             hasSpecialInput={true}
+            nativeLayout={true}
             requiresFurni={requiresFurni}
             save={save}
             footer={<WiredSourcesSelector showFurni={true} furniSource={furniSource} onChangeFurni={onChangeFurniSource} />}
         >
-            <div className="flex flex-col gap-1">
-                <Text bold>{LocalizeText('wiredfurni.params.startdir')}</Text>
-                <div className="grid grid-cols-4 gap-2 max-w-[240px]">
-                    {WIRED_DIRECTION_GRID.flatMap((row, rowIndex) =>
-                        row.map((direction, columnIndex) => {
-                            if (direction === null) {
-                                return <div key={`move-to-dir-empty-${rowIndex}-${columnIndex}`} />;
-                            }
-
-                            return (
-                                <label key={`move-to-dir-${direction}`} className="flex items-center justify-center gap-[2px] cursor-pointer">
-                                    <input
-                                        checked={movement === direction}
-                                        className="form-check-input"
-                                        id={`movement${direction}`}
-                                        name="movement"
-                                        type="radio"
-                                        onChange={() => setMovement(direction)}
-                                    />
-                                    <span className="inline-flex items-center justify-center">
-                                        <WiredDirectionIcon direction={direction} selected={movement === direction} />
-                                    </span>
-                                </label>
-                            );
-                        })
-                    )}
-                </div>
-            </div>
-            <div className="flex flex-col gap-1">
-                <Text bold>{LocalizeText('wiredfurni.params.turn')}</Text>
-                {rotationOptions.map((option) => {
-                    return (
-                        <div key={option} className="flex items-center gap-1">
-                            <input
-                                checked={rotation === option}
-                                className="form-check-input"
-                                id={`rotation${option}`}
-                                name="rotation"
-                                type="radio"
-                                onChange={(event) => setRotation(option)}
-                            />
-                            <Text>{LocalizeText(`wiredfurni.params.turn.${option}`)}</Text>
-                        </div>
-                    );
-                })}
-            </div>
-            <div className="flex flex-col gap-1">
-                <Text bold>{LocalizeText('wiredfurni.params.user_collide')}</Text>
-                <label className="flex items-center gap-1 cursor-pointer">
-                    <input
-                        checked={blockOnUserCollision}
-                        className="form-check-input"
-                        type="checkbox"
-                        onChange={(event) => setBlockOnUserCollision(event.target.checked)}
-                    />
-                    <Text>{LocalizeText('wiredfurni.params.user_collide.0')}</Text>
-                </label>
-            </div>
+            <WiredSection title={LocalizeText('wiredfurni.params.startdir')}>
+                <WiredRadioGroup name="movement" columns={4} value={movement} onChange={setMovement} options={WIRED_DIRECTION_GRID.flat().map(direction => ({ id: direction, label: <WiredDirectionIcon direction={direction} selected={movement === direction} /> }))} />
+            </WiredSection>
+            <WiredSection title={LocalizeText('wiredfurni.params.turn')}>
+                <WiredRadioGroup name="rotation" value={rotation} onChange={setRotation} options={rotationOptions.map(id => ({ id, label: LocalizeText(`wiredfurni.params.turn.${id}`) }))} />
+            </WiredSection>
+            <WiredSection title={LocalizeText('wiredfurni.params.user_collide')}>
+                <WiredCheckboxOption checked={blockOnUserCollision} onChange={setBlockOnUserCollision} label={LocalizeText('wiredfurni.params.user_collide.0')} last />
+            </WiredSection>
         </WiredActionBaseView>
     );
 };

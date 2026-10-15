@@ -1,7 +1,6 @@
-import { FC, useEffect, useMemo, useState } from 'react';
-import { LocalizeText, WiredFurniType } from '../../../../api';
-import { Text } from '../../../../common';
-import { WiredLegacySlider as Slider } from '../WiredSlider';
+import { FC, useEffect, useState } from 'react';
+import { WiredFurniType, WIRED_SLIDER_PULSES } from '../../../../api';
+import { WiredSliderSection } from '../WiredSlider';
 import { useWired } from '../../../../hooks';
 import { WiredSourceOption, WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredTriggerBaseView } from './WiredTriggerBaseView';
@@ -18,20 +17,11 @@ const TRIGGER_FURNI_SOURCES: WiredSourceOption[] = [
 const normalizeMinutes = (value: number) => Math.max(MINUTES_MIN, Math.min(MINUTES_MAX, value));
 const normalizeHalfSeconds = (value: number) => Math.max(HALF_SECONDS_MIN, Math.min(HALF_SECONDS_MAX, value));
 
-const formatSeconds = (halfSeconds: number) => {
-    const value = normalizeHalfSeconds(halfSeconds) / 2;
-    const text = value.toFixed(1);
-
-    return text.endsWith('.0') ? text.slice(0, -2) : text;
-};
-
 export const WiredTriggerClockCounterView: FC<{}> = () => {
     const { trigger = null, setIntParams = null, setFurniSources } = useWired();
     const [furniSource, setFurniSource] = useState(100);
     const [minutes, setMinutes] = useState(0);
     const [halfSeconds, setHalfSeconds] = useState(0);
-
-    const secondsLabel = useMemo(() => formatSeconds(halfSeconds), [halfSeconds]);
 
     const save = () => {
         setIntParams([Math.floor(halfSeconds / 2), minutes, halfSeconds % 2]);
@@ -54,22 +44,8 @@ export const WiredTriggerClockCounterView: FC<{}> = () => {
             save={save}
             footer={<WiredSourcesSelector showFurni={true} furniSource={furniSource} furniSources={TRIGGER_FURNI_SOURCES} onChangeFurni={setFurniSource} />}
         >
-            <div className="flex flex-col gap-1">
-                <Text bold>{LocalizeText('wiredfurni.params.clock_minutes_elapsed', ['minutes'], [minutes.toString()])}</Text>
-                <Slider max={MINUTES_MAX} min={MINUTES_MIN} step={1} value={minutes} onChange={(event) => setMinutes(normalizeMinutes(event as number))} />
-                <Text small>{minutes}</Text>
-            </div>
-            <div className="flex flex-col gap-1">
-                <Text bold>{LocalizeText('wiredfurni.params.clock_seconds_elapsed', ['seconds'], [secondsLabel])}</Text>
-                <Slider
-                    max={HALF_SECONDS_MAX}
-                    min={HALF_SECONDS_MIN}
-                    step={1}
-                    value={halfSeconds}
-                    onChange={(event) => setHalfSeconds(normalizeHalfSeconds(event as number))}
-                />
-                <Text small>{secondsLabel}</Text>
-            </div>
+            <WiredSliderSection titleKey="wiredfurni.params.clock_minutes_elapsed" unit="minutes" min={MINUTES_MIN} max={MINUTES_MAX} step={1} withInput={false} value={minutes} onChange={setMinutes} />
+            <WiredSliderSection titleKey="wiredfurni.params.clock_seconds_elapsed" unit="seconds" converter={WIRED_SLIDER_PULSES} min={HALF_SECONDS_MIN} max={HALF_SECONDS_MAX} step={1} withInput={false} value={halfSeconds} onChange={setHalfSeconds} />
         </WiredTriggerBaseView>
     );
 };

@@ -1,356 +1,70 @@
 import { FC, useEffect, useMemo, useState } from 'react';
-import { LocalizeText, localizeWithFallback, WiredFurniType } from '../../../../api';
-import contextVariableIcon from '../../../../assets/images/wired/var/icon_source_context_clean.png';
-import furniVariableIcon from '../../../../assets/images/wired/var/icon_source_furni.png';
-import globalVariableIcon from '../../../../assets/images/wired/var/icon_source_global.png';
-import userVariableIcon from '../../../../assets/images/wired/var/icon_source_user.png';
-import { Text } from '../../../../common';
-import { useWired } from '../../../../hooks';
-import { VoltInput } from '../../../../layout';
+import { LocalizeText, WiredFurniType, createNativeVariableToken, tokenOfVariableSlot, variableSlotOf, WIRED_VARIABLE_ABSENT } from '../../../../api';
+import { useWired, useWiredNativeVariables } from '../../../../hooks';
+import { WiredActionValueOrVariableSection, getWiredValueTargetCode, normalizeWiredValueTarget, WiredValueTargetType } from '../actions/WiredActionValueOrVariableSection';
 import { FurniPickSlotButtons } from '../conditions/WiredVariableConditionParts';
-import { WiredFurniSelectionSourceRow } from '../WiredFurniSelectionSourceRow';
-import { CLICKED_USER_SOURCE, nativeSourceOptions, sortWiredSourceOptions, USER_SOURCES, useAvailableUserSources, WiredSourceOption } from '../WiredSourcesSelector';
+import { WiredDropdown } from '../WiredDropdown';
+import { WiredSection } from '../WiredSection';
+import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredVariablePicker } from '../WiredVariablePicker';
-import { IWiredNativeVariableDefinition, WIRED_VARIABLE_ABSENT, tokenOfVariableSlot, variableSlotOf } from '../../../../api';
-import { useWiredNativeVariables } from '../../../../hooks';
-import { buildWiredVariablePickerEntries, createFallbackVariableEntry, flattenWiredVariablePickerEntries, WiredVariablePickerTarget } from '../WiredVariablePickerData';
-import { createNativeVariableToken, getNativeVariableId } from '../../../../api';
+import { buildWiredVariablePickerEntries, createFallbackVariableEntry, flattenWiredVariablePickerEntries } from '../WiredVariablePickerData';
 import { WiredExtraBaseView } from './WiredExtraBaseView';
 
-type VariableTargetType = 'user' | 'furni' | 'global' | 'context';
-type AmountMode = 'constant' | 'variable';
-
-type IVariableDefinition = IWiredNativeVariableDefinition;
-
-interface WiredExtraFilterByVariableViewProps {
-    target: 'user' | 'furni';
-}
-
-const TARGET_USER = 0;
-const TARGET_FURNI = 1;
-const TARGET_CONTEXT = 2;
-const TARGET_GLOBAL = 3;
-const AMOUNT_CONSTANT = 0;
-const AMOUNT_VARIABLE = 1;
-const SOURCE_TRIGGER = 0;
-const SOURCE_SELECTED = 100;
-const SOURCE_SECONDARY_SELECTED = 101;
-
-const TARGET_BUTTONS: Array<{ key: VariableTargetType; icon: string; disabled?: boolean }> = [
-    { key: 'furni', icon: furniVariableIcon },
-    { key: 'user', icon: userVariableIcon },
-    { key: 'global', icon: globalVariableIcon },
-    { key: 'context', icon: contextVariableIcon }
-];
-
-const SORT_OPTIONS = [0, 1, 2, 3, 4, 5];
-
-// AS3 VariableFilter: the picker lists variables that hold a value or can tell their creation or update time, and the sort list only
-// offers the orders the picked variable supports (0 and 1 by value, 2 and 3 by creation, 4 and 5 by update).
-const filterable = (definition: IVariableDefinition) => definition.hasValue || definition.canReadCreationTime !== false || definition.canReadLastUpdateTime !== false;
-const supportsSort = (definition: IVariableDefinition | null, option: number) => {
-    if (!definition) return true;
-    if (option < 2) return definition.hasValue;
-    if (option < 4) return definition.canReadCreationTime !== false;
-
-    return definition.canReadLastUpdateTime !== false;
-};
-
-
-const GLOBAL_SOURCE_OPTIONS: WiredSourceOption[] = [{ value: SOURCE_TRIGGER, label: 'wiredfurni.params.sources.global' }];
-const CONTEXT_SOURCE_OPTIONS: WiredSourceOption[] = [
-    { value: SOURCE_TRIGGER, label: localizeWithFallback('wiredfurni.params.sources.context', 'Current execution') }
-];
-
-
-const normalizeTargetType = (value: number): VariableTargetType => {
-    switch (value) {
-        case TARGET_FURNI:
-            return 'furni';
-        case TARGET_GLOBAL:
-            return 'global';
-        case TARGET_CONTEXT:
-            return 'context';
-        default:
-            return 'user';
-    }
-};
-
-const getTargetValue = (value: VariableTargetType) => {
-    switch (value) {
-        case 'furni':
-            return TARGET_FURNI;
-        case 'global':
-            return TARGET_GLOBAL;
-        case 'context':
-            return TARGET_CONTEXT;
-        default:
-            return TARGET_USER;
-    }
-};
-
-const getReferenceDefinitions = (
-    targetType: VariableTargetType,
-    userDefinitions: IVariableDefinition[],
-    furniDefinitions: IVariableDefinition[],
-    roomDefinitions: IVariableDefinition[],
-    contextDefinitions: IVariableDefinition[]
-) => {
-    switch (targetType) {
-        case 'furni':
-            return furniDefinitions;
-        case 'global':
-            return roomDefinitions;
-        case 'context':
-            return contextDefinitions;
-        default:
-            return userDefinitions;
-    }
-};
-
-const resolveSourceOptions = (baseOptions: WiredSourceOption[], selectedValue: number, fallbackOptions: WiredSourceOption[]) => {
-    if (!baseOptions.length) return baseOptions;
-    if (baseOptions.some((option) => option.value === selectedValue)) return baseOptions;
-
-    const fallbackOption = fallbackOptions.find((option) => option.value === selectedValue);
-
-    return fallbackOption ? [...baseOptions, fallbackOption] : baseOptions;
-};
-
-export const WiredExtraFilterByVariableView: FC<WiredExtraFilterByVariableViewProps> = ({ target }) => {
-    const { trigger = null, furniIds = [], secondaryFurniIds = [], activePickSlot = 0, setActivePickSlot = null, setIntParams = null, setStringParam = null, setVariableIds = null, setUserSources = null, setFurniSources = null } = useWired();
-    const { userVariableDefinitions = [], furniVariableDefinitions = [], roomVariableDefinitions = [], contextVariableDefinitions = [] } = useWiredNativeVariables();
+/** AIR addons/VariableFilter: variable picker, supported sort orders, compact ValueOrVariable section. */
+export const WiredExtraFilterByVariableView: FC<{ target: 'user' | 'furni' }> = ({ target }) => {
+    const { trigger, furniIds = [], secondaryFurniIds = [], setIntParams, setStringParam, setVariableIds, setUserSources, setFurniSources } = useWired();
+    const { userVariableDefinitions = [], furniVariableDefinitions = [] } = useWiredNativeVariables();
     const [variableToken, setVariableToken] = useState('');
     const [sortBy, setSortBy] = useState(0);
-    const [amountMode, setAmountMode] = useState<AmountMode>('constant');
-    const [amountInput, setAmountInput] = useState('1');
-    const [referenceTargetType, setReferenceTargetType] = useState<VariableTargetType>('user');
-    const [referenceVariableToken, setReferenceVariableToken] = useState('');
-    const [referenceUserSource, setReferenceUserSource] = useState(SOURCE_TRIGGER);
-    const [referenceFurniSource, setReferenceFurniSource] = useState(SOURCE_TRIGGER);
-
-    const orderedFurniSources = nativeSourceOptions(trigger?.inputSources?.furniAllowed[0], 'furni');
-    // The hotel sends the sources it offers for the amount reference (users 0 and 201); the full list is only the fallback.
-    const nativeUserSources = nativeSourceOptions(trigger?.inputSources?.usersAllowed[0], 'users');
-    const availableUserSources = useAvailableUserSources(trigger, nativeUserSources.length ? nativeUserSources : USER_SOURCES, 'wiredfurni.params.sources.users.title', !nativeUserSources.length);
-    const orderedUserSources = useMemo(() => sortWiredSourceOptions(availableUserSources, 'users'), [availableUserSources]);
-    const userSourceFallbackOptions = useMemo(() => sortWiredSourceOptions([...USER_SOURCES, CLICKED_USER_SOURCE], 'users'), []);
-
-    const mainDefinitions = useMemo(
-        () => (target === 'user' ? userVariableDefinitions : furniVariableDefinitions).filter(filterable),
-        [furniVariableDefinitions, target, userVariableDefinitions]
-    );
-    const mainDefinition = useMemo(() => mainDefinitions.find((definition) => createNativeVariableToken(definition.variableId) === variableToken) ?? null, [mainDefinitions, variableToken]);
-    const sortOptions = SORT_OPTIONS.filter((option) => supportsSort(mainDefinition, option));
-    const mainEntries = useMemo(
-        () => buildWiredVariablePickerEntries(target as WiredVariablePickerTarget, 'filter-main', mainDefinitions),
-        [mainDefinitions, target]
-    );
-    const resolvedMainEntries = useMemo(() => {
-        if (!variableToken) return mainEntries;
-        if (flattenWiredVariablePickerEntries(mainEntries).some((entry) => entry.token === variableToken)) return mainEntries;
-
-        const fallbackEntry = createFallbackVariableEntry(target, variableToken);
-        return fallbackEntry ? [fallbackEntry, ...mainEntries] : mainEntries;
-    }, [mainEntries, target, variableToken]);
-
-    const referenceDefinitions = useMemo(
-        () =>
-            getReferenceDefinitions(
-                referenceTargetType,
-                userVariableDefinitions,
-                furniVariableDefinitions,
-                roomVariableDefinitions,
-                contextVariableDefinitions
-            ),
-        [contextVariableDefinitions, furniVariableDefinitions, referenceTargetType, roomVariableDefinitions, userVariableDefinitions]
-    );
-    const referenceEntries = useMemo(
-        () => buildWiredVariablePickerEntries(referenceTargetType, 'change-reference', referenceDefinitions),
-        [referenceDefinitions, referenceTargetType]
-    );
-    const resolvedReferenceEntries = useMemo(() => {
-        if (!referenceVariableToken) return referenceEntries;
-        if (flattenWiredVariablePickerEntries(referenceEntries).some((entry) => entry.token === referenceVariableToken)) return referenceEntries;
-
-        const fallbackEntry = createFallbackVariableEntry(referenceTargetType, referenceVariableToken);
-        return fallbackEntry ? [fallbackEntry, ...referenceEntries] : referenceEntries;
-    }, [referenceEntries, referenceTargetType, referenceVariableToken]);
-
-    const referenceSelectionEnabled = amountMode === 'variable' && referenceTargetType === 'furni' && (referenceFurniSource === SOURCE_SELECTED || referenceFurniSource === SOURCE_SECONDARY_SELECTED);
-    const selectionLimit = trigger?.maximumItemSelectionCount ?? 0;
-    const requiresFurni = referenceSelectionEnabled ? WiredFurniType.STUFF_SELECTION_OPTION_BY_ID : WiredFurniType.STUFF_SELECTION_OPTION_NONE;
-    const selectedReferenceSourceValue =
-        referenceTargetType === 'furni'
-            ? referenceFurniSource
-            : referenceTargetType === 'global' || referenceTargetType === 'context'
-              ? SOURCE_TRIGGER
-              : referenceUserSource;
-
-    const referenceSourceOptions = useMemo(() => {
-        if (referenceTargetType === 'furni') return resolveSourceOptions(orderedFurniSources, selectedReferenceSourceValue, orderedFurniSources);
-        if (referenceTargetType === 'global') return GLOBAL_SOURCE_OPTIONS;
-        if (referenceTargetType === 'context') return CONTEXT_SOURCE_OPTIONS;
-
-        return resolveSourceOptions(orderedUserSources, selectedReferenceSourceValue, userSourceFallbackOptions);
-    }, [orderedFurniSources, orderedUserSources, referenceTargetType, selectedReferenceSourceValue, userSourceFallbackOptions]);
-
+    const [amount, setAmount] = useState(1);
+    const [option, setOption] = useState(0);
+    const [referenceTarget, setReferenceTarget] = useState<WiredValueTargetType>('user');
+    const [referenceToken, setReferenceToken] = useState('');
+    const [userSource, setUserSource] = useState(0);
+    const [furniSource, setFurniSource] = useState(100);
+    const [valid, setValid] = useState(true);
+    const definitions = target === 'user' ? userVariableDefinitions : furniVariableDefinitions;
+    const definition = definitions.find(item => createNativeVariableToken(item.variableId) === variableToken);
+    const sortOptions = [0, 1, 2, 3, 4, 5].filter(order => !definition || (order < 2 ? definition.hasValue : order < 4 ? definition.canReadCreationTime !== false : definition.canReadLastUpdateTime !== false));
+    const entries = useMemo(() => {
+        const entries = buildWiredVariablePickerEntries(target, 'filter-main', definitions.filter(item => item.hasValue || item.canReadCreationTime !== false || item.canReadLastUpdateTime !== false));
+        if (!variableToken || flattenWiredVariablePickerEntries(entries).some(entry => entry.token === variableToken)) return entries;
+        const fallback = createFallbackVariableEntry(target, variableToken);
+        return fallback ? [fallback, ...entries] : entries;
+    }, [definitions, target, variableToken]);
     useEffect(() => {
         if (!trigger) return;
-
-        // variableIds: [0] the filtered variable, [1] the amount reference when the amount comes from a variable.
+        const [count = 1, order = 0, mode = 0, scope = 1] = trigger.intData;
         setVariableToken(tokenOfVariableSlot(trigger.variableIds[0]));
-        setReferenceVariableToken(tokenOfVariableSlot(trigger.variableIds[1]));
-        setAmountInput((trigger.intData.length > 0 ? trigger.intData[0] : 1).toString());
-        setSortBy(trigger.intData.length > 1 ? trigger.intData[1] : 0);
-        setAmountMode((trigger.intData.length > 2 ? trigger.intData[2] : AMOUNT_CONSTANT) === AMOUNT_VARIABLE ? 'variable' : 'constant');
-        setReferenceTargetType(normalizeTargetType(trigger.intData.length > 3 ? trigger.intData[3] : TARGET_USER));
-        setReferenceUserSource(trigger.userSources.length > 0 ? trigger.userSources[0] : SOURCE_TRIGGER);
-        setReferenceFurniSource(trigger.furniSources.length > 0 ? trigger.furniSources[0] : SOURCE_TRIGGER);
+        setReferenceToken(mode === 1 ? tokenOfVariableSlot(trigger.variableIds[1]) : '');
+        setAmount(mode === 1 ? 1 : count);
+        setSortBy(order); setOption(mode); setReferenceTarget(normalizeWiredValueTarget(scope));
+        setFurniSource(trigger.furniSources[0] ?? trigger.inputSources?.furniDefaults[0] ?? 100);
+        setUserSource(trigger.userSources[0] ?? trigger.inputSources?.userDefaults[0] ?? 0);
     }, [trigger]);
-
-    useEffect(() => {
-        if (sortOptions.length && !sortOptions.includes(sortBy)) setSortBy(sortOptions[0]);
-    }, [sortBy, sortOptions]);
-
-    useEffect(() => {
-        if (referenceSelectionEnabled) setActivePickSlot(referenceFurniSource === SOURCE_SECONDARY_SELECTED ? 1 : 0);
-    }, [referenceFurniSource, referenceSelectionEnabled, setActivePickSlot]);
-
-    useEffect(() => {
-        if (referenceTargetType !== 'user') return;
-        if (orderedUserSources.some((option) => option.value === referenceUserSource)) return;
-
-        setReferenceUserSource(SOURCE_TRIGGER);
-    }, [orderedUserSources, referenceTargetType, referenceUserSource]);
-
+    useEffect(() => { if (sortOptions.length && !sortOptions.includes(sortBy)) setSortBy(sortOptions[0]); }, [sortBy, sortOptions]);
+    const picks = option === 1 && referenceTarget === 'furni' && (furniSource === 100 || furniSource === 101);
     const save = () => {
-        const parsedAmount = parseInt(amountInput.trim(), 10);
-
-        setStringParam('');
-        // owned: [count, sort order, amount option (1 variable), amount target].
-        // The amount rides as 1 whenever it comes from a variable, as the hotel's own editor reopens it.
-        setIntParams([amountMode === 'variable' ? 1 : Number.isFinite(parsedAmount) ? parsedAmount : 0, sortBy, amountMode === 'variable' ? AMOUNT_VARIABLE : AMOUNT_CONSTANT, getTargetValue(referenceTargetType)]);
-        setVariableIds([variableSlotOf(variableToken), amountMode === 'variable' ? variableSlotOf(referenceVariableToken) : WIRED_VARIABLE_ABSENT]);
-        setUserSources([referenceUserSource]);
-        setFurniSources([referenceFurniSource]);
+        setIntParams([amount, sortBy, option, getWiredValueTargetCode(referenceTarget)]);
+        setVariableIds([variableSlotOf(variableToken), option === 1 ? variableSlotOf(referenceToken) : WIRED_VARIABLE_ABSENT]);
+        setStringParam(''); setUserSources([userSource]); setFurniSources([furniSource]);
     };
-
-    const validate = () => {
-        if (!variableToken) return false;
-        if (amountMode === 'variable' && !referenceVariableToken) return false;
-
-        return true;
-    };
-
-    const handleReferenceTargetChange = (targetType: VariableTargetType) => {
-        if (targetType === referenceTargetType) return;
-
-
-        setReferenceTargetType(targetType);
-        setReferenceVariableToken('');
-    };
-
-    return (
-        <WiredExtraBaseView hasSpecialInput={true} requiresFurni={requiresFurni} save={save} validate={validate} cardStyle={{ width: 260 }}>
-            <div className="volt-wired__give-var">
-                {referenceSelectionEnabled && <FurniPickSlotButtons slots={[referenceFurniSource === SOURCE_SECONDARY_SELECTED ? { slot: 1, count: secondaryFurniIds.length } : { slot: 0, count: furniIds.length }]} />}
-                <div className="flex flex-col gap-1">
-                    <Text>{LocalizeText('wiredfurni.params.variables.variable_selection')}</Text>
-                    <WiredVariablePicker
-                        entries={resolvedMainEntries}
-                        recentScope={`variable-extra-${target}`}
-                        selectedToken={variableToken}
-                        onSelect={(entry) => setVariableToken(entry.token)}
-                    />
-                </div>
-
-                <div className="volt-wired__divider" />
-
-                <div className="flex flex-col gap-1">
-                    <Text>{LocalizeText('wiredfurni.params.variables.sort_by')}</Text>
-                    <select className="form-select form-select-sm" value={sortBy} onChange={(event) => setSortBy(parseInt(event.target.value, 10) || 0)}>
-                        {sortOptions.map((option) => (
-                            <option key={option} value={option}>
-                                {LocalizeText(`wiredfurni.params.variables.sort_by.${option}`)}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-
-                <div className="volt-wired__divider" />
-
-                <div className="volt-wired__give-var-section">
-                    <div className="volt-wired__give-var-section-title">{LocalizeText('wiredfurni.params.setfilter')}</div>
-                    <label className="volt-wired__change-var-radio">
-                        <input checked={amountMode === 'constant'} type="radio" onChange={() => setAmountMode('constant')} />
-                        <Text>{LocalizeText('wiredfurni.params.variables.reference_value.set_value')}</Text>
-                        <VoltInput
-                            className="volt-wired__give-var-number"
-                            type="number"
-                            min={1}
-                            max={1000}
-                            value={amountInput}
-                            onChange={(event) => setAmountInput(event.target.value)}
-                        />
-                    </label>
-
-                    <div className="volt-wired__change-var-reference-block">
-                        <label className="volt-wired__change-var-radio">
-                            <input checked={amountMode === 'variable'} type="radio" onChange={() => setAmountMode('variable')} />
-                            <Text>{LocalizeText('wiredfurni.params.variables.reference_value.from_variable')}</Text>
-                            <div className="volt-wired__give-var-targets">
-                                {TARGET_BUTTONS.map((button) => (
-                                    <button
-                                        key={`reference-${button.key}`}
-                                        type="button"
-                                        disabled={button.disabled || amountMode !== 'variable'}
-                                        className={`volt-wired__give-var-target volt-wired__give-var-target--${button.key} ${referenceTargetType === button.key ? 'is-active' : ''}`}
-                                        onClick={() => handleReferenceTargetChange(button.key)}
-                                    >
-                                        <img src={button.icon} alt={button.key} />
-                                    </button>
-                                ))}
-                            </div>
-                        </label>
-
-                        {amountMode === 'variable' && (
-                            <WiredVariablePicker
-                                entries={resolvedReferenceEntries}
-                                recentScope={`variable-extra-reference-${target}`}
-                                selectedToken={referenceVariableToken}
-                                onSelect={(entry) => setReferenceVariableToken(entry.token)}
-                            />
-                        )}
-                    </div>
-                </div>
-
-                {amountMode === 'variable' && (
-                    <>
-                        <div className="volt-wired__divider" />
-                        <WiredFurniSelectionSourceRow
-                            title="wiredfurni.params.sources.merged.title.variables_reference"
-                            options={referenceSourceOptions}
-                            value={selectedReferenceSourceValue}
-                            selectionKind={referenceFurniSource === SOURCE_SECONDARY_SELECTED ? "secondary" : "primary"}
-                            selectionActive={activePickSlot === (referenceFurniSource === SOURCE_SECONDARY_SELECTED ? 1 : 0)}
-                            selectionCount={referenceFurniSource === SOURCE_SECONDARY_SELECTED ? secondaryFurniIds.length : furniIds.length}
-                            selectionLimit={selectionLimit}
-                            selectionEnabledValues={[SOURCE_SELECTED, SOURCE_SECONDARY_SELECTED]}
-                            showSelectionToggle={false}
-                            onChange={(value) => {
-                                if (referenceTargetType === 'furni') {
-                                    setReferenceFurniSource(value);
-                                    if (value === SOURCE_SELECTED || value === SOURCE_SECONDARY_SELECTED) setActivePickSlot(value === SOURCE_SECONDARY_SELECTED ? 1 : 0);
-                                    return;
-                                }
-
-                                if (referenceTargetType === 'user') setReferenceUserSource(value);
-                            }}
-                        />
-                    </>
-                )}
-            </div>
-        </WiredExtraBaseView>
-    );
+    return <WiredExtraBaseView nativeLayout hasSpecialInput requiresFurni={picks ? WiredFurniType.STUFF_SELECTION_OPTION_BY_ID : WiredFurniType.STUFF_SELECTION_OPTION_NONE}
+        save={save} validate={() => valid && !!variableToken && (option !== 1 || !!referenceToken)}>
+        <WiredSection title={LocalizeText('wiredfurni.params.variables.variable_selection')}>
+            <WiredVariablePicker entries={entries} recentScope={`variable-extra-${target}`} selectedToken={variableToken} onSelect={entry => setVariableToken(entry.token)} />
+        </WiredSection>
+        <WiredSection title={LocalizeText('wiredfurni.params.variables.sort_by')}>
+            <WiredDropdown caption={LocalizeText('wiredfurni.params.variables.sort_by.caption')} value={sortBy}
+                options={sortOptions.map(id => ({ id, label: LocalizeText(`wiredfurni.params.variables.sort_by.${id}`) }))} onChange={setSortBy} />
+        </WiredSection>
+        <WiredActionValueOrVariableSection title={LocalizeText('wiredfurni.params.setfilter')} targetTitle={LocalizeText('wiredfurni.params.sources.merged.title.variables_reference')}
+            recentScope={`variable-extra-reference-${target}`} min={1} max={1000} literal={amount} onLiteralChange={setAmount}
+            option={option} onOptionChange={setOption} target={referenceTarget} onTargetChange={setReferenceTarget}
+            variableToken={referenceToken} onVariableTokenChange={setReferenceToken} onValidityChange={setValid}
+            popupSources={<>
+                {referenceTarget === 'furni' && <><FurniPickSlotButtons slots={furniSource === 100 ? [{ slot: 0, count: furniIds.length }] : furniSource === 101 ? [{ slot: 1, count: secondaryFurniIds.length }] : []} /><WiredSourcesSelector showFurni furniSource={furniSource} onChangeFurni={setFurniSource} /></>}
+                {referenceTarget === 'user' && <WiredSourcesSelector showUsers userSource={userSource} onChangeUsers={setUserSource} />}
+            </>} />
+    </WiredExtraBaseView>;
 };

@@ -1,11 +1,13 @@
 import { WiredEditorContext } from '@volt/renderer';
 import { FC, useEffect, useMemo, useState } from 'react';
-import { LocalizeText, localizeWithFallback, WiredFurniType } from '../../../../api';
-import { Text } from '../../../../common';
+import { LocalizeText, WiredFurniType } from '../../../../api';
 import { useWired } from '../../../../hooks';
-import { WIRED_VARIABLE_ABSENT, tokenOfVariableSlot, variableSlotOf } from '../../../../api';
-import { VoltInput } from '../../../../layout';
-import { handleWiredVariableNameKeyDown, normalizeWiredVariableName, WIRED_VARIABLE_NAME_MAX } from '../../../../api';
+import { WIRED_VARIABLE_ABSENT } from '../../../../api';
+import { WiredDropdown } from '../WiredDropdown';
+import { WiredSection } from '../WiredSection';
+import { WiredCheckboxOption } from '../WiredOptions';
+import { WiredVariableNameSection } from './WiredExtraUserVariableView';
+import { normalizeWiredVariableName } from '../../../../api';
 import { WiredExtraBaseView } from './WiredExtraBaseView';
 
 type SharedContext = Extract<WiredEditorContext, { type: 4 }>;
@@ -22,11 +24,9 @@ export const WiredExtraVariableReferenceView: FC<{}> = () => {
     const [selectedVariableId, setSelectedVariableId] = useState('');
     const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null);
 
-    const sharedRows: SharedRow[] = useMemo(() => {
-        const shared = trigger?.contexts?.find((context): context is SharedContext => context.type === 4);
-
-        return shared?.shared ?? [];
-    }, [trigger]);
+    const sharedContext = useMemo(() => trigger?.contexts?.find((context): context is SharedContext => context.type === 4), [trigger]);
+    const sharedRows: SharedRow[] = useMemo(() => sharedContext?.shared ?? [], [sharedContext]);
+    const editable = !!sharedContext;
 
     const rooms = useMemo(() => {
         const byId = new Map<number, string>();
@@ -53,7 +53,7 @@ export const WiredExtraVariableReferenceView: FC<{}> = () => {
 
         setVariableName(normalizeWiredVariableName(trigger.stringData));
         setReadOnly(trigger.intData.length > 0 ? trigger.intData[0] === 1 : true);
-        setSelectedVariableId(variableId);
+        setSelectedVariableId(variableId === WIRED_VARIABLE_ABSENT ? '' : variableId);
         setSelectedRoomId(row?.roomId ?? null);
     }, [sharedRows, trigger]);
 
@@ -75,55 +75,19 @@ export const WiredExtraVariableReferenceView: FC<{}> = () => {
         setVariableIds([selectedVariableId || WIRED_VARIABLE_ABSENT]);
     };
 
-    const validate = () => !!normalizeWiredVariableName(variableName).length && !!selectedVariableId;
+    const validate = () => editable && !!normalizeWiredVariableName(variableName).length && !!selectedVariableId && selectedVariableId !== WIRED_VARIABLE_ABSENT;
 
-    return (
-        <WiredExtraBaseView hasSpecialInput={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save} validate={validate} cardStyle={{ width: 300 }}>
-            <div className="flex flex-col gap-2">
-                <div className="flex flex-col gap-1">
-                    <Text>{LocalizeText('wiredfurni.params.variables.variable_name')}</Text>
-                    <VoltInput
-                        maxLength={WIRED_VARIABLE_NAME_MAX}
-                        type="text"
-                        value={variableName}
-                        onChange={(event) => setVariableName(normalizeWiredVariableName(event.target.value))}
-                        onKeyDown={(event) => handleWiredVariableNameKeyDown(event, setVariableName)}
-                    />
-                </div>
-                <div className="flex flex-col gap-1">
-                    <Text>{localizeWithFallback('wiredfurni.params.variables.room_selection', 'Choose room:')}</Text>
-                    <select
-                        className="form-select form-select-sm"
-                        value={selectedRoomId ?? ''}
-                        onChange={(event) => {
-                            setSelectedRoomId(event.target.value === '' ? null : Number(event.target.value));
-                            selectVariable('');
-                        }}
-                    >
-                        <option value="">-</option>
-                        {rooms.map((room) => (
-                            <option key={room.roomId} value={room.roomId}>
-                                {room.roomName}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-                <div className="flex flex-col gap-1">
-                    <Text>{LocalizeText('wiredfurni.params.variables.variable_selection')}</Text>
-                    <select className="form-select form-select-sm" value={selectedVariableId} onChange={(event) => selectVariable(event.target.value)}>
-                        <option value="">-</option>
-                        {roomVariables.map((row) => (
-                            <option key={row.variable.variableId} value={row.variable.variableId}>
-                                {row.variable.variableName}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-                <label className="flex items-center gap-2">
-                    <input type="checkbox" className="form-check-input" checked={readOnly} onChange={(event) => setReadOnly(event.target.checked)} />
-                    <Text small>{LocalizeText('wiredfurni.params.variables.settings.read_only')}</Text>
-                </label>
-            </div>
-        </WiredExtraBaseView>
-    );
+    return <WiredExtraBaseView nativeLayout hasSpecialInput requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save} validate={validate}>
+        <WiredVariableNameSection value={variableName} onChange={setVariableName} disabled={!editable} />
+        <WiredSection title={LocalizeText('wiredfurni.params.variables.room_selection')}>
+            <WiredDropdown caption={LocalizeText('wiredfurni.params.variables.room_selection.tooltip')} disabled={!editable} value={selectedRoomId ?? -1} options={rooms.map(room => ({ id: room.roomId, label: room.roomName }))} onChange={roomId => {
+                if (roomId === selectedRoomId) return;
+                setSelectedRoomId(roomId); selectVariable('');
+            }} />
+        </WiredSection>
+        <WiredSection title={LocalizeText('wiredfurni.params.variables.variable_ref_selection')}>
+            <WiredDropdown caption={LocalizeText('wiredfurni.params.variables.variable_selection.tooltip')} disabled={!editable} value={roomVariables.findIndex(row => row.variable.variableId === selectedVariableId)} options={roomVariables.map((row, id) => ({ id, label: row.variable.variableName }))} onChange={id => selectVariable(roomVariables[id]?.variable.variableId ?? '')} />
+        </WiredSection>
+        <WiredSection title={LocalizeText('wiredfurni.params.variables.settings')}><WiredCheckboxOption last disabled={!editable} checked={readOnly} onChange={setReadOnly} label={LocalizeText('wiredfurni.params.variables.settings.read_only')} /></WiredSection>
+    </WiredExtraBaseView>;
 };

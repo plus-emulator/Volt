@@ -1,9 +1,10 @@
 import { FC, useEffect, useState } from 'react';
 import { LocalizeText, WiredFurniType } from '../../../../api';
-import { Text } from '../../../../common';
 import { useWired } from '../../../../hooks';
-import { VoltInput } from '../../../../layout';
 import { WiredSourceOption, WiredSourcesSelector } from '../WiredSourcesSelector';
+import { WiredQuantifierSection, WiredRadioGroup } from '../WiredOptions';
+import { WiredSection } from '../WiredSection';
+import { WiredTextInput } from '../WiredTextInput';
 import { WiredConditionBaseView } from './WiredConditionBaseView';
 
 const ENTITY_HABBO = 1;
@@ -32,7 +33,6 @@ export const WiredConditionTriggererMatchView: FC<WiredConditionTriggererMatchVi
     const [matchUserSource, setMatchUserSource] = useState(0);
     const [compareUserSource, setCompareUserSource] = useState(0);
     const [quantifier, setQuantifier] = useState(0);
-    const [showAdvanced, setShowAdvanced] = useState(false);
     const {
         trigger = null,
         setIntParams = null,
@@ -43,7 +43,6 @@ export const WiredConditionTriggererMatchView: FC<WiredConditionTriggererMatchVi
     } = useWired();
 
     const needsUsername = avatarMode === AVATAR_MODE_CERTAIN || compareUserSource === SOURCE_SPECIFIED_USERNAME;
-    const quantifierKeyPrefix = negative ? 'wiredfurni.params.quantifier.users.neg' : 'wiredfurni.params.quantifier.users';
 
     const save = () => {
         setIntParams([entityType]);
@@ -61,103 +60,29 @@ export const WiredConditionTriggererMatchView: FC<WiredConditionTriggererMatchVi
         setCompareUserSource(trigger.userSources[1] ?? 0);
         setQuantifier(nativeQuantifier);
         setUsername(trigger.stringData || '');
-        setShowAdvanced((trigger.userSources[0] ?? 0) !== 0 || (trigger.userSources[1] ?? 0) !== 0 || nativeQuantifier !== 0);
     }, [trigger, nativeQuantifier]);
 
     return (
         <WiredConditionBaseView
             hasSpecialInput={true}
+            nativeLayout={true}
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE}
             save={save}
-            footerCollapsible={false}
-            footer={
-                <div className="flex flex-col gap-2">
-                    <button className="btn btn-link p-0 align-self-start" type="button" onClick={() => setShowAdvanced((value) => !value)}>
-                        {LocalizeText(showAdvanced ? 'wiredfurni.params.sources.collapse' : 'wiredfurni.params.sources.expand')}
-                    </button>
-                    {showAdvanced && (
-                        <>
-                            <div className="flex flex-col gap-1">
-                                <Text bold>{LocalizeText('wiredfurni.params.quantifier_selection')}</Text>
-                                {[0, 1].map((value) => {
-                                    return (
-                                        <div key={value} className="flex items-center gap-1">
-                                            <input
-                                                checked={quantifier === value}
-                                                className="form-check-input"
-                                                id={`triggererMatchQuantifier${value}`}
-                                                name="triggererMatchQuantifier"
-                                                type="radio"
-                                                onChange={() => setQuantifier(value)}
-                                            />
-                                            <Text>{LocalizeText(`${quantifierKeyPrefix}.${value}`)}</Text>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                            <WiredSourcesSelector
-                                showUsers={true}
-                                userSource={matchUserSource}
-                                userSources={MATCH_USER_SOURCES}
-                                usersTitle="wiredfurni.params.sources.users.title.match.0"
-                                onChangeUsers={setMatchUserSource}
-                            />
-                            <WiredSourcesSelector
-                                showUsers={true}
-                                userSlot={1}
-                                userSource={compareUserSource}
-                                userSources={COMPARE_USER_SOURCES}
-                                usersTitle="wiredfurni.params.sources.users.title.match.1"
-                                onChangeUsers={setCompareUserSource}
-                            />
-                        </>
-                    )}
-                </div>
-            }
+            footer={<>
+                <WiredQuantifierSection name="triggererMatchQuantifier" kind="users" negative={negative} value={quantifier} onChange={setQuantifier} />
+                <WiredSourcesSelector showUsers userSource={matchUserSource} userSources={MATCH_USER_SOURCES} usersTitle="wiredfurni.params.sources.users.title.match.0" onChangeUsers={setMatchUserSource} />
+                <WiredSourcesSelector showUsers userSlot={1} userSource={compareUserSource} userSources={COMPARE_USER_SOURCES} usersTitle="wiredfurni.params.sources.users.title.match.1" onChangeUsers={setCompareUserSource} />
+            </>}
         >
-            <div className="flex flex-col gap-2">
-                {[ENTITY_HABBO, ENTITY_PET, ENTITY_BOT].map((value) => {
-                    return (
-                        <div key={value} className="flex items-center gap-1">
-                            <input
-                                checked={entityType === value}
-                                className="form-check-input"
-                                id={`triggererEntityType${value}`}
-                                name="triggererEntityType"
-                                type="radio"
-                                onChange={() => setEntityType(value)}
-                            />
-                            <Text>{LocalizeText(`wiredfurni.params.usertype.${value}`)}</Text>
-                        </div>
-                    );
-                })}
-            </div>
-            <div className="flex flex-col gap-1">
-                <Text bold>{LocalizeText('wiredfurni.params.picktriggerer')}</Text>
-                <div className="flex items-center gap-1">
-                    <input
-                        checked={avatarMode === AVATAR_MODE_ANY}
-                        className="form-check-input"
-                        id="triggererAvatarMode0"
-                        name="triggererAvatarMode"
-                        type="radio"
-                        onChange={() => setAvatarMode(AVATAR_MODE_ANY)}
-                    />
-                    <Text>{LocalizeText('wiredfurni.params.anyavatar')}</Text>
-                </div>
-                <div className="flex items-center gap-1">
-                    <input
-                        checked={avatarMode === AVATAR_MODE_CERTAIN}
-                        className="form-check-input"
-                        id="triggererAvatarMode1"
-                        name="triggererAvatarMode"
-                        type="radio"
-                        onChange={() => setAvatarMode(AVATAR_MODE_CERTAIN)}
-                    />
-                    <Text>{LocalizeText('wiredfurni.params.certainavatar')}</Text>
-                </div>
-                {needsUsername && <VoltInput type="text" value={username} onChange={(event) => setUsername(event.target.value)} />}
-            </div>
+            <WiredSection title={LocalizeText('wiredfurni.params.usertype')}>
+                <WiredRadioGroup name="triggererEntityType" options={[ENTITY_HABBO, ENTITY_PET, ENTITY_BOT].map(id => ({ id, label: LocalizeText(`wiredfurni.params.usertype.${id}`) }))} value={entityType} onChange={setEntityType} />
+            </WiredSection>
+            <WiredSection title={LocalizeText('wiredfurni.params.picktriggerer')}>
+                <WiredRadioGroup name="triggererAvatarMode" options={[
+                    { id: AVATAR_MODE_ANY, label: LocalizeText('wiredfurni.params.anyavatar') },
+                    { id: AVATAR_MODE_CERTAIN, label: LocalizeText('wiredfurni.params.certainavatar'), extra: <span title={LocalizeText('wiredfurni.tooltip.avatarname')}><WiredTextInput value={username} maxLength={32} disabled={!needsUsername} onChange={setUsername} /></span> }
+                ]} value={avatarMode} onChange={setAvatarMode} />
+            </WiredSection>
         </WiredConditionBaseView>
     );
 };

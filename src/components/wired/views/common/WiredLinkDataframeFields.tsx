@@ -27,9 +27,9 @@ export const LINK_DATAFRAME_SCOPES: Array<{ target: number; key: WiredVariablePi
 ];
 
 export const LinkDataframeField: FC<{ label: string; children: ReactNode }> = ({ label, children }) => (
-    <div className="flex flex-col gap-1">
+    <div className="volt-wired__dataframe-field">
         <WiredText text={label} />
-        {children}
+        <div className="volt-wired__dataframe-controls">{children}</div>
     </div>
 );
 

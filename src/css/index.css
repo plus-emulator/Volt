@@ -2424,3 +2424,11 @@ body {
         color: #a33;
     }
 }
+
+/* AIR Ubuntu chest settings: bordered groups and 7px section spacing. */
+.volt-chest-settings .volt-card-content-shell { max-height: calc(100vh / 2.4 + 60px); overflow-y: auto; }
+.volt-chest-settings__section { display: grid; gap: 5px; min-width: 0; margin: 0; padding: 7px; border: 1px solid #b0b0a8; border-radius: 3px; }
+.volt-chest-settings__section > legend { float: none; width: auto; margin: 0; padding: 0 3px; font-size: 12px; font-weight: bold; }
+.volt-chest-settings__wired-notifications { display: grid; gap: 3px; min-width: 0; margin-top: 7px; padding: 7px 0 0; border: 0; border-top: 1px solid #b0b0a8; }
+.volt-chest-settings__wired-notifications:disabled { opacity: 0.5; }
+.volt-chest-settings .habbo-dropmenu { width: 100%; min-width: 0; }

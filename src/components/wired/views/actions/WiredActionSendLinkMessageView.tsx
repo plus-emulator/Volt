@@ -3,14 +3,16 @@ import { localizeWithFallback, WiredFurniType } from '../../../../api';
 import { Text } from '../../../../common';
 import { useWired } from '../../../../hooks';
 import { WiredRadioGroup } from '../WiredOptions';
+import { WiredFurniSelectorSection } from '../WiredFurniSelectorView';
 import { WiredSection } from '../WiredSection';
 import { WiredActionBaseView } from './WiredActionBaseView';
+import { getWiredTextPlaceholderNames, WiredMessageEditor } from '../common/WiredMessageEditor';
 
 /**
  * SEND_LINK_MESSAGE (code 63), the official send-link-message editor. AIR: roomevents/wired_setup/actiontypes/SendLinkMessage.as
  * buildInputs L58 (source radio, message editor), readIntParamsFromForm L95 [source], readStringParamFromForm L100 (message),
  * validate L105 (UTF-8 length above 1000 bytes blocks the save with wiredfurni.params.link.message_too_large), onEditStart L66.
- * The official message editor clamps at 400 characters, so the message is a plain text area here with a byte counter.
+ * TextAreaParam(60, -1, -1, -1, 1000): 60px compact field, unlimited lines, 1000 characters.
  * Dossier: B/reviews/new-wireds-dossier-r88.json, code 63.
  */
 
@@ -46,16 +48,7 @@ export const WiredActionSendLinkMessageView: FC<{}> = () => {
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID}
             save={save}
             validate={() => !tooLarge}
-            footer={
-                <WiredSection title={localizeWithFallback('wiredfurni.params.link.endpoints', 'WIRED Links')}>
-                    <Text small wrap>
-                        {localizeWithFallback(
-                            'wiredfurni.params.link.message_info',
-                            "Send the trigger's chat or received message, or write a custom message with placeholders. Select the WIRED Links below."
-                        )}
-                    </Text>
-                </WiredSection>
-            }
+            selectionPreview={<WiredFurniSelectorSection title={localizeWithFallback('wiredfurni.params.link.endpoints', 'WIRED Links')} hideInstructions />}
         >
             <WiredSection title={localizeWithFallback('wiredfurni.params.link.message_source', 'Message source')}>
                 <WiredRadioGroup
@@ -69,16 +62,17 @@ export const WiredActionSendLinkMessageView: FC<{}> = () => {
                 />
             </WiredSection>
             <WiredSection title={localizeWithFallback('wiredfurni.params.message', 'Message:')}>
-                <textarea
-                    className="form-control form-control-sm volt-wired__resizable-textarea"
-                    disabled={source !== SOURCE_CUSTOM}
-                    rows={4}
+                <WiredMessageEditor
                     value={message}
-                    onChange={(event) => setMessage(event.target.value)}
+                    onChange={setMessage}
+                    maxLength={1000}
+                    maxLines={-1}
+                    height={60}
+                    previewStyle={211}
+                    disabled={source !== SOURCE_CUSTOM}
+                    showCompactCounter={false}
+                    placeholderNames={getWiredTextPlaceholderNames(trigger?.contexts)}
                 />
-                <Text small variant={tooLarge ? 'danger' : undefined}>
-                    {`${utf8Length(message)}/${MESSAGE_MAX_BYTES}`}
-                </Text>
                 {tooLarge && (
                     <Text small variant="danger">
                         {localizeWithFallback(

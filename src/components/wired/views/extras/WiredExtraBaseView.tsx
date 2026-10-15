@@ -2,15 +2,17 @@ import { WiredActionDefinition } from '@volt/renderer';
 import { CSSProperties, FC, PropsWithChildren, ReactNode, useEffect } from 'react';
 import { WiredFurniType } from '../../../../api';
 import { useWired } from '../../../../hooks';
-import { WiredBaseView } from '../WiredBaseView';
+import { WiredBaseView, WiredSaveConfirmation } from '../WiredBaseView';
 
 export interface WiredExtraBaseViewProps {
     hasSpecialInput: boolean;
     requiresFurni: number;
     save: () => void;
     validate?: () => boolean;
+    confirmSave?: WiredSaveConfirmation;
     cardStyle?: CSSProperties;
     footer?: ReactNode;
+    headerControls?: ReactNode;
     footerCollapsible?: boolean;
     selectionPreview?: ReactNode;
     nativeLayout?: boolean;
@@ -22,10 +24,12 @@ export const WiredExtraBaseView: FC<PropsWithChildren<WiredExtraBaseViewProps>> 
         requiresFurni = WiredFurniType.STUFF_SELECTION_OPTION_NONE,
         save = null,
         validate = null,
+        confirmSave = undefined,
         hasSpecialInput = false,
         children = null,
         cardStyle = undefined,
         footer = null,
+        headerControls = null,
         footerCollapsible = true,
         selectionPreview = null,
         showSelection = true,
@@ -43,9 +47,11 @@ export const WiredExtraBaseView: FC<PropsWithChildren<WiredExtraBaseViewProps>> 
             requiresFurni={requiresFurni}
             save={save}
             validate={validate}
+            confirmSave={confirmSave}
             wiredType="extra"
             cardStyle={cardStyle}
             footer={footer}
+            headerControls={headerControls}
             footerCollapsible={footerCollapsible}
             selectionPreview={selectionPreview}
             nativeLayout={nativeLayout}

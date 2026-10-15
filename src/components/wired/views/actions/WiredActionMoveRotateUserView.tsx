@@ -1,10 +1,9 @@
 import { FC, useEffect, useState } from 'react';
 import { LocalizeText, WiredFurniType } from '../../../../api';
-import iconRotateClockwise from '../../../../assets/images/wired/icon_wired_rotate_clockwise.png';
-import iconRotateCounterClockwise from '../../../../assets/images/wired/icon_wired_rotate_counter_clockwise.png';
-import { Text } from '../../../../common';
 import { useWired } from '../../../../hooks';
-import { WIRED_DIRECTION_GRID, WiredDirectionIcon } from '../WiredDirectionIcon';
+import { WIRED_DIRECTION_GRID, WiredDirectionIcon, WiredMoveIconName } from '../WiredDirectionIcon';
+import { WiredRadioGroup } from '../WiredOptions';
+import { WiredSection } from '../WiredSection';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredActionBaseView } from './WiredActionBaseView';
 
@@ -13,7 +12,7 @@ const ROTATION_COUNTER_CLOCKWISE = 10;
 
 interface DirectionExtraOption {
     value: number;
-    icon: string;
+    icon: WiredMoveIconName;
     label: string;
 }
 
@@ -30,49 +29,13 @@ const DirectionPicker: FC<DirectionPickerProps> = (props) => {
     const { name = '', title = '', noneLabel = '', value = -1, onChange = null, extraOptions = [] } = props;
 
     return (
-        <div className="flex flex-col gap-2">
-            <Text bold>{title}</Text>
-            <label className="flex items-center gap-2 text-[12px]">
-                <input checked={value === -1} className="form-check-input" name={name} type="radio" onChange={() => onChange(-1)} />
-                <span>{noneLabel}</span>
-            </label>
-            <div className="grid grid-cols-4 gap-2 max-w-[240px]">
-                {WIRED_DIRECTION_GRID.flatMap((row, rowIndex) =>
-                    row.map((direction, columnIndex) => {
-                        if (direction === null) {
-                            return <div key={`${name}-empty-${rowIndex}-${columnIndex}`} />;
-                        }
-
-                        const selected = value === direction;
-
-                        return (
-                            <label key={`${name}-${direction}`} className="flex items-center justify-center gap-[2px] cursor-pointer">
-                                <input checked={selected} className="form-check-input" name={name} type="radio" onChange={() => onChange(direction)} />
-                                <span className="inline-flex items-center justify-center">
-                                    <WiredDirectionIcon direction={direction} selected={selected} />
-                                </span>
-                            </label>
-                        );
-                    })
-                )}
-            </div>
-            {extraOptions.length > 0 && (
-                <div className="flex flex-wrap gap-3">
-                    {extraOptions.map((option) => (
-                        <label key={`${name}-extra-${option.value}`} className="flex items-center gap-[2px] cursor-pointer" title={option.label}>
-                            <input
-                                checked={value === option.value}
-                                className="form-check-input"
-                                name={name}
-                                type="radio"
-                                onChange={() => onChange(option.value)}
-                            />
-                            <img alt="" className="h-auto w-auto object-contain" draggable={false} src={option.icon} />
-                        </label>
-                    ))}
-                </div>
-            )}
-        </div>
+        <WiredSection title={title}>
+            <WiredRadioGroup name={name} columns={4} value={value} onChange={onChange} options={[
+                { id: -1, label: noneLabel, newLine: true },
+                ...WIRED_DIRECTION_GRID.flat().map(direction => ({ id: direction, label: <WiredDirectionIcon direction={direction} selected={value === direction} /> })),
+                ...extraOptions.map(option => ({ id: option.value, label: <span title={option.label}><WiredDirectionIcon direction={option.value} icon={option.icon} selected={value === option.value} /></span> }))
+            ]} />
+        </WiredSection>
     );
 };
 
@@ -87,8 +50,8 @@ export const WiredActionMoveRotateUserView: FC<{}> = (props) => {
     };
 
     const rotationExtraOptions: DirectionExtraOption[] = [
-        { value: ROTATION_CLOCKWISE, icon: iconRotateClockwise, label: LocalizeText('wiredfurni.params.rotatefurni.1') },
-        { value: ROTATION_COUNTER_CLOCKWISE, icon: iconRotateCounterClockwise, label: LocalizeText('wiredfurni.params.rotatefurni.2') }
+        { value: ROTATION_CLOCKWISE, icon: 'rotate_cw', label: LocalizeText('wiredfurni.params.rotatefurni.1') },
+        { value: ROTATION_COUNTER_CLOCKWISE, icon: 'rotate_ccw', label: LocalizeText('wiredfurni.params.rotatefurni.2') }
     ];
 
     useEffect(() => {

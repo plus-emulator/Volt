@@ -1,34 +1,17 @@
 import { FC, useEffect, useState } from 'react';
 import { LocalizeText, localizeWithFallback, WiredFurniType } from '../../../../api';
-import { Text } from '../../../../common';
+import { WiredRadioGroup } from '../WiredOptions';
+import { WiredFurniSelectionSourceRow } from '../WiredFurniSelectionSourceRow';
+import { nativeSourceOptions } from '../WiredSourcesSelector';
 import { useWired } from '../../../../hooks';
-import { WiredLegacySlider as Slider } from '../WiredSlider';
-import { WiredSourcesSelector } from '../WiredSourcesSelector';
+import { WiredSliderSection } from '../WiredSlider';
+import { WiredSection } from '../WiredSection';
 import { WiredActionBaseView } from './WiredActionBaseView';
-
-const directionOptions: { value: number; icon: string }[] = [
-    {
-        value: 0,
-        icon: 'ne'
-    },
-    {
-        value: 2,
-        icon: 'se'
-    },
-    {
-        value: 4,
-        icon: 'sw'
-    },
-    {
-        value: 6,
-        icon: 'nw'
-    }
-];
 
 export const WiredActionMoveFurniToView: FC<{}> = (props) => {
     const [spacing, setSpacing] = useState(1);
     const [movement, setMovement] = useState(0);
-    const { trigger = null, setIntParams = null, setFurniSources, setActivePickSlot, activePickSlot } = useWired();
+    const { trigger = null, setIntParams = null, setFurniSources, setActivePickSlot, activePickSlot, furniIds = [], secondaryFurniIds = [] } = useWired();
     const [furniSource, setFurniSource] = useState(100);
     const [targetSource, setTargetSource] = useState(101);
     const save = () => {
@@ -54,45 +37,21 @@ export const WiredActionMoveFurniToView: FC<{}> = (props) => {
             save={save}
             footer={
                 <>
-                    <WiredSourcesSelector showFurni={true} furniSource={furniSource} onChangeFurni={onChangeFurniSource} />
-                    <WiredSourcesSelector showFurni={true} furniSlot={1} furniSource={targetSource} onChangeFurni={setTargetSource} />
-                    <div className="flex gap-2">
-                        <button type="button" aria-pressed={activePickSlot === 0} onClick={() => setActivePickSlot(0)}>
-                            {LocalizeText('wiredfurni.params.sources.furni.100')}
-                        </button>
-                        <button type="button" aria-pressed={activePickSlot === 1} onClick={() => setActivePickSlot(1)}>
-                            {LocalizeText('wiredfurni.params.sources.furni.101')}
-                        </button>
-                    </div>
+                    {[furniSource, targetSource].map((source, slot) => <WiredFurniSelectionSourceRow key={slot}
+                        title={`wiredfurni.params.sources.furni.title.mv.${slot}`}
+                        options={nativeSourceOptions(trigger?.inputSources?.furniAllowed[slot] ?? [100, 101, 200, 201, 0], 'furni')}
+                        value={source} onChange={slot === 0 ? onChangeFurniSource : setTargetSource}
+                        selectionKind={source === 101 ? 'secondary' : 'primary'} selectionActive={activePickSlot === (source === 101 ? 1 : 0)}
+                        selectionCount={source === 101 ? secondaryFurniIds.length : furniIds.length} selectionLimit={trigger?.maximumItemSelectionCount ?? 0}
+                        selectionEnabledValues={[100, 101]} onSelectionActivate={() => setActivePickSlot(source === 101 ? 1 : 0)} />)}
                 </>
             }
         >
-            <div className="flex flex-col gap-1">
-                <Text bold>{localizeWithFallback('wiredfurni.params.movefurni', LocalizeText('wiredfurni.params.startdir'))}</Text>
-                <div className="flex gap-1">
-                    {directionOptions.map((value) => {
-                        return (
-                            <div key={value.value} className="flex items-center gap-1">
-                                <input
-                                    checked={movement === value.value}
-                                    className="form-check-input"
-                                    id={`movement${value.value}`}
-                                    name="movement"
-                                    type="radio"
-                                    onChange={(event) => setMovement(value.value)}
-                                />
-                                <Text>
-                                    <i className={`icon icon-${value.icon}`} />
-                                </Text>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-            <div className="flex flex-col gap-1">
-                <Text bold>{LocalizeText('wiredfurni.params.emptytiles', ['tiles'], [spacing.toString()])}</Text>
-                <Slider max={5} min={1} value={spacing} onChange={(event) => setSpacing(event)} />
-            </div>
+            <WiredSection title={localizeWithFallback('wiredfurni.params.movefurni', LocalizeText('wiredfurni.params.startdir'))}>
+                <WiredRadioGroup name="move-furni-to" value={movement} onChange={setMovement}
+                    options={[0, 2, 4, 6].map(id => ({ id, label: LocalizeText(`wiredfurni.params.movefurni.${id}`) }))} />
+            </WiredSection>
+            <WiredSliderSection titleKey="wiredfurni.params.emptytiles" unit="tiles" min={1} max={5} value={spacing} onChange={setSpacing} />
         </WiredActionBaseView>
     );
 };

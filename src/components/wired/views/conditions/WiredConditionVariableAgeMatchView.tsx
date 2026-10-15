@@ -1,13 +1,15 @@
 import { FC, useEffect, useState } from 'react';
 import { LocalizeText, WiredFurniType, WiredNativeVariableScope, tokenOfVariableSlot, variableSlotOf } from '../../../../api';
-import { Text } from '../../../../common';
+import { WiredSection } from '../WiredSection';
+import { WiredRadioGroup } from '../WiredOptions';
+import { WiredDropdown } from '../WiredDropdown';
+import { WiredActionValueOrVariableSection } from '../actions/WiredActionValueOrVariableSection';
+import { getNativeVariableId, WIRED_VARIABLE_ABSENT } from '../../../../api';
 import { useWired } from '../../../../hooks';
-import { VoltInput } from '../../../../layout';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredVariablePicker } from '../WiredVariablePicker';
-import { FurniPickSlotButtons, VariableQuantifierRadios, VariableScopeButtons } from './WiredVariableConditionParts';
+import { FurniPickSlotButtons, VariableQuantifierRadios, VariableScopeButtons, useConditionVariableEntries } from './WiredVariableConditionParts';
 import { scopeOfTargetCode, targetCodeOfScope } from '../../../../api';
-import { useVariableScopeEntries } from '../../../../hooks';
 import { WiredConditionBaseView } from './WiredConditionBaseView';
 
 /** The age card compares the variable's creation or last update with a duration. */
@@ -24,28 +26,38 @@ const FURNI_SOURCE_SELECTED = 100;
 const FURNI_SOURCE_SECONDARY_SELECTED = 101;
 
 /**
- * Owned: [target, comparison (0 below, 2 above), clock (0 creation, 1 last update), 0, duration, time unit];
- * furni: [the holder's furni source]; users: [the holder's user source]; variables: [the variable]; the text is empty.
+ * AIR VariableAge: [target, comparison, clock, duration high/low, unit, reference option, reference target].
+ * Both variable slots and both holder/reference source pairs are preserved; text is empty.
  */
 export const WiredConditionVariableAgeMatchView: FC<{}> = () => {
-    const { trigger = null, furniIds = [], secondaryFurniIds = [], setActivePickSlot = null, quantifier = 0, setQuantifier = null, setIntParams = null, setStringParam = null, setVariableIds = null, setFurniSources = null, setUserSources = null } =
+    const { trigger = null, nativeCatalog, furniIds = [], secondaryFurniIds = [], setActivePickSlot = null, quantifier = 0, setQuantifier = null, setIntParams = null, setStringParam = null, setVariableIds = null, setFurniSources = null, setUserSources = null } =
         useWired();
     const [scope, setScope] = useState<WiredNativeVariableScope>('user');
     const [variableToken, setVariableToken] = useState('');
     const [compareValue, setCompareValue] = useState(COMPARE_CREATED);
     const [comparison, setComparison] = useState(COMPARISON_LESS);
     const [durationInput, setDurationInput] = useState('0');
+    const [referenceOption, setReferenceOption] = useState(0);
+    const [referenceScope, setReferenceScope] = useState<WiredNativeVariableScope>('global');
+    const [referenceToken, setReferenceToken] = useState('');
+    const [referenceUserSource, setReferenceUserSource] = useState(0);
+    const [referenceFurniSource, setReferenceFurniSource] = useState(0);
+    const [referenceValid, setReferenceValid] = useState(true);
     const [durationUnit, setDurationUnit] = useState(1);
     const [userSource, setUserSource] = useState(0);
     const [furniSource, setFurniSource] = useState(0);
-    const entries = useVariableScopeEntries(scope, 'condition', variableToken);
+    const entries = useConditionVariableEntries(scope, variableToken, 'age');
 
     const picksFurni = scope === 'furni' && (furniSource === FURNI_SOURCE_SELECTED || furniSource === FURNI_SOURCE_SECONDARY_SELECTED);
     useEffect(() => {
         if (picksFurni) setActivePickSlot(furniSource === FURNI_SOURCE_SECONDARY_SELECTED ? 1 : 0);
     }, [furniSource, picksFurni, setActivePickSlot]);
 
-    const requiresFurni = picksFurni ? WiredFurniType.STUFF_SELECTION_OPTION_BY_ID : WiredFurniType.STUFF_SELECTION_OPTION_NONE;
+    const picksReference = referenceOption === 1 && referenceScope === 'furni' && [100, 101].includes(referenceFurniSource);
+    const requiresFurni = picksFurni || picksReference ? WiredFurniType.STUFF_SELECTION_OPTION_BY_ID : WiredFurniType.STUFF_SELECTION_OPTION_NONE;
+    useEffect(() => {
+        if (picksReference && !picksFurni) setActivePickSlot(referenceFurniSource === 101 ? 1 : 0);
+    }, [picksReference, picksFurni, referenceFurniSource, setActivePickSlot]);
 
     useEffect(() => {
         if (!trigger) return;
@@ -57,31 +69,35 @@ export const WiredConditionVariableAgeMatchView: FC<{}> = () => {
         setCompareValue(ints[2] === COMPARE_UPDATED ? COMPARE_UPDATED : COMPARE_CREATED);
         setDurationInput(String(ints[4] ?? 0));
         setDurationUnit(DURATION_UNITS.includes(ints[5]) ? ints[5] : 1);
+        setReferenceOption(ints[6] === 1 ? 1 : 0);
+        setReferenceScope(scopeOfTargetCode(ints[7] ?? -10));
+        setReferenceToken(tokenOfVariableSlot(trigger.variableIds?.[1]));
+        // Older native records carried a single merged source; current AIR uses a second source pair.
+        setReferenceFurniSource(trigger.furniSources?.[1] ?? trigger.furniSources?.[0] ?? 0);
+        setReferenceUserSource(trigger.userSources?.[1] ?? trigger.userSources?.[0] ?? 0);
         setVariableToken(tokenOfVariableSlot(trigger.variableIds?.[0]));
         setFurniSource(trigger.furniSources?.[0] ?? 0);
         setUserSource(trigger.userSources?.[0] ?? 0);
     }, [trigger]);
 
-    // A global variable has no creation time of its own, so only its last update can be compared.
-    useEffect(() => {
-        if (scope === 'global' && compareValue !== COMPARE_UPDATED) setCompareValue(COMPARE_UPDATED);
-    }, [compareValue, scope]);
+    const selectedVariable = nativeCatalog?.rows.get(getNativeVariableId(variableToken))?.variable;
+    const creationDisabled = selectedVariable ? !selectedVariable.canReadCreationTime : false;
+    const updateDisabled = selectedVariable ? !selectedVariable.canReadLastUpdateTime : false;
 
     const parsedDuration = Number(durationInput.trim());
     const durationValid = /^-?\d+$/.test(durationInput.trim()) && parsedDuration >= DURATION_MIN && parsedDuration <= DURATION_MAX;
 
     const save = () => {
-        setIntParams([targetCodeOfScope(scope), comparison, compareValue, durationValid && parsedDuration < 0 ? -1 : 0, durationValid ? parsedDuration : 0, durationUnit]);
-        setFurniSources([scope === 'furni' ? furniSource : 0]);
-        setUserSources([scope === 'user' ? userSource : 0]);
-        setVariableIds([variableSlotOf(variableToken)]);
+        setIntParams([targetCodeOfScope(scope), comparison, compareValue, durationValid && parsedDuration < 0 ? -1 : 0, durationValid ? parsedDuration : 0, durationUnit, referenceOption, targetCodeOfScope(referenceScope)]);
+        setFurniSources([furniSource, referenceFurniSource]);
+        setUserSources([userSource, referenceUserSource]);
+        setVariableIds([variableSlotOf(variableToken), referenceOption === 1 ? variableSlotOf(referenceToken) : WIRED_VARIABLE_ABSENT]);
         setStringParam('');
     };
 
     const validate = () => {
         if (!variableToken.length) return false;
-        if (!durationValid) return false;
-        if (scope === 'global' && compareValue !== COMPARE_UPDATED) return false;
+        if (!referenceValid || (referenceOption === 0 ? !durationValid : !referenceToken)) return false;
 
         return true;
     };
@@ -94,95 +110,37 @@ export const WiredConditionVariableAgeMatchView: FC<{}> = () => {
     };
 
     return (
-        <WiredConditionBaseView
-            hasSpecialInput={true}
-            requiresFurni={requiresFurni}
-            save={save}
-            validate={validate}
-            cardStyle={{ width: 244 }}
-            footerCollapsible={false}
-            footer={
-                <div className="flex flex-col gap-2">
-                    <VariableQuantifierRadios name="wiredConditionVariableAgeQuantifier" value={quantifier} onChange={(value) => setQuantifier?.(value)} />
-                    {scope === 'furni' && <WiredSourcesSelector showFurni={true} furniSlot={0} furniSource={furniSource} onChangeFurni={setFurniSource} />}
-                    {scope === 'user' && <WiredSourcesSelector showUsers={true} userSlot={0} userSource={userSource} onChangeUsers={setUserSource} />}
-                    {picksFurni && <FurniPickSlotButtons slots={[furniSource === FURNI_SOURCE_SECONDARY_SELECTED ? { slot: 1, count: secondaryFurniIds.length } : { slot: 0, count: furniIds.length }]} />}
+        <WiredConditionBaseView nativeLayout hasSpecialInput requiresFurni={requiresFurni} save={save} validate={validate} footerCollapsible={false}
+            footer={<>
+                <VariableQuantifierRadios name="wiredConditionVariableAgeQuantifier" value={quantifier} onChange={setQuantifier} />
+                {scope === 'furni' && <WiredSourcesSelector showFurni furniSlot={0} furniSource={furniSource} onChangeFurni={value => { setFurniSource(value); if ([100, 101].includes(value)) setActivePickSlot(value === 101 ? 1 : 0); }} />}
+                {scope === 'user' && <WiredSourcesSelector showUsers userSlot={0} userSource={userSource} onChangeUsers={setUserSource} />}
+            </>}>
+            <WiredSection title={LocalizeText('wiredfurni.params.variables.variable_selection')} headerOptionsRight={<VariableScopeButtons scopes={SCOPES} value={scope} onChange={handleScopeChange} />}>
+                <WiredVariablePicker entries={entries} recentScope="variable-conditions" selectedToken={variableToken} onSelect={entry => setVariableToken(entry.token)} />
+            </WiredSection>
+            <WiredSection title={LocalizeText('wiredfurni.params.variables.compare_value')}>
+                <WiredRadioGroup name="variable-age-clock" columns={2} value={compareValue} onChange={setCompareValue} options={[0, 1].map(id => ({ id, label: LocalizeText(`wiredfurni.params.variables.compare_value.${id}`), disabled: id === 0 ? creationDisabled : updateDisabled }))} />
+            </WiredSection>
+            <WiredSection title={LocalizeText('wiredfurni.params.comparison_selection')}>
+                <WiredRadioGroup name="variable-age-comparison" columns={2} value={comparison} onChange={setComparison} options={[0, 2].map(id => ({ id, label: LocalizeText(`wiredfurni.params.comparison.${id}`) }))} />
+            </WiredSection>
+            <WiredSection title={LocalizeText('wiredfurni.params.variables.time_selection')}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <WiredActionValueOrVariableSection inline title={LocalizeText('wiredfurni.params.variables.time_selection')}
+                        targetTitle={LocalizeText('wiredfurni.params.sources.merged.title.variables_reference')} recentScope="variable-age-reference"
+                        min={DURATION_MIN} max={DURATION_MAX} option={referenceOption} onOptionChange={setReferenceOption}
+                        literal={Number(durationInput)} onLiteralChange={value => setDurationInput(String(value))}
+                        target={referenceScope} onTargetChange={next => { setReferenceScope(next); setReferenceToken(''); }}
+                        variableToken={referenceToken} onVariableTokenChange={setReferenceToken} onValidityChange={setReferenceValid}
+                        popupSources={<>
+                            {referenceScope === 'furni' && <WiredSourcesSelector showFurni furniSlot={1} furniSource={referenceFurniSource} onChangeFurni={value => { setReferenceFurniSource(value); if ([100, 101].includes(value)) setActivePickSlot(value === 101 ? 1 : 0); }} />}
+                            {referenceScope === 'user' && <WiredSourcesSelector showUsers userSlot={1} userSource={referenceUserSource} onChangeUsers={setReferenceUserSource} />}
+                        </>} />
+                    <div style={{ width: 90, flexShrink: 0 }}><WiredDropdown caption={LocalizeText('wiredfurni.params.variables.duration')} value={durationUnit} onChange={setDurationUnit} options={DURATION_UNITS.map(id => ({ id, label: LocalizeText(`wiredfurni.params.variables.duration.${id}`) }))} /></div>
                 </div>
-            }
-        >
-            <div className="volt-wired__give-var">
-                <div className="volt-wired__give-var-heading">
-                    <Text>{LocalizeText('wiredfurni.params.variables.variable_selection')}</Text>
-                    <VariableScopeButtons scopes={SCOPES} value={scope} onChange={handleScopeChange} />
-                </div>
-
-                <WiredVariablePicker entries={entries} recentScope="variable-conditions" selectedToken={variableToken} onSelect={(entry) => setVariableToken(entry.token)} />
-
-                <div className="volt-wired__divider" />
-
-                <div className="volt-wired__give-var-section">
-                    <div className="volt-wired__give-var-section-title">{LocalizeText('wiredfurni.params.variables.compare_value')}</div>
-                    {[COMPARE_CREATED, COMPARE_UPDATED].map((value) => (
-                        <label key={value} className="flex items-center gap-1">
-                            <input
-                                checked={compareValue === value}
-                                className="form-check-input"
-                                disabled={scope === 'global' && value === COMPARE_CREATED}
-                                name="wiredConditionVariableAgeCompareValue"
-                                type="radio"
-                                onChange={() => setCompareValue(value)}
-                            />
-                            <Text>{LocalizeText(`wiredfurni.params.variables.compare_value.${value}`)}</Text>
-                        </label>
-                    ))}
-                </div>
-
-                <div className="volt-wired__divider" />
-
-                <div className="volt-wired__give-var-section">
-                    <div className="volt-wired__give-var-section-title">{LocalizeText('wiredfurni.params.choose_type')}</div>
-                    {[COMPARISON_LESS, COMPARISON_GREATER].map((value) => (
-                        <label key={value} className="flex items-center gap-1">
-                            <input
-                                checked={comparison === value}
-                                className="form-check-input"
-                                name="wiredConditionVariableAgeComparison"
-                                type="radio"
-                                onChange={() => setComparison(value)}
-                            />
-                            <Text>{LocalizeText(`wiredfurni.params.comparison.${value}`)}</Text>
-                        </label>
-                    ))}
-                </div>
-
-                <div className="volt-wired__divider" />
-
-                <div className="volt-wired__give-var-section">
-                    <div className="volt-wired__give-var-section-title">{LocalizeText('wiredfurni.params.variables.time_selection')}</div>
-                    <div className="flex items-center gap-2">
-                        <Text>{LocalizeText('wiredfurni.params.variables.duration')}</Text>
-                        <VoltInput
-                            className="volt-wired__give-var-number"
-                            type="number"
-                            min={DURATION_MIN}
-                            max={DURATION_MAX}
-                            value={durationInput}
-                            onChange={(event) => setDurationInput(event.target.value)}
-                        />
-                        <select
-                            className="min-w-0 flex-1 rounded border border-[#b8b2a4] bg-white px-2 py-[3px] text-[12px]"
-                            value={durationUnit}
-                            onChange={(event) => setDurationUnit(Number(event.target.value))}
-                        >
-                            {DURATION_UNITS.map((unit) => (
-                                <option key={unit} value={unit}>
-                                    {LocalizeText(`wiredfurni.params.variables.duration.${unit}`)}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-            </div>
+            </WiredSection>
+            {(picksFurni || picksReference) && <FurniPickSlotButtons slots={[...(picksFurni ? [{ slot: (furniSource === 101 ? 1 : 0) as 0 | 1, count: furniSource === 101 ? secondaryFurniIds.length : furniIds.length }] : []), ...(picksReference ? [{ slot: (referenceFurniSource === 101 ? 1 : 0) as 0 | 1, count: referenceFurniSource === 101 ? secondaryFurniIds.length : furniIds.length }] : [])]} />}
         </WiredConditionBaseView>
     );
 };

@@ -1,13 +1,15 @@
 import { FC, useEffect, useState } from 'react';
 import { localizeWithFallback, WiredFurniType } from '../../../../api';
-import { Text } from '../../../../common';
 import { useWired } from '../../../../hooks';
+import { WiredCollapsibleSection } from '../WiredCollapsibleSection';
+import { WiredDropdown } from '../WiredDropdown';
+import { WiredSection } from '../WiredSection';
+import { WiredSubVariableCreator } from '../WiredSubVariableCreator';
+import { WiredText } from '../WiredText';
 import {
-    isTimeUtilSubVariableSelected,
     ITimeUtilSubVariable,
     normalizeTimeUtilMask,
     normalizeTimeUtilMode,
-    setTimeUtilSubVariableSelected,
     TIME_UTIL_ADVANCED_SUB_VARIABLES,
     TIME_UTIL_MODE_VALUE,
     TIME_UTIL_MODES,
@@ -19,94 +21,37 @@ const MODE_FALLBACKS = ['Variable value', 'Creation time', 'Last update time'];
 const SUB_VARIABLE_KEY = 'wiredfurni.params.time_util.subvariable.';
 
 export const WiredExtraTimeUtilitiesView: FC<{}> = () => {
-    const { trigger = null, setIntParams = null, setStringParam = null } = useWired();
+    const { trigger = null, nativeCatalog = null, setIntParams = null, setStringParam = null } = useWired();
     const [mask, setMask] = useState(0);
     const [mode, setMode] = useState(TIME_UTIL_MODE_VALUE);
-    const [isCalendarOpen, setIsCalendarOpen] = useState(true);
-    const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
-
     useEffect(() => {
         const intData = trigger?.intData ?? [];
-
         setMask(normalizeTimeUtilMask(intData[0] ?? 0));
         setMode(normalizeTimeUtilMode(intData[1] ?? TIME_UTIL_MODE_VALUE));
     }, [trigger]);
-
     const save = () => {
         setIntParams([normalizeTimeUtilMask(mask), normalizeTimeUtilMode(mode)]);
         setStringParam('');
     };
-
-    const renderSubVariables = (subVariables: ITimeUtilSubVariable[]) => (
-        <div className="volt-wired__levelup-subvariables">
-            {subVariables.map((subVariable) => (
-                <div key={subVariable.id} className="volt-wired__levelup-subvariable-row">
-                    <label className="volt-wired__levelup-subvariable-label">
-                        <input
-                            checked={isTimeUtilSubVariableSelected(mask, subVariable.id)}
-                            className="form-check-input"
-                            type="checkbox"
-                            onChange={(event) => setMask((value) => setTimeUtilSubVariableSelected(value, subVariable.id, event.target.checked))}
-                        />
-                        <Text>{localizeWithFallback(`${SUB_VARIABLE_KEY}${subVariable.id}`, subVariable.label)}</Text>
-                    </label>
-                    <input className="volt-wired__levelup-subvariable-token" readOnly tabIndex={-1} type="text" value={subVariable.name} />
-                </div>
-            ))}
-        </div>
-    );
-
-    return (
-        <WiredExtraBaseView hasSpecialInput={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save} cardStyle={{ width: 300 }}>
-            <div className="volt-wired__levelup">
-                <div className="volt-wired__levelup-section">
-                    <Text bold>{localizeWithFallback('wiredfurni.params.choose_type', 'Read the variable as:')}</Text>
-                    <div className="flex flex-col gap-1">
-                        {TIME_UTIL_MODES.map((option) => (
-                            <label key={option} className="flex items-center gap-2">
-                                <input
-                                    checked={mode === option}
-                                    className="form-check-input"
-                                    name="wiredTimeUtilMode"
-                                    type="radio"
-                                    onChange={() => setMode(option)}
-                                />
-                                <Text>{localizeWithFallback(`wiredfurni.params.time_util.mode.${option}`, MODE_FALLBACKS[option])}</Text>
-                            </label>
-                        ))}
-                    </div>
-                </div>
-
-                <div className="volt-wired__divider" />
-
-                <div className="volt-wired__levelup-section">
-                    <button type="button" className="volt-wired__levelup-section-header" onClick={() => setIsCalendarOpen((value) => !value)}>
-                        <Text bold>{localizeWithFallback('wiredfurni.params.create_subvariables', 'Create sub-variables:')}</Text>
-                        <span className={`volt-wired__levelup-chevron ${isCalendarOpen ? 'is-open' : ''}`}>^</span>
-                    </button>
-                    {isCalendarOpen && renderSubVariables(TIME_UTIL_SUB_VARIABLES)}
-                </div>
-
-                <div className="volt-wired__divider" />
-
-                <div className="volt-wired__levelup-section">
-                    <button type="button" className="volt-wired__levelup-section-header" onClick={() => setIsAdvancedOpen((value) => !value)}>
-                        <Text bold>{localizeWithFallback('wiredfurni.params.create_subvariables.advanced', 'Advanced sub-variables:')}</Text>
-                        <span className={`volt-wired__levelup-chevron ${isAdvancedOpen ? 'is-open' : ''}`}>^</span>
-                    </button>
-                    {isAdvancedOpen && (
-                        <>
-                            <Text small>
-                                {localizeWithFallback(
-                                    'wiredfurni.params.time_util.advanced_info',
-                                    'These sub-variables count from 1970. Use them to compare how many time units lie between two timestamps.'
-                                )}
-                            </Text>
-                            {renderSubVariables(TIME_UTIL_ADVANCED_SUB_VARIABLES)}
-                        </>
-                    )}
-                </div>
+    const renderSubVariables = (subVariables: ITimeUtilSubVariable[]) => <WiredSubVariableCreator mask={mask} onChange={setMask}
+        options={subVariables.map(option => ({ ...option, label: localizeWithFallback(`${SUB_VARIABLE_KEY}${option.id}`, option.label) }))} />;
+    const variables = [...(nativeCatalog?.rows.values() ?? [])].map(entry => entry.variable);
+    // AIR preserves a saved mode even when the current catalog has no variable with that capability.
+    const savedMode = normalizeTimeUtilMode(trigger?.intData[1] ?? TIME_UTIL_MODE_VALUE);
+    const modes = TIME_UTIL_MODES.filter(id => id === savedMode || !variables.length || variables.some(variable => id === 0 ? variable.hasValue : id === 1 ? variable.canReadCreationTime : variable.canReadLastUpdateTime));
+    return <WiredExtraBaseView nativeLayout hasSpecialInput requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save}>
+        <WiredSection title={localizeWithFallback('wiredfurni.params.choose_type', 'Read the variable as:')}>
+            <WiredDropdown caption={localizeWithFallback('wiredfurni.params.choose_type', 'Read the variable as:')}
+                options={modes.map(id => ({ id, label: localizeWithFallback(`wiredfurni.params.time_util.mode.${id}`, MODE_FALLBACKS[id]) }))} value={mode} onChange={setMode} />
+        </WiredSection>
+        <WiredCollapsibleSection defaultExpanded title={localizeWithFallback('wiredfurni.params.create_subvariables', 'Create sub-variables:')}>
+            {renderSubVariables(TIME_UTIL_SUB_VARIABLES)}
+        </WiredCollapsibleSection>
+        <WiredCollapsibleSection title={localizeWithFallback('wiredfurni.params.create_subvariables.advanced', 'Advanced sub-variables:')}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <WiredText wrap text={localizeWithFallback('wiredfurni.params.time_util.advanced_info', 'These sub-variables count from 1970. Use them to compare how many time units lie between two timestamps.')} />
+                {renderSubVariables(TIME_UTIL_ADVANCED_SUB_VARIABLES)}
             </div>
-        </WiredExtraBaseView>
-    );
+        </WiredCollapsibleSection>
+    </WiredExtraBaseView>;
 };

@@ -1,14 +1,15 @@
 import { FC, useEffect, useState } from 'react';
 import { localizeWithFallback, WiredFurniType } from '../../../../api';
-import { Text } from '../../../../common';
 import { useWired } from '../../../../hooks';
-import { WiredSourcesSelector } from '../WiredSourcesSelector';
+import { WiredSection } from '../WiredSection';
+import { WiredDropdown } from '../WiredDropdown';
+import { WiredTextInput } from '../WiredTextInput';
 import { WiredActionBaseView } from './WiredActionBaseView';
 
 /**
  * Habbo's "write to logs" (`wf_act_log`, and `wf_act_neg_log` for when the conditions fail): a
  * message written into the room's wired log at a level, where the room log window lists it.
- * Server: WiredEffectLog. Int params `[level, user source]`, string param the message.
+ * Native AIR class_3502 owns one integer `[level]` and the unmodified message string.
  */
 
 /** Habbo's four levels, in the order the room log window numbers them (default texts: 0 INFO, 1 WARN, 2 ERROR, 3 DEBUG). */
@@ -48,34 +49,16 @@ export const WiredActionWriteToLogsView: FC<{}> = () => {
             nativeLayout={true}
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE}
             save={save}
-            validate={() => message.trim().length > 0}
         >
-            <div className="flex flex-col gap-1">
-                <Text bold>{localizeWithFallback('wiredfurni.params.write_to_logs.log_level', 'Log level')}</Text>
-                <select className="form-select form-select-sm" value={level} onChange={(event) => setLevel(normalizeLevel(parseInt(event.target.value, 10)))}>
-                    {WRITE_TO_LOGS_LEVELS.map((entry) => (
-                        <option key={entry.value} value={entry.value}>
-                            {localizeWithFallback(`wiredfurni.params.write_to_logs.log_level.${entry.value}`, entry.fallback)}
-                        </option>
-                    ))}
-                </select>
-            </div>
-            <div className="flex flex-col gap-1">
-                <Text bold>{localizeWithFallback('wiredfurni.params.write_to_logs.message', 'Message')}</Text>
-                <textarea
-                    className="form-control form-control-sm"
-                    maxLength={WRITE_TO_LOGS_MESSAGE_MAX_LENGTH}
-                    rows={4}
-                    value={message}
-                    onChange={(event) => setMessage(event.target.value)}
-                />
-                <Text small>
-                    {localizeWithFallback(
-                        'wiredfurni.params.write_to_logs.hint',
-                        'Shows up in the room log of the wired tools. Placeholders from the text add-ons in the stack are filled in.'
-                    )}
-                </Text>
-            </div>
+            <WiredSection title={localizeWithFallback('wiredfurni.params.write_to_logs.log_level.title', 'Log level')}>
+                <WiredDropdown caption={localizeWithFallback('wiredfurni.params.write_to_logs.log_level.title', 'Log level')}
+                    value={level} onChange={setLevel}
+                    options={WRITE_TO_LOGS_LEVELS.map(entry => ({ id: entry.value,
+                        label: localizeWithFallback(`wiredfurni.params.write_to_logs.log_level.${entry.value}`, entry.fallback) }))} />
+            </WiredSection>
+            <WiredSection title={localizeWithFallback('wiredfurni.params.write_to_logs.log_message.title', 'Message')}>
+                <WiredTextInput maxLength={WRITE_TO_LOGS_MESSAGE_MAX_LENGTH} value={message} onChange={setMessage} />
+            </WiredSection>
         </WiredActionBaseView>
     );
 };

@@ -1,5 +1,11 @@
 import { CSSProperties, KeyboardEvent, PointerEvent, ReactNode, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import illuminaAtlas from '../../assets/mod-tools/skins/habbo-illumina-light-skin.png';
+import illuminaXml from '../../assets/mod-tools/skins/skin-illumina-dropmenu.xml?raw';
+import { parseNativeSkin } from '../../components/mod-tools/native/NativeSkin';
+import { NativeSkinView } from '../../components/mod-tools/native/NativeSkinView';
+import { NativeText } from '../native-text/NativeText';
+import ubuntuArrow from '../../assets/images/habbo-skin/slices/dropmenu-arrow.png';
 import arrow from '../../assets/images/habbo-skin/slices/dropmenu-default-arrow.png';
 import thumbDefault from '../../assets/images/habbo-skin/slices/scroll-thumb-v.png';
 import thumbPressed from '../../assets/images/habbo-skin/slices/scroll-thumb-v-pressed.png';
@@ -9,6 +15,8 @@ import './HabboDropMenuView.css';
 interface DropMenuOption<T> {
     value: T;
     label: string;
+    advanced?: boolean;
+    expandsAdvanced?: boolean;
 }
 
 interface HabboDropMenuViewProps<T> {
@@ -17,6 +25,12 @@ interface HabboDropMenuViewProps<T> {
     value: T | null;
     onSelect: (value: T) => void;
     disabled?: boolean;
+    /** Caption when no option is selected. */
+    caption?: string;
+    /** AIR ExpandableDropdown: reveal advanced options without committing a selection. */
+    advancedCaption?: string;
+    /** AIR window-manager skin: Volter (0), Ubuntu (3), or Illumina (100). */
+    skinStyle?: 0 | 3 | 100;
     className?: string;
     popupClassName?: string;
     style?: CSSProperties;
@@ -30,7 +44,15 @@ interface PopupBounds {
 }
 
 // T1e/P7: style-0 label field floor(13.95) + top/bottom margins 1/2.
-const ITEM_HEIGHT = 16;
+const VOLTER_ITEM_HEIGHT = 16;
+const ILLUMINA_SKIN = parseNativeSkin(illuminaXml);
+const ILLUMINA_LIST_SKIN = {
+    ...ILLUMINA_SKIN,
+    layouts: { ...ILLUMINA_SKIN.layouts, illumina_light_dropmenu_frame: {
+        ...ILLUMINA_SKIN.layouts.illumina_light_dropmenu_frame,
+        entities: ILLUMINA_SKIN.layouts.illumina_light_dropmenu_frame.entities.filter(entity => entity.name !== 'arrow')
+    } }
+};
 const menuCaption = (label: string) => label.length > 200 ? label.slice(0, 200) + '...' : label;
 
 const ThumbSkin = ({ pressed, patternId }: { pressed: boolean; patternId: string }) => {
@@ -55,8 +77,17 @@ const ThumbSkin = ({ pressed, patternId }: { pressed: boolean; patternId: string
 };
 
 /** Native style-0 dropmenu; feature adapters own preference/domain values and saves. */
-export const HabboDropMenuView = <T extends string | number,>({ label, options, value, onSelect, disabled = false, className = '', popupClassName = '', style }: HabboDropMenuViewProps<T>): ReactNode => {
+export const HabboDropMenuView = <T extends string | number,>({ label, options: allOptions, value, onSelect, disabled = false, caption = '', advancedCaption, skinStyle = 0, className = '', popupClassName = '', style }: HabboDropMenuViewProps<T>): ReactNode => {
     const id = useId();
+    const [advancedExpanded, setAdvancedExpanded] = useState(false);
+    const expandingRef = useRef(false);
+    const expansionPointerRef = useRef(false);
+    const selectedIsAdvanced = allOptions.some(option => option.value === value && option.advanced);
+    const options: readonly DropMenuOption<T>[] = advancedCaption && !advancedExpanded && !selectedIsAdvanced && allOptions.some(option => option.advanced)
+        ? [...allOptions.filter(option => !option.advanced), { value: allOptions[0].value, label: advancedCaption, expandsAdvanced: true }]
+        : allOptions;
+    const itemHeight = skinStyle === 100 ? 19 : skinStyle === 3 ? 20 : VOLTER_ITEM_HEIGHT;
+    const skinClass = skinStyle === 100 ? ' habbo-dropmenu--illumina' : skinStyle === 3 ? ' habbo-dropmenu--ubuntu' : '';
     const triggerRef = useRef<HTMLButtonElement>(null);
     const popupRef = useRef<HTMLDivElement>(null);
     const viewportRef = useRef<HTMLDivElement>(null);
@@ -70,17 +101,19 @@ export const HabboDropMenuView = <T extends string | number,>({ label, options, 
     const [popup, setPopup] = useState<PopupBounds>(null);
     const [activeIndex, setActiveIndex] = useState(0);
     const [keyboardActive, setKeyboardActive] = useState(false);
+    const [hoverIndex, setHoverIndex] = useState(-1);
     const [scrollTop, setScrollTop] = useState(0);
     const [dragging, setDragging] = useState(false);
-    const selectedIndex = options.findIndex((option) => option.value === value);
+    const selectedIndex = options.findIndex((option) => !option.expandsAdvanced && option.value === value);
     const isOpen = popup !== null && !disabled;
-    const contentHeight = options.length * ITEM_HEIGHT + 3;
+    const contentHeight = options.length * itemHeight + 3;
     const viewportHeight = popup ? popup.height - 4 : 0;
     const maxScroll = Math.max(0, contentHeight - viewportHeight);
     const metrics = getClassicScrollbarMetrics(contentHeight, viewportHeight, viewportHeight - 32, scrollTop);
 
     const close = useCallback(() => {
         setPopup(null);
+        setAdvancedExpanded(false);
         openingPointerRef.current = null;
         dragRef.current = null;
         setDragging(false);
@@ -90,8 +123,8 @@ export const HabboDropMenuView = <T extends string | number,>({ label, options, 
         const bounds = triggerRef.current.getBoundingClientRect();
         const canvas = canvasRef.current ?? (canvasRef.current = document.createElement('canvas'));
         const context = canvas.getContext('2d');
-        context.font = '9px Volter';
-        context.fontKerning = 'none';
+        context.font = skinStyle === 100 ? '11px HabboAirUbuntu, UbuntuRegular, sans-serif' : skinStyle === 3 ? '12px HabboAirUbuntu, UbuntuRegular, sans-serif' : '9px Volter';
+        context.fontKerning = skinStyle !== 0 ? 'normal' : 'none';
         let width = bounds.width;
         for (const option of options) {
             // Native field gutter 4, item margins 8, popup list insets 12.
@@ -110,21 +143,28 @@ export const HabboDropMenuView = <T extends string | number,>({ label, options, 
             top = 30;
         }
         return { left, top, width, height };
-    }, [contentHeight, options]);
+    }, [contentHeight, options, skinStyle]);
 
     const open = (pointerId: number = null) => {
         if (disabled || !options.length) return;
         openingPointerRef.current = pointerId;
         committedRef.current = false;
         setKeyboardActive(false);
+        setHoverIndex(-1);
         setScrollTop(0);
         setActiveIndex(Math.max(0, selectedIndex));
         setPopup(measurePopup());
     };
 
-    const select = (index: number) => {
+    const select = (index: number, pointer = false) => {
         const option = options[index];
         if (disabled || !option || committedRef.current) return;
+        if (option.expandsAdvanced) {
+            expandingRef.current = true;
+            expansionPointerRef.current = pointer;
+            setAdvancedExpanded(true);
+            return;
+        }
         committedRef.current = true;
         triggerRef.current?.focus();
         close();
@@ -139,6 +179,7 @@ export const HabboDropMenuView = <T extends string | number,>({ label, options, 
         };
         const onPointerUp = (event: globalThis.PointerEvent) => {
             if (event.pointerId === openingPointerRef.current) openingPointerRef.current = null;
+            expansionPointerRef.current = false;
         };
         const onFocusIn = (event: FocusEvent) => {
             if (!isInside(event.target)) close();
@@ -166,22 +207,31 @@ export const HabboDropMenuView = <T extends string | number,>({ label, options, 
     useLayoutEffect(() => {
         if (previousOptionContentRef.current === optionContent) return;
         previousOptionContentRef.current = optionContent;
+        if (expandingRef.current) {
+            expandingRef.current = false;
+            setPopup(measurePopup());
+            setActiveIndex(Math.max(0, selectedIndex));
+            setKeyboardActive(false);
+            setHoverIndex(-1);
+            setScrollTop(0);
+            return;
+        }
         close();
         setActiveIndex(0);
         setKeyboardActive(false);
         setScrollTop(0);
         typeAheadRef.current = { text: '', time: 0 };
-    }, [close, optionContent]);
+    }, [close, optionContent, measurePopup, selectedIndex]);
 
     // A closed-menu typeahead match can only be revealed after its portal mounts.
     useLayoutEffect(() => {
         if (!isOpen || !keyboardActive) return;
         const viewport = viewportRef.current;
         if (!viewport) return;
-        const top = activeIndex * ITEM_HEIGHT;
+        const top = activeIndex * itemHeight;
         if (top < viewport.scrollTop) viewport.scrollTop = top;
-        else if (top + ITEM_HEIGHT > viewport.scrollTop + viewport.clientHeight) viewport.scrollTop = top + ITEM_HEIGHT - viewport.clientHeight;
-    }, [activeIndex, isOpen, keyboardActive, viewportHeight]);
+        else if (top + itemHeight > viewport.scrollTop + viewport.clientHeight) viewport.scrollTop = top + itemHeight - viewport.clientHeight;
+    }, [activeIndex, isOpen, keyboardActive, viewportHeight, itemHeight]);
 
     const moveActive = (index: number) => {
         setActiveIndex(Math.max(0, Math.min(options.length - 1, index)));
@@ -242,7 +292,7 @@ export const HabboDropMenuView = <T extends string | number,>({ label, options, 
                 aria-expanded={isOpen}
                 aria-controls={isOpen ? id : undefined}
                 aria-activedescendant={isOpen && options[activeIndex] ? id + '-option-' + activeIndex : undefined}
-                className={'habbo-dropmenu ' + className}
+                className={'habbo-dropmenu' + skinClass + ' ' + className}
                 disabled={disabled}
                 style={style}
                 onKeyDown={onKeyDown}
@@ -255,17 +305,21 @@ export const HabboDropMenuView = <T extends string | number,>({ label, options, 
                 }}
                 onClick={(event) => { if (event.detail === 0 && !isOpen) open(); }}
             >
-                <span className="habbo-dropmenu-caption">{options[selectedIndex]?.label ?? ''}</span>
-                <img className="habbo-dropmenu-arrow" src={arrow} alt="" />
+                <span className="habbo-dropmenu-caption">{skinStyle === 100
+                    ? <NativeText text={options[selectedIndex]?.label ?? caption} textStyle="il_regular" background={0xffffff} />
+                    : options[selectedIndex]?.label ?? caption}</span>
+                {skinStyle !== 100 && <img className="habbo-dropmenu-arrow" src={skinStyle === 3 ? ubuntuArrow : arrow} alt="" />}
             </button>
             {isOpen && createPortal(
                 <div
                     ref={popupRef}
-                    className={'habbo-dropmenu-popup ' + popupClassName}
+                    className={'habbo-dropmenu-popup' + skinClass + ' ' + popupClassName}
                     style={popup}
                     onKeyDown={onKeyDown}
                     onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); }}
                 >
+                    {skinStyle === 100 && <NativeSkinView atlas={illuminaAtlas} skin={ILLUMINA_LIST_SKIN}
+                        layout="illumina_light_dropmenu_frame" width={popup.width} height={popup.height} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />}
                     <div
                         ref={viewportRef}
                         id={id}
@@ -273,6 +327,7 @@ export const HabboDropMenuView = <T extends string | number,>({ label, options, 
                         aria-label={label}
                         className={'habbo-dropmenu-list' + (metrics.overflow ? ' has-scrollbar' : '')}
                         onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
+                        onPointerLeave={() => setHoverIndex(-1)}
                     >
                         {options.map((option, index) => (
                             <div
@@ -281,17 +336,20 @@ export const HabboDropMenuView = <T extends string | number,>({ label, options, 
                                 role="option"
                                 aria-selected={index === selectedIndex}
                                 className={'habbo-dropmenu-item' + (index === selectedIndex ? ' is-selected' : '') + (keyboardActive && index === activeIndex ? ' is-active' : '')}
-                                onPointerDown={(event) => { if (event.button === 0) select(index); }}
-                                onPointerUp={(event) => { if (event.button === 0 && openingPointerRef.current === null) select(index); }}
+                                onPointerDown={(event) => { if (event.button === 0) select(index, true); }}
+                                onPointerUp={(event) => { if (expansionPointerRef.current) { expansionPointerRef.current = false; return; } if (event.button === 0 && openingPointerRef.current === null) select(index); }}
+                                onPointerMove={() => setHoverIndex(index)}
                             >
-                                <span>{menuCaption(option.label)}</span>
+                                <span>{skinStyle === 100 ? <NativeText text={menuCaption(option.label)} textStyle="il_regular"
+                                    background={hoverIndex === index || (keyboardActive && index === activeIndex) ? 0xebebeb : index === selectedIndex ? 0xdddddd : 0xffffff} />
+                                    : menuCaption(option.label)}</span>
                             </div>
                         ))}
                         <div className="habbo-dropmenu-padding" />
                     </div>
                     {metrics.overflow && (
                         <div className="habbo-dropmenu-scrollbar">
-                            <button aria-label="Scroll up" type="button" tabIndex={-1} disabled={scrollTop <= 0} className="habbo-dropmenu-scroll-up" onClick={() => viewportRef.current?.scrollBy(0, -ITEM_HEIGHT)} />
+                            <button aria-label="Scroll up" type="button" tabIndex={-1} disabled={scrollTop <= 0} className="habbo-dropmenu-scroll-up" onClick={() => viewportRef.current?.scrollBy(0, -itemHeight)} />
                             <div className="habbo-dropmenu-scroll-track" onPointerDown={(event) => {
                                 if (event.button !== 0 || event.target !== event.currentTarget) return;
                                 const offset = event.clientY - event.currentTarget.getBoundingClientRect().top;
@@ -318,7 +376,7 @@ export const HabboDropMenuView = <T extends string | number,>({ label, options, 
                                     <ThumbSkin pressed={dragging} patternId={id + '-thumb'} />
                                 </div>
                             </div>
-                            <button aria-label="Scroll down" type="button" tabIndex={-1} disabled={scrollTop >= maxScroll} className="habbo-dropmenu-scroll-down" onClick={() => viewportRef.current?.scrollBy(0, ITEM_HEIGHT)} />
+                            <button aria-label="Scroll down" type="button" tabIndex={-1} disabled={scrollTop >= maxScroll} className="habbo-dropmenu-scroll-down" onClick={() => viewportRef.current?.scrollBy(0, itemHeight)} />
                         </div>
                     )}
                 </div>,

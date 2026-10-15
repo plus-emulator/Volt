@@ -7,6 +7,7 @@ export interface IWiredVariableDefinitionLike {
     availability: number;
     hasValue: boolean;
     isReadOnly?: boolean;
+    canCreateAndDelete?: boolean;
     requiresExecutionContext?: boolean;
     /** Native wired forms key a variable by its opaque server id; the tools' definitions still carry the numeric item id. */
     variableId?: string;
@@ -200,6 +201,9 @@ const getInternalSelectable = (usage: WiredVariablePickerUsage, meta: IInternalV
 
 const getCustomSelectable = (usage: WiredVariablePickerUsage, definition: IWiredVariableDefinitionLike) => {
     switch (usage) {
+        case 'give':
+        case 'remove':
+            return definition.canCreateAndDelete ?? !definition.isReadOnly;
         case 'condition':
         case 'filter-main':
             return true;

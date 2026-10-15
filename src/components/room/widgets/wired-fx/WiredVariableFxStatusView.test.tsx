@@ -48,8 +48,8 @@ describe('WiredVariableFxStatusView', () => {
     });
 
     it('draws hearts for the health style and a level badge for the level style', () => {
-        const { unmount } = render(<WiredVariableFxStatusView config={config({ category: WIRED_FX_CATEGORY.HEALTH_POINTS, rendererId: WIRED_FX_RENDERER.HEARTS })} entry={entry(50)} />);
-        expect(screen.getByTestId('fx-status').children).toHaveLength(5);
+        const { unmount } = render(<WiredVariableFxStatusView config={config({ category: WIRED_FX_CATEGORY.HEALTH_POINTS, rendererId: WIRED_FX_RENDERER.STACKED_HEALTH_POINTS })} entry={entry(50)} />);
+        expect(screen.getByTestId('fx-stacked-hearts')).toHaveAttribute('data-heart-count', '50');
         unmount();
 
         render(
@@ -60,6 +60,15 @@ describe('WiredVariableFxStatusView', () => {
         );
         expect(screen.getByText('3')).toBeTruthy();
         expect((screen.getByTestId('fx-bar').firstElementChild as HTMLElement).style.width).toBe('50%');
+    });
+
+    it('dispatches AIR10 to a bar and AIR11 to a single masked heart', () => {
+        const { unmount } = render(<WiredVariableFxStatusView config={config({ rendererId: 10 })} entry={entry(50)} />);
+        expect(screen.getByTestId('fx-bar')).toBeInTheDocument();
+        expect(screen.queryByTestId('fx-stacked-hearts')).toBeNull(); unmount();
+        render(<WiredVariableFxStatusView config={config({ rendererId: 11 })} entry={entry(50)} />);
+        expect(screen.getByTestId('fx-masked-heart')).toHaveAttribute('data-progress', '0.5');
+        expect(screen.queryByTestId('fx-bar')).toBeNull();
     });
 
     it('writes the boss bar and number display values', () => {
@@ -82,7 +91,7 @@ describe('WiredVariableFxStatusView', () => {
         expect(screen.queryByTestId('fx-status')).toBeNull();
         unmount();
 
-        render(<WiredVariableFxStatusView config={config({ showMode: WIRED_FX_SHOW_MODE.WHEN_CHANGES, showDurationMs: 2000 })} entry={entry(50, {}, 9000)} />);
+        render(<WiredVariableFxStatusView config={config({ showMode: WIRED_FX_SHOW_MODE.WHEN_CHANGES, showDurationMs: 2000 })} entry={{ ...entry(50, {}, 9000), visibleUntil: 11000 }} />);
         expect(screen.getByTestId('fx-status')).toBeTruthy();
 
         act(() => {

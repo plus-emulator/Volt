@@ -1,14 +1,11 @@
-import { FC, useEffect, useMemo, useState } from 'react';
+import { FC, useEffect, useState } from 'react';
 import { localizeWithFallback, tokenOfVariableSlot, variableSlotOf, WIRED_VARIABLE_ABSENT, WiredFurniType } from '../../../../api';
-import { useWired, useWiredNativeVariables } from '../../../../hooks';
-import { VoltInput } from '../../../../layout';
+import { useWired } from '../../../../hooks';
 import { AMOUNT_TARGETS } from '../actions/WiredChestRewardForm';
 import { WIRED_CMP_GREATER, WiredComparisonOperator } from '../WiredComparisonOperator';
-import { WiredRadioGroup } from '../WiredOptions';
 import { WiredSection } from '../WiredSection';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
-import { WiredVariablePicker } from '../WiredVariablePicker';
-import { buildWiredVariablePickerEntries } from '../WiredVariablePickerData';
+import { WiredActionValueOrVariableSection } from '../actions/WiredActionValueOrVariableSection';
 import { WiredConditionBaseView } from './WiredConditionBaseView';
 import { FurniPickSlotButtons } from './WiredVariableConditionParts';
 
@@ -31,14 +28,9 @@ export const WiredChestAmountCondition: FC<{ itemTypes: boolean }> = ({ itemType
         secondaryFurniIds = [],
         setActivePickSlot = null
     } = useWired();
-    const {
-        userVariableDefinitions = [],
-        furniVariableDefinitions = [],
-        roomVariableDefinitions = [],
-        contextVariableDefinitions = []
-    } = useWiredNativeVariables();
     const [amount, setAmount] = useState(0);
     const [useVariable, setUseVariable] = useState(false);
+    const [amountValid, setAmountValid] = useState(true);
     const [target, setTarget] = useState(AMOUNT_TARGETS[0].target);
     const [variableToken, setVariableToken] = useState('');
     const [comparison, setComparison] = useState(WIRED_CMP_GREATER);
@@ -46,20 +38,6 @@ export const WiredChestAmountCondition: FC<{ itemTypes: boolean }> = ({ itemType
     const [mergedUser, setMergedUser] = useState(0);
     const chestSlot = itemTypes ? 1 : 0;
     const mergedSlot = chestSlot + 1;
-
-    const definitions = useMemo(() => {
-        switch (target) {
-            case 'furni':
-                return furniVariableDefinitions;
-            case 'global':
-                return roomVariableDefinitions;
-            case 'context':
-                return contextVariableDefinitions;
-            default:
-                return userVariableDefinitions;
-        }
-    }, [contextVariableDefinitions, furniVariableDefinitions, roomVariableDefinitions, target, userVariableDefinitions]);
-    const entries = useMemo(() => buildWiredVariablePickerEntries(target, 'condition', definitions), [definitions, target]);
 
     useEffect(() => {
         if (!trigger) return;
@@ -92,7 +70,7 @@ export const WiredChestAmountCondition: FC<{ itemTypes: boolean }> = ({ itemType
         setUserSources([useVariable && target === 'user' ? mergedUser : 0]);
     };
 
-    const validate = () => !useVariable || !!variableToken;
+    const validate = () => amountValid && (!useVariable || !!variableToken);
     const pickSlots = [0, 1].filter((list) =>
         sources.some((source, slot) => (slot < mergedSlot || (useVariable && target === 'furni')) && source === (list === 0 ? 100 : 101))
     );
@@ -100,6 +78,7 @@ export const WiredChestAmountCondition: FC<{ itemTypes: boolean }> = ({ itemType
     return (
         <WiredConditionBaseView
             hasSpecialInput={true}
+            nativeLayout={true}
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID}
             save={save}
             validate={validate}
@@ -156,45 +135,23 @@ export const WiredChestAmountCondition: FC<{ itemTypes: boolean }> = ({ itemType
                     onChange={setComparison}
                 />
             </WiredSection>
-            <WiredSection title={localizeWithFallback('wiredfurni.params.chest_compare_amount', 'Compare value:')}>
-                <WiredRadioGroup
-                    name={itemTypes ? 'chestItemTypeAmountOption' : 'chestItemsAmountOption'}
-                    value={useVariable ? 1 : 0}
-                    onChange={(value) => setUseVariable(value === 1)}
-                    options={[
-                        { id: 0, label: localizeWithFallback('wiredfurni.params.variables.reference_value.set_value', 'Set value:') },
-                        { id: 1, label: localizeWithFallback('wiredfurni.params.variables.reference_value.from_variable', 'From Variable:') }
-                    ]}
-                />
-                {!useVariable && (
-                    <VoltInput
-                        type="number"
-                        min={0}
-                        max={MAX_AMOUNT}
-                        value={amount}
-                        onChange={(event) => setAmount(clampAmount(Number(event.target.value)))}
-                    />
-                )}
-                {useVariable && (
-                    <>
-                        <WiredRadioGroup
-                            name={itemTypes ? 'chestItemTypeAmountTarget' : 'chestItemsAmountTarget'}
-                            value={AMOUNT_TARGETS.findIndex((entry) => entry.target === target)}
-                            onChange={(index) => {
-                                setTarget(AMOUNT_TARGETS[index].target);
-                                setVariableToken('');
-                            }}
-                            options={AMOUNT_TARGETS.map((entry, index) => ({ id: index, label: localizeWithFallback(entry.label, entry.target) }))}
-                        />
-                        <WiredVariablePicker
-                            entries={entries}
-                            recentScope="chest-compare-amount"
-                            selectedToken={variableToken}
-                            onSelect={(entry) => setVariableToken(entry.token)}
-                        />
-                    </>
-                )}
-            </WiredSection>
+            <WiredActionValueOrVariableSection
+                title={localizeWithFallback('wiredfurni.params.chest_compare_amount', 'Compare value:')}
+                targetTitle={localizeWithFallback('wiredfurni.params.variables.reference_value.target', 'Variable source:')}
+                recentScope="chest-compare-amount"
+                variableUsage="condition"
+                min={0}
+                max={MAX_AMOUNT}
+                option={useVariable ? 1 : 0}
+                onOptionChange={(option) => setUseVariable(option === 1)}
+                literal={amount}
+                onLiteralChange={setAmount}
+                target={target}
+                onTargetChange={setTarget}
+                variableToken={variableToken}
+                onVariableTokenChange={setVariableToken}
+                onValidityChange={setAmountValid}
+            />
         </WiredConditionBaseView>
     );
 };

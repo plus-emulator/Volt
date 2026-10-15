@@ -2,8 +2,11 @@
 import { IWiredLabelData, WiredLabelSaveSettingsComposer } from '@volt/renderer';
 import { FC, useState } from 'react';
 import { SendMessageComposer, localizeWithFallback } from '../../../../api';
-import { FURNITURE_LABEL_COLORS, FURNITURE_LABEL_COLOR_KEYS, FURNITURE_LABEL_VISIBILITY_EVERYONE, FURNITURE_LABEL_VISIBILITY_WIRED, wiredLabelBubbleColor } from '../../../../api/wired/WiredLabel';
-import { Button, Column, DraggableWindow, Flex, Text, VoltCardContentView, VoltCardHeaderView, VoltCardView } from '../../../../common';
+import { FURNITURE_LABEL_COLORS, FURNITURE_LABEL_COLOR_KEYS, FURNITURE_LABEL_VISIBILITY_EVERYONE, FURNITURE_LABEL_VISIBILITY_WIRED } from '../../../../api/wired/WiredLabel';
+import { DraggableWindow } from '../../../../common';
+import { HabboDropMenuView } from '../../../../common/dropmenu/HabboDropMenuView';
+import { NativeText } from '../../../../common/native-text/NativeText';
+import { FurnitureLabelColorPreview } from './FurnitureLabelColorPreview';
 import { useWiredToolsState } from '../../../../hooks';
 import { useWiredLabelsStore } from '../../../../hooks/rooms/widgets/useWiredLabelsState';
 
@@ -15,7 +18,7 @@ interface FurnitureLabelSettingsCardViewProps {
 /** Keyed by furni id, so each open starts from the label's current settings. */
 const FURNITURE_LABEL_COLOR_NAMES = ['Blue', 'Teal', 'Green', 'Gold', 'Orange', 'Red', 'Purple', 'Charcoal'];
 
-const FurnitureLabelSettingsCardView: FC<FurnitureLabelSettingsCardViewProps> = (props) => {
+export const FurnitureLabelSettingsCardView: FC<FurnitureLabelSettingsCardViewProps> = (props) => {
     const { label, onClose } = props;
     const [colorIndex, setColorIndex] = useState(() => Math.max(0, FURNITURE_LABEL_COLORS.indexOf(label.bubbleColor)));
     const [visibility, setVisibility] = useState(label.visibility === FURNITURE_LABEL_VISIBILITY_EVERYONE ? FURNITURE_LABEL_VISIBILITY_EVERYONE : FURNITURE_LABEL_VISIBILITY_WIRED);
@@ -28,58 +31,46 @@ const FurnitureLabelSettingsCardView: FC<FurnitureLabelSettingsCardViewProps> = 
         onClose();
     };
 
+    const title = localizeWithFallback('widget.furniture_label.settings.title', 'Label settings');
+    const colorLabel = localizeWithFallback('widget.furniture_label.settings.color', 'Label color');
+    const visibilityLabel = localizeWithFallback('widget.furniture_label.settings.visibility', 'Who can see this label?');
+
     return (
-        <DraggableWindow handleSelector=".volt-card-header-shell">
-            <VoltCardView theme="primary-slim" className="volt-furni-label-settings w-[min(340px,calc(100vw-16px))]">
-                <VoltCardHeaderView headerText={localizeWithFallback('widget.furniture_label.settings.title', 'Label settings')} onCloseClick={onClose} />
-                <VoltCardContentView overflow="hidden" justifyContent="between">
-                    <Column gap={2}>
-                        <Column gap={1}>
-                            <Text bold>{localizeWithFallback('widget.furniture_label.settings.color', 'Label color')}</Text>
-                            <Flex gap={2} alignItems="center">
-                                <select className="form-select form-select-sm" value={colorIndex} onChange={(event) => setColorIndex(parseInt(event.target.value, 10))}>
-                                    {FURNITURE_LABEL_COLOR_KEYS.map((key, index) => (
-                                        <option key={key} value={index}>
-                                            {localizeWithFallback(`widget.furniture_label.settings.color.${key}`, FURNITURE_LABEL_COLOR_NAMES[index])}
-                                        </option>
-                                    ))}
-                                </select>
-                                <span className="volt-furni-label-settings__swatch" style={{ backgroundColor: wiredLabelBubbleColor(FURNITURE_LABEL_COLORS[colorIndex]) }} />
-                            </Flex>
-                        </Column>
-                        <Column gap={1}>
-                            <Text bold>{localizeWithFallback('widget.furniture_label.settings.visibility', 'Who can see this label?')}</Text>
-                            <select
-                                className="form-select form-select-sm"
-                                value={visibility}
-                                onChange={(event) => setVisibility(parseInt(event.target.value, 10) === FURNITURE_LABEL_VISIBILITY_EVERYONE ? FURNITURE_LABEL_VISIBILITY_EVERYONE : FURNITURE_LABEL_VISIBILITY_WIRED)}
-                            >
-                                <option value={FURNITURE_LABEL_VISIBILITY_EVERYONE}>{localizeWithFallback('widget.furniture_label.settings.visibility.everyone', 'Everyone')}</option>
-                                <option value={FURNITURE_LABEL_VISIBILITY_WIRED}>{localizeWithFallback('widget.furniture_label.settings.visibility.wired', 'Users with Wired inspection rights')}</option>
-                            </select>
-                        </Column>
-                        <Flex gap={1} alignItems="center">
-                            <input
-                                className="form-check-input"
-                                type="checkbox"
-                                id="furniLabelAlwaysOpen"
-                                checked={alwaysOpen}
-                                disabled={!everyone}
-                                onChange={(event) => setAlwaysOpen(event.target.checked)}
-                            />
-                            <Text>{localizeWithFallback('widget.furniture_label.settings.always_open', 'Keep this label always open')}</Text>
-                        </Flex>
-                    </Column>
-                    <Flex gap={1} justifyContent="end">
-                        <Button variant="primary" onClick={onClose}>
-                            {localizeWithFallback('generic.cancel', 'Cancel')}
-                        </Button>
-                        <Button variant="primary" onClick={save}>
-                            {localizeWithFallback('save', 'Save')}
-                        </Button>
-                    </Flex>
-                </VoltCardContentView>
-            </VoltCardView>
+        <DraggableWindow handleSelector=".volt-furni-label-settings__titlebar">
+            <section className="volt-furni-label-settings" role="dialog" aria-label={title}>
+                <div className="volt-furni-label-settings__chrome" aria-hidden="true" />
+                <div className="volt-furni-label-settings__titlebar">
+                    <span className="volt-furni-label-settings__title"><NativeText text={title} textStyle="il_frame_title" background={0xe2e2e2} /></span>
+                </div>
+                <button className="volt-furni-label-settings__close" type="button" aria-label={localizeWithFallback('generic.close', 'Close')} onClick={onClose} />
+                <div className="volt-furni-label-settings__content">
+                    <label className="volt-furni-label-settings__color-label">
+                        <NativeText text={colorLabel} textStyle="u_small" background={0xe2e2e2} overrides={{ bold: true }} />
+                    </label>
+                    <HabboDropMenuView<number> label={colorLabel} skinStyle={3} className="volt-furni-label-settings__color" value={colorIndex} onSelect={setColorIndex}
+                        options={FURNITURE_LABEL_COLOR_KEYS.map((key, index) => ({ value: index, label: localizeWithFallback(`widget.furniture_label.settings.color.${key}`, FURNITURE_LABEL_COLOR_NAMES[index]) }))} />
+                    <FurnitureLabelColorPreview color={FURNITURE_LABEL_COLORS[colorIndex]} />
+                    <label className="volt-furni-label-settings__visibility-label">
+                        <NativeText text={visibilityLabel} textStyle="u_small" background={0xe2e2e2} overrides={{ bold: true }} />
+                    </label>
+                    <HabboDropMenuView<number> label={visibilityLabel} skinStyle={3} className="volt-furni-label-settings__visibility" value={visibility} onSelect={setVisibility}
+                        options={[
+                            { value: FURNITURE_LABEL_VISIBILITY_EVERYONE, label: localizeWithFallback('widget.furniture_label.settings.visibility.everyone', 'Everyone') },
+                            { value: FURNITURE_LABEL_VISIBILITY_WIRED, label: localizeWithFallback('widget.furniture_label.settings.visibility.wired', 'Users with Wired inspection rights') }
+                        ]} />
+                    <label className="volt-furni-label-settings__always-open" aria-disabled={!everyone}>
+                        <input type="checkbox" checked={alwaysOpen} disabled={!everyone} onChange={(event) => setAlwaysOpen(event.target.checked)} />
+                        <span><NativeText text={localizeWithFallback('widget.furniture_label.settings.always_open', 'Keep this label always open')}
+                            textStyle="u_small" background={0xe2e2e2} overrides={{ size: 11, color: everyone ? 0 : 0x8c8c88 }} /></span>
+                    </label>
+                    <button className="volt-furni-label-settings__cancel fnd-button fnd-button-thick" type="button" onClick={onClose}>
+                        <NativeText text={localizeWithFallback('generic.cancel', 'Cancel')} textStyle="button_shiny_bold" background={0xffffff} />
+                    </button>
+                    <button className="volt-furni-label-settings__save fnd-button fnd-button-thick fnd-button-green" type="button" onClick={save}>
+                        <NativeText text={localizeWithFallback('wiredfurni.ready', 'Ready')} textStyle="button_shiny_bold" background={0xffffff} />
+                    </button>
+                </div>
+            </section>
         </DraggableWindow>
     );
 };

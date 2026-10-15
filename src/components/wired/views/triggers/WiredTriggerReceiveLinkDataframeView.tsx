@@ -1,3 +1,4 @@
+import { WiredFurniSelectorSection } from '../WiredFurniSelectorView';
 import { FC, useEffect, useMemo, useState } from 'react';
 import { LocalizeText, tokenOfVariableSlot, variableSlotOf, WIRED_VARIABLE_ABSENT, WiredFurniType } from '../../../../api';
 import {
@@ -123,12 +124,10 @@ interface ReceiveRowProps {
 }
 
 const ReceiveRow: FC<ReceiveRowProps> = ({ index, row, onChange }) => (
-    <WiredSection title={LocalizeText('wiredfurni.params.link.row', ['number'], [`${index + 1}`])}>
+    <WiredSection title={LocalizeText('wiredfurni.params.link.row', ['number'], [`${index + 1}`])} className="volt-wired__dataframe-row">
         <LinkDataframeField label={LocalizeText('wiredfurni.params.link.key')}>
             <WiredTextInput maxLength={LINK_DATAFRAME_KEY_MAX_LENGTH} value={row.key} onChange={(key) => onChange({ ...row, key })} />
-        </LinkDataframeField>
-        <LinkDataframeField label={LocalizeText('wiredfurni.params.link.destination')}>
-            <WiredDropdown options={DESTINATION_OPTIONS} value={row.kind} onChange={(kind) => onChange({ ...row, kind })} />
+            <WiredDropdown caption={LocalizeText('wiredfurni.params.link.destination')} options={DESTINATION_OPTIONS} value={row.kind} onChange={(kind) => onChange({ ...row, kind })} />
         </LinkDataframeField>
         {row.kind === LINK_DESTINATION_PLACEHOLDER && (
             <LinkDataframeField label={LocalizeText('wiredfurni.params.link.placeholder')}>
@@ -180,7 +179,7 @@ export const WiredTriggerReceiveLinkDataframeView: FC<{}> = () => {
     };
 
     return (
-        <WiredTriggerBaseView hasSpecialInput={true} nativeLayout={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID} save={save}>
+        <WiredTriggerBaseView hasSpecialInput={true} nativeLayout={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID} selectionPreview={<WiredFurniSelectorSection title={LocalizeText('wiredfurni.params.link.endpoints')} hideInstructions />} save={save}>
             <WiredSection>
                 <WiredText soft={true} wrap={true} text={LocalizeText('wiredfurni.params.link.Receive_info')} />
             </WiredSection>

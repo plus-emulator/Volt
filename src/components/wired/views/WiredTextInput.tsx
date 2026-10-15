@@ -1,9 +1,10 @@
-import { ChangeEvent, FC } from 'react';
+import { ChangeEvent, FC, KeyboardEventHandler } from 'react';
 import { useWiredNative } from './WiredNativeContext';
 
 export interface WiredTextInputProps {
     value: string;
     onChange: (value: string) => void;
+    onKeyDown?: KeyboardEventHandler<HTMLInputElement>;
     maxLength?: number;
     placeholder?: string;
     /** Field width; the border adds 8px like TextInputParam. Full width when omitted. */
@@ -13,7 +14,7 @@ export interface WiredTextInputProps {
 }
 
 /** TextInputPreset: the Illumina input border around a 16px field, with the character limit warning near the end. */
-export const WiredTextInput: FC<WiredTextInputProps> = ({ value, onChange, maxLength = 0, placeholder = '', width = -1, disabled = false, className = '' }) =>
+export const WiredTextInput: FC<WiredTextInputProps> = ({ value, onChange, onKeyDown, maxLength = 0, placeholder = '', width = -1, disabled = false, className = '' }) =>
 {
     const isNative = useWiredNative();
     const warnWindow = maxLength > 10 ? Math.min(30, Math.max(6, Math.trunc(maxLength / 5))) : 0;
@@ -32,6 +33,7 @@ export const WiredTextInput: FC<WiredTextInputProps> = ({ value, onChange, maxLe
                 style={width >= 0 ? { width: width + 8 } : undefined}
                 type="text"
                 value={value}
+                onKeyDown={onKeyDown}
                 onChange={(event: ChangeEvent<HTMLInputElement>) => onChange(event.target.value)}
             />
         );
@@ -47,6 +49,7 @@ export const WiredTextInput: FC<WiredTextInputProps> = ({ value, onChange, maxLe
                 spellCheck={false}
                 type="text"
                 value={value}
+                onKeyDown={onKeyDown}
                 onChange={(event: ChangeEvent<HTMLInputElement>) => onChange(event.target.value)}
             />
             {warn && <span className="volt-wired__input-limit">{`${value.length}/${maxLength}`}</span>}

@@ -1,279 +1,104 @@
+import { IWiredVariableData } from '@volt/renderer';
 import { FC, useEffect, useMemo, useState } from 'react';
-import { LocalizeText, localizeWithFallback, WiredFurniType } from '../../../../api';
-import furniVariableIcon from '../../../../assets/images/wired/var/icon_source_furni.png';
-import globalVariableIcon from '../../../../assets/images/wired/var/icon_source_global.png';
-import userVariableIcon from '../../../../assets/images/wired/var/icon_source_user.png';
-import { Text } from '../../../../common';
-import { useWired, useWiredTools } from '../../../../hooks';
+import { getNativeVariableId, LocalizeText, nativeVariableDefinitions, tokenOfVariableSlot, variableSlotOf, WIRED_NATIVE_VARIABLE_TARGET, WiredFurniType } from '../../../../api';
+import { useWired } from '../../../../hooks';
+import { WiredCollapsibleSection } from '../WiredCollapsibleSection';
+import { WiredCheckboxGroup, WiredCheckboxOption, WiredRadioGroup } from '../WiredOptions';
+import { WiredSection } from '../WiredSection';
+import { WiredSourceTypeSelector } from '../WiredSourceTypeSelector';
+import { WiredText } from '../WiredText';
 import { WiredVariablePicker } from '../WiredVariablePicker';
-import {
-    buildWiredVariablePickerEntries,
-    createFallbackVariableEntry,
-    flattenWiredVariablePickerEntries,
-    IWiredVariablePickerEntry,
-    normalizeVariableTokenFromWire
-} from '../WiredVariablePickerData';
+import { buildWiredVariablePickerEntries, createFallbackVariableEntry, flattenWiredVariablePickerEntries } from '../WiredVariablePickerData';
 import { WiredTriggerBaseView } from './WiredTriggerBaseView';
 
-type VariableTargetType = 'user' | 'furni' | 'global';
+type Target = 'user' | 'furni' | 'global';
+const targetOf = (value: number): Target => value === 0 ? 'furni' : value === -10 ? 'global' : 'user';
+const toggle = (mask: number, bit: number, selected: boolean) => selected ? mask | (1 << bit) : mask & ~(1 << bit);
 
-const TARGET_USER = 0;
-const TARGET_FURNI = 1;
-const TARGET_GLOBAL = 3;
-
-// Where a change may come from; the server labels each write and the trigger keeps a bit mask of
-// the native origins it listens to (-1 = every origin).
-const ORIGIN_ALL = -1;
-const ORIGIN_OPTIONS = [
-    { bit: 0, key: 'wiredfurni.params.variables.trigger_origin.0', fallback: 'This room' },
-    { bit: 1, key: 'wiredfurni.params.variables.trigger_origin.1', fallback: 'Another room' },
-    { bit: 2, key: 'wiredfurni.params.variables.trigger_origin.2', fallback: 'Inspection' },
-    { bit: 3, key: 'wiredfurni.params.variables.trigger_origin.3', fallback: 'External' }
-] as const;
-const ORIGIN_EVERY_BIT = ORIGIN_OPTIONS.reduce((mask, option) => mask | (1 << option.bit), 0);
-
-const TARGET_BUTTONS: Array<{ key: VariableTargetType; icon: string }> = [
-    { key: 'furni', icon: furniVariableIcon },
-    { key: 'user', icon: userVariableIcon },
-    { key: 'global', icon: globalVariableIcon }
-];
-
-const filterCustomEntries = (entries: IWiredVariablePickerEntry[]): IWiredVariablePickerEntry[] => {
-    return entries
-        .filter((entry) => entry.kind === 'custom')
-        .map((entry) => ({
-            ...entry,
-            children: entry.children?.filter((child) => child.kind === 'custom')
-        }));
+/** VariableUpdate.onChangeVariable, package25. All permissions come from the native WiredVariable record. */
+export const variableUpdateControls = (variable: IWiredVariableData | undefined) => {
+    const canCreateDelete = !variable || variable.canCreateAndDelete || variable.variableType === 2 || variable.availabilityType === 21 || variable.variableType === 3 || variable.variableType === 1;
+    return {
+        canCreateDelete,
+        canChange: !variable || variable.hasValue || variable.variableType === 3 || variable.variableType === 1,
+        otherRooms: !!variable && variable.variableTarget === -10 && [11, 20].includes(variable.availabilityType),
+        persisted: !!variable && [10, 11, 20].includes(variable.availabilityType)
+    };
 };
 
-const normalizeTargetType = (value: number): VariableTargetType => {
-    switch (value) {
-        case TARGET_FURNI:
-            return 'furni';
-        case TARGET_GLOBAL:
-            return 'global';
-        default:
-            return 'user';
-    }
-};
-
-const getTargetValue = (value: VariableTargetType) => {
-    switch (value) {
-        case 'furni':
-            return TARGET_FURNI;
-        case 'global':
-            return TARGET_GLOBAL;
-        default:
-            return TARGET_USER;
-    }
-};
-
-export const WiredTriggerVariableChangedView: FC<{}> = () => {
-    const { trigger = null, setIntParams = null, setStringParam = null } = useWired();
-    const { userVariableDefinitions = [], furniVariableDefinitions = [], roomVariableDefinitions = [] } = useWiredTools();
-    const [targetType, setTargetType] = useState<VariableTargetType>('user');
-    const [variableToken, setVariableToken] = useState('');
-    const [createdEnabled, setCreatedEnabled] = useState(true);
-    const [valueChangedEnabled, setValueChangedEnabled] = useState(true);
-    const [increasedEnabled, setIncreasedEnabled] = useState(true);
-    const [decreasedEnabled, setDecreasedEnabled] = useState(true);
-    const [unchangedEnabled, setUnchangedEnabled] = useState(true);
-    const [deletedEnabled, setDeletedEnabled] = useState(true);
-    const [originMask, setOriginMask] = useState(ORIGIN_ALL);
-
-    const variableDefinitions = useMemo(() => {
-        switch (targetType) {
-            case 'furni':
-                return furniVariableDefinitions;
-            case 'global':
-                return roomVariableDefinitions;
-            default:
-                return userVariableDefinitions;
-        }
-    }, [furniVariableDefinitions, roomVariableDefinitions, targetType, userVariableDefinitions]);
-    const variableEntries = useMemo(
-        () => filterCustomEntries(buildWiredVariablePickerEntries(targetType, 'condition', variableDefinitions)),
-        [targetType, variableDefinitions]
-    );
-    const resolvedVariableEntries = useMemo(() => {
-        if (!variableToken) return variableEntries;
-        if (flattenWiredVariablePickerEntries(variableEntries).some((entry) => entry.token === variableToken)) return variableEntries;
-
-        const fallbackEntry = createFallbackVariableEntry(targetType, variableToken);
-
-        return fallbackEntry && fallbackEntry.kind === 'custom' ? [fallbackEntry, ...variableEntries] : variableEntries;
-    }, [targetType, variableEntries, variableToken]);
-    const effectiveCreatedEnabled = targetType === 'global' ? false : createdEnabled;
-    const effectiveDeletedEnabled = targetType === 'global' ? false : deletedEnabled;
-    const effectiveIncreasedEnabled = valueChangedEnabled && increasedEnabled;
-    const effectiveDecreasedEnabled = valueChangedEnabled && decreasedEnabled;
-    const effectiveUnchangedEnabled = valueChangedEnabled && unchangedEnabled;
+/** AIR VariableUpdate owns six ints and one native variable slot; furniture picks are retained in both modes. */
+export const WiredTriggerVariableChangedView: FC = () => {
+    const { trigger, nativeCatalog, setIntParams, setVariableIds, setStringParam } = useWired();
+    const [target, setTarget] = useState<Target>('user');
+    const [token, setToken] = useState('');
+    const [created, setCreated] = useState(false);
+    const [changed, setChanged] = useState(false);
+    const [deleted, setDeleted] = useState(false);
+    const [changeMask, setChangeMask] = useState(0);
+    const [originMask, setOriginMask] = useState(-1);
+    const [mode, setMode] = useState(0);
+    const rows = nativeCatalog?.rows;
+    const selected = rows?.get(getNativeVariableId(token))?.variable;
+    const controls = variableUpdateControls(selected);
+    const entries = useMemo(() => {
+        const definitions = nativeVariableDefinitions(rows, target).filter(definition => {
+            const variable = rows?.get(definition.variableId)?.variable;
+            return !!variable?.canInterceptChanges && !variable.requiresExecutionContext;
+        });
+        const options = buildWiredVariablePickerEntries(target, 'condition', definitions);
+        if (!token || flattenWiredVariablePickerEntries(options).some(entry => entry.token === token)) return options;
+        // Keep an unavailable saved id visible without granting picker permission to it.
+        const fallback = createFallbackVariableEntry(target, token);
+        return fallback ? [{ ...fallback, selectable: false }, ...options] : options;
+    }, [rows, target, token]);
 
     useEffect(() => {
         if (!trigger) return;
-
-        const intData = trigger.intData || [];
-
-        setTargetType(normalizeTargetType(intData.length > 0 ? intData[0] : TARGET_USER));
-        setVariableToken(normalizeVariableTokenFromWire(trigger.stringData || ''));
-        setCreatedEnabled(intData.length <= 1 || intData[1] === 1);
-        setValueChangedEnabled(intData.length <= 2 || intData[2] === 1);
-        setIncreasedEnabled(intData.length <= 3 || intData[3] === 1);
-        setDecreasedEnabled(intData.length <= 4 || intData[4] === 1);
-        setUnchangedEnabled(intData.length <= 5 || intData[5] === 1);
-        setDeletedEnabled(intData.length <= 6 || intData[6] === 1);
-        setOriginMask(intData.length > 7 ? intData[7] : ORIGIN_ALL);
+        const ints = trigger.intData;
+        const variableId = trigger.variableIds[0];
+        setToken(tokenOfVariableSlot(variableId));
+        setTarget(targetOf(rows?.get(variableId)?.variable.variableTarget));
+        setCreated(ints[0] === 1); setChanged(ints[1] === 1); setDeleted(ints[2] === 1);
+        setChangeMask(ints[3] ?? 0); setOriginMask(ints[4] ?? -1); setMode(ints.length > 5 && ints[5] !== 0 ? 1 : 0);
     }, [trigger]);
 
+    // The shared catalog may arrive after the configuration; only resolve its target, never reset draft options.
     useEffect(() => {
-        if (targetType !== 'global') return;
-
-        setCreatedEnabled(false);
-        setDeletedEnabled(false);
-    }, [targetType]);
+        if (selected && selected.variableTarget !== WIRED_NATIVE_VARIABLE_TARGET[target]) setTarget(targetOf(selected.variableTarget));
+    }, [selected]);
 
     const save = () => {
-        setStringParam(variableToken);
-        setIntParams([
-            getTargetValue(targetType),
-            effectiveCreatedEnabled ? 1 : 0,
-            valueChangedEnabled ? 1 : 0,
-            effectiveIncreasedEnabled ? 1 : 0,
-            effectiveDecreasedEnabled ? 1 : 0,
-            effectiveUnchangedEnabled ? 1 : 0,
-            effectiveDeletedEnabled ? 1 : 0,
-            originMask
-        ]);
+        setVariableIds([variableSlotOf(token)]);
+        setStringParam('');
+        setIntParams([created ? 1 : 0, changed ? 1 : 0, deleted ? 1 : 0, changeMask, (originMask & 15) === 15 ? -1 : originMask, mode]);
     };
 
-    const effectiveOriginMask = originMask < 0 || originMask === 0 ? ORIGIN_EVERY_BIT : originMask;
-    const isOriginChecked = (bit: number) => (effectiveOriginMask & (1 << bit)) !== 0;
-    const toggleOrigin = (bit: number, checked: boolean) => {
-        const nextMask = checked ? effectiveOriginMask | (1 << bit) : effectiveOriginMask & ~(1 << bit);
-
-        setOriginMask(nextMask === ORIGIN_EVERY_BIT ? ORIGIN_ALL : nextMask);
-    };
-
-    return (
-        <WiredTriggerBaseView hasSpecialInput={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save}>
-            <div className="volt-wired__give-var volt-wired__give-var--trigger-variable">
-                <div className="volt-wired__give-var-heading">
-                    <Text>{LocalizeText('wiredfurni.params.variables.variable_selection')}</Text>
-                    <div className="volt-wired__give-var-targets">
-                        {TARGET_BUTTONS.map((button) => (
-                            <button
-                                key={button.key}
-                                type="button"
-                                className={`volt-wired__give-var-target volt-wired__give-var-target--${button.key} ${targetType === button.key ? 'is-active' : ''}`}
-                                onClick={() => {
-                                    if (targetType === button.key) return;
-
-                                    setTargetType(button.key);
-                                    setVariableToken('');
-                                }}
-                            >
-                                <img src={button.icon} alt={button.key} />
-                            </button>
-                        ))}
-                    </div>
+    return <WiredTriggerBaseView hasSpecialInput nativeLayout requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID} save={save}>
+        <WiredSection title={LocalizeText('wiredfurni.params.variables.trigger_mode')}>
+            <WiredRadioGroup name="variable-update-mode" options={[0, 1].map(id => ({ id, label: LocalizeText(`wiredfurni.params.variables.trigger_mode.${id}`) }))} value={mode} onChange={setMode} />
+        </WiredSection>
+        <fieldset disabled={mode === 1} style={{ border: 0, margin: 0, padding: 0, minWidth: 0, opacity: mode === 1 ? 0.5 : 1 }}>
+            <WiredSection title={LocalizeText('wiredfurni.params.variables.variable_selection')} headerOptionsRight={<WiredSourceTypeSelector types={['furni', 'user', 'global']} value={target} disabled={mode === 1} onChange={value => { setTarget(value as Target); setToken(''); }} />}>
+                <WiredVariablePicker entries={entries} recentScope="variable-triggers" selectedToken={token} onSelect={entry => { if (mode === 0 && entry.selectable) setToken(entry.token); }} />
+            </WiredSection>
+        </fieldset>
+        <WiredCollapsibleSection title={LocalizeText('wiredfurni.params.variables.trigger_options')}>
+            <WiredCheckboxGroup>
+                <WiredCheckboxOption label={LocalizeText('wiredfurni.params.variables.trigger_options.0')} checked={created} disabled={!controls.canCreateDelete} onChange={setCreated} />
+                <div>
+                    <WiredCheckboxOption label={LocalizeText('wiredfurni.params.variables.trigger_options.1')} checked={changed} disabled={!controls.canChange} onChange={setChanged} />
+                    <fieldset className="volt-wired__option-extra" disabled={!changed || !controls.canChange} style={{ border: 0, padding: 0, minWidth: 0 }}>
+                        <WiredCheckboxGroup>{[0, 1, 2].map(bit => <WiredCheckboxOption key={bit} last={bit === 2} label={LocalizeText(`wiredfurni.params.variables.trigger_options.1.${bit}`)} checked={(changeMask & (1 << bit)) !== 0} disabled={!changed || !controls.canChange} onChange={checked => setChangeMask(mask => toggle(mask, bit, checked))} />)}</WiredCheckboxGroup>
+                    </fieldset>
                 </div>
-
-                <WiredVariablePicker
-                    entries={resolvedVariableEntries}
-                    recentScope="variable-triggers"
-                    selectedToken={variableToken}
-                    onSelect={(entry) => setVariableToken(entry.token)}
-                />
-
-                <div className="volt-wired__divider" />
-
-                <div className="flex flex-col gap-1">
-                    <Text bold>{LocalizeText('wiredfurni.params.variables.trigger_options')}</Text>
-
-                    <label className="flex items-center gap-1">
-                        <input
-                            checked={effectiveCreatedEnabled}
-                            className="form-check-input"
-                            disabled={targetType === 'global'}
-                            type="checkbox"
-                            onChange={(event) => setCreatedEnabled(event.target.checked)}
-                        />
-                        <Text>{LocalizeText('wiredfurni.params.variables.trigger_options.0')}</Text>
-                    </label>
-
-                    <label className="flex items-center gap-1">
-                        <input
-                            checked={valueChangedEnabled}
-                            className="form-check-input"
-                            type="checkbox"
-                            onChange={(event) => setValueChangedEnabled(event.target.checked)}
-                        />
-                        <Text>{LocalizeText('wiredfurni.params.variables.trigger_options.1')}</Text>
-                    </label>
-
-                    <div className="ml-3 flex flex-col gap-1">
-                        <label className="flex items-center gap-1">
-                            <input
-                                checked={effectiveIncreasedEnabled}
-                                className="form-check-input"
-                                disabled={!valueChangedEnabled}
-                                type="checkbox"
-                                onChange={(event) => setIncreasedEnabled(event.target.checked)}
-                            />
-                            <Text>{LocalizeText('wiredfurni.params.variables.trigger_options.1.0')}</Text>
-                        </label>
-                        <label className="flex items-center gap-1">
-                            <input
-                                checked={effectiveDecreasedEnabled}
-                                className="form-check-input"
-                                disabled={!valueChangedEnabled}
-                                type="checkbox"
-                                onChange={(event) => setDecreasedEnabled(event.target.checked)}
-                            />
-                            <Text>{LocalizeText('wiredfurni.params.variables.trigger_options.1.1')}</Text>
-                        </label>
-                        <label className="flex items-center gap-1">
-                            <input
-                                checked={effectiveUnchangedEnabled}
-                                className="form-check-input"
-                                disabled={!valueChangedEnabled}
-                                type="checkbox"
-                                onChange={(event) => setUnchangedEnabled(event.target.checked)}
-                            />
-                            <Text>{LocalizeText('wiredfurni.params.variables.trigger_options.1.2')}</Text>
-                        </label>
-                    </div>
-
-                    <label className="flex items-center gap-1">
-                        <input
-                            checked={effectiveDeletedEnabled}
-                            className="form-check-input"
-                            disabled={targetType === 'global'}
-                            type="checkbox"
-                            onChange={(event) => setDeletedEnabled(event.target.checked)}
-                        />
-                        <Text>{LocalizeText('wiredfurni.params.variables.trigger_options.2')}</Text>
-                    </label>
-                </div>
-
-                <div className="volt-wired__divider" />
-
-                <div className="flex flex-col gap-1">
-                    <Text bold>{localizeWithFallback('wiredfurni.params.variables.trigger_origin', 'Changed by:')}</Text>
-                    {ORIGIN_OPTIONS.map((option) => (
-                        <label key={option.bit} className="flex items-center gap-1">
-                            <input
-                                checked={isOriginChecked(option.bit)}
-                                className="form-check-input"
-                                type="checkbox"
-                                onChange={(event) => toggleOrigin(option.bit, event.target.checked)}
-                            />
-                            <Text>{localizeWithFallback(option.key, option.fallback)}</Text>
-                        </label>
-                    ))}
-                </div>
-            </div>
-        </WiredTriggerBaseView>
-    );
+                <WiredCheckboxOption last label={LocalizeText('wiredfurni.params.variables.trigger_options.2')} checked={deleted} disabled={!controls.canCreateDelete} onChange={setDeleted} />
+            </WiredCheckboxGroup>
+        </WiredCollapsibleSection>
+        <WiredCollapsibleSection title={LocalizeText('wiredfurni.params.variables.trigger_origin')}>
+            <WiredCheckboxGroup>{[0, 1, 2, 3].map(bit => <div key={bit}>
+                <WiredCheckboxOption last={bit === 3} label={LocalizeText(`wiredfurni.params.variables.trigger_origin.${bit}`)} checked={(originMask & (1 << bit)) !== 0} disabled={bit === 1 ? !controls.otherRooms : bit === 3 ? !controls.persisted : false} onChange={checked => setOriginMask(mask => toggle(mask & 15, bit, checked))} />
+                {bit >= 2 && <div className="volt-wired__option-extra"><WiredText soft wrap text={LocalizeText(`wiredfurni.params.variables.trigger_origin.${bit}.info`)} /></div>}
+            </div>)}</WiredCheckboxGroup>
+        </WiredCollapsibleSection>
+    </WiredTriggerBaseView>;
 };

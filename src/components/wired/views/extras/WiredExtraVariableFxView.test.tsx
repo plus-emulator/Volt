@@ -1,131 +1,131 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { PropsWithChildren } from 'react';
+import { PropsWithChildren, ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { WIRED_FX_CATEGORY } from '../../../../api';
+import { WIRED_FX_CATEGORY, defaultWiredVariableFxParams, writeWiredVariableFxParams } from '../../../../api/wired/WiredVariableFx';
 
-const setIntParams = vi.fn();
-const setStringParam = vi.fn();
-let trigger: { stringData: string; intData: number[] } | null = null;
-let baseProps: { save: () => void; validate?: () => boolean } | null = null;
-
+const setIntParams = vi.fn(), setStringParam = vi.fn(), setVariableIds = vi.fn();
+let trigger: { id: number; stringData: string; intData: number[]; variableIds: string[] };
+let baseProps: { save: () => void; validate?: () => boolean };
 vi.mock('../../../../hooks', () => ({
-    useWired: () => ({ trigger, setIntParams, setStringParam }),
-    useWiredTools: () => ({
-        userVariableDefinitions: [{ itemId: 300, name: 'max_hp', availability: 0, hasValue: true }],
-        furniVariableDefinitions: [],
-        roomVariableDefinitions: [{ itemId: 500, name: 'boss_max', availability: 0, hasValue: true }]
-    })
+    useWiredTools: () => ({ activeWiredStyle: 'illumina' }),
+    useWired: () => ({ trigger, setIntParams, setStringParam, setVariableIds }),
+    useWiredNativeVariables: () => ({ userVariableDefinitions: [{ itemId: 300, name: 'max_hp', availability: 0, hasValue: true }, { itemId: 301, name: 'visitor_tag', availability: 0, hasValue: false }], furniVariableDefinitions: [], roomVariableDefinitions: [{ itemId: 500, name: 'boss_max', availability: 0, hasValue: true }] })
 }));
-
-vi.mock('../../../../common', () => ({
-    Text: ({ children }: PropsWithChildren) => <span>{children}</span>
-}));
-
-vi.mock('./WiredExtraBaseView', () => ({
-    WiredExtraBaseView: (props: PropsWithChildren<{ save: () => void; validate?: () => boolean }>) => {
-        baseProps = { save: props.save, validate: props.validate };
-        return <div>{props.children}</div>;
-    }
-}));
-
-vi.mock('../WiredVariablePicker', () => ({
-    WiredVariablePicker: (props: { entries: { token: string; children?: { token: string }[] }[]; selectedToken: string; onSelect: (entry: { token: string }) => void; recentScope: string }) => (
-        <div data-testid={`picker-${props.recentScope}`} data-selected={props.selectedToken}>
-            {props.entries.flatMap((entry) => (entry.children?.length ? entry.children : [entry])).map((entry) => (
-                <button key={entry.token} type="button" onClick={() => props.onSelect(entry)}>
-                    {entry.token}
-                </button>
-            ))}
-        </div>
-    )
-}));
-
+vi.mock('../../../../api', async importOriginal => ({ ...await importOriginal<object>(), localizeWithFallback: (_key: string, fallback: string) => fallback }));
+vi.mock('../../../../common', () => ({ VoltCardView: ({ children }: PropsWithChildren) => <div>{children}</div>, Text: ({ children }: PropsWithChildren) => <span>{children}</span> }));
+vi.mock('../WiredText', () => ({ WiredText: ({ text }: { text: string }) => <span>{text}</span> }));
+vi.mock('../WiredDropdown', () => ({ WiredDropdown: (props: { caption: string; value: number; disabled?: boolean; options: {id: number;label: string}[]; onChange: (value: number) => void }) => (
+    <select aria-label={props.caption} value={props.value} disabled={props.disabled} onChange={event => props.onChange(Number(event.target.value))}>
+        {props.options.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
+    </select>
+) }));
+vi.mock('./WiredExtraBaseView', () => ({ WiredExtraBaseView: (props: PropsWithChildren<{ save: () => void; validate?: () => boolean; headerControls?: ReactNode }>) => {
+    baseProps = props; return <div>{props.headerControls}{props.children}</div>;
+} }));
+vi.mock('../WiredVariablePicker', () => ({ WiredVariablePicker: (props: { entries: { token: string; children?: { token: string }[] }[]; selectedToken: string; onSelect: (entry: {token: string}) => void; recentScope: string }) => (
+    <div data-testid={`picker-${props.recentScope}`} data-selected={props.selectedToken}>
+        {props.entries.flatMap(entry => entry.children?.length ? entry.children : [entry]).map(entry => <button key={entry.token} onClick={() => props.onSelect(entry)}>{entry.token}</button>)}
+    </div>
+) }));
+vi.mock('./WiredVariableFxPreviewView', () => ({ WiredVariableFxPreviewView: () => <div>Preview</div> }));
 import { WiredExtraVariableFxView } from './WiredExtraVariableFxView';
 
-describe('WiredExtraVariableFxView', () => {
-    afterEach(cleanup);
+afterEach(cleanup);
+beforeEach(() => { vi.clearAllMocks(); trigger = { id: 731, stringData: '', intData: [], variableIds: [] }; });
 
-    beforeEach(() => {
-        setIntParams.mockClear();
-        setStringParam.mockClear();
-        baseProps = null;
-        trigger = { stringData: '', intData: [] };
-    });
-
-    it('saves the defaults as sixteen params and four empty tokens', () => {
+describe('AIR Variable FX sections', () => {
+    it('keeps advanced sections folded on opening and preserves the 23-int save shape', () => {
         render(<WiredExtraVariableFxView category={WIRED_FX_CATEGORY.PROGRESS_BAR} />);
-
-        baseProps.save();
-
-        expect(setIntParams).toHaveBeenCalledWith([0, 2, 0, 3000, 0, -1, 2, 0, 0, 100, 0, 0, 0, 0, 0, 0]);
-        expect(setStringParam).toHaveBeenCalledWith('\t\t\t');
+        for (const name of ['Visibility', 'Advanced range', 'Order in FX stack']) expect(screen.getByRole('button', { name })).toHaveAttribute('aria-expanded', 'false');
+        expect(screen.queryByRole('radio')).toBeNull();
+        expect(screen.getAllByRole('radio', { hidden: true }).length).toBeGreaterThan(0);
+        act(() => baseProps.save());
+        expect(setIntParams.mock.calls[0][0]).toHaveLength(23);
+        expect(setIntParams.mock.calls[0][0].slice(0, 6)).toEqual([1, 2, 0, 7, 0, 3000]);
+        expect(setStringParam).toHaveBeenCalledWith('');
+        expect(setVariableIds).toHaveBeenCalledWith(['n', 'n', 'n']);
     });
-
-    it('shows what the box stored and writes edits back in wire order', () => {
-        trigger = { stringData: 'custom:300\t\t\t', intData: [0, 1, 1, 2500, 1, 3, 3, 4, 10, 250, 1, 0, 0, 0, 0, 0] };
-
+    it('enables the attached mask, duration and hover controls only for changes and saves their fields', () => {
         render(<WiredExtraVariableFxView category={WIRED_FX_CATEGORY.PROGRESS_BAR} />);
-
-        expect((screen.getByTestId('fx-min') as HTMLInputElement).value).toBe('10');
-        expect((screen.getByTestId('fx-max') as HTMLInputElement).value).toBe('250');
-        expect((screen.getByTestId('fx-segments') as HTMLInputElement).value).toBe('4');
-        expect(screen.getByTestId('picker-variable-fx-override-min').getAttribute('data-selected')).toBe('custom:300');
-
-        fireEvent.change(screen.getByTestId('fx-max'), { target: { value: '300' } });
-        fireEvent.change(screen.getByTestId('fx-show-duration'), { target: { value: '99999' } });
-        baseProps.save();
-
-        expect(setIntParams).toHaveBeenCalledWith([0, 1, 1, 20000, 1, 3, 3, 4, 10, 300, 1, 0, 0, 0, 0, 0]);
-        expect(setStringParam).toHaveBeenCalledWith('custom:300\t\t\t');
+        fireEvent.click(screen.getByRole('button', { name: 'Visibility' }));
+        expect(screen.getByLabelText('Duration (milliseconds)')).toBeDisabled();
+        expect(screen.getByRole('checkbox', { name: 'Show on mouse hover' })).toBeDisabled();
+        fireEvent.click(screen.getByRole('radio', { name: 'Visible when the variable updates' }));
+        fireEvent.change(screen.getByLabelText('Duration (milliseconds)'), { target: { value: '1750' } });
+        fireEvent.click(screen.getByRole('checkbox', { name: 'Increased variable' }));
+        fireEvent.click(screen.getByRole('checkbox', { name: 'Show on mouse hover' }));
+        act(() => baseProps.save());
+        expect(setIntParams.mock.calls[0][0].slice(0, 6)).toEqual([1, 2, 1, 5, 1, 1750]);
+        fireEvent.click(screen.getByRole('radio', { name: 'Never visible' }));
+        expect(screen.getByLabelText('Duration (milliseconds)')).toBeDisabled();
+        expect(screen.getByLabelText('Duration (milliseconds)')).toHaveValue('1750');
     });
-
-    it('refuses a maximum that is not above the minimum, except where there is no range', () => {
+    it('keeps range values intact while folded overrides are expanded and disabled', () => {
+        const params = defaultWiredVariableFxParams(WIRED_FX_CATEGORY.HEALTH_POINTS);
+        trigger.intData = writeWiredVariableFxParams({ ...params, minValue: 10, maxValue: 250 }, WIRED_FX_CATEGORY.HEALTH_POINTS);
         render(<WiredExtraVariableFxView category={WIRED_FX_CATEGORY.HEALTH_POINTS} />);
-
-        fireEvent.change(screen.getByTestId('fx-max'), { target: { value: '0' } });
-
-        let valid = true;
-        act(() => {
-            valid = baseProps.validate();
-        });
-        expect(valid).toBe(false);
-        expect(screen.getByText('The maximum has to be above the minimum.')).toBeTruthy();
-        cleanup();
-
+        fireEvent.click(screen.getByRole('button', { name: 'Advanced range' }));
+        expect(screen.getByTestId('picker-variable-fx-override-min').closest('fieldset')).toBeDisabled();
+        fireEvent.change(screen.getByRole('textbox', { name: 'Maximum' }), { target: { value: '300' } });
+        act(() => baseProps.save());
+        expect(setIntParams.mock.calls[0][0].slice(10, 16)).toEqual([0, 10, 0, 300, 0, 0]);
+    });
+    it('keeps number display icon alignment visible without an icon and hides range-only sections', () => {
         render(<WiredExtraVariableFxView category={WIRED_FX_CATEGORY.NUMBER_DISPLAY} />);
-
-        expect(screen.queryByTestId('fx-max')).toBeNull();
-        expect(baseProps.validate()).toBe(true);
+        expect(screen.getByRole('combobox', { name: 'Icon alignment' })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Advanced range' })).toBeNull();
+        expect(screen.queryByLabelText('Minimum')).toBeNull();
+        fireEvent.click(screen.getByRole('button', { name: 'Order in FX stack' }));
+        fireEvent.change(screen.getByRole('textbox', { name: 'Order in FX stack' }), { target: { value: '-25' } });
+        act(() => baseProps.save());
+        expect(setIntParams.mock.calls[0][0][22]).toBe(-25);
     });
-
-    it('offers only user-made variables for the audience and the room ones for a room-wide override', () => {
-        trigger = { stringData: '', intData: [0, 4, 0, 3000, 0, -1, 2, 0, 0, 100, 0, 1, 0, 1, 0, 0] };
-
-        render(<WiredExtraVariableFxView category={WIRED_FX_CATEGORY.STATUS_BAR} />);
-
-        const audience = screen.getByTestId('picker-variable-fx-audience');
-        expect(audience.textContent).toBe('custom:300');
-        fireEvent.click(audience.querySelector('button'));
-        fireEvent.change(screen.getByTestId('fx-audience-value'), { target: { value: '5' } });
-
-        const overrideMax = screen.getByTestId('picker-variable-fx-override-max');
-        expect(overrideMax.textContent).toBe('custom:500');
-        fireEvent.click(overrideMax.querySelector('button'));
-
-        baseProps.save();
-
-        expect(setIntParams).toHaveBeenCalledWith([0, 4, 0, 3000, 0, -1, 2, 0, 0, 100, 0, 1, 0, 1, 5, 0]);
-        expect(setStringParam).toHaveBeenCalledWith('\tcustom:500\tcustom:300\t');
+    it('rejects an invalid range without changing the stored settings', () => {
+        render(<WiredExtraVariableFxView category={WIRED_FX_CATEGORY.HEALTH_POINTS} />);
+        fireEvent.change(screen.getByRole('textbox', { name: 'Maximum' }), { target: { value: '0' } });
+        let valid = true;
+        act(() => { valid = baseProps.validate(); });
+        expect(valid).toBe(false);
+        expect(screen.getByText('The maximum has to be above the minimum.')).toBeInTheDocument();
+        expect(setIntParams).not.toHaveBeenCalled();
     });
+});
 
-    it('only shows the icon picker where the server reads one', () => {
-        const { unmount } = render(<WiredExtraVariableFxView category={WIRED_FX_CATEGORY.BOSS_BAR} />);
-        fireEvent.change(screen.getByTestId('fx-icon'), { target: { value: 'misc_skull' } });
-        baseProps.save();
-        expect(setStringParam).toHaveBeenCalledWith('\t\t\tmisc_skull');
-        unmount();
 
+describe('AIR audience popup', () => {
+    it('keeps edits local until Save and cancels without changing the audience', () => {
         render(<WiredExtraVariableFxView category={WIRED_FX_CATEGORY.PROGRESS_BAR} />);
-        expect(screen.queryByTestId('fx-icon')).toBeNull();
+        fireEvent.click(screen.getByRole('button', { name: 'Visibility' }));
+        fireEvent.change(screen.getByRole('combobox', { name: 'Audience' }), { target: { value: '3' } });
+        expect(screen.getByRole('dialog', { name: 'Variable audience' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+        fireEvent.click(screen.getByRole('button', { name: 'custom:300' }));
+        fireEvent.click(screen.getByRole('checkbox', { name: 'Select a value' }));
+        fireEvent.change(screen.getByRole('textbox', { name: 'Audience value' }), { target: { value: '42' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+        act(() => baseProps.save());
+        expect(setIntParams.mock.calls.at(-1)[0][1]).toBe(2);
+        fireEvent.change(screen.getByRole('combobox', { name: 'Audience' }), { target: { value: '3' } });
+        fireEvent.click(screen.getByRole('button', { name: 'custom:300' }));
+        fireEvent.click(screen.getByRole('checkbox', { name: 'Select a value' }));
+        fireEvent.change(screen.getByRole('textbox', { name: 'Audience value' }), { target: { value: '42' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+        expect(screen.queryByRole('dialog')).toBeNull();
+        act(() => baseProps.save());
+        expect(setIntParams.mock.calls.at(-1)[0][1]).toBe(4);
+        expect(setIntParams.mock.calls.at(-1)[0].slice(18, 20)).toEqual([0, 42]);
+        expect(setVariableIds.mock.calls.at(-1)[0]).toEqual(['n', 'n', '300']);
+    });
+    it('allows tags but disables value matching for variables without a value', () => {
+        render(<WiredExtraVariableFxView category={WIRED_FX_CATEGORY.PROGRESS_BAR} />);
+        fireEvent.click(screen.getByRole('button', { name: 'Visibility' }));
+        fireEvent.change(screen.getByRole('combobox', { name: 'Audience' }), { target: { value: '3' } });
+        fireEvent.click(screen.getByRole('button', { name: 'custom:301' }));
+        expect(screen.getByRole('checkbox', { name: 'Select a value' })).toBeDisabled();
+        expect(screen.getByRole('textbox', { name: 'Audience value' })).toBeDisabled();
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+        act(() => baseProps.save());
+        expect(setIntParams.mock.calls.at(-1)[0][1]).toBe(3);
+        expect(setVariableIds.mock.calls.at(-1)[0][2]).toBe('301');
     });
 });

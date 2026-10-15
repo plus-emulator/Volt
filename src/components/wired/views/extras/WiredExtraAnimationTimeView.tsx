@@ -1,7 +1,6 @@
 import { FC, useEffect, useState } from 'react';
-import { localizeWithFallback, WiredFurniType } from '../../../../api';
-import { Text } from '../../../../common';
-import { WiredLegacySlider as Slider } from '../WiredSlider';
+import { WiredFurniType } from '../../../../api';
+import { WiredSliderSection } from '../WiredSlider';
 import { useWired } from '../../../../hooks';
 import { WiredExtraBaseView } from './WiredExtraBaseView';
 
@@ -13,7 +12,8 @@ const DEFAULT_DURATION = 500;
 const normalizeDuration = (value: number) => {
     if (isNaN(value)) return DEFAULT_DURATION;
 
-    return Math.max(MIN_DURATION, Math.min(MAX_DURATION, Math.round(value / STEP_DURATION) * STEP_DURATION));
+    // AIR snaps a dragged thumb to 50ms, but preserves a typed millisecond value.
+    return Math.max(MIN_DURATION, Math.min(MAX_DURATION, Math.trunc(value)));
 };
 
 export const WiredExtraAnimationTimeView: FC<{}> = () => {
@@ -32,20 +32,15 @@ export const WiredExtraAnimationTimeView: FC<{}> = () => {
     };
 
     return (
-        <WiredExtraBaseView hasSpecialInput={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save} cardStyle={{ width: 380 }}>
-            <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between gap-2">
-                    <Text bold>{localizeWithFallback('wiredfurni.params.setanimationtime2', 'Animation time (ms):')}</Text>
-                    <output className="font-bold tabular-nums whitespace-nowrap">{duration} ms</output>
-                </div>
-                <Slider
-                    min={MIN_DURATION}
-                    max={MAX_DURATION}
-                    step={STEP_DURATION}
-                    value={duration}
-                    onChange={(value) => setDuration(normalizeDuration(Array.isArray(value) ? value[0] : Number(value)))}
-                />
-            </div>
+        <WiredExtraBaseView hasSpecialInput={true} nativeLayout requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save}>
+            <WiredSliderSection
+                titleKey="wiredfurni.params.setanimationtime2"
+                min={MIN_DURATION}
+                max={MAX_DURATION}
+                step={STEP_DURATION}
+                value={duration}
+                onChange={setDuration}
+            />
         </WiredExtraBaseView>
     );
 };

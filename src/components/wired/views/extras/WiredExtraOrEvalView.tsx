@@ -1,138 +1,40 @@
 import { FC, useEffect, useState } from 'react';
-import { LocalizeText, WiredFurniType } from '../../../../api';
-import { Text } from '../../../../common';
+import { LocalizeText, WiredFurniType, normalizeNativeSource } from '../../../../api';
 import { useWired } from '../../../../hooks';
+import { WiredCollapsibleSection } from '../WiredCollapsibleSection';
+import { WiredNumberInput } from '../WiredNumberInput';
+import { WiredRadioGroup } from '../WiredOptions';
+import { WiredSection } from '../WiredSection';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
-import { normalizeNativeSource } from '../../../../api';
+import { WiredText } from '../WiredText';
 import { WiredExtraBaseView } from './WiredExtraBaseView';
 
-const MODE_ALL = 0;
-const MODE_AT_LEAST_ONE = 1;
-const MODE_NOT_ALL = 2;
-const MODE_NONE = 3;
-const MODE_LESS_THAN = 4;
-const MODE_EXACTLY = 5;
-const MODE_MORE_THAN = 6;
-const MIN_COMPARE_VALUE = 0;
-const MAX_COMPARE_VALUE = 1000;
-const DEFAULT_COMPARE_VALUE = 1;
-const COMPARE_VALUE_PATTERN = /^\d*$/;
-
-const MODE_OPTIONS = [MODE_ALL, MODE_AT_LEAST_ONE, MODE_NOT_ALL, MODE_NONE];
-const COMPARISON_OPTIONS = [MODE_LESS_THAN, MODE_EXACTLY, MODE_MORE_THAN];
-
-const normalizeEvaluationMode = (value: number) => ([...MODE_OPTIONS, ...COMPARISON_OPTIONS].includes(value) ? value : MODE_ALL);
-const normalizeCompareValue = (value: number) => {
-    if (isNaN(value)) return DEFAULT_COMPARE_VALUE;
-
-    return Math.max(MIN_COMPARE_VALUE, Math.min(MAX_COMPARE_VALUE, Math.floor(value)));
-};
-
-export const WiredExtraOrEvalView: FC<{}> = () => {
-    const { trigger = null, setIntParams = null, setStringParam = null, setFurniSources = null } = useWired();
-    const [evaluationMode, setEvaluationMode] = useState(MODE_ALL);
-    const [furniSource, setFurniSource] = useState(0);
-    const [compareValue, setCompareValue] = useState(DEFAULT_COMPARE_VALUE);
-    const [compareValueInput, setCompareValueInput] = useState(DEFAULT_COMPARE_VALUE.toString());
-    // The card's own furni group and default decide which sources are valid; nothing is hardcoded here.
-    const furniAllowed = trigger?.inputSources?.furniAllowed[0];
-    const furniDefault = trigger?.inputSources?.furniDefaults[0] ?? 0;
-    const normalizeFurniSource = (value: number) => normalizeNativeSource(value, furniAllowed, furniDefault);
-
+/** AIR class_4014: [mode, comparison, count]; mode -1 selects one of three independent comparison drafts. */
+export const WiredExtraOrEvalView: FC = () => {
+    const { trigger, setIntParams, setStringParam, setFurniSources } = useWired();
+    const [mode, setMode] = useState(1);
+    const [counts, setCounts] = useState([0, 0, 0]);
+    const [source, setSource] = useState(100);
     useEffect(() => {
         if (!trigger) return;
-
-        setEvaluationMode(normalizeEvaluationMode(trigger.intData.length > 0 ? trigger.intData[0] : MODE_ALL));
-        setFurniSource(normalizeFurniSource(trigger.furniSources.length > 0 ? trigger.furniSources[0] : furniDefault));
-        const nextCompareValue = normalizeCompareValue(trigger.intData.length > 1 ? trigger.intData[1] : DEFAULT_COMPARE_VALUE);
-        setCompareValue(nextCompareValue);
-        setCompareValueInput(nextCompareValue.toString());
-    }, [trigger, furniAllowed, furniDefault]);
-
-    const updateCompareValue = (value: number) => {
-        const nextValue = normalizeCompareValue(value);
-
-        setCompareValue(nextValue);
-        setCompareValueInput(nextValue.toString());
-    };
-
-    const updateCompareValueInput = (value: string) => {
-        if (!COMPARE_VALUE_PATTERN.test(value)) return;
-
-        setCompareValueInput(value);
-
-        if (!value.length) {
-            setCompareValue(MIN_COMPARE_VALUE);
-            return;
-        }
-
-        updateCompareValue(parseInt(value));
-    };
-
+        const [nextMode = 1, comparison = 0, value = 0] = trigger.intData;
+        setMode(nextMode === -1 ? 4 + comparison : nextMode);
+        setCounts([0, 1, 2].map(index => nextMode === -1 && comparison === index ? value : 0));
+        setSource(normalizeNativeSource(trigger.furniSources[0], trigger.inputSources?.furniAllowed[0], trigger.inputSources?.furniDefaults[0] ?? 100));
+    }, [trigger]);
     const save = () => {
-        setIntParams([normalizeEvaluationMode(evaluationMode), normalizeCompareValue(compareValue)]);
-        setFurniSources([normalizeFurniSource(furniSource)]);
-        setStringParam('');
+        setIntParams(mode >= 4 ? [-1, mode - 4, counts[mode - 4]] : [mode, 0, 0]);
+        setFurniSources([source]); setStringParam('');
     };
-
-    return (
-        <WiredExtraBaseView
-            hasSpecialInput={true}
-            requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID_BY_TYPE_OR_FROM_CONTEXT}
-            save={save}
-            cardStyle={{ width: 360 }}
-            footer={
-                <WiredSourcesSelector
-                    showFurni={true}
-                    furniSource={furniSource}
-                    onChangeFurni={(value) => setFurniSource(normalizeFurniSource(value))}
-                />
-            }
-        >
-            <div className="flex flex-col gap-2">
-                <Text>{LocalizeText('wiredfurni.params.eval_mode')}</Text>
-                {MODE_OPTIONS.map((mode) => {
-                    return (
-                        <label key={mode} className="flex items-center gap-1 cursor-pointer">
-                            <input
-                                checked={evaluationMode === mode}
-                                className="form-check-input"
-                                name="wiredExtraOrEvalMode"
-                                type="radio"
-                                onChange={() => setEvaluationMode(mode)}
-                            />
-                            <Text>{LocalizeText(`wiredfurni.params.eval_mode.${mode}`)}</Text>
-                        </label>
-                    );
-                })}
-                {COMPARISON_OPTIONS.map((mode) => {
-                    const isSelected = evaluationMode === mode;
-
-                    return (
-                        <label key={mode} className="flex items-center gap-2 cursor-pointer">
-                            <input
-                                checked={isSelected}
-                                className="form-check-input"
-                                name="wiredExtraOrEvalMode"
-                                type="radio"
-                                onChange={() => setEvaluationMode(mode)}
-                            />
-                            <Text>{LocalizeText(`wiredfurni.params.eval_mode.cmp.${mode - MODE_LESS_THAN}`)}</Text>
-                            <input
-                                className="form-control form-control-sm w-16"
-                                inputMode="numeric"
-                                max={MAX_COMPARE_VALUE}
-                                min={MIN_COMPARE_VALUE}
-                                type="text"
-                                value={compareValueInput}
-                                onBlur={() => setCompareValueInput(normalizeCompareValue(compareValue).toString())}
-                                onChange={(event) => updateCompareValueInput(event.target.value)}
-                                onFocus={() => setEvaluationMode(mode)}
-                            />
-                        </label>
-                    );
-                })}
-            </div>
-        </WiredExtraBaseView>
-    );
+    return <WiredExtraBaseView nativeLayout hasSpecialInput requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID_BY_TYPE_OR_FROM_CONTEXT} save={save}
+        footer={<WiredSourcesSelector showFurni furniSource={source} onChangeFurni={setSource} />}>
+        <WiredCollapsibleSection defaultExpanded title={LocalizeText('wiredfurni.params.general_box_info')}><WiredText soft wrap text={LocalizeText('wiredfurni.params.cond_eval.note')} /></WiredCollapsibleSection>
+        <WiredSection title={LocalizeText('wiredfurni.params.eval_mode')}>
+            <WiredRadioGroup name="condition-evaluation" value={mode} onChange={setMode} options={[0, 1, 2, 3, 4, 5, 6].map(id => ({
+                id, label: LocalizeText(id < 4 ? `wiredfurni.params.eval_mode.${id}` : `wiredfurni.params.eval_mode.cmp.${id - 4}`),
+                inlineExtra: id >= 4 ? <WiredNumberInput ariaLabel={LocalizeText(`wiredfurni.params.eval_mode.cmp.${id - 4}`)} width={35} min={0} max={1000} value={counts[id - 4]} disabled={mode !== id}
+                    onChange={value => setCounts(previous => previous.map((count, index) => index === id - 4 ? value : count))} /> : undefined
+            }))} />
+        </WiredSection>
+    </WiredExtraBaseView>;
 };

@@ -30,11 +30,11 @@ describe('projectile add-on params', () => {
         expect(params).toHaveLength(PROJECTILE_TOTAL_PARAM_COUNT);
         expect(params[PROJECTILE_PARAM_ROTATE]).toBe(1);
         expect(params[PROJECTILE_PARAM_TIME_PER_TILE]).toBe(PROJECTILE_TIME_PER_TILE_DEFAULT);
-        expect(params.filter((value) => value !== 0)).toEqual([1, PROJECTILE_TIME_PER_TILE_DEFAULT]);
+        expect(params.filter((value) => value !== 0)).toEqual([1, PROJECTILE_TIME_PER_TILE_DEFAULT, 1, 1]);
     });
 
     it('keeps every param the server stores, sources included', () => {
-        const saved = [1, 3, 1, 1, 250, 2, 1, 1, 1, 75, 6, 5, 1, 1, 2, 1, -12, 3, 400, 11, 101, 200, 201, 11];
+        const saved = [1, 3, 1, 1, 250, -10, 1, 1, 1, 75, 6, 5, 1, 1, 2, 1, -12, -20, 400, 11, 101, 200, 201, 11];
 
         expect(normalizeProjectileParams(saved)).toEqual(saved);
     });

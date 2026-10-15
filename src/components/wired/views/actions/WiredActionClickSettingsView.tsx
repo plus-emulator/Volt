@@ -1,7 +1,8 @@
 import { FC, useEffect, useState } from 'react';
 import { localizeWithFallback, WiredFurniType } from '../../../../api';
-import { Text } from '../../../../common';
 import { useWired } from '../../../../hooks';
+import { WiredSection } from '../WiredSection';
+import { WiredDropdown } from '../WiredDropdown';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredActionBaseView } from './WiredActionBaseView';
 
@@ -37,7 +38,7 @@ export const WiredActionClickSettingsView: FC<{}> = () => {
 
     useEffect(() => {
         setUserOption(normalize(trigger?.intData?.length > 0 ? trigger.intData[0] : 0, USER_OPTIONS));
-        setFurniOption(normalize(trigger?.userSources[0] ?? 0, FURNI_OPTIONS));
+        setFurniOption(normalize(trigger?.intData?.[1] ?? 0, FURNI_OPTIONS));
         setUserSource(trigger?.userSources[0] ?? 0);
     }, [trigger]);
 
@@ -49,26 +50,16 @@ export const WiredActionClickSettingsView: FC<{}> = () => {
             save={save}
             footer={<WiredSourcesSelector showUsers={true} userSource={userSource} onChangeUsers={setUserSource} />}
         >
-            <div className="flex flex-col gap-1">
-                <Text bold>{localizeWithFallback('wiredfurni.params.click_settings.user', 'Clicking a user')}</Text>
-                <select className="form-select form-select-sm" value={userOption} onChange={(event) => setUserOption(Number(event.target.value))}>
-                    {USER_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                            {localizeWithFallback(option.key, option.fallback)}
-                        </option>
-                    ))}
-                </select>
-            </div>
-            <div className="flex flex-col gap-1">
-                <Text bold>{localizeWithFallback('wiredfurni.params.click_settings.furni', 'Clicking a furni')}</Text>
-                <select className="form-select form-select-sm" value={furniOption} onChange={(event) => setFurniOption(Number(event.target.value))}>
-                    {FURNI_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                            {localizeWithFallback(option.key, option.fallback)}
-                        </option>
-                    ))}
-                </select>
-            </div>
+            <WiredSection title={localizeWithFallback('wiredfurni.params.click_settings.user', 'Clicking a user')}>
+                <WiredDropdown caption={localizeWithFallback('wiredfurni.params.click_settings.user', 'Clicking a user')}
+                    value={userOption} onChange={setUserOption}
+                    options={USER_OPTIONS.map(option => ({ id: option.value, label: localizeWithFallback(option.key, option.fallback) }))} />
+            </WiredSection>
+            <WiredSection title={localizeWithFallback('wiredfurni.params.click_settings.furni', 'Clicking a furni')}>
+                <WiredDropdown caption={localizeWithFallback('wiredfurni.params.click_settings.furni', 'Clicking a furni')}
+                    value={furniOption} onChange={setFurniOption}
+                    options={FURNI_OPTIONS.map(option => ({ id: option.value, label: localizeWithFallback(option.key, option.fallback) }))} />
+            </WiredSection>
         </WiredActionBaseView>
     );
 };
