@@ -1,14 +1,10 @@
 import {
-    IWiredTradeNode,
-    IWiredTradeOfferedItem,
-    IWiredTradeRewardCurrency,
-    IWiredTradeRewardFurni,
+    ItemDataStructure,
     IWiredTradeRule,
     WIRED_TRADE_FAILURE_SILENT,
-    WIRED_TRADE_STATE_ADDING_ITEMS,
-    WIRED_TRADE_STATE_CONFIRMING,
-    WIRED_TRADE_STATE_COUNTDOWN,
-    WIRED_TRADE_STATE_READY,
+    WIRED_TRADE_REQUIREMENT_ANY,
+    WIRED_TRADE_REQUIREMENT_RULES,
+    WIRED_TRADE_RULES_NORMAL,
     WiredTradeAcceptComposer,
     WiredTradeCancelComposer,
     WiredTradeCancelledEvent,
@@ -23,44 +19,90 @@ import { registerSharedHook, useSharedHook } from '@/state/useSharedHook';
 import { useMessageEvent } from '../events';
 import { useNotification } from '../notification';
 
+/**
+ * The client-side trade states of AIR WiredTradingModel. The server sends no state (WiredTradeItems 705 only carries
+ * the table, canAccept and extra), so the client keeps its own: adding items -> accept sends 609(false) and starts the
+ * countdown -> confirming -> confirm sends 609(true).
+ */
+export const WIRED_TRADING_STATE_CLOSED = 0;
+export const WIRED_TRADING_STATE_ADDING_ITEMS = 1;
+export const WIRED_TRADING_STATE_COUNTDOWN = 2;
+export const WIRED_TRADING_STATE_CONFIRMING = 3;
+export const WIRED_TRADING_STATE_CONFIRMED = 4;
+
 /** The client half of the countdown between accepting and being allowed to confirm. */
-const CONFIRM_COUNTDOWN_SECONDS = 3;
+export const WIRED_TRADING_COUNTDOWN_SECONDS = 3;
+
+const sameItems = (left: ItemDataStructure[], right: ItemDataStructure[]): boolean =>
+    left.length === right.length && left.every((item, index) => item.itemId === right[index].itemId);
 
 const useWiredTradingState = () => {
     const [isOpen, setIsOpen] = useState(false);
-    const [contractType, setContractType] = useState(0);
-    const [rewardText, setRewardText] = useState('');
+    const [requirementType, setRequirementType] = useState(WIRED_TRADE_REQUIREMENT_ANY);
+    const [youGetText, setYouGetText] = useState('');
+    const [layoutType, setLayoutType] = useState('');
     const [giveRules, setGiveRules] = useState<IWiredTradeRule[]>([]);
-    const [rewardRule, setRewardRule] = useState<IWiredTradeRule>(null);
+    const [getRule, setGetRule] = useState<IWiredTradeRule>(null);
+    const [rulesType, setRulesType] = useState(WIRED_TRADE_RULES_NORMAL);
+    const [multiplier, setMultiplier] = useState(1);
+    const [autoMultiplierMax, setAutoMultiplierMax] = useState(0);
     const [showRequirements, setShowRequirements] = useState(false);
 
-    const [state, setState] = useState(WIRED_TRADE_STATE_READY);
+    const [state, setState] = useState(WIRED_TRADING_STATE_CLOSED);
     const [canAccept, setCanAccept] = useState(false);
+    const [extra, setExtra] = useState(0);
     const [secondsLeft, setSecondsLeft] = useState(0);
-    const [offeredItems, setOfferedItems] = useState<IWiredTradeOfferedItem[]>([]);
-    const [rewardFurni, setRewardFurni] = useState<IWiredTradeRewardFurni[]>([]);
-    const [rewardCurrency, setRewardCurrency] = useState<IWiredTradeRewardCurrency[]>([]);
-    const [missing, setMissing] = useState<IWiredTradeNode[]>([]);
+    const [offeredItems, setOfferedItems] = useState<ItemDataStructure[]>([]);
+    const [offeredCredits, setOfferedCredits] = useState(0);
+    const [rewardItems, setRewardItems] = useState<ItemDataStructure[]>([]);
+    const [rewardCredits, setRewardCredits] = useState(0);
     const [countdown, setCountdown] = useState(0);
 
     const { simpleAlert = null } = useNotification();
 
-    // The server sends the clock once per change; ticking it locally keeps the window honest between
-    // pushes without asking the server for a number it already knows.
     const secondsLeftRef = useRef(0);
     secondsLeftRef.current = secondsLeft;
+
+    const reset = useCallback(() => {
+        setIsOpen(false);
+        setState(WIRED_TRADING_STATE_CLOSED);
+        setCountdown(0);
+        setCanAccept(false);
+        setExtra(0);
+        setOfferedItems([]);
+        setOfferedCredits(0);
+        setRewardItems([]);
+        setRewardCredits(0);
+    }, []);
 
     useMessageEvent<WiredTradeOpenEvent>(WiredTradeOpenEvent, (event) => {
         const parser = event.getParser();
         if (!parser) return;
 
-        setContractType(parser.contractType);
-        setRewardText(parser.rewardText);
-        setGiveRules(parser.giveRules);
-        setRewardRule(parser.rewardRule);
+        // AIR ignores a rules requirement that has no give side.
+        if (parser.requirementType === WIRED_TRADE_REQUIREMENT_RULES && !parser.giveRules) return;
+
+        // A second trade only replaces an open one when the server says so.
+        if (isOpen && !parser.overridePreviousTrade) return;
+
+        setRequirementType(parser.requirementType);
+        setYouGetText(parser.youGetText);
+        setLayoutType(parser.layoutType);
+        setGiveRules(parser.giveRules ?? []);
+        setGetRule(parser.getRule);
+        setRulesType(parser.rulesType);
+        setMultiplier(parser.multiplier);
+        setAutoMultiplierMax(parser.autoMultiplierMax);
         setShowRequirements(parser.showRequirementsImmediate);
         setSecondsLeft(parser.timeoutSeconds);
+        setCanAccept(false);
+        setExtra(0);
+        setOfferedItems([]);
+        setOfferedCredits(0);
+        setRewardItems([]);
+        setRewardCredits(0);
         setCountdown(0);
+        setState(WIRED_TRADING_STATE_ADDING_ITEMS);
         setIsOpen(true);
     });
 
@@ -68,28 +110,31 @@ const useWiredTradingState = () => {
         const parser = event.getParser();
         if (!parser) return;
 
-        setState(parser.state);
-        setCanAccept(parser.canAccept);
-        setSecondsLeft(parser.secondsLeft);
-        setOfferedItems(parser.offeredItems);
-        setRewardFurni(parser.rewardFurni);
-        setRewardCurrency(parser.rewardCurrency);
-        setMissing(parser.missing);
+        const nextOffered = parser.firstUserItemArray ?? [];
 
-        // The countdown belongs to an acceptance; any state that is not the countdown clears it, so a
-        // withdrawn item cannot leave a stale timer running towards a confirm.
-        if (parser.state !== WIRED_TRADE_STATE_COUNTDOWN) setCountdown(0);
+        // A changed table or requirements that stop being met take back an acceptance that has not been confirmed.
+        if (!sameItems(offeredItems, nextOffered) || !parser.canAccept) {
+            setState((current) => (current === WIRED_TRADING_STATE_COUNTDOWN || current === WIRED_TRADING_STATE_CONFIRMING)
+                ? WIRED_TRADING_STATE_ADDING_ITEMS
+                : current);
+            setCountdown(0);
+        }
+
+        setOfferedItems(nextOffered);
+        setOfferedCredits(parser.firstUserNumCredits);
+        setRewardItems(parser.secondUserItemArray ?? []);
+        setRewardCredits(parser.secondUserNumCredits);
+        setCanAccept(parser.canAccept);
+        setExtra(parser.extra);
     });
 
     useMessageEvent<WiredTradeCancelledEvent>(WiredTradeCancelledEvent, (event) => {
         const parser = event.getParser();
         if (!parser) return;
 
-        setIsOpen(false);
-        setState(WIRED_TRADE_STATE_READY);
+        reset();
 
-        // Zero means the player closed it themselves. Telling somebody what they just did would be
-        // noise, so only the reasons they did not choose are shown.
+        // AIR tradeIsCancelled -> alertTradeCancelled(reason). Zero is the player closing it themselves.
         if (parser.failureId === WIRED_TRADE_FAILURE_SILENT || !simpleAlert) return;
 
         simpleAlert(
@@ -104,12 +149,9 @@ const useWiredTradingState = () => {
         );
     });
 
-    useMessageEvent<WiredTradeCompletedEvent>(WiredTradeCompletedEvent, () => {
-        setIsOpen(false);
-        setState(WIRED_TRADE_STATE_READY);
-        setCountdown(0);
-    });
+    useMessageEvent<WiredTradeCompletedEvent>(WiredTradeCompletedEvent, () => reset());
 
+    // The trade time-out from WiredTradeOpen (84) runs locally.
     useEffect(() => {
         if (!isOpen) return;
 
@@ -121,63 +163,71 @@ const useWiredTradingState = () => {
     }, [isOpen]);
 
     useEffect(() => {
-        if (state !== WIRED_TRADE_STATE_COUNTDOWN || countdown <= 0) return;
+        if (state !== WIRED_TRADING_STATE_COUNTDOWN) return;
 
-        const handle = window.setTimeout(() => setCountdown((value) => value - 1), 1000);
+        const handle = window.setTimeout(() => {
+            setCountdown((value) => value - 1);
+            if (countdown <= 1) setState(WIRED_TRADING_STATE_CONFIRMING);
+        }, 1000);
 
         return () => window.clearTimeout(handle);
     }, [state, countdown]);
 
     const offerItems = useCallback((itemIds: number[]) => {
-        if (!itemIds.length) return;
+        if (!itemIds.length || state !== WIRED_TRADING_STATE_ADDING_ITEMS) return;
 
         SendMessageComposer(new WiredTradeOfferItemsComposer(false, ...itemIds));
-    }, []);
+    }, [state]);
 
     const withdrawItem = useCallback((itemId: number) => {
-        SendMessageComposer(new WiredTradeOfferItemsComposer(true, itemId));
-    }, []);
+        if (state !== WIRED_TRADING_STATE_ADDING_ITEMS) return;
 
-    /**
-     * One button, two meanings. The first press agrees and starts the countdown; the second, once it
-     * has run out, is the one that settles.
-     */
+        SendMessageComposer(new WiredTradeOfferItemsComposer(true, itemId));
+    }, [state]);
+
+    /** Accept (609 false) while adding items, confirm (609 true) once the countdown has run out. */
     const progress = useCallback(() => {
-        if (state === WIRED_TRADE_STATE_ADDING_ITEMS) {
+        if (state === WIRED_TRADING_STATE_ADDING_ITEMS) {
             if (!canAccept) return;
 
             SendMessageComposer(new WiredTradeAcceptComposer(false));
-            setCountdown(CONFIRM_COUNTDOWN_SECONDS);
+            setCountdown(WIRED_TRADING_COUNTDOWN_SECONDS);
+            setState(WIRED_TRADING_STATE_COUNTDOWN);
             return;
         }
 
-        if (state === WIRED_TRADE_STATE_CONFIRMING || (state === WIRED_TRADE_STATE_COUNTDOWN && countdown <= 0)) {
+        if (state === WIRED_TRADING_STATE_CONFIRMING) {
             SendMessageComposer(new WiredTradeAcceptComposer(true));
+            setState(WIRED_TRADING_STATE_CONFIRMED);
         }
-    }, [canAccept, countdown, state]);
+    }, [canAccept, state]);
 
     const cancel = useCallback(() => {
         SendMessageComposer(new WiredTradeCancelComposer());
-        setIsOpen(false);
-        setState(WIRED_TRADE_STATE_READY);
-    }, []);
+        reset();
+    }, [reset]);
 
     return {
         isOpen,
-        contractType,
-        rewardText,
+        requirementType,
+        youGetText,
+        layoutType,
         giveRules,
-        rewardRule,
+        getRule,
+        rulesType,
+        multiplier,
+        autoMultiplierMax,
         showRequirements,
         setShowRequirements,
         state,
         canAccept,
+        extra,
         secondsLeft,
         countdown,
         offeredItems,
-        rewardFurni,
-        rewardCurrency,
-        missing,
+        offeredCredits,
+        rewardItems,
+        rewardCredits,
         offerItems,
         withdrawItem,
         progress,

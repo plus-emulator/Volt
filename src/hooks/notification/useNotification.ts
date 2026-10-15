@@ -29,7 +29,10 @@ import {
     SimpleAlertMessageEvent,
     UserBannedMessageEvent,
     Vector3d,
-    WiredRewardResultMessageEvent
+    WiredRewardResultMessageEvent,
+    WiredTradeErrorEvent,
+    WiredTransactionFailEvent,
+    WiredTransactionSuccessEvent
 } from '@volt/renderer';
 import { useCallback, useState } from 'react';
 import { registerSharedHook, useSharedHook } from '@/state/useSharedHook';
@@ -44,7 +47,8 @@ import {
     NotificationConfirmItem,
     PlaySound,
     ProductImageUtility,
-    TradingNotificationType
+    TradingNotificationType,
+    WIRED_CHEST_REWARD_LINK
 } from '../../api';
 import { AchievementNotificationBubbleItem } from '../../api/notification/AchievementNotificationBubbleItem';
 import { localizeWithFallback } from '../../api/utils/localizeWithFallback';
@@ -374,6 +378,49 @@ const useNotificationStore = () => {
                 [chestName, parser.actorName, String(parser.amount)],
             ),
             NotificationBubbleType.INFO,
+        );
+    });
+
+    // AIR notifications onWiredTransactionFail (1360): fail text with the localized reason.
+    useMessageEvent<WiredTransactionFailEvent>(WiredTransactionFailEvent, (event) => {
+        const parser = event.getParser();
+
+        showSingleBubble(
+            LocalizeText(
+                'wired_transactions.notification.fail',
+                ['reason'],
+                [LocalizeText(`wired_transactions.notification.fail.${ parser.failureReason }`)],
+            ),
+            NotificationBubbleType.INFO,
+        );
+    });
+
+    // WiredTradeError (503): a refused trade action.
+    useMessageEvent<WiredTradeErrorEvent>(WiredTradeErrorEvent, (event) => {
+        const parser = event.getParser();
+
+        showSingleBubble(
+            LocalizeText(
+                'wired_transactions.notification.trade_error',
+                ['error'],
+                [LocalizeText(`wired_transactions.notification.trade_error.${ parser.tradeErrorId }`)],
+            ),
+            NotificationBubbleType.INFO,
+        );
+    });
+
+    // WiredTransactionSuccess (125). Reward contents that do not open by themselves get the click-to-popup text and
+    // open the reward popup (FurnitureWiredChestRewardView) when the notification is clicked.
+    useMessageEvent<WiredTransactionSuccessEvent>(WiredTransactionSuccessEvent, (event) => {
+        const parser = event.getParser();
+        const clickToPopup = parser.hasRewardContents && !parser.openByDefault;
+        const key = `wired_transactions.notification.success.${ parser.successType }`;
+
+        showSingleBubble(
+            LocalizeText(clickToPopup ? `${ key }.click_to_popup` : key),
+            NotificationBubbleType.INFO,
+            null,
+            clickToPopup ? WIRED_CHEST_REWARD_LINK : null,
         );
     });
 
