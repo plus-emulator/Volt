@@ -1,6 +1,6 @@
 import { GetRoomEngine, RoomObjectCategory } from '@volt/renderer';
 import { useState } from 'react';
-import { GetRoomSession, RoomObjectItem } from '../../../api';
+import { CanOpenUserChooser, GetRoomSession, RoomObjectItem } from '../../../api';
 import { useUserAddedEvent, useUserRemovedEvent } from '../engine';
 
 const resolveUserType = (userType: number): string => {
@@ -39,7 +39,7 @@ export const useUserChooserState = () => {
     const populateChooser = () => {
         const session = GetRoomSession();
 
-        if (!session) return;
+        if (!session || !CanOpenUserChooser(session)) return;
 
         const roomObjects = GetRoomEngine().getRoomObjects(session.roomId, RoomObjectCategory.UNIT);
 
