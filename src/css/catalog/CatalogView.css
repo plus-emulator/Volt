@@ -356,7 +356,7 @@
 .volt-catalog-navigation-shell {
     flex: 1 1 auto;
     min-height: 0;
-    padding: 5px 3px;
+    padding: 5px 0;
     border: 1px solid #b4b4ae;
     border-radius: 3px;
     background: rgba(236, 236, 228, 0.5);
@@ -364,6 +364,15 @@
         inset 1px 1px 0 rgba(0, 0, 0, 0.08),
         inset -1px -1px 0 rgba(255, 255, 255, 0.55);
     overflow: auto;
+}
+
+.volt-catalog-navigation-scroll-area {
+    height: 100%;
+}
+
+/* Reserve only the visible scrollbar; selection fills the remaining row. */
+.volt-catalog-navigation-scroll-area:has(> .volt-classic-scrollbar[data-visible='true']) > .volt-classic-scroll-area-viewport {
+    padding-right: 17px;
 }
 
 .volt-catalog-navigation-list {
@@ -382,7 +391,7 @@
     gap: 6px;
     height: 21px;
     min-height: 21px;
-    padding: 1px 18px 1px 0;
+    padding: 1px 21px 1px 3px;
     border: 0 !important;
     border-radius: 0 !important;
     background: transparent;
@@ -395,14 +404,14 @@
 }
 
 .volt-catalog-navigation-node.is-child .volt-catalog-navigation-item {
-    padding-left: 15px;
+    padding-left: 18px;
     color: #52819a;
     font-style: italic;
 }
 
 .volt-catalog-navigation-item::before {
     position: absolute;
-    inset: 0 1px 1px 1px;
+    inset: 0 0 1px;
     z-index: 0;
     display: none;
     content: "";
@@ -413,6 +422,11 @@
 .volt-catalog-navigation-item:hover::before,
 .volt-catalog-navigation-item.is-active::before {
     display: block;
+}
+
+.volt-catalog-navigation-item.is-active .volt-catalog-navigation-label {
+    color: #fff;
+    text-shadow: none;
 }
 
 .volt-catalog-navigation-icon,
