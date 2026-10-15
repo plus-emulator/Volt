@@ -15,7 +15,7 @@ import { WiredRadioGroup } from '../WiredOptions';
 import { WiredActionValueOrVariableSection } from '../actions/WiredActionValueOrVariableSection';
 import { useWired } from '../../../../hooks';
 import { normalizeWiredComparison, WIRED_CMP_EQUAL } from '../WiredComparisonOperator';
-import { WiredSourcesSelector } from '../WiredSourcesSelector';
+import { WiredMergedSourceSection } from '../WiredSourcesSelector';
 import { WiredVariablePicker } from '../WiredVariablePicker';
 import { FurniPickSlotButtons, VariableQuantifierRadios, VariableScopeButtons, useConditionVariableEntries } from './WiredVariableConditionParts';
 import { scopeOfTargetCode, targetCodeOfScope } from '../../../../api';
@@ -127,16 +127,13 @@ export const WiredConditionVariableValueMatchView: FC<{}> = () => {
         setReferenceToken('');
     };
 
-    const referenceSources = !sameHolderActive && <>
-        {referenceScope === 'furni' && <WiredSourcesSelector showFurni furniSlot={1} furniSource={referenceFurniSource} onChangeFurni={value => { setReferenceFurniSource(value); if ([100, 101].includes(value)) setActivePickSlot(value === 101 ? 1 : 0); }} />}
-        {referenceScope === 'user' && <WiredSourcesSelector showUsers userSlot={1} userSource={referenceUserSource} onChangeUsers={setReferenceUserSource} />}
-    </>;
     return (
         <WiredConditionBaseView nativeLayout hasSpecialInput requiresFurni={requiresFurni} save={save} validate={validate} footerCollapsible={false}
             footer={<>
                 <VariableQuantifierRadios name="wiredConditionVariableValueQuantifier" value={quantifier} onChange={setQuantifier} />
-                {scope === 'furni' && <WiredSourcesSelector showFurni furniSlot={0} furniSource={furniSource} onChangeFurni={value => { setFurniSource(value); if ([100, 101].includes(value)) setActivePickSlot(value === 101 ? 1 : 0); }} />}
-                {scope === 'user' && <WiredSourcesSelector showUsers userSlot={0} userSource={userSource} onChangeUsers={setUserSource} />}
+                {/* AIR mergedSelections [[0,0],[1,1]]: slot 0 is the footer "Variables" section; slot 1 is claimed by the reference value section and lives in its popup. */}
+                <WiredMergedSourceSection scope={scope} title="wiredfurni.params.sources.merged.title.variables" furniSlot={0} userSlot={0}
+                    furniSource={furniSource} userSource={userSource} onChangeFurni={value => { setFurniSource(value); if ([100, 101].includes(value)) setActivePickSlot(value === 101 ? 1 : 0); }} onChangeUsers={setUserSource} />
             </>}>
             <WiredSection title={LocalizeText('wiredfurni.params.variables.variable_selection')} headerOptionsRight={<VariableScopeButtons scopes={SCOPES} value={scope} onChange={handleScopeChange} />}>
                 <WiredVariablePicker entries={entries} recentScope="variable-conditions" selectedToken={variableToken} onSelect={entry => setVariableToken(entry.token)} />
@@ -149,7 +146,8 @@ export const WiredConditionVariableValueMatchView: FC<{}> = () => {
                 min={-2147483648} max={2147483647} option={option} onOptionChange={setOption}
                 literal={Number(constantInput)} literalText={constantInput} onLiteralTextChange={setConstantInput} onLiteralChange={value => setConstantInput(String(value))}
                 target={referenceScope} onTargetChange={handleReferenceScopeChange} variableToken={referenceToken} onVariableTokenChange={setReferenceToken}
-                primaryTarget={scope} sameHolder={sameHolderActive} onSameHolderChange={setSameHolder} popupSources={referenceSources} onValidityChange={setReferenceValid} />
+                primaryTarget={scope} sameHolder={sameHolderActive} onSameHolderChange={setSameHolder} onValidityChange={setReferenceValid}
+                popupSources={<WiredMergedSourceSection bare scope={referenceScope} title="wiredfurni.params.sources.merged.title.variables" furniSlot={1} userSlot={1} furniSource={referenceFurniSource} userSource={referenceUserSource} onChangeFurni={value => { setReferenceFurniSource(value); if ([100, 101].includes(value)) setActivePickSlot(value === 101 ? 1 : 0); }} onChangeUsers={setReferenceUserSource} />} />
             {(picksFurni || picksReference) && <FurniPickSlotButtons slots={[...(picksFurni ? [{ slot: (furniSource === 101 ? 1 : 0) as 0 | 1, count: furniSource === 101 ? secondaryFurniIds.length : furniIds.length }] : []), ...(picksReference ? [{ slot: (referenceFurniSource === 101 ? 1 : 0) as 0 | 1, count: referenceFurniSource === 101 ? secondaryFurniIds.length : furniIds.length }] : [])]} />}
         </WiredConditionBaseView>
     );

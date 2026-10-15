@@ -6,7 +6,7 @@ import { WiredDropdown } from '../WiredDropdown';
 import { WiredActionValueOrVariableSection } from '../actions/WiredActionValueOrVariableSection';
 import { getNativeVariableId, WIRED_VARIABLE_ABSENT } from '../../../../api';
 import { useWired } from '../../../../hooks';
-import { WiredSourcesSelector } from '../WiredSourcesSelector';
+import { WiredMergedSourceSection } from '../WiredSourcesSelector';
 import { WiredVariablePicker } from '../WiredVariablePicker';
 import { FurniPickSlotButtons, VariableQuantifierRadios, VariableScopeButtons, useConditionVariableEntries } from './WiredVariableConditionParts';
 import { scopeOfTargetCode, targetCodeOfScope } from '../../../../api';
@@ -113,8 +113,9 @@ export const WiredConditionVariableAgeMatchView: FC<{}> = () => {
         <WiredConditionBaseView nativeLayout hasSpecialInput requiresFurni={requiresFurni} save={save} validate={validate} footerCollapsible={false}
             footer={<>
                 <VariableQuantifierRadios name="wiredConditionVariableAgeQuantifier" value={quantifier} onChange={setQuantifier} />
-                {scope === 'furni' && <WiredSourcesSelector showFurni furniSlot={0} furniSource={furniSource} onChangeFurni={value => { setFurniSource(value); if ([100, 101].includes(value)) setActivePickSlot(value === 101 ? 1 : 0); }} />}
-                {scope === 'user' && <WiredSourcesSelector showUsers userSlot={0} userSource={userSource} onChangeUsers={setUserSource} />}
+                {/* AIR mergedSelections [[0,0],[1,1]]: slot 0 is the footer "Variables" section; slot 1 is claimed by the reference value section and lives in its popup. */}
+                <WiredMergedSourceSection scope={scope} title="wiredfurni.params.sources.merged.title.variables" furniSlot={0} userSlot={0}
+                    furniSource={furniSource} userSource={userSource} onChangeFurni={value => { setFurniSource(value); if ([100, 101].includes(value)) setActivePickSlot(value === 101 ? 1 : 0); }} onChangeUsers={setUserSource} />
             </>}>
             <WiredSection title={LocalizeText('wiredfurni.params.variables.variable_selection')} headerOptionsRight={<VariableScopeButtons scopes={SCOPES} value={scope} onChange={handleScopeChange} />}>
                 <WiredVariablePicker entries={entries} recentScope="variable-conditions" selectedToken={variableToken} onSelect={entry => setVariableToken(entry.token)} />
@@ -133,10 +134,7 @@ export const WiredConditionVariableAgeMatchView: FC<{}> = () => {
                         literal={Number(durationInput)} onLiteralChange={value => setDurationInput(String(value))}
                         target={referenceScope} onTargetChange={next => { setReferenceScope(next); setReferenceToken(''); }}
                         variableToken={referenceToken} onVariableTokenChange={setReferenceToken} onValidityChange={setReferenceValid}
-                        popupSources={<>
-                            {referenceScope === 'furni' && <WiredSourcesSelector showFurni furniSlot={1} furniSource={referenceFurniSource} onChangeFurni={value => { setReferenceFurniSource(value); if ([100, 101].includes(value)) setActivePickSlot(value === 101 ? 1 : 0); }} />}
-                            {referenceScope === 'user' && <WiredSourcesSelector showUsers userSlot={1} userSource={referenceUserSource} onChangeUsers={setReferenceUserSource} />}
-                        </>} />
+                        popupSources={<WiredMergedSourceSection bare scope={referenceScope} title="wiredfurni.params.sources.merged.title.variables" furniSlot={1} userSlot={1} furniSource={referenceFurniSource} userSource={referenceUserSource} onChangeFurni={value => { setReferenceFurniSource(value); if ([100, 101].includes(value)) setActivePickSlot(value === 101 ? 1 : 0); }} onChangeUsers={setReferenceUserSource} />} />
                     <div style={{ width: 90, flexShrink: 0 }}><WiredDropdown caption={LocalizeText('wiredfurni.params.variables.duration')} value={durationUnit} onChange={setDurationUnit} options={DURATION_UNITS.map(id => ({ id, label: LocalizeText(`wiredfurni.params.variables.duration.${id}`) }))} /></div>
                 </div>
             </WiredSection>

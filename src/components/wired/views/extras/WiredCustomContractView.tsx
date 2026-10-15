@@ -3,7 +3,7 @@ import { localizeWithFallback, WiredFurniType } from '../../../../api';
 import { useWired } from '../../../../hooks';
 import { FurniPickSlotButtons } from '../conditions/WiredVariableConditionParts';
 import { WiredCheckboxOption, WiredRadioGroup } from '../WiredOptions';
-import { WiredSourcesSelector } from '../WiredSourcesSelector';
+import { WiredMergedSourceSection, WiredSourcesSelector } from '../WiredSourcesSelector';
 import { tokenOfVariableSlot, variableSlotOf, WIRED_VARIABLE_ABSENT } from '../../../../api';
 import { WiredExtraBaseView } from './WiredExtraBaseView';
 import { WiredCollapsibleSection } from '../WiredCollapsibleSection';
@@ -76,7 +76,6 @@ interface IContractSideFormProps {
     title: string;
     enableLabel: string;
     furniTitle: string;
-    holderTitle: string;
     side: IContractSide;
     index: number;
     onChange: (changes: Partial<IContractSide>) => void;
@@ -84,7 +83,7 @@ interface IContractSideFormProps {
 }
 
 /** One half of the contract: its activity, its element, its amount and the sources the variable reads. */
-const ContractSideForm: FC<IContractSideFormProps> = ({ title, enableLabel, furniTitle, holderTitle, side, index, onChange, onValidityChange }) => (
+const ContractSideForm: FC<IContractSideFormProps> = ({ title, enableLabel, furniTitle, side, index, onChange, onValidityChange }) => (
     <WiredCollapsibleSection title={title}>
         <WiredCheckboxOption checked={side.enabled} label={enableLabel} onChange={(enabled) => onChange({ enabled })} />
         <fieldset disabled={!side.enabled} className="volt-wired__option-extra" style={{ minWidth: 0, border: 0, padding: 0, opacity: side.enabled ? 1 : 0.5 }}>
@@ -105,9 +104,12 @@ const ContractSideForm: FC<IContractSideFormProps> = ({ title, enableLabel, furn
                 target={normalizeWiredValueTarget(side.target)} onTargetChange={(target) => onChange({ target: getWiredValueTargetCode(target) })}
                 variableToken={side.variableToken} onVariableTokenChange={(variableToken) => onChange({ variableToken })}
                 onValidityChange={onValidityChange}
+                // AIR class_4265.as:127-136,179-188,218-252 (WIN63-202610131318): merged [[2,0],[3,1]] are claimed by the two amount sections
+                // and drawn in their popups; isInputSourceDisabled(i) follows the side's enable checkbox, which also closes the popup.
+                popupSources={<WiredMergedSourceSection bare scope={normalizeWiredValueTarget(side.target)} title="wiredfurni.params.sources.merged.title.variables"
+                    furniSlot={index + 2} userSlot={index} furniSource={side.holderFurniSource} userSource={side.holderUserSource} disabled={!side.enabled}
+                    onChangeFurni={(holderFurniSource) => onChange({ holderFurniSource })} onChangeUsers={(holderUserSource) => onChange({ holderUserSource })} />}
             />
-            {side.fromVariable && side.target === TARGET_FURNI && <WiredSourcesSelector showFurni={true} furniSlot={index + 2} furniSource={side.holderFurniSource} furniTitle={holderTitle} onChangeFurni={(holderFurniSource) => onChange({ holderFurniSource })} />}
-            {side.fromVariable && side.target === TARGET_USER && <WiredSourcesSelector showUsers={true} userSlot={index} userSource={side.holderUserSource} usersTitle={holderTitle} onChangeUsers={(holderUserSource) => onChange({ holderUserSource })} />}
         </fieldset>
     </WiredCollapsibleSection>
 );
@@ -177,7 +179,6 @@ export const WiredCustomContractView: FC<{}> = () => {
                     title={localizeWithFallback('wiredfurni.params.custom_contract.payment', 'Payment')}
                     enableLabel={localizeWithFallback('wiredfurni.params.custom_contract.enable_payment', 'Enable payment')}
                     furniTitle="wiredfurni.params.sources.furni.title.payment"
-                    holderTitle="wiredfurni.params.sources.merged.title.variables_reference_payment"
                     side={payment}
                     index={0}
                     onValidityChange={setPaymentValid}
@@ -191,7 +192,6 @@ export const WiredCustomContractView: FC<{}> = () => {
                     title={localizeWithFallback('wiredfurni.params.custom_contract.reward', 'Reward')}
                     enableLabel={localizeWithFallback('wiredfurni.params.custom_contract.enable_reward', 'Enable reward')}
                     furniTitle="wiredfurni.params.sources.furni.title.reward"
-                    holderTitle="wiredfurni.params.sources.merged.title.variables_reference_reward"
                     side={reward}
                     index={1}
                     onValidityChange={setRewardValid}

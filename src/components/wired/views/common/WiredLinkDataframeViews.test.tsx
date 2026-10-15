@@ -8,7 +8,7 @@ vi.mock('../../../../api', async () => ({ ...await vi.importActual('../../../../
 vi.mock('../../../../hooks', () => ({ useWired: () => state, useWiredNativeVariables: () => ({ furniVariableDefinitions: [{ variableId: 'amount', name: 'Amount', availability: 0, hasValue: true }], contextVariableDefinitions: [{ variableId: 'capture', name: 'Captured', availability: 0, hasValue: true, canCreateAndDelete: true }] }) }));
 vi.mock('../../../../common', () => ({ Text: ({ children }: PropsWithChildren) => <span>{children}</span> }));
 vi.mock('../WiredText', () => ({ WiredText: ({ text }: { text: string }) => <span>{text}</span> }));
-vi.mock('../WiredSourcesSelector', () => ({ FURNI_SOURCES: [], USER_SOURCES: [], nativeSourceOptions: () => [], WiredSourcesSelector: () => null }));
+vi.mock('../WiredSourcesSelector', () => ({ FURNI_SOURCES: [], USER_SOURCES: [], nativeSourceOptions: () => [], WiredSourcesSelector: () => null, WiredHolderSourceSection: ({ scope }: any) => <span>{`holder ${scope}`}</span>, WiredMergedSourceSection: ({ scope, bare, disabled, furniSlot = 0, userSlot = 0, furniSource, userSource, onChangeFurni, onChangeUsers }: any) => { const content = scope === 'global' || scope === 'context' ? <span>{`holder ${scope}`}</span> : <input aria-label={`Merged ${scope === 'furni' ? 'furni' : 'user'} ${scope === 'furni' ? furniSlot : userSlot}${bare ? ' bare' : ''}`} value={scope === 'furni' ? furniSource : userSource} onChange={event => (scope === 'furni' ? onChangeFurni : onChangeUsers)(Number(event.target.value))} />; return disabled ? <fieldset disabled>{content}</fieldset> : content; } }));
 vi.mock('../WiredSourceTypeSelector', () => ({ WiredSourceTypeSelector: () => null }));
 vi.mock('../WiredDropdown', () => ({ WiredDropdown: ({ options, value, onChange, caption }: { options: { id: number; label: string }[]; value: number; onChange: (id: number) => void; caption?: string }) => <select aria-label={caption} value={value} onChange={event => onChange(Number(event.target.value))}>{options.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}</select> }));
 vi.mock('../WiredVariablePicker', () => ({ WiredVariablePicker: ({ entries, selectedToken, onSelect }: { entries: { token: string; displayLabel: string }[]; selectedToken: string; onSelect: (entry: unknown) => void }) => <select aria-label="Variable" value={selectedToken} onChange={event => onSelect(entries.find(entry => entry.token === event.target.value))}><option value="" />{entries.map(entry => <option key={entry.token} value={entry.token}>{entry.displayLabel}</option>)}</select> }));
@@ -38,6 +38,16 @@ describe('AIR dataframe native rows', () => {
         expect(state.setIntParams.mock.lastCall![0].slice(0, 4)).toEqual([1, 1, 7, 0]);
         expect(state.setVariableIds.mock.lastCall![0][0]).toBe('amount');
         expect(screen.getByRole('combobox', { name: 'wiredfurni.params.link.source' })).toHaveValue('0');
+    });
+    it('draws each row\'s claimed merged pair [[i + 1, i]] inside the row popup and saves edits to that slot (AIR LinkDataframeSendRowPreset.as:56)', () => {
+        render(<WiredActionSendLinkDataframeView />);
+        expect(screen.queryByRole('combobox', { name: 'wiredfurni.params.link.source_furni' })).toBeNull();
+        fireEvent.click(screen.getByRole('button', { name: 'Choose variable' }));
+        const holder = screen.getByRole('textbox', { name: 'Merged furni 1 bare' });
+        expect(holder).toHaveProperty('value', '1');
+        fireEvent.change(holder, { target: { value: '100' } }); act(() => base.save());
+        expect(state.setFurniSources.mock.lastCall![0].slice(0, 3)).toEqual([0, 100, 2]);
+        expect(state.setUserSources).toHaveBeenLastCalledWith(state.trigger.userSources);
     });
     it('rejects out-of-range drafts, allows empty text variables and shows message instead of a value control', () => {
         render(<WiredActionSendLinkDataframeView />);

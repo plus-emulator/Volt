@@ -17,7 +17,7 @@ vi.mock('../../../../hooks', () => ({ useWired: () => state, useWiredNativeVaria
 vi.mock('../../../../common', () => ({ Text: ({ children }: PropsWithChildren) => <span>{children}</span> }));
 vi.mock('../WiredText', () => ({ WiredText: ({ text }: { text: string }) => <span>{text}</span> }));
 vi.mock('./WiredVariableConditionParts', () => ({ FurniPickSlotButtons: () => null }));
-vi.mock('../WiredSourcesSelector', () => ({ WiredSourcesSelector: () => null }));
+vi.mock('../WiredSourcesSelector', () => ({ WiredSourcesSelector: () => null, WiredMergedSourceSection: ({ scope, bare, furniSlot, userSlot, furniSource, userSource, onChangeFurni, onChangeUsers }: any) => scope === 'global' || scope === 'context' ? <span>{`holder ${scope}`}</span> : <input aria-label={`Merged ${scope} ${scope === 'furni' ? furniSlot : userSlot}${bare ? ' bare' : ''}`} value={scope === 'furni' ? furniSource : userSource} onChange={event => (scope === 'furni' ? onChangeFurni : onChangeUsers)(Number(event.target.value))} /> }));
 vi.mock('../WiredSourceTypeSelector', () => ({ WiredSourceTypeSelector: ({ types, onChange }: { types: string[]; onChange: (value: string) => void }) => <div>{types.map(type => <button key={type} onClick={() => onChange(type)}>{type}</button>)}</div> }));
 vi.mock('../WiredVariablePickerData', () => ({
     buildWiredVariablePickerEntries: () => [
@@ -59,5 +59,16 @@ describe('Chest conditions native amount input', () => {
         expect(state.setVariableIds).toHaveBeenLastCalledWith(['pay']);
         expect(state.setUserSources).toHaveBeenLastCalledWith([202]);
         expect(state.setFurniSources).toHaveBeenLastCalledWith([100,101,0]);
+    });
+    it.each([false,true])('draws the claimed reference holder in the popup for every holder type (AIR ChestHasAmount [[1,0]] / class_4163 [[2,0]], itemTypes=%s)', itemTypes => {
+        render(<WiredChestAmountCondition itemTypes={itemTypes} />);
+        expect(screen.queryByRole('textbox',{name:'Merged user 0 bare'})).toBeNull();
+        fireEvent.click(screen.getByRole('button',{name:'Choose variable'}));
+        const popup=screen.getByRole('dialog');
+        expect(within(popup).getByRole('textbox',{name:'Merged user 0 bare'})).toHaveProperty('value','202');
+        fireEvent.click(within(popup).getByRole('button',{name:'furni'}));
+        expect(within(popup).getByRole('textbox',{name:`Merged furni ${itemTypes?2:1} bare`})).toBeTruthy();
+        fireEvent.click(within(popup).getByRole('button',{name:'global'}));
+        expect(within(popup).getByText('holder global')).toBeTruthy();
     });
 });

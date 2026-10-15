@@ -4,9 +4,8 @@ import { useWired, useWiredNativeVariables } from '../../../../hooks';
 import { WiredDropdown } from '../WiredDropdown';
 import { WiredCheckboxOption } from '../WiredOptions';
 import { WiredSection } from '../WiredSection';
-import { WiredSourcesSelector } from '../WiredSourcesSelector';
+import { WiredHolderSourceSection, WiredMergedSourceSection, WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredSourceTypeSelector } from '../WiredSourceTypeSelector';
-import { WiredText } from '../WiredText';
 import { WiredVariablePicker } from '../WiredVariablePicker';
 import { buildWiredVariablePickerEntries, createFallbackVariableEntry, flattenWiredVariablePickerEntries } from '../WiredVariablePickerData';
 import { FurniPickSlotButtons } from '../conditions/WiredVariableConditionParts';
@@ -83,7 +82,7 @@ export const WiredVariableActionEditor: FC<{ kind: 'give' | 'remove' | 'change' 
     const sourceControl = (slot: number, sourceTarget: WiredValueTargetType, title: string, disabled = false) => (
         <fieldset disabled={disabled} inert={disabled} style={{ minWidth: 0, border: 0, padding: 0, margin: 0, opacity: disabled ? 0.5 : undefined }}>
             {sourceTarget === 'global' || sourceTarget === 'context'
-                ? <WiredSection title={LocalizeText(title)}><WiredText text={LocalizeText(sourceTarget === 'global' ? 'wiredfurni.params.sources.global' : 'wiredfurni.params.sources.context.current')} /></WiredSection>
+                ? <WiredHolderSourceSection title={title} scope={sourceTarget} />
                 : <WiredSourcesSelector furniSlot={slot} userSlot={slot} showFurni={sourceTarget === 'furni'} showUsers={sourceTarget === 'user'} furniTitle={title} usersTitle={title}
                     furniSource={furni[slot]} userSource={users[slot]}
                     onChangeFurni={value => { setFurni(current => current.map((source, index) => index === slot ? value : source)); if (value === 100 || value === 101) setActivePickSlot(value === 101 ? 1 : 0); }}
@@ -92,12 +91,7 @@ export const WiredVariableActionEditor: FC<{ kind: 'give' | 'remove' | 'change' 
     );
     const referenceTitle = LocalizeText(kind === 'give' ? 'wiredfurni.params.variables.value_settings.initial_value' : 'wiredfurni.params.variables.reference_value');
     return <WiredActionBaseView nativeLayout hasSpecialInput requiresFurni={pickSlots.length ? WiredFurniType.STUFF_SELECTION_OPTION_BY_ID : WiredFurniType.STUFF_SELECTION_OPTION_NONE} selectionPreview={<></>} save={save} validate={validate} footerCollapsible={false}
-        footer={<>
-            {sourceControl(0, target, kind === 'remove' ? 'wiredfurni.params.sources.merged.title.variables' : 'wiredfurni.params.sources.merged.title.variables_destination')}
-            {/* AIR ChangeVariable/GiveVariable.mergedSelections [[0,0],[1,1]]: the reference holder is the second footer section,
-                disabled without an operand or with the same holder (isInputSourceDisabled). */}
-            {kind !== 'remove' && sourceControl(1, referenceTarget, 'wiredfurni.params.sources.merged.title.variables_reference', referenceDisabled || effectiveSameHolder)}
-        </>}>
+        footer={sourceControl(0, target, kind === 'remove' ? 'wiredfurni.params.sources.merged.title.variables' : 'wiredfurni.params.sources.merged.title.variables_destination')}>
         <FurniPickSlotButtons slots={[...new Set(pickSlots)].map(slot => ({ slot: slot as 0 | 1, count: slot === 0 ? furniIds.length : secondaryFurniIds.length }))} />
         <WiredSection title={LocalizeText('wiredfurni.params.variables.variable_selection')} headerOption={<WiredSourceTypeSelector types={kind === 'change' ? ['furni', 'user', 'global', 'context'] : ['furni', 'user', 'context']} value={target} onChange={next => { setTarget(next); setVariable(''); }} />}>
             <WiredVariablePicker entries={entries} recentScope="variable-effects" selectedToken={variable} onSelect={entry => setVariable(entry.token)} />
@@ -108,6 +102,10 @@ export const WiredVariableActionEditor: FC<{ kind: 'give' | 'remove' | 'change' 
             min={-2147483648} max={2147483647} option={option} onOptionChange={setOption} literal={0} onLiteralChange={value => setLiteral(String(value))} literalText={literal} onLiteralTextChange={setLiteral}
             target={referenceTarget} onTargetChange={setReferenceTarget} variableToken={reference} onVariableTokenChange={setReference} disabled={referenceDisabled} onValidityChange={setValidInput}
             primaryTarget={target} sameHolder={sameHolder} onSameHolderChange={setSameHolder}
- />}
+            // AIR: the reference value section claims merged slot 1 (createValueOrVariableSection(1, ...)), so its holder sources live in the popup.
+            popupSources={<WiredMergedSourceSection bare scope={referenceTarget} title="wiredfurni.params.sources.merged.title.variables" furniSlot={1} userSlot={1}
+                furniSource={furni[1]} userSource={users[1]}
+                onChangeFurni={value => { setFurni(current => [current[0], value]); if (value === 100 || value === 101) setActivePickSlot(value === 101 ? 1 : 0); }}
+                onChangeUsers={value => setUsers(current => [current[0], value])} />} />}
     </WiredActionBaseView>;
 };

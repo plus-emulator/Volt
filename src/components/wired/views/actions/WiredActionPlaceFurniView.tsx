@@ -11,7 +11,7 @@ import { WiredVariablePicker } from '../WiredVariablePicker';
 import { buildWiredVariablePickerEntries, createFallbackVariableEntry, flattenWiredVariablePickerEntries } from '../WiredVariablePickerData';
 import { getWiredValueTargetCode, normalizeWiredValueTarget, WiredActionValueOrVariableSection } from './WiredActionValueOrVariableSection';
 import { WiredSection } from '../WiredSection';
-import { WiredSourcesSelector } from '../WiredSourcesSelector';
+import { WiredMergedSourceSection, WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredActionBaseView } from './WiredActionBaseView';
 
 export const WiredActionPlaceFurniView: FC<{}> = () => {
@@ -105,35 +105,20 @@ export const WiredActionPlaceFurniView: FC<{}> = () => {
             footer={
                 <>
                     <WiredSourcesSelector showFurni={true} furniTitle="wiredfurni.params.sources.furni.title.place_furni" furniSource={furni[0]} onChangeFurni={(source) => setF(0, source)} />
-                    <fieldset disabled={!referenceNeeded} inert={!referenceNeeded} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
-                        <>
-                            <WiredSourceTypeSelector types={['furni', 'user']} value={targetIsUser ? 'user' : 'furni'} disabled={!referenceNeeded} onChange={type => setTargetIsUser(type === 'user')} />
-                            <WiredSourcesSelector
-                                showFurni={!targetIsUser}
-                                showUsers={targetIsUser}
-                                furniTitle="wiredfurni.params.sources.merged.title.custom_target"
-                                usersTitle="wiredfurni.params.sources.merged.title.custom_target"
-                                furniSlot={1}
-                                userSlot={0}
-                                furniSource={furni[1]}
-                                userSource={users[0]}
-                                onChangeFurni={(source) => setF(1, source)}
-                                onChangeUsers={(source) => setU(0, source)}
-                            />
-                        </>
-                    </fieldset>
-                    {spawnValueEnabled && valueIsVariable && (
-                        <WiredSourcesSelector
-                            showFurni={valueTarget === 0}
-                            showUsers={valueTarget === 1}
-                            furniSlot={2}
-                            userSlot={1}
-                            furniSource={furni[2]}
-                            userSource={users[1]}
-                            onChangeFurni={(source) => setF(2, source)}
-                            onChangeUsers={(source) => setU(1, source)}
-                        />
-                    )}
+                    {/* AIR class_3972.as:161-198, 278-285 (WIN63-202610131318): merged 0 "custom_target" (furni 1 / users 0) is always in the footer with the
+                        furni/users type selector in its header, greyed unless the location or altitude needs a custom reference. */}
+                    <WiredMergedSourceSection
+                        scope={targetIsUser ? 'users' : 'furni'}
+                        title="wiredfurni.params.sources.merged.title.custom_target"
+                        furniSlot={1}
+                        userSlot={0}
+                        furniSource={furni[1]}
+                        userSource={users[0]}
+                        disabled={!referenceNeeded}
+                        headerOption={<WiredSourceTypeSelector types={['furni', 'user']} value={targetIsUser ? 'user' : 'furni'} onChange={type => setTargetIsUser(type === 'user')} />}
+                        onChangeFurni={(source) => setF(1, source)}
+                        onChangeUsers={(source) => setU(0, source)}
+                    />
                     <div style={{ display: 'flex', gap: 5 }}>
                         {[0, 1].map(slot => <WiredFurniPickButton key={slot} kind={slot === 0 ? 'primary' : 'secondary'} active={activePickSlot === slot} onClick={() => setActivePickSlot(slot as 0 | 1)} />)}
                     </div>
@@ -168,7 +153,11 @@ export const WiredActionPlaceFurniView: FC<{}> = () => {
                         targetTitle={LocalizeText('wiredfurni.params.variables.reference_value.target')} recentScope="place-furni-value"
                         min={-2147483648} max={2147483647} option={valueIsVariable ? 1 : 0} onOptionChange={option => setValueIsVariable(option === 1)}
                         literal={value} onLiteralChange={setValue} target={normalizeWiredValueTarget(valueTarget)} onTargetChange={target => setValueTarget(getWiredValueTargetCode(target))}
-                        variableToken={tokenOfVariableSlot(valueVariable)} onVariableTokenChange={token => setValueVariable(variableSlotOf(token))} disabled={!spawnValueEnabled} onValidityChange={setValidValue} />
+                        variableToken={tokenOfVariableSlot(valueVariable)} onVariableTokenChange={token => setValueVariable(variableSlotOf(token))} disabled={!spawnValueEnabled} onValidityChange={setValidValue}
+                        // AIR class_3972.as:109,161-198 (WIN63-202610131318): merged 1 ([2,1]) is claimed by the spawn value section and drawn in its popup;
+                        // isInputSourceDisabled(1) = !spawnWithVariable || section disabled, which also keeps the popup closed.
+                        popupSources={<WiredMergedSourceSection bare scope={normalizeWiredValueTarget(valueTarget)} title="wiredfurni.params.sources.merged.title.variables" furniSlot={2} userSlot={1}
+                            furniSource={furni[2]} userSource={users[1]} disabled={!spawnValueEnabled} onChangeFurni={(source) => setF(2, source)} onChangeUsers={(source) => setU(1, source)} />} />
                 </fieldset>
             </WiredCollapsibleSection>
         </WiredActionBaseView>

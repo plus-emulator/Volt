@@ -26,7 +26,7 @@ vi.mock('../../../mod-tools/native/NativeSkinView', () => ({ NativeSkinView: () 
 vi.mock('../WiredText', () => ({ WiredText: ({ text }: { text: string }) => <span>{text}</span> }));
 vi.mock('../WiredNumberInput', () => ({ WiredNumberInput: () => null }));
 vi.mock('../WiredVariablePicker', () => ({ WiredVariablePicker: ({ entries, selectedToken, onSelect }: any) => <select aria-label="Variable picker" value={selectedToken} onChange={event => onSelect(entries.find((entry: any) => entry.token === event.target.value))}>{entries.filter((entry: any) => entry.kind === 'custom').map((entry: any) => <option key={entry.token} disabled={!entry.selectable} value={entry.token}>{entry.displayLabel}</option>)}</select> }));
-vi.mock('../WiredSourcesSelector', () => ({ WiredSourcesSelector: ({ furniSlot = 0, userSlot = 0, showFurni, furniSource, userSource, onChangeFurni, onChangeUsers }: any) => <input aria-label={`${showFurni ? 'Furni' : 'User'} source ${showFurni ? furniSlot : userSlot}`} value={showFurni ? furniSource : userSource} onChange={event => (showFurni ? onChangeFurni : onChangeUsers)(Number(event.target.value))} /> }));
+vi.mock('../WiredSourcesSelector', () => { const WiredSourcesSelector = ({ furniSlot = 0, userSlot = 0, showFurni, furniSource, userSource, onChangeFurni, onChangeUsers }: any) => <input aria-label={`${showFurni ? 'Furni' : 'User'} source ${showFurni ? furniSlot : userSlot}`} value={showFurni ? furniSource : userSource} onChange={event => (showFurni ? onChangeFurni : onChangeUsers)(Number(event.target.value))} />; const WiredHolderSourceSection = ({ scope }: any) => <span>{`holder ${scope}`}</span>; return { WiredSourcesSelector, WiredHolderSourceSection, WiredMergedSourceSection: ({ scope, disabled, ...rest }: any) => { const content = scope === 'global' || scope === 'context' ? <WiredHolderSourceSection scope={scope} /> : <WiredSourcesSelector showFurni={scope === 'furni'} showUsers={scope !== 'furni'} {...rest} />; return disabled ? <fieldset disabled>{content}</fieldset> : content; } }; });
 vi.mock('../WiredDropdown', () => ({ WiredDropdown: ({ options, value, onChange, caption }: any) => <select aria-label={caption} value={value} onChange={event => onChange(Number(event.target.value))}>{options.map((option: any) => <option key={option.id} value={option.id}>{option.label}</option>)}</select> }));
 vi.mock('./WiredConditionBaseView', () => ({ WiredConditionBaseView: ({ children, footer, save, validate, nativeLayout }: PropsWithChildren<{ footer: ReactNode; save: () => void; validate?: () => boolean; nativeLayout: boolean }>) => <WiredNativeContext.Provider value={nativeLayout}>{children}{footer}<button disabled={validate && !validate()} onClick={save}>Save</button></WiredNativeContext.Provider> }));
 import { WiredConditionHasVariableView } from './WiredConditionHasVariableView';
@@ -54,13 +54,24 @@ describe('Native AIR variable and snapshot condition editors', () => {
         expect(state.setIntParams).toHaveBeenLastCalledWith([0]); expect(state.setFurniSources).toHaveBeenLastCalledWith([100]); expect(state.setVariableIds).toHaveBeenLastCalledWith(['destination']);
         expect(screen.getByRole('button', { name: 'wiredfurni.params.sourcetype.furni' }).getAttribute('aria-pressed')).toBe('true');
     });
+    it('keeps the HasVariable merged "variables" footer section for every holder (AIR HasVariable.as:82-111)', () => {
+        state.trigger.intData = [1]; state.trigger.variableIds = ['destination'];
+        render(<WiredConditionHasVariableView />);
+        expect(screen.getByRole('textbox', { name: 'User source 0' })).toHaveProperty('value', '200');
+        fireEvent.click(screen.getByRole('button', { name: 'wiredfurni.params.sourcetype.context' }));
+        expect(screen.getByText('holder context')).toBeTruthy();
+        expect(screen.queryByRole('textbox', { name: 'User source 0' })).toBeNull();
+        // Changing the holder clears the variable, so the form stays unsaveable until one is picked (validate).
+        expect(screen.getByText('Save')).toHaveProperty('disabled', true);
+    });
     it('preserves Value same-holder, two source pairs, comparisons and exact existing signed64 literals', () => {
         render(<WiredConditionVariableValueMatchView />); save();
         expect(state.setIntParams).toHaveBeenLastCalledWith([1, 1, 1, 0, 0, 1, 1]);
         expect(state.setFurniSources).toHaveBeenLastCalledWith([100, 101]); expect(state.setUserSources).toHaveBeenLastCalledWith([200, 201]);
         choose(); const popup = screen.getByRole('dialog'); expect(within(popup).getByRole('checkbox')).toHaveProperty('checked', true);
-        expect(within(popup).queryByRole('textbox', { name: 'User source 1' })).toBeNull();
+        expect(within(popup).getByRole('textbox', { name: 'User source 1' }).closest('fieldset')).toHaveProperty('disabled', true);
         fireEvent.click(within(popup).getByRole('checkbox')); save(); expect(state.setIntParams.mock.lastCall![0][6]).toBe(0);
+        expect(within(popup).getByRole('textbox', { name: 'User source 1' }).closest('fieldset')).toHaveProperty('disabled', false);
         fireEvent.change(within(popup).getByRole('textbox', { name: 'User source 1' }), { target: { value: '100' } });
         fireEvent.change(within(popup).getByRole('combobox'), { target: { value: 'custom:reference' } });
         const input = screen.getByRole('textbox', { name: 'wiredfurni.params.variables.reference_value' });

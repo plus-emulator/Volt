@@ -22,7 +22,7 @@ vi.mock('../WiredText', () => ({ WiredText: ({ text }: { text: string }) => <spa
 vi.mock('../WiredNumberInput', () => ({ WiredNumberInput: () => null }));
 vi.mock('../conditions/WiredVariableConditionParts', () => ({ FurniPickSlotButtons: () => null }));
 vi.mock('../WiredVariablePicker', () => ({ WiredVariablePicker: ({ entries, selectedToken, onSelect }: any) => <select aria-label="Variable picker" value={selectedToken} onChange={event => onSelect(entries.find((entry: any) => entry.token === event.target.value))}>{entries.filter((entry: any) => entry.selectable).map((entry: any) => <option key={entry.token} value={entry.token}>{entry.displayLabel}</option>)}</select> }));
-vi.mock('../WiredSourcesSelector', () => ({ WiredSourcesSelector: ({ furniSlot, userSlot, showFurni, furniSource, userSource, onChangeFurni, onChangeUsers }: any) => <input aria-label={`Source ${furniSlot ?? userSlot}`} value={showFurni ? furniSource : userSource} onChange={event => (showFurni ? onChangeFurni : onChangeUsers)(Number(event.target.value))} /> }));
+vi.mock('../WiredSourcesSelector', () => { const WiredSourcesSelector = ({ furniSlot, userSlot, showFurni, furniSource, userSource, onChangeFurni, onChangeUsers }: any) => <input aria-label={`Source ${furniSlot ?? userSlot}`} value={showFurni ? furniSource : userSource} onChange={event => (showFurni ? onChangeFurni : onChangeUsers)(Number(event.target.value))} />; const WiredHolderSourceSection = ({ scope }: any) => <span>{`holder ${scope}`}</span>; return { WiredSourcesSelector, WiredHolderSourceSection, WiredMergedSourceSection: ({ scope, disabled, ...rest }: any) => { const content = scope === 'global' || scope === 'context' ? <WiredHolderSourceSection scope={scope} /> : <WiredSourcesSelector showFurni={scope === 'furni'} showUsers={scope !== 'furni'} {...rest} />; return disabled ? <fieldset disabled>{content}</fieldset> : content; } }; });
 vi.mock('../WiredDropdown', () => ({ WiredDropdown: ({ options, value, onChange }: any) => <select aria-label="Operation" value={value} onChange={event => onChange(Number(event.target.value))}>{options.map((option: any) => <option key={option.id} value={option.id}>{option.label}</option>)}</select> }));
 vi.mock('./WiredActionBaseView', () => ({ WiredActionBaseView: ({ children, footer, save, validate, nativeLayout }: PropsWithChildren<{ footer: ReactNode; save: () => void; validate: () => boolean; nativeLayout: boolean }>) => <WiredNativeContext.Provider value={nativeLayout}>{children}{footer}<button disabled={!validate()} onClick={save}>Save</button></WiredNativeContext.Provider> }));
 import { WiredActionGiveVariableView } from './WiredActionGiveVariableView';
@@ -58,12 +58,13 @@ describe('Native variable action read/edit/save', () => {
         const values = state.setIntParams.mock.lastCall![0]; expect(values.slice(View === WiredActionGiveVariableView ? 1 : 3, View === WiredActionGiveVariableView ? 3 : 5)).toEqual([-2147483648, 0]);
         fireEvent.change(input, { target: { value: '9223372036854775808' } }); expect(screen.getByRole('button', { name: 'Save' })).toHaveProperty('disabled', true);
     });
-    it('shows the reference holder as a second footer section, disabled for unary operations', () => {
-        state.trigger.intData = [1, 1, 1, 0, 0, 1, 0]; render(<WiredActionChangeVariableValueView />);
-        const reference = screen.getByRole('textbox', { name: 'Source 1' });
-        expect(reference.closest('fieldset')).toHaveProperty('disabled', false);
-        fireEvent.change(screen.getByRole('combobox', { name: 'Operation' }), { target: { value: '103' } });
-        expect(screen.getByRole('textbox', { name: 'Source 1' }).closest('fieldset')).toHaveProperty('disabled', true);
+    it('shows the reference holder inside the value popup, with a fixed row for a room holder', () => {
+        state.trigger.intData = [1, 0, 1, 0, 0, -10, 0]; render(<WiredActionChangeVariableValueView />);
+        expect(screen.queryByText('holder global')).toBeNull();
+        choose(); const popup = screen.getByRole('dialog');
+        expect(within(popup).getByText('wiredfurni.params.sources.merged.title.variables')).toBeTruthy();
+        expect(within(popup).getByText('holder global')).toBeTruthy();
+        expect(screen.queryByRole('textbox', { name: 'Source 1' })).toBeNull();
     });
     it('saves Change seven fields and disables but preserves reference UI for unary operations', () => {
         state.trigger.intData = [1, 1, 1, 0, 0, 1, 1]; render(<WiredActionChangeVariableValueView />); save();

@@ -1,5 +1,5 @@
 import { FC, useEffect, useState } from 'react';
-import { LocalizeText, localizeWithFallback, WiredFurniType } from '../../../../api';
+import { LocalizeText, WiredFurniType } from '../../../../api';
 import { useWired } from '../../../../hooks';
 import { WIRED_VARIABLE_ABSENT, tokenOfVariableSlot, variableSlotOf } from '../../../../api';
 import { FurniPickSlotButtons } from '../conditions/WiredVariableConditionParts';
@@ -28,7 +28,7 @@ const SOURCE_SECONDARY_SELECTED = 101;
 const TARGETS: Array<{ key: VariableTarget; value: number }> = [{ key: 'furni', value: 0 }, { key: 'user', value: 1 }, { key: 'global', value: -10 }, { key: 'context', value: -20 }];
 
 const GLOBAL_SOURCES: WiredSourceOption[] = [{ value: SOURCE_TRIGGER, label: 'wiredfurni.params.sources.global' }];
-const CONTEXT_SOURCES: WiredSourceOption[] = [{ value: SOURCE_TRIGGER, label: localizeWithFallback('wiredfurni.params.sources.context', 'Context variables') }];
+const CONTEXT_SOURCES: WiredSourceOption[] = [{ value: SOURCE_TRIGGER, label: 'wiredfurni.params.sources.context' }];
 
 const clamp = (value: number, min: number, max: number, fallback: number) => (Number.isFinite(value) ? Math.max(min, Math.min(max, Math.round(value))) : fallback);
 const targetOf = (value: number): VariableTarget => TARGETS.find((target) => target.value === value)?.key ?? 'user';
@@ -97,7 +97,10 @@ export const WiredExtraMovementCurveView: FC<{}> = () => {
                 target={target} onTargetChange={chooseTarget}
                 variableToken={variableToken} onVariableTokenChange={setVariableToken}
                 onValidityChange={setValueValid}
+                // AIR class_4140.as:71,75-103 (WIN63-202610131318, addon code 22 JUMP_STRENGTH): merged [[0,0]] is claimed by this section and drawn as a bare
+                // row in its popup under "Variables:"; room/context read as the fixed holder row.
                 popupSources={<WiredFurniSelectionSourceRow
+                    bare
                     options={sourceOptions}
                     selectionActive={activePickSlot === (furniSource === SOURCE_SECONDARY_SELECTED ? 1 : 0)}
                     selectionCount={furniSource === SOURCE_SECONDARY_SELECTED ? secondaryFurniIds.length : furniIds.length}

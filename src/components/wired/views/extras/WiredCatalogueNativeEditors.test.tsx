@@ -20,7 +20,7 @@ vi.mock('./WiredExtraBaseView',()=>({WiredExtraBaseView:(props:any)=><Base {...p
 vi.mock('../triggers/WiredTriggerBaseView',()=>({WiredTriggerBaseView:(props:any)=><Base {...props}/>}));
 vi.mock('../actions/WiredActionBaseView',()=>({WiredActionBaseView:(props:any)=><Base {...props}/>}));
 vi.mock('../conditions/WiredConditionBaseView',()=>({WiredConditionBaseView:(props:any)=><Base {...props}/>}));
-vi.mock('../WiredSourcesSelector',()=>({WiredSourcesSelector:()=>null}));
+vi.mock('../WiredSourcesSelector', () => ({ WiredSourcesSelector: ()=>null, WiredHolderSourceSection: ({ scope }: any) => <span>{`holder ${scope}`}</span>, WiredMergedSourceSection: ({ scope, bare, disabled, furniSlot = 0, userSlot = 0, furniSource, userSource, onChangeFurni, onChangeUsers }: any) => { const content = scope === 'global' || scope === 'context' ? <span>{`holder ${scope}`}</span> : <input aria-label={`Merged ${scope === 'furni' ? 'furni' : 'user'} ${scope === 'furni' ? furniSlot : userSlot}${bare ? ' bare' : ''}`} value={scope === 'furni' ? furniSource : userSource} onChange={event => (scope === 'furni' ? onChangeFurni : onChangeUsers)(Number(event.target.value))} />; return disabled ? <fieldset disabled>{content}</fieldset> : content; } }));
 vi.mock('../WiredVariablePicker',()=>({WiredVariablePicker:()=>null}));
 vi.mock('../WiredVariablePickerData',()=>({buildWiredVariablePickerEntries:()=>[],flattenWiredVariablePickerEntries:()=>[],createFallbackVariableEntry:()=>null}));
 vi.mock('../WiredDropdown',()=>({WiredDropdown:({options,value,onChange,caption}:any)=><select aria-label={caption} value={value} onChange={event=>onChange(Number(event.target.value))}>{options.map((option:any)=><option key={option.id} value={option.id}>{option.label}</option>)}</select>}));
@@ -28,6 +28,7 @@ import { WiredActionToggleFurniStateView } from '../actions/WiredActionToggleFur
 import { WiredConditionActorIsOnFurniView } from '../conditions/WiredConditionActorIsOnFurniView';
 import { WiredVisualizationAudienceSection } from '../actions/WiredFurniVisualizationParts';
 import { WiredActionProgressAchievementNativeView } from '../actions/WiredActionProgressAchievementNativeView';
+import { WiredActionProgressRewardTrackNativeView } from '../actions/WiredActionProgressRewardTrackNativeView';
 import { WiredExtraVariablesWebApiNativeView } from './WiredExtraVariablesWebApiNativeView';
 import { WiredExtraAchievementEnablerNativeView } from './WiredExtraAchievementEnablerNativeView';
 import { WiredTriggerRoomInitializedView } from '../triggers/WiredTriggerRoomInitializedView';
@@ -103,6 +104,15 @@ describe('AIR catalogue native editor controls',()=>{
         fireEvent.change(field,{target:{value:'-1'}});expect(screen.getByText('Save')).toHaveProperty('disabled',true);
         fireEvent.change(field,{target:{value:'23'}});fireEvent.click(screen.getByText('Save'));
         expect(state.setIntParams).toHaveBeenLastCalledWith([1,0,23,1]);expect(state.setStringParam).toHaveBeenLastCalledWith('ACH_Test');
+    });
+    it.each([['achievement',WiredActionProgressAchievementNativeView],['reward track',WiredActionProgressRewardTrackNativeView]] as const)('draws the claimed merged [[0,1]] holder in the %s value popup and writes only its slot when edited',(_name,View)=>{
+        state.trigger.stringData='ACH_Test';state.trigger.intData=[1,0,7,1];state.trigger.furniSources=[100];state.trigger.userSources=[0,201];render(<View/>);
+        expect(screen.queryByRole('textbox',{name:'Merged user 1 bare'})).toBeNull();
+        fireEvent.click(screen.getByRole('button',{name:'Choose variable'}));
+        expect(screen.getByRole('textbox',{name:'Merged user 1 bare'})).toHaveProperty('value','201');
+        fireEvent.click(screen.getByText('Save'));expect(state.setUserSources).not.toHaveBeenCalled();
+        fireEvent.change(screen.getByRole('textbox',{name:'Merged user 1 bare'}),{target:{value:'200'}});fireEvent.click(screen.getByText('Save'));
+        expect(state.setUserSources).toHaveBeenLastCalledWith([0,200]);expect(state.setFurniSources).toHaveBeenLastCalledWith([100]);
     });
 
 });

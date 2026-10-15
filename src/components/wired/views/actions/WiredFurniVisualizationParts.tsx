@@ -2,9 +2,9 @@ import { FC, useEffect, useRef } from 'react';
 import { localizeWithFallback } from '../../../../api';
 import { useNotification } from '../../../../hooks';
 import { WiredDropdown } from '../WiredDropdown';
-import { WiredRadioGroup } from '../WiredOptions';
 import { WiredSection } from '../WiredSection';
-import { WiredSourcesSelector } from '../WiredSourcesSelector';
+import { WiredMergedSourceSection } from '../WiredSourcesSelector';
+import { WiredSourceTypeSelector } from '../WiredSourceTypeSelector';
 
 /**
  * The audience and merged-source parts shared by the furni visualisation editors (set furni transparency, set furni highlight).
@@ -57,10 +57,15 @@ export interface WiredVisualizationSourcesProps {
     onUserSourceChange: (source: number) => void;
     audienceUserSource: number;
     onAudienceUserSourceChange: (source: number) => void;
-    showAudienceSource: boolean;
+    /** isInputSourceDisabled(1, MERGED_SOURCE): the audience section is greyed while everyone sees the effect. */
+    audienceSourceDisabled: boolean;
 }
 
-/** Footer: the target pair is furni slot 0 with user slot 1, the audience is user slot 0 (mergedSelections [[0, 1], [-1, 0]]), off when everyone sees it. */
+/**
+ * Footer (AIR WIN63-202610131318 class_4214.as:235-272 / class_4285.as:94-130): merged 0 "target" pairs furni slot 0 with user slot 1 and,
+ * having no custom type picker, carries the furni/users type selector in its header; merged 1 "visibility_audience" is user slot 0 only.
+ * Both sections are always shown; the audience one is greyed (not hidden) while the audience is everyone.
+ */
 export const WiredVisualizationSources: FC<WiredVisualizationSourcesProps> = (props) => {
     const {
         targetUsers,
@@ -71,40 +76,30 @@ export const WiredVisualizationSources: FC<WiredVisualizationSourcesProps> = (pr
         onUserSourceChange,
         audienceUserSource,
         onAudienceUserSourceChange,
-        showAudienceSource
+        audienceSourceDisabled
     } = props;
 
     return (
         <>
-            <WiredSection title={localizeWithFallback('wiredfurni.params.sources.merged.title.target', 'Select target:')}>
-                <WiredRadioGroup
-                    name="visualizationTarget"
-                    options={[
-                        { id: 0, label: localizeWithFallback('wiredfurni.params.sources.furni.title', 'Select furni source:') },
-                        { id: 1, label: localizeWithFallback('wiredfurni.params.sources.users.title', 'Select users source:') }
-                    ]}
-                    value={targetUsers ? 1 : 0}
-                    onChange={(value) => onTargetUsersChange(value === 1)}
-                />
-            </WiredSection>
-            <WiredSourcesSelector
-                showFurni={!targetUsers}
-                showUsers={targetUsers}
+            <WiredMergedSourceSection
+                scope={targetUsers ? 'users' : 'furni'}
+                title="wiredfurni.params.sources.merged.title.target"
+                furniSlot={0}
                 userSlot={1}
                 furniSource={furniSource}
                 userSource={userSource}
+                headerOption={<WiredSourceTypeSelector types={['furni', 'user']} value={targetUsers ? 'user' : 'furni'} onChange={type => onTargetUsersChange(type === 'user')} />}
                 onChangeFurni={onFurniSourceChange}
                 onChangeUsers={onUserSourceChange}
             />
-            {showAudienceSource && (
-                <WiredSourcesSelector
-                    showUsers={true}
-                    userSlot={0}
-                    userSource={audienceUserSource}
-                    usersTitle="wiredfurni.params.visualization.visibility_audience"
-                    onChangeUsers={onAudienceUserSourceChange}
-                />
-            )}
+            <WiredMergedSourceSection
+                scope="users"
+                title="wiredfurni.params.visualization.visibility_audience"
+                userSlot={0}
+                userSource={audienceUserSource}
+                disabled={audienceSourceDisabled}
+                onChangeUsers={onAudienceUserSourceChange}
+            />
         </>
     );
 };

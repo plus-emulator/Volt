@@ -2,7 +2,7 @@ import { FC, useEffect, useState } from 'react';
 import { LocalizeText, WiredFurniType, WiredNativeVariableScope, tokenOfVariableSlot, variableSlotOf } from '../../../../api';
 import { WiredSection } from '../WiredSection';
 import { useWired } from '../../../../hooks';
-import { WiredSourcesSelector } from '../WiredSourcesSelector';
+import { WiredMergedSourceSection } from '../WiredSourcesSelector';
 import { WiredVariablePicker } from '../WiredVariablePicker';
 import { FurniPickSlotButtons, VariableQuantifierRadios, VariableScopeButtons, useConditionVariableEntries } from './WiredVariableConditionParts';
 import { scopeOfTargetCode, targetCodeOfScope } from '../../../../api';
@@ -89,8 +89,9 @@ export const WiredConditionHasVariableView: FC<WiredConditionHasVariableViewProp
                         value={quantifier}
                         onChange={(value) => setQuantifier?.(value)}
                     />
-                    {scope === 'furni' && <WiredSourcesSelector showFurni={true} furniSlot={0} furniSource={furniSource} onChangeFurni={setFurniSource} />}
-                    {scope === 'user' && <WiredSourcesSelector showUsers={true} userSlot={0} userSource={userSource} onChangeUsers={setUserSource} />}
+                    {/* AIR HasVariable.as:82-111 (WIN63-202610131318): mergedSelections [[0,0]] titled "variables", always in the footer; a context holder reads as a fixed row. */}
+                    <WiredMergedSourceSection scope={scope} title="wiredfurni.params.sources.merged.title.variables" furniSlot={0} userSlot={0}
+                        furniSource={furniSource} userSource={userSource} onChangeFurni={setFurniSource} onChangeUsers={setUserSource} />
                     {picksFurni && <FurniPickSlotButtons slots={[furniSource === FURNI_SOURCE_SECONDARY_SELECTED ? { slot: 1, count: secondaryFurniIds.length } : { slot: 0, count: furniIds.length }]} />}
                 </div>
             }

@@ -20,7 +20,7 @@ vi.mock('../WiredText', () => ({ WiredText: ({ text }: { text: string }) => <spa
 vi.mock('../WiredShellHeaderView', () => ({ WiredShellButton: ({ children, onClick, disabled }: PropsWithChildren<{ onClick: () => void; disabled: boolean }>) => <button disabled={disabled} onClick={onClick}>{children}</button> }));
 vi.mock('../WiredDropdown', () => ({ WiredDropdown: ({ caption, value, options, disabled, onChange }: { caption: string; value: number; options: { id: number; label: string }[]; disabled: boolean; onChange: (value: number) => void }) => <select aria-label={caption} value={value} disabled={disabled} onChange={event => onChange(Number(event.target.value))}>{options.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}</select> }));
 vi.mock('../WiredFurniSelectorView', () => ({ WiredFurniSelectorView: () => null }));
-vi.mock('../WiredSourcesSelector', () => ({ nativeSourceOptions: () => [101, 102, 103, 301, 302].map(value => ({ value, label: String(value) })) }));
+vi.mock('../WiredSourcesSelector', () => ({ nativeSourceOptions: () => [101, 102, 103, 301, 302].map(value => ({ value, label: String(value) })), WiredHolderSourceSection: ({ scope }: any) => <span>{`holder ${scope}`}</span>, WiredMergedSourceSection: ({ scope, bare, disabled, furniSlot = 0, userSlot = 0, furniSource, userSource, onChangeFurni, onChangeUsers }: any) => { const content = scope === 'global' || scope === 'context' ? <span>{`holder ${scope}`}</span> : <input aria-label={`Merged ${scope === 'furni' ? 'furni' : 'user'} ${scope === 'furni' ? furniSlot : userSlot}${bare ? ' bare' : ''}`} value={scope === 'furni' ? furniSource : userSource} onChange={event => (scope === 'furni' ? onChangeFurni : onChangeUsers)(Number(event.target.value))} />; return disabled ? <fieldset disabled>{content}</fieldset> : content; } }));
 vi.mock('../WiredVariablePicker', () => ({ WiredVariablePicker: () => null }));
 vi.mock('../WiredVariablePickerData', () => ({ buildWiredVariablePickerEntries: () => [], flattenWiredVariablePickerEntries: () => [], createFallbackVariableEntry: () => null }));
 vi.mock('./WiredProjectileDirectionGrid', () => ({ WiredProjectileDirectionGrid: () => null }));
@@ -128,5 +128,17 @@ describe('AIR projectile controls and current packet fields', () => {
         expect(state.setUserSources).toHaveBeenLastCalledWith([101, 102, 103]);
         expect(state.setFurniSources).toHaveBeenLastCalledWith([100, 301, 302]);
         expect(state.setStringParam).toHaveBeenLastCalledWith('');
+    });
+
+    it('draws each claimed merged holder ([[1,0],[2,2]]) inside its value popup and saves edits to its own source slots (AIR class_3959.as:253-301)', () => {
+        render(<WiredExtraProjectileView />);
+        fireEvent.click(screen.getByRole('button', { name: /Animation time/ }));
+        fireEvent.click(screen.getByRole('checkbox', { name: 'Scale the animation time with the distance' }));
+        expect(screen.queryByRole('textbox', { name: 'Merged user 0 bare' })).toBeNull();
+        fireEvent.click(screen.getByRole('button', { name: 'Choose variable' }));
+        fireEvent.change(screen.getByRole('textbox', { name: 'Merged user 0 bare' }), { target: { value: '200' } });
+        save();
+        expect(state.setUserSources).toHaveBeenLastCalledWith([200, 102, 103]);
+        expect(state.setFurniSources).toHaveBeenLastCalledWith([100, 301, 302]);
     });
 });

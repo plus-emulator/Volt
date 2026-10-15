@@ -1,7 +1,7 @@
 import { FC, useEffect, useState } from 'react';
 import { localizeWithFallback, WiredFurniType } from '../../../../api';
 import { useWired } from '../../../../hooks';
-import { WiredSourcesSelector } from '../WiredSourcesSelector';
+import { WiredMergedSourceSection } from '../WiredSourcesSelector';
 import { tokenOfVariableSlot, variableSlotOf, WIRED_VARIABLE_ABSENT } from '../../../../api';
 import { FurniPickSlotButtons } from '../conditions/WiredVariableConditionParts';
 import { WiredActionValueOrVariableSection, WiredValueTargetType } from '../actions/WiredActionValueOrVariableSection';
@@ -61,10 +61,10 @@ export const WiredExtraFilterCountView: FC<{ furni: boolean }> = ({ furni }) => 
 
     const validate = () => valueValid && (!useVariable || !!variableToken);
 
-    const sources = <>
-        {target === 'furni' && <WiredSourcesSelector showFurni furniSlot={0} furniSource={furniSource} onChangeFurni={setFurniSource} />}
-        {target === 'user' && <WiredSourcesSelector showUsers userSlot={0} userSource={userSource} onChangeUsers={setUserSource} />}
-    </>;
+    // AIR SelectorFilter.as:71,75-103 (WIN63-202610131318): merged [[0,0]] is claimed by the amount section and drawn as a bare row in its popup,
+    // for every holder type (room/context read as the fixed holder row).
+    const sources = <WiredMergedSourceSection bare scope={target} title="wiredfurni.params.sources.merged.title.variables" furniSlot={0} userSlot={0}
+        furniSource={furniSource} userSource={userSource} onChangeFurni={setFurniSource} onChangeUsers={setUserSource} />;
 
     return (
         <WiredExtraBaseView nativeLayout hasSpecialInput

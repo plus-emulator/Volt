@@ -17,7 +17,7 @@ vi.mock('./WiredText', async () => ({ ...(await vi.importActual('./WiredText')),
 vi.mock('./WiredShellHeaderView', () => ({ WiredShellButton: ({ children, onClick, disabled, style }: ButtonHTMLAttributes<HTMLButtonElement>) => <button style={style} disabled={disabled} onClick={onClick}>{children}</button> }));
 vi.mock('../../mod-tools/native/NativeSkinView', () => ({ NativeSkinView: ({ width, height, state, color }: any) => <canvas data-state={state} data-color={color} width={width} height={height} /> }));
 vi.mock('./conditions/WiredConditionBaseView', () => ({ WiredConditionBaseView: ({ selectionPreview, nativeLayout, save }: { selectionPreview: React.ReactNode; nativeLayout: boolean; save: () => void }) => <WiredNativeContext.Provider value={nativeLayout}>{selectionPreview}<button onClick={save}>Save</button></WiredNativeContext.Provider> }));
-import { WiredSourceRow } from './WiredSourcesSelector';
+import { WiredMergedSourceSection, WiredSourceRow } from './WiredSourcesSelector';
 import { WiredFurniSelectionSourceRow } from './WiredFurniSelectionSourceRow';
 import { WiredConditionFurniIsOfTypeView } from './conditions/WiredConditionFurniIsOfTypeView';
 const options = [{ value: 100, label: 'selected' }, { value: 0, label: 'trigger' }];
@@ -54,5 +54,17 @@ describe('AIR native furniture source controls', () => {
         expect(container.querySelector('.volt-wired__native-advanced-body')).not.toBeNull(); expect(screen.getByRole('radio', { name: 'wiredfurni.params.quantifier.furni.neg.1' })).toBeChecked();
         fireEvent.click(screen.getByRole('button', { name: 'wiredfurni.params.furni_picking.tooltip 2' })); fireEvent.click(screen.getByText('Save'));
         expect(state.setFurniIds).toHaveBeenLastCalledWith([11]); expect(state.setSecondaryFurniIds).toHaveBeenLastCalledWith([22]); expect(state.setFurniSources).toHaveBeenLastCalledWith([100, 101]); expect(state.setIntParams).toHaveBeenLastCalledWith([]); expect(state.setQuantifier).toHaveBeenLastCalledWith(1);
+    });
+    it('draws only the source row in bare mode (popup-claimed slot) and fixes the arrows for a room holder', () => {
+        render(<WiredNativeContext.Provider value={true}><WiredFurniSelectionSourceRow {...props} bare options={[{ value: 0, label: 'wiredfurni.params.sources.global' }]} value={0} /></WiredNativeContext.Provider>);
+        expect(screen.queryByText('Title')).toBeNull();
+        expect(screen.getByText('wiredfurni.params.sources.global')).toBeTruthy();
+        expect(screen.getAllByRole('button').every(button => (button as HTMLButtonElement).disabled)).toBe(true);
+    });
+    it('greys only the merged row, keeping the title and header type selector live (InputSourceControlPreset.updateUI L89-94)', () => {
+        render(<WiredNativeContext.Provider value={true}><WiredMergedSourceSection scope="context" title="Merged" disabled headerOption={<button>type</button>} /></WiredNativeContext.Provider>);
+        expect(screen.getByText('Merged').closest('fieldset')).toBeNull();
+        expect(screen.getByRole('button', { name: 'type' }).closest('fieldset')).toBeNull();
+        expect(screen.getByText('wiredfurni.params.sources.context').closest('fieldset')).toHaveProperty('disabled', true);
     });
 });

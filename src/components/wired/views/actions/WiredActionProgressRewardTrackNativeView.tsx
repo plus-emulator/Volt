@@ -4,6 +4,7 @@ import { useWired } from '../../../../hooks';
 import { WiredCheckboxOption } from '../WiredOptions';
 import { WiredSection } from '../WiredSection';
 import { WiredTextInput } from '../WiredTextInput';
+import { WiredMergedSourceSection } from '../WiredSourcesSelector';
 import { WiredActionBaseView } from './WiredActionBaseView';
 import {
     getWiredValueTargetCode,
@@ -26,7 +27,7 @@ const ID_MAX_LENGTH = 100;
 const cleanId = (value: string) => value.replace(/[^a-zA-Z0-9_]/g, '').slice(0, ID_MAX_LENGTH);
 
 export const WiredActionProgressRewardTrackNativeView: FC<{}> = () => {
-    const { trigger = null, setIntParams = null, setStringParam = null, setVariableIds = null } = useWired();
+    const { trigger = null, setIntParams = null, setStringParam = null, setVariableIds = null, setFurniSources = null, setUserSources = null } = useWired();
     const [track, setTrack] = useState('');
     const [task, setTask] = useState('');
     const [addToExisting, setAddToExisting] = useState(false);
@@ -34,6 +35,10 @@ export const WiredActionProgressRewardTrackNativeView: FC<{}> = () => {
     const [literal, setLiteral] = useState(SCORE_MIN);
     const [target, setTarget] = useState<WiredValueTargetType>('user');
     const [variableToken, setVariableToken] = useState('');
+    // Merged [[0,1]]: the reference holder reads furni slot 0 or user slot 1.
+    const [mergedFurniSource, setMergedFurniSource] = useState(0);
+    const [mergedUserSource, setMergedUserSource] = useState(0);
+    const [sourcesEdited, setSourcesEdited] = useState(false);
 
     useEffect(() => {
         if (!trigger) return;
@@ -47,12 +52,25 @@ export const WiredActionProgressRewardTrackNativeView: FC<{}> = () => {
         setLiteral(Math.min(SCORE_MAX, Math.max(SCORE_MIN, trigger.intData?.[2] ?? SCORE_MIN)));
         setTarget(normalizeWiredValueTarget(trigger.intData?.[3]));
         setVariableToken(tokenOfVariableSlot(trigger.variableIds?.[0]));
+        setMergedFurniSource(trigger.furniSources?.[0] ?? 0);
+        setMergedUserSource(trigger.userSources?.[1] ?? 0);
+        setSourcesEdited(false);
     }, [trigger]);
 
     const save = () => {
         setStringParam(`${track}\t${task}`);
         setIntParams([addToExisting ? 1 : 0, option, literal, getWiredValueTargetCode(target)]);
         setVariableIds([option === 1 ? variableSlotOf(variableToken) : WIRED_VARIABLE_ABSENT]);
+        // Untouched source tails stay as loaded (useWired keeps the trigger's arrays); an edited holder writes only its own slot.
+        if (sourcesEdited) {
+            const furni = [...(trigger?.furniSources ?? [])];
+            const users = [...(trigger?.userSources ?? [])];
+            furni[0] = mergedFurniSource;
+            users[0] = users[0] ?? 0;
+            users[1] = mergedUserSource;
+            setFurniSources?.(furni);
+            setUserSources?.(users);
+        }
     };
 
     return (
@@ -95,6 +113,11 @@ export const WiredActionProgressRewardTrackNativeView: FC<{}> = () => {
                 onOptionChange={setOption}
                 onTargetChange={setTarget}
                 onVariableTokenChange={setVariableToken}
+                // AIR ProgressRewardTrack.as:54,99-122 (WIN63-202610131318): merged [[0,1]] is claimed by this value-or-variable section and drawn in its popup.
+                popupSources={<WiredMergedSourceSection bare scope={target} title="wiredfurni.params.sources.merged.title.variables" furniSlot={0} userSlot={1}
+                    furniSource={mergedFurniSource} userSource={mergedUserSource}
+                    onChangeFurni={(source) => { setMergedFurniSource(source); setSourcesEdited(true); }}
+                    onChangeUsers={(source) => { setMergedUserSource(source); setSourcesEdited(true); }} />}
             />
         </WiredActionBaseView>
     );
