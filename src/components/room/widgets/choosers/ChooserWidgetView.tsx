@@ -1,12 +1,15 @@
 import { FurniturePickupAllComposer, RoomObjectCategory } from '@volt/renderer';
-import { FC, useEffect, useEffectEvent, useMemo, useState } from 'react';
-import { Permission } from '../../../../api/permissions';
-import { chooserSelectionVisualizer, LocalizeText, RoomObjectItem, SendMessageComposer } from '../../../../api';
-import { Button, Flex, InfiniteScroll, VoltCardContentView, VoltCardHeaderView, VoltCardView, Text } from '../../../../common';
-import { useFurniPickupGuard, useHasPermission } from '../../../../hooks';
-import { classNames, VoltInput } from '../../../../layout';
+import { FC, useMemo, useState } from 'react';
+import { chooserSelectionVisualizer, localizeWithFallback, RoomObjectItem, SendMessageComposer } from '../../../../api';
+import { VoltCardHeaderView, VoltCardView } from '../../../../common';
+import { HabboDropMenuView } from '../../../../common/dropmenu/HabboDropMenuView';
+import { useFurniPickupGuard } from '../../../../hooks';
+import { ChooserTableView, chooserItemKey } from './ChooserTableView';
+import './ChooserWidgetView.css';
 
 const LIMIT_FURNI_PICKALL = 100;
+const USER_TYPES = ['Habbo', 'Pet', 'Bot'] as const;
+const userTypeLabel = (type: string) => localizeWithFallback(`new_user_chooser.usertype.${({ Habbo: 1, Pet: 2, Bot: 4 })[type] ?? 0}`, type);
 
 interface ChooserWidgetViewProps {
     title: string;
@@ -17,180 +20,87 @@ interface ChooserWidgetViewProps {
     type?: 'furni' | 'users';
 }
 
-export const ChooserWidgetView: FC<ChooserWidgetViewProps> = (props) => {
-    const { title = null, items = [], selectItem = null, onClose = null, pickallFurni = false, type = 'furni' } = props;
-    const [selectedItems, setSelectedItems] = useState<RoomObjectItem[]>([]);
+export const ChooserWidgetView: FC<ChooserWidgetViewProps> = ({ title, items = [], selectItem, onClose, pickallFurni = false, type = 'furni' }) => {
     const [searchValue, setSearchValue] = useState('');
-    const [checkAll, setCheckAll] = useState(false);
-    const [checkedIds, setCheckedIds] = useState<number[]>([]);
-    const canSeeId = useHasPermission(Permission.ModerationTool);
+    // null means all owners/types; a real owner named "all" remains selectable.
+    const [selectedFilter, setSelectedFilter] = useState<string>(null);
+    const [selectedKey, setSelectedKey] = useState<string>(null);
+    const [bulkMode, setBulkMode] = useState(false);
+    const [checkedKeys, setCheckedKeys] = useState<string[]>([]);
     const { confirmIfWebApiBox } = useFurniPickupGuard();
+    const isUsers = type === 'users';
+    const ownerNames = useMemo(() => [...new Set(items.map(item => item.ownerName))].sort(), [items]);
+    const activeFilter = !isUsers && !ownerNames.includes(selectedFilter) ? null : selectedFilter;
+    const filteredItems = useMemo(() => items.filter(item =>
+        item.name.toLocaleLowerCase().includes(searchValue.toLocaleLowerCase()) &&
+        (activeFilter === null || (isUsers ? item.type : item.ownerName) === activeFilter)
+    ).sort((a, b) => a.name.toLocaleLowerCase().localeCompare(b.name.toLocaleLowerCase()) || a.id - b.id), [items, searchValue, activeFilter, isUsers]);
+    const checkedItems = items.filter(item => checkedKeys.includes(chooserItemKey(item)));
+    const allChecked = filteredItems.length > 0 && filteredItems.slice(0, LIMIT_FURNI_PICKALL).every(item => checkedKeys.includes(chooserItemKey(item)));
+    const searchLabel = localizeWithFallback('new_chooser.search', 'Search');
+    const allLabel = isUsers ? localizeWithFallback('new_user_chooser.usertype.all', 'All types') : localizeWithFallback('new_furni_chooser.owner_selector.default', 'All owners');
+    const filterValues: string[] = isUsers ? [...USER_TYPES] : ownerNames;
+    // Numeric option values avoid collisions between the "all" choice and room data.
+    const filterOptions = [{ value: 0, label: allLabel }, ...filterValues.map((value, index) => ({ value: index + 1, label: isUsers ? userTypeLabel(value) : value }))];
+    const columns = isUsers
+        ? [localizeWithFallback('new_user_chooser.col.name', 'Name'), localizeWithFallback('new_user_chooser.col.type', 'Type')]
+        : [localizeWithFallback('new_furni_chooser.col.name', 'Name'), localizeWithFallback('new_furni_chooser.col.owner', 'Owner'), localizeWithFallback('new_furni_chooser.col.id', 'Id')];
 
-    const ownerNames = useMemo(() => {
-        const names = Array.from(new Set(items.map((item) => item.ownerName || 'Unknown')));
-        return names.sort();
-    }, [items]);
-
-    const [selectedFilter, setSelectedFilter] = useState(() => {
-        if (pickallFurni) return 'all';
-        return ownerNames.length > 0 ? ownerNames[0] : '';
-    });
-
-    useEffect(() => {
-        if (!pickallFurni && ownerNames.length > 0 && !selectedFilter) setSelectedFilter(ownerNames[0]);
-    }, [pickallFurni, ownerNames, selectedFilter]);
-
-    const checkedId = (id?: number) => {
-        if (id) {
-            if (isChecked(id)) setCheckedIds(checkedIds.filter((x) => x !== id));
-            else if (checkedIds.length < LIMIT_FURNI_PICKALL) setCheckedIds([...checkedIds, id]);
+    const updateChecked = (keys: string[]) => {
+        setCheckedKeys(keys);
+        chooserSelectionVisualizer.clearAll();
+        items.filter(item => keys.includes(chooserItemKey(item))).forEach(item => chooserSelectionVisualizer.show(item.id, item.category));
+    };
+    const choose = (item: RoomObjectItem) => {
+        const key = chooserItemKey(item);
+        selectItem(item);
+        setSelectedKey(key);
+        if (bulkMode) {
+            updateChecked(checkedKeys.includes(key) ? checkedKeys.filter(value => value !== key) : checkedKeys.length < LIMIT_FURNI_PICKALL ? [...checkedKeys, key] : checkedKeys);
         } else {
-            setCheckAll((value) => !value);
-
-            if (!checkAll) {
-                const allItems = filteredItems.slice(0, LIMIT_FURNI_PICKALL);
-                setCheckedIds(allItems.map((x) => x.id));
-                setSelectedItems(allItems);
-            } else {
-                setCheckedIds([]);
-                setSelectedItems([]);
-                chooserSelectionVisualizer.clearAll();
-            }
+            chooserSelectionVisualizer.clearAll();
+            chooserSelectionVisualizer.show(item.id, item.category);
         }
     };
-
-    const isChecked = (id: number) => checkedIds.includes(id);
-
-    const onClickPickAll = () => {
-        const ids = [...checkedIds];
-
+    const close = () => {
+        chooserSelectionVisualizer.clearAll();
+        onClose();
+    };
+    const pickup = () => {
+        const ids = checkedItems.map(item => item.id);
+        if (!ids.length) return;
         confirmIfWebApiBox(ids, RoomObjectCategory.FLOOR, () => {
             SendMessageComposer(new FurniturePickupAllComposer(...ids));
-            setCheckedIds([]);
-            setCheckAll(false);
-            chooserSelectionVisualizer.clearAll();
-            setSelectedItems([]);
+            updateChecked([]);
+            setSelectedKey(null);
         });
-    };
-
-    const filteredItems = useMemo(() => {
-        const value = searchValue.toLocaleLowerCase();
-
-        return items
-            .filter((item) => {
-                const matchesSearch = item.name?.toLocaleLowerCase().includes(value);
-                const matchesFilter = !pickallFurni
-                    ? selectedFilter
-                        ? item.ownerName === selectedFilter
-                        : true
-                    : selectedFilter === 'all' || item.ownerName === selectedFilter;
-                return matchesSearch && matchesFilter;
-            })
-            .sort((a, b) => a.name.localeCompare(b.name));
-    }, [items, searchValue, selectedFilter, pickallFurni]);
-
-    const notifySelectionChange = useEffectEvent((items: RoomObjectItem[]) => {
-        selectItem(items[items.length - 1]);
-
-        chooserSelectionVisualizer.clearAll();
-        items.forEach((item) => {
-            if (item.id && item.category) chooserSelectionVisualizer.show(item.id, item.category);
-        });
-    });
-
-    useEffect(() => {
-        if (selectedItems.length === 0) return;
-
-        notifySelectionChange(selectedItems);
-    }, [selectedItems]);
-
-    const toggleItemSelection = (item: RoomObjectItem) => {
-        setSelectedItems((prev) => {
-            if (prev.some((selected) => selected.id === item.id)) {
-                chooserSelectionVisualizer.hide(item.id, item.category);
-                return prev.filter((selected) => selected.id !== item.id);
-            } else {
-                return [...prev, item];
-            }
-        });
-    };
-
-    const handleClose = () => {
-        chooserSelectionVisualizer.clearAll();
-        setSelectedItems([]);
-        onClose();
     };
 
     return (
-        <VoltCardView className="w-[420px] h-[400px]" theme="primary-slim">
-            <VoltCardHeaderView headerText={title + ' (' + filteredItems.length + ')'} onCloseClick={handleClose} />
-            <VoltCardContentView overflow="hidden" gap={1}>
-                <Flex gap={2}>
-                    <VoltInput
-                        type="text"
-                        placeholder={LocalizeText('generic.search')}
-                        value={searchValue}
-                        onChange={(event) => setSearchValue(event.target.value)}
-                    />
-                    {pickallFurni && (
-                        <select className="form-control form-control-sm" value={selectedFilter} onChange={(event) => setSelectedFilter(event.target.value)}>
-                            <option value="all">{LocalizeText('roomsettings.access_rights.anyone')}</option>
-                            {ownerNames.length > 0 ? (
-                                ownerNames.map((value, index) => (
-                                    <option key={index} value={value}>
-                                        {value}
-                                    </option>
-                                ))
-                            ) : (
-                                <option disabled>No owners found</option>
-                            )}
-                        </select>
-                    )}
-                </Flex>
-                {pickallFurni && (
-                    <Flex gap={2}>
-                        <input className="form-check-input" type="checkbox" checked={checkAll} onChange={() => checkedId()} />
-                        <Text>{LocalizeText('widget.chooser.checkall')}</Text>
-                    </Flex>
-                )}
-                <InfiniteScroll
-                    rows={filteredItems}
-                    rowRender={(row) => (
-                        <Flex
-                            alignItems="center"
-                            className={classNames('rounded p-1', selectedItems.some((item) => item.id === row.id) && 'bg-muted')}
-                            pointer
-                            onClick={() => {
-                                toggleItemSelection(row);
-                                if (pickallFurni) checkedId(row.id);
-                            }}
-                        >
-                            {pickallFurni && (
-                                <input
-                                    className="shrink-0 mx-1 form-check-input"
-                                    type="checkbox"
-                                    checked={isChecked(row.id)}
-                                    onChange={() => checkedId(row.id)}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        toggleItemSelection(row);
-                                    }}
-                                />
-                            )}
-                            <Text truncate>
-                                {row.name}
-                                {canSeeId && ' - ' + row.id}
-                                {type === 'furni' && row.ownerName && row.ownerName !== '-' && ` (Owner: ${row.ownerName})`}
-                            </Text>
-                        </Flex>
-                    )}
-                />
-                {pickallFurni && (
-                    <Button variant="secondary" onClick={onClickPickAll} disabled={!checkedIds.length}>
-                        {LocalizeText('widget.chooser.btn.pickall')}
-                    </Button>
-                )}
-            </VoltCardContentView>
+        <VoltCardView frameStyle={3} resizeAxis="vertical" uniqueKey={`air-chooser-${type}`} className={`air-chooser air-chooser--${type}`} role="dialog" aria-label={title}
+            initialPosition={{ x: Math.max(0, window.innerWidth - (isUsers ? 290 : 413) - 10), y: 10 }}>
+            <VoltCardHeaderView headerText={title} onCloseClick={close} />
+            <div className="air-chooser__content">
+                <div className="air-chooser__filters">
+                    <div className="air-chooser__search">
+                        <input aria-label={searchLabel} placeholder={searchLabel} value={searchValue} onChange={event => setSearchValue(event.target.value)} />
+                        {searchValue && <button type="button" className="air-chooser__clear" aria-label={localizeWithFallback('generic.clear', 'Clear')} onClick={() => setSearchValue('')} />}
+                    </div>
+                    <HabboDropMenuView skinStyle={3} label={columns[1]} options={filterOptions}
+                        value={activeFilter === null ? 0 : filterValues.indexOf(activeFilter) + 1} onSelect={value => setSelectedFilter(value === 0 ? null : filterValues[value - 1])} />
+                </div>
+                <ChooserTableView key={JSON.stringify([searchValue, activeFilter])} items={filteredItems} columns={columns} type={type} selectedKey={selectedKey} checkedKeys={bulkMode ? checkedKeys : null} onSelect={choose} userTypeLabel={userTypeLabel} />
+                <div className="air-chooser__footer">
+                    <span role="status">{localizeWithFallback(`new_${isUsers ? 'user' : 'furni'}_chooser.amount_indicator`, `${filteredItems.length} ${isUsers ? 'users' : 'items'} found`, ['amount'], [String(filteredItems.length)])}</span>
+                    {pickallFurni && !isUsers && <button type="button" className="air-chooser__bulk-toggle" onClick={() => { setBulkMode(!bulkMode); updateChecked([]); }}>
+                        {bulkMode ? localizeWithFallback('generic.cancel', 'Cancel') : localizeWithFallback('widget.chooser.btn.pickall', 'Pick up multiple')}
+                    </button>}
+                </div>
+                {bulkMode && <div className="air-chooser__bulk">
+                    <label><input type="checkbox" checked={allChecked} onChange={() => updateChecked(allChecked ? [] : filteredItems.slice(0, LIMIT_FURNI_PICKALL).map(chooserItemKey))} />{localizeWithFallback('widget.chooser.checkall', 'Select all')}</label>
+                    <button type="button" className="habbo-btn-secondary" disabled={!checkedItems.length} onClick={pickup}>{localizeWithFallback('widget.chooser.btn.pickall', 'Pick up selected')}</button>
+                </div>}
+            </div>
         </VoltCardView>
     );
 };

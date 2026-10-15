@@ -1,0 +1,50 @@
+/* AIR new_user_chooser_view / new_furni_chooser_view, frame style 3.
+   Frame client origin (6,25); children start at (6,18), table at (6,53). */
+.air-chooser.volt-card-shell.volt-card-frame-3 {
+    width: 290px;
+    min-width: 290px;
+    max-width: 290px;
+    height: 357px;
+    min-height: 270px;
+    padding: 0;
+    color: #000;
+    font: 400 12px/17px HabboAirUbuntu, Ubuntu, sans-serif;
+}
+.air-chooser--furni.volt-card-shell.volt-card-frame-3 {
+    width: 413px;
+    min-width: 413px;
+    max-width: 413px;
+    height: 354px;
+}
+.air-chooser__content { position: absolute; inset: 43px 12px 12px; display: flex; flex-direction: column; }
+.air-chooser__filters { display: grid; grid-template-columns: 154px 100px; gap: 12px; height: 26px; flex: none; margin-bottom: 9px; }
+.air-chooser--furni .air-chooser__filters { grid-template-columns: 229px 152px; gap: 9px; }
+.air-chooser__search { position: relative; border-image: url('../../../../assets/images/habbo-skin/slices/border-5.png') 5 fill / 5px stretch; }
+.air-chooser__search input { position: absolute; top: 4px; left: 6px; width: calc(100% - 29px); height: 18px; margin: 0; padding: 0; border: 0; border-radius: 0; outline: 0; box-shadow: none; background: transparent; color: #666; font: inherit; }
+.air-chooser__search input::placeholder { color: #666; opacity: .5; }
+.air-chooser__search:focus-within { outline: 1px solid #418db0; border-radius: 5px; }
+.air-chooser__clear { position: absolute; right: 2px; top: 3px; width: 20px; height: 20px; padding: 0; border: 0; background: url('../../../../assets/images/habbo-skin/slices/close-black.png') center no-repeat; cursor: pointer; }
+.air-chooser__table { position: relative; display: flex; flex-direction: column; flex: 1; min-height: 50px; padding: 5px; border-image: url('../../../../assets/images/habbo-skin/slices/border-white.png') 6 fill / 6px stretch; }
+.air-chooser__heading, .air-chooser__row { display: grid; grid-template-columns: 65% 35%; }
+.air-chooser--furni .air-chooser__heading, .air-chooser--furni .air-chooser__row { grid-template-columns: 50% 25% 25%; }
+.air-chooser__heading { height: 24px; flex: none; margin-right: 22px; border-bottom: 1px solid #b0b0b0; font-weight: 700; }
+.air-chooser__heading > div { min-width: 0; padding: 2px 4px 0; overflow: hidden; white-space: nowrap; }
+.air-chooser__scroll { flex: 1; min-height: 0; }
+.air-chooser__row { position: absolute; left: 0; right: 0; height: 20px; }
+.air-chooser__row > div { min-width: 0; overflow: hidden; }
+.air-chooser__row button { display: block; width: 100%; height: 20px; padding: 1px 4px 0; margin: 0; border: 0; border-radius: 0; background: transparent; color: inherit; font: inherit; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.air-chooser__row:hover button, .air-chooser__row.is-selected button { background: #b9e4f3; }
+.air-chooser__row button:focus-visible { outline: 1px solid #418db0; outline-offset: -1px; }
+.air-chooser__empty { position: absolute; inset: 29px 5px 5px; display: grid; place-items: center; color: #333; pointer-events: none; }
+.air-chooser__footer { display: flex; align-items: flex-start; justify-content: space-between; gap: 4px; flex: none; height: 17px; margin-top: 7px; white-space: nowrap; }
+.air-chooser__footer [role='status'] { color: #777; }
+.air-chooser__bulk-toggle { border: 0; padding: 0; background: transparent; color: #333; font: inherit; text-decoration: underline; cursor: pointer; }
+.air-chooser__bulk { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding-top: 5px; }
+.air-chooser__bulk label { display: flex; align-items: center; gap: 5px; }
+.air-chooser input[type='checkbox'], .air-chooser__check { appearance: none; display: inline-block; flex: none; width: 17px; height: 17px; margin: 0 4px 0 0; padding: 0; border: 0; border-radius: 0; background: url('../../../../assets/images/habbo-skin/slices/checkbox-default.png') no-repeat; vertical-align: top; }
+.air-chooser input[type='checkbox']:checked, .air-chooser__check.is-checked { background-image: url('../../../../assets/images/habbo-skin/slices/checkbox-checked.png'); }
+
+.air-chooser__scroll > .volt-classic-scroll-area-viewport { width: calc(100% - 22px); }
+
+.air-chooser__filters > .habbo-dropmenu { height: 25px; }
+.air-chooser__bulk button:disabled { opacity: .5; cursor: default; }
