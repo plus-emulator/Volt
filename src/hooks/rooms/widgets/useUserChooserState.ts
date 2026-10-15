@@ -10,6 +10,7 @@ const resolveUserType = (userType: number): string => {
         case 2:
             return 'Pet';
         case 3:
+        case 4:
             return 'Bot';
         default:
             return '-';
@@ -22,7 +23,7 @@ const buildUserItem = (roomIndex: number): RoomObjectItem | null => {
     const userData = GetRoomSession()?.userDataManager?.getUserDataByIndex(roomIndex);
 
     if (!userData) return null;
-    if (userData.type !== 1) return null;
+    if (![1, 2, 3, 4].includes(userData.type)) return null;
 
     return new RoomObjectItem(userData.roomIndex, RoomObjectCategory.UNIT, userData.name, 0, '-', resolveUserType(userData.type));
 };
