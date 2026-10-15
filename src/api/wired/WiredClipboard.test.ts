@@ -6,6 +6,8 @@ vi.mock('@volt/renderer', () => {
         _stringParam = '';
         _stuffIds: number[] = [];
         _id = 0;
+        _defaultIntParams: number[] = [];
+        _inputSources = { furniDefaults: [] as number[], userDefaults: [] as number[] };
         get id() {
             return this._id;
         }
@@ -20,6 +22,12 @@ vi.mock('@volt/renderer', () => {
         }
         get code() {
             return 0;
+        }
+        get defaultIntParams() {
+            return this._defaultIntParams;
+        }
+        get inputSources() {
+            return this._inputSources;
         }
     }
     class WiredActionDefinition extends Triggerable {
@@ -45,7 +53,19 @@ vi.mock('@volt/renderer', () => {
         }
     }
 
-    return { Triggerable, WiredActionDefinition, TriggerDefinition, ConditionDefinition };
+    class WiredSelectorDefinition extends Triggerable {}
+    class WiredAddonDefinition extends Triggerable {}
+    class WiredVariableDefinition extends Triggerable {}
+
+    return {
+        Triggerable,
+        WiredActionDefinition,
+        TriggerDefinition,
+        ConditionDefinition,
+        WiredSelectorDefinition,
+        WiredAddonDefinition,
+        WiredVariableDefinition
+    };
 });
 
 import { ConditionDefinition, TriggerDefinition, WiredActionDefinition } from '@volt/renderer';
