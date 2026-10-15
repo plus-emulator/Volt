@@ -420,6 +420,11 @@
     display: block;
 }
 
+.volt-catalog-navigation-item.is-active .volt-catalog-navigation-label {
+    color: #fff;
+    text-shadow: none;
+}
+
 .volt-catalog-navigation-icon,
 .volt-catalog-navigation-label,
 .volt-catalog-navigation-caret,
