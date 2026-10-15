@@ -58,6 +58,11 @@ jobs:
           REMOVED: ${{ steps.diff.outputs.removed }}
           COMMITS: ${{ steps.diff.outputs.commits }}
         run: |
+          if [ -z "$WEBHOOK_URL" ]; then
+            echo "::notice::DISCORD_WEBHOOK_URL is not configured; skipping the Discord notification."
+            exit 0
+          fi
+
           PAYLOAD=$(jq -c \
             --arg files "$FILES" \
             --arg add "$ADDED" \
