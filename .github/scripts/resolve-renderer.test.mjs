@@ -69,6 +69,23 @@ describe('renderer resolution', () => {
         );
     });
 
+    it('pairs a feature-branch push without a renderer companion with renderer main', async () => {
+        const hasRef = refLookup(new Set(['plus-emulator/Volt-Renderer@main', 'plus-emulator/Volt-Renderer@Dev']));
+
+        assert.deepEqual(
+            await resolveRenderer({
+                ...baseInput,
+                eventName: 'push',
+                baseRef: '',
+                refName: 'feat/chat-history',
+                repositoryOwner: 'plus-emulator',
+                headOwner: '',
+                headRef: '',
+            }, hasRef),
+            { repository: 'plus-emulator/Volt-Renderer', ref: 'main' }
+        );
+    });
+
     it('preserves explicit workflow dispatch pairing', async () => {
         const hasRef = refLookup(new Set(['custom/renderer@release-candidate']));
 
