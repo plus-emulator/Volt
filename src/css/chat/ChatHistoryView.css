@@ -11,7 +11,7 @@
     position: absolute;
     top: 0;
     bottom: 0;
-    left: 0;
+    left: 100%;
     width: 21px;
     background: rgba(30, 31, 28, 0.82);
     box-shadow: inset -1px 0 rgba(255, 255, 255, 0.08);
@@ -19,7 +19,7 @@
 
 .volt-chat-history-content {
     position: absolute;
-    inset: 0 21px 0 21px;
+    inset: 0;
     background: rgba(34, 35, 32, 0.72);
 }
 
@@ -28,60 +28,40 @@
     inset: 0;
     overflow-x: hidden;
     overflow-y: auto;
-    padding: 10px 8px 18px 8px;
+    padding: 10px 3px 18px 3px;
 }
 
 .volt-chat-history-row {
     display: flex;
     flex-direction: row;
     align-items: flex-start;
-    gap: 7px;
+    gap: 0;
     margin: 0 0 6px 0;
 }
 
 .volt-chat-history-time {
-    flex: 0 0 54px;
-    margin: 6px 0 0 0;
+    flex: 0 0 62px;
+    margin: 3px 0 0 0;
     color: rgba(255, 255, 255, 0.72);
     font-family: Ubuntu, sans-serif;
-    font-size: 11px;
+    font-size: 12px;
+    font-style: italic;
     line-height: 13px;
     text-shadow: 0 1px #000000;
 }
 
 .volt-chat-history-message {
-    display: flex;
-    align-items: flex-start;
-    max-width: 100%;
-    min-width: 0;
+    flex: 0 0 auto;
 }
 
-.volt-chat-history-bubble-wrap {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    min-width: 0;
-    max-width: 100%;
+.volt-chat-history-chat-row {
+    /* AIR stacks each bubble bitmap with an eight-pixel overlap. */
+    margin-bottom: -8px;
 }
 
-.volt-chat-history-bubble-wrap .chat-bubble {
-    margin: 0;
-    filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.35));
-    white-space: normal;
-    overflow-wrap: anywhere;
-    word-break: break-word;
-}
-
-.volt-chat-history-bubble-wrap .chat-content {
-    white-space: normal;
-    overflow-wrap: anywhere;
-    word-break: break-word;
-}
-
-.volt-chat-history-bubble-wrap .message {
-    white-space: normal;
-    overflow-wrap: anywhere;
-    word-break: break-word;
+.native-history-bubble:has(.pointer) {
+    /* Include the native pointer in the history bitmap's flow height. */
+    padding-bottom: 5px;
 }
 
 .volt-chat-history-room-info {
@@ -101,7 +81,7 @@
 
 .volt-chat-history-handle {
     position: absolute;
-    right: 0;
+    right: -21px;
     bottom: 165px;
     width: 21px;
     height: 42px;

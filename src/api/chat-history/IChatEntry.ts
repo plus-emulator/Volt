@@ -9,6 +9,9 @@ export interface IChatEntry {
     style?: number;
     chatType?: number;
     imageUrl?: string;
+    imageScale?: number;
+    textSize?: import('../../components/room/widgets/chat-input/chatTextSize').ChatTextSize;
+    hideUsername?: boolean;
     color?: string;
     roomId: number;
     timestamp: string;

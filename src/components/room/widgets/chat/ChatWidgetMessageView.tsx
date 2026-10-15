@@ -5,7 +5,7 @@ import { useOnClickChat } from '../../../../hooks';
 import { useSessionInfo } from '../../../../hooks/session/useSessionInfo';
 import { ChatTextSize, getChatFontScale, getChatTextSize } from '../chat-input/chatTextSize';
 import { measureBubbleVisualOffsets } from './chatBubbleMetrics';
-import { getNativeChatCreation } from './nativeChatScroller';
+import { getNativeChatCreation, getNativeChatGeometry } from './nativeChatScroller';
 import { getNativeChatBaseFontSize, getNativeDefaultSkin, isNativeAnonymousStyle } from './nativeChatSkin';
 import { NativeChatText } from './NativeChatText';
 
@@ -15,6 +15,7 @@ interface ChatWidgetMessageViewProps {
     mode?: number;
     bubbleWidth?: number;
     showPointer?: boolean;
+    layout?: 'room' | 'history';
 }
 
 export const ChatWidgetMessageView: FC<ChatWidgetMessageViewProps> = ({
@@ -22,7 +23,8 @@ export const ChatWidgetMessageView: FC<ChatWidgetMessageViewProps> = ({
     makeRoom = null,
     mode = RoomChatSettings.CHAT_MODE_FREE_FLOW,
     bubbleWidth = RoomChatSettings.CHAT_BUBBLE_WIDTH_NORMAL,
-    showPointer = true
+    showPointer = true,
+    layout = 'room'
 }) => {
     const [creationMode] = useState(() => getNativeChatCreation(chat)?.mode ?? mode);
     const [isVisible, setIsVisible] = useState(false);
@@ -46,6 +48,9 @@ export const ChatWidgetMessageView: FC<ChatWidgetMessageViewProps> = ({
     const formattedText = useMemo(() => `${chat.formattedText}`, [chat.formattedText]);
 
     const getBubbleWidth = useMemo(() => {
+        // AIR's history factory always requests NORMAL (350), and ChatBubble
+        // reserves 15 pixels before laying out its TextField and background.
+        if (layout === 'history') return 'max-w-[335px]';
         switch (bubbleWidth) {
             case RoomChatSettings.CHAT_BUBBLE_WIDTH_NORMAL:
                 return 'max-w-[350px]';
@@ -56,7 +61,7 @@ export const ChatWidgetMessageView: FC<ChatWidgetMessageViewProps> = ({
             default:
                 return 'max-w-[350px]';
         }
-    }, [bubbleWidth]);
+    }, [bubbleWidth, layout]);
 
     useEffect(() => {
         const element = elementRef.current;
@@ -135,14 +140,14 @@ export const ChatWidgetMessageView: FC<ChatWidgetMessageViewProps> = ({
     }, [chat, isReady, isVisible, creationMode]);
 
     const messageClassName = `message [overflow-wrap:anywhere] break-words${chat.type === 2 ? ' font-bold' : ''}`;
-    const nativeTextWidth = bubbleWidth === RoomChatSettings.CHAT_BUBBLE_WIDTH_THIN ? 196 : bubbleWidth === RoomChatSettings.CHAT_BUBBLE_WIDTH_WIDE ? 1956 : 306;
+    const nativeTextWidth = layout === 'history' ? 291 : bubbleWidth === RoomChatSettings.CHAT_BUBBLE_WIDTH_THIN ? 196 : bubbleWidth === RoomChatSettings.CHAT_BUBBLE_WIDTH_WIDE ? 1956 : 306;
     // style_normal's tint mask ends before the 2px TextField gutter; shirt colour cannot alter the text surface.
     const nativeTextEnabled = chat.styleId === 0 && fontScale === 1;
 
     return (
         <div
             ref={elementRef}
-            className={`bubble-container newbubblehe native-room-bubble chat-text-size ${isVisible ? 'visible' : 'invisible'} w-max absolute select-none pointer-events-auto`}
+            className={`bubble-container native-room-bubble chat-text-size ${layout === 'history' ? 'native-history-bubble relative' : 'newbubblehe absolute'} ${isVisible ? 'visible' : 'invisible'} w-max select-none pointer-events-auto`}
             style={{ '--chat-text-size': `${getNativeChatBaseFontSize(chat.styleId) * fontScale}px`, transition: 'none' } as CSSProperties}
             onClick={() => {
                 if (!anonymous) GetRoomEngine().selectRoomObject(chat.roomId, chat.senderId, RoomObjectCategory.UNIT);
@@ -175,7 +180,9 @@ export const ChatWidgetMessageView: FC<ChatWidgetMessageViewProps> = ({
                         />
                     )}
                 </div>
-                <div className="chat-content">
+                <div className="chat-content" style={layout === 'history' && !getNativeChatGeometry(chat.styleId).unlimitedHeight
+                    ? { maxHeight: Math.trunc(108 * fontScale), overflow: 'hidden' }
+                    : undefined}>
                     {nativeTextEnabled && (
                         <NativeChatText
                             username={chat.hideUsername ? '' : chat.username}

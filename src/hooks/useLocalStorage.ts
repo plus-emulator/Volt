@@ -46,6 +46,10 @@ const useLocalStorageState = <T>(key: string, initialValue: T, options: UseLocal
         }
     });
 
+    // Event bursts and async avatar callbacks can retain a setter from an
+    // earlier render. Resolve every update against the latest value, including
+    // updates React has not rendered yet, so they cannot erase newer entries.
+    const storedValueRef = useRef(storedValue);
     const pendingWriteRef = useRef<T | null>(null);
     const writeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const optionsRef = useRef(options);
@@ -121,10 +125,11 @@ const useLocalStorageState = <T>(key: string, initialValue: T, options: UseLocal
         };
     }, []);
 
-    const setValue = (value: T) => {
+    const setValue: Dispatch<SetStateAction<T>> = (value) => {
         try {
-            const valueToStore = value instanceof Function ? value(storedValue) : value;
+            const valueToStore = value instanceof Function ? value(storedValueRef.current) : value;
 
+            storedValueRef.current = valueToStore;
             setStoredValue(valueToStore);
 
             scheduleWrite(valueToStore);

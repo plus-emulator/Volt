@@ -1,5 +1,5 @@
 import { GetGuestRoomResultEvent, NewConsoleMessageEvent, RoomInviteEvent, RoomSessionEvent } from '@volt/renderer';
-import { useState } from 'react';
+import { useMemo } from 'react';
 import { registerSharedHook, useSharedHook } from '@/state/useSharedHook';
 import { ChatEntryType, ChatHistoryCurrentDate, IChatEntry, IRoomHistoryEntry, MessengerHistoryCurrentDate } from '../../api';
 import { useMessageEvent, useVoltEvent } from '../events';
@@ -43,8 +43,12 @@ const useChatHistoryState = () => {
     const [roomHistory, setRoomHistory] = useLocalStorage<IRoomHistoryEntry[]>('roomHistory', []);
     const [messengerHistory, setMessengerHistory] = useLocalStorage<IChatEntry[]>('messengerHistory', [], { toStorage: slimChatEntriesForStorage });
     const [needsRoomInsert, setNeedsRoomInsert] = useLocalStorage('needsRoomInsert', false);
+    // Stored entries survive a reload; the module counter does not. Reserve
+    // new IDs above the restored range so avatar callbacks target this message.
+    const nextChatId = useMemo(() => chatHistory.reduce((next, entry) => Math.max(next, entry.id + 1), 0), [chatHistory]);
 
     const addChatEntry = (entry: IChatEntry) => {
+        CHAT_HISTORY_COUNTER = Math.max(CHAT_HISTORY_COUNTER, nextChatId);
         entry.id = CHAT_HISTORY_COUNTER++;
 
         setChatHistory((prevValue) => {

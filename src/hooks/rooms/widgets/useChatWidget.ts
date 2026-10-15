@@ -27,15 +27,18 @@ import {
     resolveChatBubbleWidth
 } from '../../../api';
 import { captureNativeChatCreation } from '../../../components/room/widgets/chat/nativeChatScroller';
+import { getChatTextSize } from '../../../components/room/widgets/chat-input/chatTextSize';
 import { useChatHistory } from './../../chat-history';
 import { useMessageEvent, useVoltEvent } from '../../events';
 import { useChatPreferences } from '../../useChatPreferences';
 import { useRoom } from '../useRoom';
+import { useSessionInfo } from '../../session/useSessionInfo';
 import { createChatLineQueue, reserveChatLine, resetChatLineQueue, settleChatLine, takeReadyChatLines } from './chatLineQueue';
 
 const CHAT_MESSAGES_MAX = 250;
 
 const useChatWidgetState = () => {
+    const { chatFontScale } = useSessionInfo();
     const [chatMessages, setChatMessages] = useState<ChatBubbleMessage[]>([]);
     const [roomChatSettings, setChatSettings] = useState<IRoomChatSettings>({
         mode: RoomChatSettings.CHAT_MODE_FREE_FLOW,
@@ -219,6 +222,7 @@ const useChatWidgetState = () => {
             color
         );
         if (userType === RoomObjectType.USER) chatMessage.imageScale = 2;
+        chatMessage.textSize = getChatTextSize(chatFontScale);
         captureNativeChatCreation(chatMessage, chatSettings.mode);
         // The renderer adds bubbleWidthOverride to the chat event in Volt-Renderer#212; until that
         // lands the published event has no such field, so it is read as optional.
@@ -254,6 +258,9 @@ const useChatWidgetState = () => {
                       name: username,
                       look: userData.figure,
                       imageUrl,
+                      imageScale: chatMessage.imageScale,
+                      textSize: chatMessage.textSize,
+                      hideUsername: chatMessage.hideUsername,
                       style: styleId,
                       chatType: chatType,
                       entityType: userData.type,
@@ -271,19 +278,13 @@ const useChatWidgetState = () => {
 
                 // This same object may still be in the RAF queue or already in live state.
                 chatMessage.imageUrl = resolvedImageUrl;
+                chatMessage.color = '#' + (ChatBubbleUtilities.AVATAR_COLOR_CACHE.get(userData.figure) ?? 0xffffff).toString(16).padStart(6, '0');
                 setChatMessages((prevValue) => {
                     if (isDisposed.current || roomToken !== roomTokenRef.current || !prevValue.includes(chatMessage)) return prevValue;
 
                     return [...prevValue];
                 });
-            }).catch(() => {});
-        }
-
-        if (chatEntryId >= 0) {
-            void ChatBubbleUtilities.getUserImage(userData.figure).then((historyImageUrl) => {
-                if (!historyImageUrl || isDisposed.current || roomToken !== roomTokenRef.current) return;
-
-                updateChatEntry(chatEntryId, { imageUrl: historyImageUrl });
+                if (chatEntryId >= 0) updateChatEntry(chatEntryId, { imageUrl: resolvedImageUrl, color: chatMessage.color });
             }).catch(() => {});
         }
     };
