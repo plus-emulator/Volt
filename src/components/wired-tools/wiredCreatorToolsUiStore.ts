@@ -273,3 +273,20 @@ export const useWiredCreatorToolsUiStore = createVoltStore<WiredCreatorToolsUiSt
     setManagedGiveVariableItemId: (next) => set({ managedGiveVariableItemId: next }),
     setManagedGiveValue: (next) => set({ managedGiveValue: next })
 }));
+
+/** Native editor links use wiredmenu/open; preserve the selected context variable when supplied. */
+export const openWiredMenuLink = (url: string, definitions: Record<VariablesElementType, ReadonlyArray<{ key: string }>>): boolean => {
+    const [prefix, action, tab, key] = url.split('/');
+    if (prefix !== 'wiredmenu' || action !== 'open' || (tab && tab !== 'variable_overview')) return false;
+    const state = useWiredCreatorToolsUiStore.getState();
+    if (tab === 'variable_overview') {
+        state.setActiveTab('variables');
+        const type = (['furni', 'user', 'global', 'context'] as VariablesElementType[]).find(type => definitions[type].some(variable => variable.key === key));
+        if (type) {
+            state.setVariablesType(type);
+            state.setSelectedVariableKeys(previous => ({ ...previous, [type]: key }));
+        }
+    }
+    state.setIsVisible(true);
+    return true;
+};

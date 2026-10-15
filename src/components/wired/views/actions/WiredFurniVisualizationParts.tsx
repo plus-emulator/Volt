@@ -1,6 +1,6 @@
-import { FC } from 'react';
+import { FC, useEffect, useRef } from 'react';
 import { localizeWithFallback } from '../../../../api';
-import { Text } from '../../../../common';
+import { useNotification } from '../../../../hooks';
 import { WiredDropdown } from '../WiredDropdown';
 import { WiredRadioGroup } from '../WiredOptions';
 import { WiredSection } from '../WiredSection';
@@ -15,8 +15,22 @@ import { WiredSourcesSelector } from '../WiredSourcesSelector';
 export const WIRED_VISUALIZATION_AUDIENCE_SELECTED_USERS = 0;
 export const WIRED_VISUALIZATION_AUDIENCE_EVERYONE = 1;
 
-export const WiredVisualizationAudienceSection: FC<{ audience: number; onChange: (audience: number) => void }> = ({ audience, onChange }) => (
-    <WiredSection title={localizeWithFallback('wiredfurni.params.furni_visualization.audience', 'Who should see the effect?')}>
+export const WiredVisualizationAudienceSection: FC<{ audience: number; onChange: (audience: number) => void }> = ({ audience, onChange }) => {
+    const { simpleAlert } = useNotification();
+    const informed = useRef(audience === WIRED_VISUALIZATION_AUDIENCE_EVERYONE);
+    useEffect(() => { if (audience === WIRED_VISUALIZATION_AUDIENCE_EVERYONE) informed.current = true; }, [audience]);
+    const change = (next: number) => {
+        if (next === WIRED_VISUALIZATION_AUDIENCE_EVERYONE && !informed.current) {
+            informed.current = true;
+            simpleAlert(
+                localizeWithFallback('wiredfurni.params.furni_visualization.audience.everyone_info.body', 'To keep this effect visible at all times, including after a room reload, stack this WIRED Effect with "WIRED Trigger: Room Initialized".'),
+                null, null, null,
+                localizeWithFallback('wiredfurni.params.furni_visualization.audience.everyone_info.title', 'Keep this effect visible after reloads')
+            );
+        }
+        onChange(next);
+    };
+    return <WiredSection title={localizeWithFallback('wiredfurni.params.furni_visualization.audience', 'Who should see the effect?')}>
         <WiredDropdown
             options={[
                 {
@@ -29,23 +43,10 @@ export const WiredVisualizationAudienceSection: FC<{ audience: number; onChange:
                 }
             ]}
             value={audience}
-            onChange={onChange}
+            onChange={change}
         />
-        {audience === WIRED_VISUALIZATION_AUDIENCE_EVERYONE && (
-            <div className="flex flex-col gap-1">
-                <Text bold small>
-                    {localizeWithFallback('wiredfurni.params.furni_visualization.audience.everyone_info.title', 'Keep this effect visible after reloads')}
-                </Text>
-                <Text small>
-                    {localizeWithFallback(
-                        'wiredfurni.params.furni_visualization.audience.everyone_info.body',
-                        'To keep this effect visible at all times, including after a room reload, stack this WIRED Effect with "WIRED Trigger: Room Initialized".'
-                    )}
-                </Text>
-            </div>
-        )}
-    </WiredSection>
-);
+    </WiredSection>;
+};
 
 export interface WiredVisualizationSourcesProps {
     targetUsers: boolean;

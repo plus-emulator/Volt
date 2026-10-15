@@ -33,6 +33,7 @@ export const WiredActionProgressAchievementNativeView: FC<{}> = () => {
     const [literal, setLiteral] = useState(0);
     const [target, setTarget] = useState<WiredValueTargetType>('user');
     const [variableToken, setVariableToken] = useState('');
+    const [valueValid, setValueValid] = useState(true);
 
     useEffect(() => {
         if (!trigger) return;
@@ -52,7 +53,7 @@ export const WiredActionProgressAchievementNativeView: FC<{}> = () => {
     );
     const dropdownOptions = useMemo(() => names.map((name, id) => ({ id, label: name })), [names]);
 
-    const validate = () => option !== 1 || variableSlotOf(variableToken) !== WIRED_VARIABLE_ABSENT;
+    const validate = () => valueValid && (option !== 1 || variableSlotOf(variableToken) !== WIRED_VARIABLE_ABSENT);
 
     const save = () => {
         setStringParam(achievement);
@@ -69,7 +70,7 @@ export const WiredActionProgressAchievementNativeView: FC<{}> = () => {
             validate={validate}
         >
             <WiredSection title={localizeWithFallback('wiredfurni.params.progress_achievement.name', 'Achievement to progress:')}>
-                <WiredDropdown options={dropdownOptions} value={names.indexOf(achievement)} onChange={(id) => setAchievement(names[id] ?? '')} />
+                <WiredDropdown caption={localizeWithFallback('wiredfurni.params.progress_achievement.name', 'Achievement to progress:')} options={dropdownOptions} value={names.indexOf(achievement)} onChange={(id) => setAchievement(names[id] ?? '')} />
             </WiredSection>
             <WiredSection title={localizeWithFallback('wiredfurni.params.progress_achievement.mode', 'Progression mode:')}>
                 <WiredRadioGroup
@@ -96,6 +97,7 @@ export const WiredActionProgressAchievementNativeView: FC<{}> = () => {
                 onOptionChange={setOption}
                 onTargetChange={setTarget}
                 onVariableTokenChange={setVariableToken}
+                onValidityChange={setValueValid}
             />
         </WiredActionBaseView>
     );

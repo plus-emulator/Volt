@@ -2849,3 +2849,72 @@
 .volt-wired__option--checkbox > .volt-wired__native-text {
     margin-top: 2px;
 }
+
+/* VariableFx presets: named selector rows, folded advanced sections and the change-only radio attachment. */
+.volt-wired .volt-wired__section-toggle { display: flex; align-items: center; gap: 5px; padding: 0; border: 0; background: none; cursor: pointer; }
+.volt-wired__section-toggle > span:first-child { width: 8px; height: 8px; background: url('../assets/images/wired/native/arrow-right.png') center no-repeat; }
+.volt-wired__section-toggle > span:first-child.is-expanded { background-image: url('../assets/images/wired/native/arrow-down.png'); }
+.volt-wired-fx-editor__visualization, .volt-wired-fx-editor__change-settings { display: flex; flex-direction: column; gap: 5px; padding: 5px 6px; border: 1px solid #aaa; border-radius: 3px; margin: 0; min-width: 0; }
+.volt-wired-fx-editor__named-row { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.volt-wired-fx-editor__named-row > :first-child { flex-shrink: 0; }
+.volt-wired-fx-editor__named-row > .volt-wired__dropdown, .volt-wired-fx-editor__named-row > select, .volt-wired-fx-editor__named-row > .habbo-dropmenu { flex: 1; min-width: 0; }
+.volt-wired-fx-editor__update-mask { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 5px; }
+.volt-wired-fx-editor__range { display: flex; align-items: center; gap: 5px; }
+.volt-wired-fx-editor__range label { display: flex; align-items: center; flex: 1; gap: 5px; min-width: 0; }
+.volt-wired-fx-editor__range input { width: 100%; min-width: 0; }
+.volt-wired-fx-editor__audience { display: flex; flex-direction: column; gap: 5px; }
+.volt-wired-fx-editor__override-value { display: flex; align-items: center; gap: 5px; min-width: 0; padding: 0 0 0 21px; margin: 0; border: 0; }
+.volt-wired-fx-editor__override-value > :first-child { flex: 1; min-width: 0; }
+.volt-wired-fx-editor__override-value:disabled { opacity: .5; }
+.volt-wired-fx-audience__body { display: flex; flex-direction: column; gap: 5px; padding: 8px; }
+.volt-wired-fx-audience__actions { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 0 8px 8px; }
+
+/* VariableFxPreviewBlockPreset: 112px block, centered 280x96 viewport. */
+.volt-wired-fx-preview { position: relative; height: 112px; flex: 0 0 112px; overflow: hidden; }
+.volt-wired-fx-preview__label { position: absolute; top: 6px; left: 6px; opacity: .65; }
+.volt-wired-fx-preview__zoom { position: absolute; top: 6px; right: 6px; opacity: .65; }
+.volt-wired-fx-preview__viewport { position: absolute; width: 280px; height: 96px; left: 50%; top: 8px; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.volt-wired-fx-preview__randomize { position: absolute; right: 5px; bottom: 5px; border: 0; padding: 0; background: none; cursor: pointer; }
+.volt-wired-fx-preview__randomize img { display: block; image-rendering: pixelated; }
+
+/* NamedDropdownPreset aligns every visible visualization caption to the longest one. */
+.volt-wired-fx-editor__style-content { display: flex; flex-direction: column; gap: 5px; padding: 5px; }
+.volt-wired-fx-editor__visualization { display: grid; grid-template-columns: max-content minmax(0, 1fr); }
+.volt-wired-fx-editor__visualization > .volt-wired__native-text { grid-column: 1 / -1; }
+.volt-wired-fx-editor__visualization > .volt-wired-fx-editor__named-row { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; }
+
+.volt-wired-fx-editor__range .volt-wired__input-box { flex: 1; min-width: 0; }
+
+/* AIR25 message_editor_toolbar / preview and MessageEditorPopupPreset. */
+.volt-wired-message-editor__body { padding: 8px; display: flex; flex-direction: column; gap: 5px; }
+.volt-wired-message-editor__toolbar { position: relative; display: flex; align-items: flex-start; height: 19px; flex-shrink: 0; }
+.volt-wired-message-editor__references { position: absolute; left: 50%; transform: translateX(-50%); display: flex; gap: 5px; height: 19px; }
+.volt-wired-message-editor__counter { position: absolute; right: 0; top: 1px; width: 60px; text-align: right; }
+.volt-wired-message-editor__palette { position: absolute; left: 54px; top: 19px; z-index: 2; padding: 4px; display: flex; gap: 3px; border: 1px solid #919191; background: #e2e2e2; }
+.volt-wired-message-editor__swatch { width: 13px; height: 14px; border: 1px solid #919191; }
+.volt-wired-message-editor__textarea { width: 100%; resize: none; padding: 3px; border: 1px solid #919191; border-radius: 0; background: #fff; color: #000; font: 11px/16px HabboAirUbuntu, sans-serif; }
+.volt-wired-message-preview { display: flex; flex-direction: column; gap: 5px; }
+.volt-wired-message-preview__area { width: 100%; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+.volt-wired-message-preview__bubble { position: absolute; top: 50%; left: 0; width: max-content; transform-origin: left center; translate: 0 -50%; pointer-events: none; }
+.volt-wired-message-preview__bubble .bubble-container { position: relative; pointer-events: none; }
+
+.volt-wired-message-editor__native-button { position: relative; height: 19px; padding: 0; border: 0; background: transparent; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
+.volt-wired-message-editor__native-button.is-color { margin-left: 4px; }
+.volt-wired-message-editor__button-text { position: relative; top: -1px; pointer-events: none; }
+.volt-wired-message-editor__divider { width: 1px; height: 19px; background: linear-gradient(to bottom, #919191 0 18px, #f2f2f2 18px); }
+.volt-wired-message-editor [role='dialog'] { pointer-events: auto; }
+.volt-wired-message-editor__body { position: relative; z-index: 1; }
+.volt-wired.volt-wired-message-editor textarea.volt-wired-message-editor__textarea { background: #fff !important; border: 1px solid #919191 !important; border-radius: 0 !important; box-shadow: none !important; }
+
+/* AIR LinkDataframe row: equally sized key/mode controls and aligned named labels. */
+.volt-wired__dataframe-row .volt-wired__native-section-inner {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    column-gap: 5px;
+    row-gap: 5px;
+}
+.volt-wired__dataframe-row .volt-wired__native-section-header { grid-column: 1 / -1; }
+.volt-wired__dataframe-field { display: contents; }
+.volt-wired__dataframe-field > .volt-wired__native-text { margin-top: 2px; }
+.volt-wired__dataframe-controls { display: flex; min-width: 0; gap: 5px; }
+.volt-wired__dataframe-controls > * { flex: 1 1 0; min-width: 0; width: 0 !important; }

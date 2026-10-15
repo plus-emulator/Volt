@@ -1,0 +1,9 @@
+.volt-wired__textarea { position: relative; width: 100%; flex: none; }
+.volt-wired textarea.volt-wired__textarea-field {
+    position: absolute; top: 2px; left: 4px; width: calc(100% - 8px); height: calc(100% - 5px);
+    min-height: 0 !important; resize: none; margin: 0; padding: 0 0 0 5px;
+    border: 0 !important; border-radius: 0 !important; background: transparent !important;
+    box-shadow: none !important; color: #4a4a4a !important; outline: 0;
+    font: 11px/16px HabboAirUbuntu, sans-serif !important;
+}
+.volt-wired__textarea-field::placeholder { color: #4a4a4a; opacity: 0.5; }

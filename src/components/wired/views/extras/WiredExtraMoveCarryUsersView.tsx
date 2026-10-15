@@ -1,6 +1,7 @@
 import { FC, useEffect, useState } from 'react';
 import { LocalizeText, WiredFurniType } from '../../../../api';
-import { Text } from '../../../../common';
+import { WiredRadioGroup } from '../WiredOptions';
+import { WiredSection } from '../WiredSection';
 import { useWired } from '../../../../hooks';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { normalizeNativeSource } from '../../../../api';
@@ -38,7 +39,8 @@ export const WiredExtraMoveCarryUsersView: FC<{}> = () => {
             hasSpecialInput={true}
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE}
             save={save}
-            cardStyle={{ width: 420 }}
+            nativeLayout
+            footerCollapsible={false}
             footer={
                 <WiredSourcesSelector
                     showUsers={true}
@@ -49,29 +51,9 @@ export const WiredExtraMoveCarryUsersView: FC<{}> = () => {
                 />
             }
         >
-            <div className="flex flex-col gap-2">
-                <Text bold>{LocalizeText('wiredfurni.params.carry_mode')}</Text>
-                <label className="flex items-center gap-1 cursor-pointer">
-                    <input
-                        checked={carryMode === CARRY_MODE_DIRECT}
-                        className="form-check-input"
-                        name="wiredCarryMode"
-                        type="radio"
-                        onChange={() => setCarryMode(CARRY_MODE_DIRECT)}
-                    />
-                    <Text>{LocalizeText('wiredfurni.params.carry_mode.0')}</Text>
-                </label>
-                <label className="flex items-center gap-1 cursor-pointer">
-                    <input
-                        checked={carryMode === CARRY_MODE_SAME_TILE}
-                        className="form-check-input"
-                        name="wiredCarryMode"
-                        type="radio"
-                        onChange={() => setCarryMode(CARRY_MODE_SAME_TILE)}
-                    />
-                    <Text>{LocalizeText('wiredfurni.params.carry_mode.1')}</Text>
-                </label>
-            </div>
+            <WiredSection title={LocalizeText('wiredfurni.params.carry_mode')}>
+                <WiredRadioGroup name="wiredCarryMode" options={[0, 1].map(id => ({ id, label: LocalizeText(`wiredfurni.params.carry_mode.${id}`) }))} value={carryMode} onChange={setCarryMode} />
+            </WiredSection>
         </WiredExtraBaseView>
     );
 };

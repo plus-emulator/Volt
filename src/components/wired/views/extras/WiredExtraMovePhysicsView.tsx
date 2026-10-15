@@ -1,6 +1,7 @@
 import { FC, useEffect, useMemo, useState } from 'react';
 import { LocalizeText, WiredFurniType } from '../../../../api';
-import { Text } from '../../../../common';
+import { WiredCheckboxGroup, WiredCheckboxOption } from '../WiredOptions';
+import { WiredSection } from '../WiredSection';
 import { useWired } from '../../../../hooks';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { normalizeNativeSource } from '../../../../api';
@@ -48,11 +49,9 @@ export const WiredExtraMovePhysicsView: FC<{}> = () => {
     };
 
     const footer = useMemo(() => {
-        if (!moveThroughFurni && !blockByFurni && !moveThroughUsers) return null;
-
         return (
             <div className="flex flex-col gap-3">
-                {moveThroughFurni && (
+                {(
                     <WiredSourcesSelector
                         showFurni={true}
                         furniSlot={0}
@@ -61,7 +60,7 @@ export const WiredExtraMovePhysicsView: FC<{}> = () => {
                         onChangeFurni={(value) => setMoveThroughFurniSource(normalizeFurni(value, 0))}
                     />
                 )}
-                {blockByFurni && (
+                {(
                     <WiredSourcesSelector
                         showFurni={true}
                         furniSlot={1}
@@ -70,7 +69,7 @@ export const WiredExtraMovePhysicsView: FC<{}> = () => {
                         onChangeFurni={(value) => setBlockByFurniSource(normalizeFurni(value, 1))}
                     />
                 )}
-                {moveThroughUsers && (
+                {(
                     <WiredSourcesSelector
                         showUsers={true}
                         userSlot={0}
@@ -89,38 +88,17 @@ export const WiredExtraMovePhysicsView: FC<{}> = () => {
             hasSpecialInput={true}
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE}
             save={save}
-            cardStyle={{ width: 430 }}
+            nativeLayout
             footer={footer}
         >
-            <div className="flex flex-col gap-2">
-                <Text bold>{LocalizeText('wiredfurni.params.select_options')}</Text>
-                <label className="flex items-center gap-2 cursor-pointer">
-                    <input checked={keepAltitude} className="form-check-input" type="checkbox" onChange={(event) => setKeepAltitude(event.target.checked)} />
-                    <Text>{LocalizeText('wiredfurni.params.movephysics.keep_altitude')}</Text>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                        checked={moveThroughFurni}
-                        className="form-check-input"
-                        type="checkbox"
-                        onChange={(event) => setMoveThroughFurni(event.target.checked)}
-                    />
-                    <Text>{LocalizeText('wiredfurni.params.movephysics.move_through_furni')}</Text>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                        checked={moveThroughUsers}
-                        className="form-check-input"
-                        type="checkbox"
-                        onChange={(event) => setMoveThroughUsers(event.target.checked)}
-                    />
-                    <Text>{LocalizeText('wiredfurni.params.movephysics.move_through_users')}</Text>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                    <input checked={blockByFurni} className="form-check-input" type="checkbox" onChange={(event) => setBlockByFurni(event.target.checked)} />
-                    <Text>{LocalizeText('wiredfurni.params.movephysics.block_by_furni')}</Text>
-                </label>
-            </div>
+            <WiredSection title={LocalizeText('wiredfurni.params.select_options')}>
+                <WiredCheckboxGroup>
+                    <WiredCheckboxOption checked={keepAltitude} onChange={setKeepAltitude} label={LocalizeText('wiredfurni.params.movephysics.keep_altitude')} />
+                    <WiredCheckboxOption checked={moveThroughFurni} onChange={setMoveThroughFurni} label={LocalizeText('wiredfurni.params.movephysics.move_through_furni')} />
+                    <WiredCheckboxOption checked={moveThroughUsers} onChange={setMoveThroughUsers} label={LocalizeText('wiredfurni.params.movephysics.move_through_users')} />
+                    <WiredCheckboxOption checked={blockByFurni} onChange={setBlockByFurni} label={LocalizeText('wiredfurni.params.movephysics.block_by_furni')} last />
+                </WiredCheckboxGroup>
+            </WiredSection>
         </WiredExtraBaseView>
     );
 };

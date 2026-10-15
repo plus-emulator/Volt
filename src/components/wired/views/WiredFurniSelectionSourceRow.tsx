@@ -2,7 +2,10 @@ import { FC, ReactNode } from 'react';
 import { FaChevronLeft, FaChevronRight, FaMousePointer } from 'react-icons/fa';
 import { LocalizeText } from '../../../api';
 import { Button, Text } from '../../../common';
-import { WiredSourceOption } from './WiredSourcesSelector';
+import { WiredSourceOption, WiredSourceRow } from './WiredSourcesSelector';
+import { useWiredNative } from './WiredNativeContext';
+import { WiredSection } from './WiredSection';
+import { WiredFurniPickButton } from './WiredFurniPickButton';
 
 interface WiredFurniSelectionSourceRowProps {
     title: string;
@@ -36,6 +39,7 @@ export const WiredFurniSelectionSourceRow: FC<WiredFurniSelectionSourceRowProps>
         onChange = null,
         onSelectionActivate = null
     } = props;
+    const native = useWiredNative();
     const currentIndex = Math.max(
         0,
         options.findIndex((option) => option.value === value)
@@ -55,6 +59,13 @@ export const WiredFurniSelectionSourceRow: FC<WiredFurniSelectionSourceRowProps>
 
         onChange(options[nextIndex].value);
     };
+
+    if (native) return <WiredSection title={resolvedTitle} headerOptionsRight={<>
+        {headerContent}
+        {showSelectionToggle && shouldShowCount && <WiredFurniPickButton kind={selectionKind} active={selectionActive} disabled={!canActivateSelection} onClick={() => onSelectionActivate?.()} />}
+    </>}>
+        <WiredSourceRow label={displayText} disabled={options.length < 2} onPrevious={() => cycleValue(-1)} onNext={() => cycleValue(1)} />
+    </WiredSection>;
 
     return (
         <div className="volt-wired__source-row">

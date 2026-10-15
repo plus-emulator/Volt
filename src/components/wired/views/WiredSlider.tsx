@@ -1,4 +1,4 @@
-import { CSSProperties, FC, PointerEvent as ReactPointerEvent, ReactNode, useRef } from 'react';
+import { CSSProperties, FC, PointerEvent as ReactPointerEvent, ReactNode, useLayoutEffect, useRef, useState } from 'react';
 import { LocalizeText, WiredSliderConverter, WIRED_SLIDER_ECHO } from '../../../api';
 import { Slider, SliderProps } from '../../../common';
 import sliderTrack from '../../../assets/images/wired/native/slider_track.png';
@@ -25,23 +25,43 @@ export interface WiredSliderProps {
 export const WiredSlider: FC<WiredSliderProps> = ({ min, max, step = 1, value, disabled = false, onChange }) => {
     const areaRef = useRef<HTMLDivElement>(null);
     const drag = useRef<{ startX: number; startValue: number } | null>(null);
+    const [areaWidth, setAreaWidth] = useState(148);
+
+    // AIR retains its layout width when folded. DOM children measure zero until their section opens.
+    useLayoutEffect(() => {
+        const area = areaRef.current;
+        if (!area) return;
+        const measure = () => { if (area.clientWidth > 0) setAreaWidth(area.clientWidth); };
+        measure();
+        if (typeof ResizeObserver === 'undefined') return;
+        const observer = new ResizeObserver(measure);
+        observer.observe(area);
+        return () => observer.disconnect();
+    }, []);
+    useLayoutEffect(() => { if (disabled) drag.current = null; }, [disabled]);
+
+    const isDisabled = () => disabled || !!areaRef.current?.closest('fieldset:disabled, [inert]');
     const clamp = (next: number) => Math.min(max, Math.max(min, next));
-    const travel = () => (areaRef.current?.clientWidth ?? 148) - THUMB_WIDTH;
-    const position = max === min ? 0 : Math.trunc(travel() * ((clamp(value) - min) / (max - min)));
+    const travel = Math.max(0, areaWidth - THUMB_WIDTH);
+    const position = max === min ? 0 : Math.trunc(travel * ((clamp(value) - min) / (max - min)));
 
     const onThumbDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-        if (disabled || event.button !== 0) return;
+        if (isDisabled() || event.button !== 0 || step === 0 || max === min || travel === 0) return;
 
         event.currentTarget.setPointerCapture(event.pointerId);
         drag.current = { startX: event.clientX, startValue: value };
     };
 
     const onThumbMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+        if (isDisabled() || step === 0 || max === min || travel === 0) {
+            drag.current = null;
+            return;
+        }
         if (!drag.current) return;
 
-        const startPosition = Math.trunc(travel() * ((clamp(drag.current.startValue) - min) / (max - min)));
-        const x = Math.min(travel(), Math.max(0, startPosition + event.clientX - drag.current.startX));
-        const raw = (x / travel()) * (max - min) + min;
+        const startPosition = Math.trunc(travel * ((clamp(drag.current.startValue) - min) / (max - min)));
+        const x = Math.min(travel, Math.max(0, startPosition + event.clientX - drag.current.startX));
+        const raw = (x / travel) * (max - min) + min;
         const next = clamp(Math.round(raw / step) * step);
 
         if (next !== value) onChange(next);
@@ -51,9 +71,14 @@ export const WiredSlider: FC<WiredSliderProps> = ({ min, max, step = 1, value, d
         drag.current = null;
     };
 
+    const moveByStep = (direction: number) => {
+        drag.current = null;
+        if (!isDisabled() && step !== 0) onChange(clamp(value + direction * step));
+    };
+
     return (
         <div className="volt-wired__slider-row">
-            <WiredShellButton className="volt-wired__icon-button" disabled={disabled} shellStyle="illumina" onClick={() => onChange(clamp(value - step))}>
+            <WiredShellButton className="volt-wired__icon-button" disabled={disabled} shellStyle="illumina" onClick={() => moveByStep(-1)}>
                 <img alt="" draggable={false} src={arrowLeft} />
             </WiredShellButton>
             <div className="volt-wired__slider" style={{ '--wired-slider-bg': `url(${sliderTrack})` } as CSSProperties}>
@@ -68,7 +93,7 @@ export const WiredSlider: FC<WiredSliderProps> = ({ min, max, step = 1, value, d
                     />
                 </div>
             </div>
-            <WiredShellButton className="volt-wired__icon-button" disabled={disabled} shellStyle="illumina" onClick={() => onChange(clamp(value + step))}>
+            <WiredShellButton className="volt-wired__icon-button" disabled={disabled} shellStyle="illumina" onClick={() => moveByStep(1)}>
                 <img alt="" draggable={false} src={arrowRight} />
             </WiredShellButton>
         </div>

@@ -1,0 +1,14 @@
+AIR package25 WIN63-202610131318-860371703. Original PNG bytes.
+add.png: 2434_add_png.png
+remove.png: 2171_remove_png$fde660c26432bd80cc5a82c9e277de2d1362735303.png
+reference.png: 2649_reference_png.png
+enlarge.png: 2601_enlarge_image_png.png
+reduce.png: 2393_reduce_image_png$6074c7f532b96f232fb4a9d6ddb1841c1069720581.png
+border-N.png: 3398_fp_border_N_png$0ee7ff9652c6b58e87fc46ebc25223101309962065.png
+border-NE.png: 3401_fp_border_NE_png$352bfdc3d46ff27e053b4124f537799a2048600082.png
+border-E.png: 3402_fp_border_E_png$d319989902622e9f9e6597f93d9c825e1318408408.png
+border-SE.png: 3399_fp_border_SE_png$39891728a47f3114849224ef022ef2541910730549.png
+border-S.png: 3395_fp_border_S_png$8613e916f31fae3f5d9f2bf79602f9f41314822638.png
+border-SW.png: 3397_fp_border_SW_png$4e91543da1c503918a1538524f9f86c31894045639.png
+border-W.png: 3403_fp_border_W_png$a5412aaf94bb9f80e4962456234068931301756906.png
+border-NW.png: 3396_fp_border_NW_png$9370673f0664bd9447052e402a6391642031915836.png

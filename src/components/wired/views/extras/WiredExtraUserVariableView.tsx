@@ -1,141 +1,63 @@
-﻿import { FC, useEffect, useMemo, useState } from 'react';
-import { LocalizeText, localizeWithFallback, WiredFurniType  } from '../../../../api';
-import { Text } from '../../../../common';
-import { useWired } from '../../../../hooks';
-import { VoltInput } from '../../../../layout';
+import { FC, useEffect, useMemo, useState } from 'react';
+import { handleWiredVariableNameKeyDown, LocalizeText, localizeWithFallback, normalizeWiredVariableName, WIRED_VARIABLE_NAME_MAX, WiredFurniType } from '../../../../api';
+import { useNotificationActions, useWired } from '../../../../hooks';
+import { WiredCheckboxOption, WiredRadioGroup } from '../WiredOptions';
+import { WiredSection } from '../WiredSection';
+import { WiredTextInput } from '../WiredTextInput';
 import { WiredExtraBaseView } from './WiredExtraBaseView';
 
-const AVAILABILITY_ROOM = 0;
-const AVAILABILITY_PERMANENT = 10;
-const AVAILABILITY_SHARED = 11;
-const MAX_NAME_LENGTH = 40;
+/** AIR VariableNameSection: native 40-character input, spaces become underscores and names are lowercase. */
+export const WiredVariableNameSection: FC<{ value: string; onChange: (value: string) => void; disabled?: boolean }> = ({ value, onChange, disabled = false }) =>
+    <WiredSection title={LocalizeText('wiredfurni.params.variables.variable_name')}>
+        <WiredTextInput maxLength={WIRED_VARIABLE_NAME_MAX} value={value} disabled={disabled} onChange={name => onChange(normalizeWiredVariableName(name))} onKeyDown={event => handleWiredVariableNameKeyDown(event, onChange)} />
+    </WiredSection>;
 
-const normalizeVariableName = (value: string) =>
-{
-    let normalizedValue = (value ?? '').replace(/[\t\r\n]/g, '');
-
-    if(normalizedValue.includes('=')) normalizedValue = normalizedValue.substring(0, normalizedValue.indexOf('=')).trim();
-
-    while(normalizedValue.startsWith('@') || normalizedValue.startsWith('~'))
-    {
-        normalizedValue = normalizedValue.substring(1);
-    }
-
-    normalizedValue = normalizedValue.replace(/\s+/g, '_');
-    normalizedValue = normalizedValue.replace(/[^A-Za-z0-9_]/g, '');
-
-    return normalizedValue.slice(0, MAX_NAME_LENGTH);
-};
-
-const handleVariableNameKeyDown = (event: React.KeyboardEvent<HTMLInputElement>, setValue: (value: string) => void) =>
-{
-    if(event.key !== ' ') return;
-
-    event.preventDefault();
-
-    const input = event.currentTarget;
-    const start = (input.selectionStart ?? input.value.length);
-    const end = (input.selectionEnd ?? start);
-    const nextValue = `${ input.value.substring(0, start) }_${ input.value.substring(end) }`;
-
-    setValue(normalizeVariableName(nextValue));
-
-    window.requestAnimationFrame(() => input.setSelectionRange(Math.min(start + 1, input.value.length + 1), Math.min(start + 1, input.value.length + 1)));
-};
-
-interface WiredExtraVariableViewProps
-{
+interface WiredExtraVariableViewProps {
     availabilityRoomValue: number;
     availabilityRoomText: string;
     availabilityRadioName: string;
     showSharedAvailability?: boolean;
-    /** The native owned order: user cards carry [availability, has value], furni cards [has value, availability]. */
+    /** User [availability, has value]; furniture [has value, availability]. */
     availabilityFirst?: boolean;
 }
 
-export const WiredExtraVariableView: FC<WiredExtraVariableViewProps> = props =>
-{
-    const { trigger = null, setIntParams = null, setStringParam = null } = useWired();
-    const [ variableName, setVariableName ] = useState('');
-    const [ hasValue, setHasValue ] = useState(false);
-    const [ availability, setAvailability ] = useState(props.availabilityRoomValue);
-    const roomAvailabilityText = useMemo(() =>
-    {
-        const localizedText = props.availabilityRoomText;
-
-        if(localizedText && (localizedText !== 'wiredfurni.params.variables.availability.1')) return localizedText;
-
-        return localizeWithFallback('wiredfurni.condition.room.active', 'While the room is active');
-    }, [ props.availabilityRoomText ]);
-    const normalizeAvailability = useMemo(() => (value: number) =>
-    {
-        if(props.showSharedAvailability && (value === AVAILABILITY_SHARED)) return AVAILABILITY_SHARED;
-        if(value === AVAILABILITY_PERMANENT) return AVAILABILITY_PERMANENT;
-
-        return props.availabilityRoomValue;
-    }, [ props.availabilityRoomValue, props.showSharedAvailability ]);
-
-    useEffect(() =>
-    {
-        if(!trigger) return;
-
-        setVariableName(normalizeVariableName(trigger.stringData));
-        const availabilityIndex = props.availabilityFirst ? 0 : 1;
-        const hasValueIndex = props.availabilityFirst ? 1 : 0;
-
-        setHasValue((trigger.intData.length > hasValueIndex) ? (trigger.intData[hasValueIndex] === 1) : false);
-        setAvailability(normalizeAvailability((trigger.intData.length > availabilityIndex) ? trigger.intData[availabilityIndex] : props.availabilityRoomValue));
-    }, [ normalizeAvailability, props.availabilityFirst, props.availabilityRoomValue, trigger ]);
-
-    const save = () =>
-    {
-        setStringParam(normalizeVariableName(variableName));
-        const ownedHasValue = hasValue ? 1 : 0;
-        const ownedAvailability = normalizeAvailability(availability);
-
-        setIntParams(props.availabilityFirst ? [ ownedAvailability, ownedHasValue ] : [ ownedHasValue, ownedAvailability ]);
+/** AIR UserVariable/FurniVariable buildInputs share these three sections. */
+export const WiredExtraVariableView: FC<WiredExtraVariableViewProps> = props => {
+    const { trigger, setIntParams, setStringParam } = useWired();
+    const { showConfirm } = useNotificationActions();
+    const [variableName, setVariableName] = useState('');
+    const [hasValue, setHasValue] = useState(false);
+    const [availability, setAvailability] = useState(props.availabilityRoomValue);
+    const normalizeAvailability = useMemo(() => (value: number) => props.showSharedAvailability && value === 11 ? 11 : value === 10 ? 10 : props.availabilityRoomValue, [props.availabilityRoomValue, props.showSharedAvailability]);
+    useEffect(() => {
+        if (!trigger) return;
+        setVariableName(normalizeWiredVariableName(trigger.stringData));
+        setHasValue(trigger.intData[props.availabilityFirst ? 1 : 0] === 1);
+        setAvailability(normalizeAvailability(trigger.intData[props.availabilityFirst ? 0 : 1] ?? props.availabilityRoomValue));
+    }, [normalizeAvailability, props.availabilityFirst, props.availabilityRoomValue, trigger]);
+    const save = () => {
+        setStringParam(normalizeWiredVariableName(variableName));
+        setIntParams(props.availabilityFirst ? [normalizeAvailability(availability), hasValue ? 1 : 0] : [hasValue ? 1 : 0, normalizeAvailability(availability)]);
     };
-
-    return (
-        <WiredExtraBaseView hasSpecialInput={ true } requiresFurni={ WiredFurniType.STUFF_SELECTION_OPTION_NONE } save={ save } cardStyle={ { width: 400 } }>
-            <div className="flex flex-col gap-2">
-                <div className="flex flex-col gap-1">
-                    <Text>{ LocalizeText('wiredfurni.params.variables.variable_name') }</Text>
-                    <VoltInput maxLength={ MAX_NAME_LENGTH } type="text" value={ variableName } onChange={ event => setVariableName(normalizeVariableName(event.target.value)) } onKeyDown={ event => handleVariableNameKeyDown(event, setVariableName) } />
-                </div>
-
-                <div className="flex flex-col gap-1">
-                    <Text>{ LocalizeText('wiredfurni.params.variables.settings') }</Text>
-                    <label className="flex items-center gap-1 cursor-pointer">
-                        <input checked={ hasValue } className="form-check-input" type="checkbox" onChange={ event => setHasValue(event.target.checked) } />
-                        <Text>{ LocalizeText('wiredfurni.params.variables.settings.has_value') }</Text>
-                    </label>
-                </div>
-
-                <div className="flex flex-col gap-1">
-                    <Text>{ LocalizeText('wiredfurni.params.variables.availability') }</Text>
-                    <label className="flex items-center gap-1 cursor-pointer">
-                        <input checked={ (availability === props.availabilityRoomValue) } className="form-check-input" name={ props.availabilityRadioName } type="radio" onChange={ () => setAvailability(props.availabilityRoomValue) } />
-                        <Text>{ roomAvailabilityText }</Text>
-                    </label>
-                    <label className="flex items-center gap-1 cursor-pointer">
-                        <input checked={ (availability === AVAILABILITY_PERMANENT) } className="form-check-input" name={ props.availabilityRadioName } type="radio" onChange={ () => setAvailability(AVAILABILITY_PERMANENT) } />
-                        <Text>{ LocalizeText('wiredfurni.params.variables.availability.10') }</Text>
-                    </label>
-                    { !!props.showSharedAvailability &&
-                        <label className="flex items-center gap-1 cursor-pointer">
-                            <input checked={ (availability === AVAILABILITY_SHARED) } className="form-check-input" name={ props.availabilityRadioName } type="radio" onChange={ () => setAvailability(AVAILABILITY_SHARED) } />
-                            <Text>{ LocalizeText('wiredfurni.params.variables.availability.11') }</Text>
-                        </label> }
-                </div>
-            </div>
-        </WiredExtraBaseView>
-    );
+    const roomText = props.availabilityRoomText === 'wiredfurni.params.variables.availability.1' ? localizeWithFallback('wiredfurni.condition.room.active', 'While the room is active') : props.availabilityRoomText;
+    // UserVariable.requireConfirmation: moving persisted/shared data to room-only availability deletes stored holders.
+    const wasStored = trigger?.intData[0] === 10 || trigger?.intData[0] === 11;
+    const clearsStoredValues = props.availabilityFirst && wasStored && availability !== 10 && availability !== 11;
+    return <WiredExtraBaseView nativeLayout hasSpecialInput requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save}
+        confirmSave={clearsStoredValues ? (confirm, cancel) => showConfirm(
+            LocalizeText('wiredfurni.variables.availability_change.body'), confirm, cancel, null, null,
+            LocalizeText('wiredfurni.variables.availability_change.title')
+        ) : undefined}>
+        <WiredVariableNameSection value={variableName} onChange={setVariableName} />
+        <WiredSection title={LocalizeText('wiredfurni.params.variables.settings')}><WiredCheckboxOption last checked={hasValue} onChange={setHasValue} label={LocalizeText('wiredfurni.params.variables.settings.has_value')} /></WiredSection>
+        <WiredSection title={LocalizeText('wiredfurni.params.variables.availability')}>
+            <WiredRadioGroup name={props.availabilityRadioName} value={availability} onChange={setAvailability} options={[
+                { id: props.availabilityRoomValue, label: roomText },
+                { id: 10, label: LocalizeText('wiredfurni.params.variables.availability.10') },
+                ...(props.showSharedAvailability ? [{ id: 11, label: LocalizeText('wiredfurni.params.variables.availability.11') }] : [])
+            ]} />
+        </WiredSection>
+    </WiredExtraBaseView>;
 };
 
-export const WiredExtraUserVariableView: FC<{}> = () =>
-{
-    return <WiredExtraVariableView availabilityRadioName="wiredUserVariableAvailability" availabilityRoomText={ LocalizeText('wiredfurni.params.variables.availability.0') } availabilityRoomValue={ AVAILABILITY_ROOM } showSharedAvailability={ true } availabilityFirst={ true } />;
-};
-
-
+export const WiredExtraUserVariableView: FC = () => <WiredExtraVariableView availabilityRadioName="wiredUserVariableAvailability" availabilityRoomText={LocalizeText('wiredfurni.params.variables.availability.0')} availabilityRoomValue={0} showSharedAvailability availabilityFirst />;

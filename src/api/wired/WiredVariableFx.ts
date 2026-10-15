@@ -53,9 +53,9 @@ export const WIRED_FX_RENDERER = {
     BLOCK: 2,
     STRIPED: 3,
     ARROW: 4,
-    HEARTS: 10,
-    HEALTH_BAR: 11,
-    HEALTH_CROSS: 12,
+    HEALTH_BAR: 10,
+    MASKED_HEART_FILL: 11,
+    STACKED_HEALTH_POINTS: 12,
     THERMOMETER: 13,
     LEVEL_WITH_PROGRESS: 20,
     LEVEL_DETAILS: 21,
@@ -272,27 +272,27 @@ const progressStyle = (key: string, fallback: string, renderer: number): IFxStyl
 const STYLES: Record<number, IWiredVariableFxStyle[]> = {
     [WIRED_FX_CATEGORY.HEALTH_POINTS]: buildStyles([
         {
-            key: 'wiredfurni.params.variablefx.style.hearts',
-            fallback: 'Hearts',
-            renderers: [WIRED_FX_RENDERER.HEARTS],
+            key: 'wiredfurni.params.variablefx.style.health_points.0',
+            fallback: 'Health bar',
+            renderers: [WIRED_FX_RENDERER.HEALTH_BAR],
             colors: [WIRED_FX_COLOR_DYNAMIC_RED_TO_GREEN],
             widths: [WIDTH_SMALL, WIDTH_MEDIUM, WIDTH_LARGE],
             color: WIRED_FX_COLOR_DYNAMIC_RED_TO_GREEN,
             width: WIDTH_MEDIUM,
-            renderer: WIRED_FX_RENDERER.HEARTS
+            renderer: WIRED_FX_RENDERER.HEALTH_BAR
         },
         {
-            key: 'wiredfurni.params.variablefx.style.health_cross',
-            fallback: 'Health cross',
-            renderers: [WIRED_FX_RENDERER.HEALTH_CROSS],
+            key: 'wiredfurni.params.variablefx.style.health_points.1',
+            fallback: 'Stacked hearts',
+            renderers: [WIRED_FX_RENDERER.STACKED_HEALTH_POINTS],
             colors: TEAM_COLORS,
             widths: [WIDTH_MEDIUM, WIDTH_LARGE],
             color: COLOR_RED,
             width: WIDTH_MEDIUM,
-            renderer: WIRED_FX_RENDERER.HEALTH_CROSS
+            renderer: WIRED_FX_RENDERER.STACKED_HEALTH_POINTS
         },
         {
-            key: 'wiredfurni.params.variablefx.style.thermometer',
+            key: 'wiredfurni.params.variablefx.style.health_points.2',
             fallback: 'Thermometer',
             renderers: [WIRED_FX_RENDERER.THERMOMETER],
             colors: [WIRED_FX_COLOR_NOT_APPLICABLE],
@@ -302,16 +302,16 @@ const STYLES: Record<number, IWiredVariableFxStyle[]> = {
             renderer: WIRED_FX_RENDERER.THERMOMETER
         },
         {
-            key: 'wiredfurni.params.variablefx.style.health_bar',
-            fallback: 'Health bar',
-            renderers: [WIRED_FX_RENDERER.HEALTH_BAR],
+            key: 'wiredfurni.params.variablefx.style.health_points.3',
+            fallback: 'Single heart',
+            renderers: [WIRED_FX_RENDERER.MASKED_HEART_FILL],
             colors: TEAM_COLORS,
             widths: [WIRED_FX_WIDTH_NOT_APPLICABLE],
             color: COLOR_RED,
             width: WIRED_FX_WIDTH_NOT_APPLICABLE,
-            renderer: WIRED_FX_RENDERER.HEALTH_BAR
+            renderer: WIRED_FX_RENDERER.MASKED_HEART_FILL
         }
-    ]),
+    ]).sort((a, b) => [0, 3, 1, 2].indexOf(a.styleId) - [0, 3, 1, 2].indexOf(b.styleId)),
     [WIRED_FX_CATEGORY.PROGRESS_BAR]: buildStyles([
         progressStyle('wiredfurni.params.variablefx.style.plain', 'Plain', WIRED_FX_RENDERER.PLAIN),
         progressStyle('wiredfurni.params.variablefx.style.block', 'Blocks', WIRED_FX_RENDERER.BLOCK),

@@ -1,6 +1,7 @@
 import { FC, useEffect, useState } from 'react';
 import { LocalizeText, localizeWithFallback, WiredFurniType } from '../../../../api';
-import { Text } from '../../../../common';
+import { WiredRadioGroup } from '../WiredOptions';
+import { WiredSection } from '../WiredSection';
 import { useWired } from '../../../../hooks';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredActionBaseView } from './WiredActionBaseView';
@@ -31,21 +32,10 @@ export const WiredActionToggleFurniStateView: FC<{}> = (props) => {
             save={save}
             footer={<WiredSourcesSelector showFurni={true} furniSource={furniSource} onChangeFurni={onChangeFurniSource} />}
         >
-            <div className="flex flex-col gap-1">
-                <Text bold>{localizeWithFallback('wiredfurni.params.toggletype_selection', LocalizeText('wiredfurni.params.operator.2'))}</Text>
-                {[0, 1].map((option) => (
-                    <label key={option} className="flex items-center gap-1">
-                        <input
-                            checked={toggleType === option}
-                            className="form-check-input"
-                            name="toggleType"
-                            type="radio"
-                            onChange={() => setToggleType(option)}
-                        />
-                        <Text>{LocalizeText(`wiredfurni.params.toggletype.${option}`)}</Text>
-                    </label>
-                ))}
-            </div>
+            <WiredSection title={localizeWithFallback('wiredfurni.params.toggletype_selection', LocalizeText('wiredfurni.params.operator.2'))}>
+                <WiredRadioGroup name="toggleType" value={toggleType} onChange={setToggleType}
+                    options={[0, 1].map(id => ({ id, label: LocalizeText(`wiredfurni.params.toggletype.${id}`) }))} />
+            </WiredSection>
         </WiredActionBaseView>
     );
 };

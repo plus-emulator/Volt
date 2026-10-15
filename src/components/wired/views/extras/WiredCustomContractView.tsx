@@ -1,17 +1,14 @@
-import { FC, useEffect, useMemo, useState } from 'react';
+import { FC, useEffect, useState } from 'react';
 import { localizeWithFallback, WiredFurniType } from '../../../../api';
-import { Text } from '../../../../common';
 import { useWired } from '../../../../hooks';
-import { VoltInput } from '../../../../layout';
 import { FurniPickSlotButtons } from '../conditions/WiredVariableConditionParts';
 import { WiredCheckboxOption, WiredRadioGroup } from '../WiredOptions';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
-import { WiredVariablePicker } from '../WiredVariablePicker';
-import { buildWiredVariablePickerEntries, WiredVariablePickerTarget } from '../WiredVariablePickerData';
 import { tokenOfVariableSlot, variableSlotOf, WIRED_VARIABLE_ABSENT } from '../../../../api';
-import { useWiredNativeVariables } from '../../../../hooks';
-import { AMOUNT_TARGETS } from '../actions/WiredChestRewardForm';
 import { WiredExtraBaseView } from './WiredExtraBaseView';
+import { WiredCollapsibleSection } from '../WiredCollapsibleSection';
+import { WiredSection } from '../WiredSection';
+import { WiredActionValueOrVariableSection, normalizeWiredValueTarget, getWiredValueTargetCode } from '../actions/WiredActionValueOrVariableSection';
 
 const MAX_AMOUNT = 100000;
 const FURNI_DEFAULTS = [100, 101];
@@ -56,7 +53,7 @@ const sideFromWire = (ints: number[], offset: number, furniSource: number, holde
         furniSource,
         fromVariable: ints[offset + 2] === 1,
         amount: clampAmount(ints[offset + 3] ?? 1),
-        target: AMOUNT_TARGETS.some((entry) => entry.code === target) ? target : TARGET_USER,
+        target: [0, 1, -10, -20].includes(target) ? target : TARGET_USER,
         variableToken: tokenOfVariableSlot(variableId),
         holderFurniSource,
         holderUserSource
@@ -83,98 +80,37 @@ interface IContractSideFormProps {
     side: IContractSide;
     index: number;
     onChange: (changes: Partial<IContractSide>) => void;
+    onValidityChange: (valid: boolean) => void;
 }
 
 /** One half of the contract: its activity, its element, its amount and the sources the variable reads. */
-const ContractSideForm: FC<IContractSideFormProps> = ({ title, enableLabel, furniTitle, holderTitle, side, index, onChange }) => {
-    const { userVariableDefinitions = [], furniVariableDefinitions = [], roomVariableDefinitions = [], contextVariableDefinitions = [] } = useWiredNativeVariables();
-    const pickerTarget: WiredVariablePickerTarget = AMOUNT_TARGETS.find((entry) => entry.code === side.target)?.target ?? 'user';
-    const targetIndex = Math.max(0, AMOUNT_TARGETS.findIndex((entry) => entry.code === side.target));
-    const entries = useMemo(() => {
-        const definitions = {
-            furni: furniVariableDefinitions,
-            global: roomVariableDefinitions,
-            context: contextVariableDefinitions,
-            user: userVariableDefinitions
-        }[pickerTarget];
-
-        return buildWiredVariablePickerEntries(pickerTarget, 'give', definitions);
-    }, [contextVariableDefinitions, furniVariableDefinitions, pickerTarget, roomVariableDefinitions, userVariableDefinitions]);
-
-    return (
-        <div className="flex flex-col gap-2">
-            <Text bold>{title}</Text>
-            <WiredCheckboxOption checked={side.enabled} label={enableLabel} onChange={(enabled) => onChange({ enabled })} />
-
-            {side.enabled && (
-                <>
-                    <WiredRadioGroup
-                        name={`contractKind${index}`}
-                        value={side.furni ? 1 : 0}
-                        onChange={(value) => onChange({ furni: value === 1 })}
-                        options={[
-                            { id: 0, label: localizeWithFallback('wiredfurni.params.custom_contract.element_type_selection.0', 'Credits') },
-                            { id: 1, label: localizeWithFallback('wiredfurni.params.custom_contract.element_type_selection.1', 'Furni') }
-                        ]}
-                    />
-                    {side.furni && (
-                        <WiredSourcesSelector showFurni={true} furniSlot={index} furniSource={side.furniSource} furniTitle={furniTitle} onChangeFurni={(furniSource) => onChange({ furniSource })} />
-                    )}
-
-                    <Text bold>{localizeWithFallback('wiredfurni.params.custom_contract.amount_selection', 'Amount selection:')}</Text>
-                    <WiredRadioGroup
-                        name={`contractOption${index}`}
-                        value={side.fromVariable ? 1 : 0}
-                        onChange={(value) => onChange({ fromVariable: value === 1, variableToken: '' })}
-                        options={[
-                            { id: 0, label: localizeWithFallback('wiredfurni.params.variables.reference_value.set_value', 'Set value:') },
-                            { id: 1, label: localizeWithFallback('wiredfurni.params.variables.reference_value.from_variable', 'From Variable:') }
-                        ]}
-                    />
-
-                    {!side.fromVariable && (
-                        <VoltInput type="number" min={1} max={MAX_AMOUNT} value={side.amount} onChange={(event) => onChange({ amount: clampAmount(Number(event.target.value)) })} />
-                    )}
-
-                    {side.fromVariable && (
-                        <>
-                            <WiredRadioGroup
-                                name={`contractTarget${index}`}
-                                value={targetIndex}
-                                onChange={(next) => onChange({ target: AMOUNT_TARGETS[next].code, variableToken: '' })}
-                                options={AMOUNT_TARGETS.map((entry, next) => ({ id: next, label: localizeWithFallback(entry.label, entry.target) }))}
-                            />
-                            <WiredVariablePicker
-                                entries={entries}
-                                recentScope={`contract-amount-${index}`}
-                                selectedToken={side.variableToken}
-                                onSelect={(entry) => onChange({ variableToken: entry.token })}
-                            />
-                            {side.target === TARGET_FURNI && (
-                                <WiredSourcesSelector
-                                    showFurni={true}
-                                    furniSlot={index + 2}
-                                    furniSource={side.holderFurniSource}
-                                    furniTitle={holderTitle}
-                                    onChangeFurni={(holderFurniSource) => onChange({ holderFurniSource })}
-                                />
-                            )}
-                            {side.target === TARGET_USER && (
-                                <WiredSourcesSelector
-                                    showUsers={true}
-                                    userSlot={index}
-                                    userSource={side.holderUserSource}
-                                    usersTitle={holderTitle}
-                                    onChangeUsers={(holderUserSource) => onChange({ holderUserSource })}
-                                />
-                            )}
-                        </>
-                    )}
-                </>
-            )}
-        </div>
-    );
-};
+const ContractSideForm: FC<IContractSideFormProps> = ({ title, enableLabel, furniTitle, holderTitle, side, index, onChange, onValidityChange }) => (
+    <WiredCollapsibleSection title={title}>
+        <WiredCheckboxOption checked={side.enabled} label={enableLabel} onChange={(enabled) => onChange({ enabled })} />
+        <fieldset disabled={!side.enabled} className="volt-wired__option-extra" style={{ minWidth: 0, border: 0, padding: 0, opacity: side.enabled ? 1 : 0.5 }}>
+            <WiredSection title={localizeWithFallback('wiredfurni.params.custom_contract.element_type_selection', 'Element type:')}>
+                <WiredRadioGroup name={`contractKind${index}`} columns={2} value={side.furni ? 1 : 0} onChange={(value) => onChange({ furni: value === 1 })} options={[
+                    { id: 0, label: localizeWithFallback('wiredfurni.params.custom_contract.element_type_selection.0', 'Credits') },
+                    { id: 1, label: localizeWithFallback('wiredfurni.params.custom_contract.element_type_selection.1', 'Furni') }
+                ]} />
+            </WiredSection>
+            {side.furni && <WiredSourcesSelector showFurni={true} furniSlot={index} furniSource={side.furniSource} furniTitle={furniTitle} onChangeFurni={(furniSource) => onChange({ furniSource })} />}
+            <WiredActionValueOrVariableSection
+                title={localizeWithFallback('wiredfurni.params.custom_contract.amount_selection', 'Amount selection:')}
+                targetTitle={localizeWithFallback('wiredfurni.params.variables.reference_value.target', 'Variable target:')}
+                recentScope={`contract-amount-${index}`}
+                min={1} max={MAX_AMOUNT} disabled={!side.enabled}
+                option={side.fromVariable ? 1 : 0} onOptionChange={(value) => onChange({ fromVariable: value === 1 })}
+                literal={side.amount} onLiteralChange={(amount) => onChange({ amount })}
+                target={normalizeWiredValueTarget(side.target)} onTargetChange={(target) => onChange({ target: getWiredValueTargetCode(target) })}
+                variableToken={side.variableToken} onVariableTokenChange={(variableToken) => onChange({ variableToken })}
+                onValidityChange={onValidityChange}
+            />
+            {side.fromVariable && side.target === TARGET_FURNI && <WiredSourcesSelector showFurni={true} furniSlot={index + 2} furniSource={side.holderFurniSource} furniTitle={holderTitle} onChangeFurni={(holderFurniSource) => onChange({ holderFurniSource })} />}
+            {side.fromVariable && side.target === TARGET_USER && <WiredSourcesSelector showUsers={true} userSlot={index} userSource={side.holderUserSource} usersTitle={holderTitle} onChangeUsers={(holderUserSource) => onChange({ holderUserSource })} />}
+        </fieldset>
+    </WiredCollapsibleSection>
+);
 
 /**
  * Custom contract: one payment and one reward, each its own element (currency or furni), amount (literal or variable)
@@ -184,6 +120,8 @@ const ContractSideForm: FC<IContractSideFormProps> = ({ title, enableLabel, furn
  */
 export const WiredCustomContractView: FC<{}> = () => {
     const { trigger = null, setIntParams = null, setFurniSources = null, setUserSources = null, setVariableIds = null, furniIds = [], secondaryFurniIds = [], setActivePickSlot = null } = useWired();
+    const [paymentValid, setPaymentValid] = useState(true);
+    const [rewardValid, setRewardValid] = useState(true);
     const [payment, setPayment] = useState<IContractSide>(() => emptySide(0));
     const [reward, setReward] = useState<IContractSide>(() => emptySide(1));
 
@@ -204,7 +142,7 @@ export const WiredCustomContractView: FC<{}> = () => {
     const lists = [0, 1].filter((list) => picked.includes(list === 0 ? 100 : 101));
 
     // A contract needs a side to act on, and every active side that reads a variable needs one picked.
-    const validate = () => (payment.enabled || reward.enabled) && [payment, reward].every((side) => !(side.enabled && side.fromVariable) || !!side.variableToken);
+    const validate = () => (!payment.enabled || paymentValid) && (!reward.enabled || rewardValid) && (payment.enabled || reward.enabled) && [payment, reward].every((side) => !(side.enabled && side.fromVariable) || !!side.variableToken);
 
     const save = () => {
         setIntParams([...intsOf(payment), ...intsOf(reward)]);
@@ -225,14 +163,16 @@ export const WiredCustomContractView: FC<{}> = () => {
     };
 
     return (
-        <WiredExtraBaseView hasSpecialInput={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID} save={save} validate={validate} cardStyle={{ width: 420 }}>
-            <div className="flex flex-col gap-2">
-                <Text className="whitespace-pre-line">
+        <WiredExtraBaseView hasSpecialInput={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID} save={save} validate={validate} nativeLayout={true}>
+            <>
+                <WiredSection title={localizeWithFallback('wiredfurni.params.general_box_warning', 'Usage warning:')}>
+                <span className="whitespace-pre-line" style={{ color: '#ed3033' }}>
                     {localizeWithFallback(
                         'wiredfurni.params.custom_contract.usage_warning',
                         'This is a contract that can act as a Payment, Trade, or Reward contract depending on the configuration.'
                     )}
-                </Text>
+                </span>
+                </WiredSection>
                 <ContractSideForm
                     title={localizeWithFallback('wiredfurni.params.custom_contract.payment', 'Payment')}
                     enableLabel={localizeWithFallback('wiredfurni.params.custom_contract.enable_payment', 'Enable payment')}
@@ -240,13 +180,13 @@ export const WiredCustomContractView: FC<{}> = () => {
                     holderTitle="wiredfurni.params.sources.merged.title.variables_reference_payment"
                     side={payment}
                     index={0}
+                    onValidityChange={setPaymentValid}
                     onChange={(changes) => {
                         setPayment((previous) => ({ ...previous, ...changes }));
 
                         if (changes.furniSource === 100 || changes.furniSource === 101) setActivePickSlot?.(changes.furniSource === 101 ? 1 : 0);
                     }}
                 />
-                <div className="volt-wired__divider" />
                 <ContractSideForm
                     title={localizeWithFallback('wiredfurni.params.custom_contract.reward', 'Reward')}
                     enableLabel={localizeWithFallback('wiredfurni.params.custom_contract.enable_reward', 'Enable reward')}
@@ -254,6 +194,7 @@ export const WiredCustomContractView: FC<{}> = () => {
                     holderTitle="wiredfurni.params.sources.merged.title.variables_reference_reward"
                     side={reward}
                     index={1}
+                    onValidityChange={setRewardValid}
                     onChange={(changes) => {
                         setReward((previous) => ({ ...previous, ...changes }));
 
@@ -261,7 +202,7 @@ export const WiredCustomContractView: FC<{}> = () => {
                     }}
                 />
                 <FurniPickSlotButtons slots={lists.map((slot) => ({ slot: slot as 0 | 1, count: slot === 0 ? furniIds.length : secondaryFurniIds.length }))} />
-            </div>
+            </>
         </WiredExtraBaseView>
     );
 };

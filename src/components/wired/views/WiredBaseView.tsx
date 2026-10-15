@@ -1,5 +1,5 @@
 import { CreateLinkEvent, GetRoomEngine, GetSessionDataManager } from '@volt/renderer';
-import { CSSProperties, FC, PropsWithChildren, ReactNode, useEffect, useState } from 'react';
+import { CSSProperties, FC, PropsWithChildren, ReactNode, useEffect, useRef, useState } from 'react';
 import {
     isWiredVolterStyle,
     LocalizeText,
@@ -25,14 +25,22 @@ import { WiredVolterBorderView, WiredVolterFrameView } from './WiredVolterFrameV
 // The official frame is centred while it is still its 108px minimum height and then grows downwards.
 const WIRED_OPEN_HEIGHT = 108;
 
+export type WiredSaveConfirmation = (confirm: () => void, cancel: () => void) => void;
+
 export interface WiredBaseViewProps {
     wiredType: string;
     requiresFurni: number;
     hasSpecialInput: boolean;
     save: () => void;
     validate?: () => boolean;
+    /** AIR element.requireConfirmation, requested only on an actual save (not Copy). */
+    confirmSave?: WiredSaveConfirmation;
     cardStyle?: CSSProperties;
+    /** Runtime AIR width modifier, e.g. neighborhood small/large drawing mode. */
+    widthMultiplier?: number;
     footer?: ReactNode;
+    /** Source-type controls placed beside the AIR summary header. */
+    headerControls?: ReactNode;
     footerCollapsible?: boolean;
     selectionPreview?: ReactNode;
     /** False keeps furni picking on but leaves its section out, for views that show it elsewhere. */
@@ -50,10 +58,13 @@ export const WiredBaseView: FC<PropsWithChildren<WiredBaseViewProps>> = (props) 
         requiresFurni = WiredFurniType.STUFF_SELECTION_OPTION_NONE,
         save = null,
         validate = null,
+        confirmSave = undefined,
         children = null,
         hasSpecialInput = false,
         cardStyle = undefined,
+        widthMultiplier = 1,
         footer = null,
+        headerControls = null,
         footerCollapsible = true,
         selectionPreview = null,
         showSelection = true,
@@ -96,21 +107,35 @@ export const WiredBaseView: FC<PropsWithChildren<WiredBaseViewProps>> = (props) 
         GetRoomEngine().areaSelectionManager.deactivate();
     };
 
+    const pendingConfirmation = useRef<object | null>(null);
+    // A pending dialog cannot commit into a different editor or a closed editor.
+    useEffect(() => () => { pendingConfirmation.current = null; }, [trigger]);
     const onClose = () => {
+        pendingConfirmation.current = null;
         clearRoomAreaSelection();
         WiredSelectionVisualizer.clearAllSelectionShaders();
         setTrigger(null);
     };
 
-    const onSave = (keepOpen: boolean = false) => {
-        if (!roomSettings.canModify) return;
-
-        if (validate && !validate()) return;
-
+    const completeSave = useRef<(keepOpen: boolean) => void>(() => {});
+    completeSave.current = (keepOpen) => {
+        if (!roomSettings.canModify || (validate && !validate())) return;
         if (save) save();
-
         setKeepOpenOnSave(keepOpen);
         setNeedsSave(true);
+    };
+    const onSave = (keepOpen: boolean = false) => {
+        if (!roomSettings.canModify || pendingConfirmation.current || (validate && !validate())) return;
+        if (!confirmSave) { completeSave.current(keepOpen); return; }
+        const request = {};
+        pendingConfirmation.current = request;
+        confirmSave(() => {
+            if (pendingConfirmation.current !== request) return;
+            pendingConfirmation.current = null;
+            completeSave.current(keepOpen);
+        }, () => {
+            if (pendingConfirmation.current === request) pendingConfirmation.current = null;
+        });
     };
 
     useEffect(() => {
@@ -207,7 +232,7 @@ export const WiredBaseView: FC<PropsWithChildren<WiredBaseViewProps>> = (props) 
 
     const resolvedCardStyle: CSSProperties = { ...cardStyle };
 
-    const cardWidth = Math.trunc(wiredStyleWidth(shellStyle) * wiredWidthMultiplier(wiredType, trigger?.code));
+    const cardWidth = Math.trunc(wiredStyleWidth(shellStyle) * wiredWidthMultiplier(wiredType, trigger?.code) * widthMultiplier);
     resolvedCardStyle.width = cardWidth;
     resolvedCardStyle.minWidth = cardWidth;
     resolvedCardStyle.maxWidth = cardWidth;
@@ -287,7 +312,7 @@ export const WiredBaseView: FC<PropsWithChildren<WiredBaseViewProps>> = (props) 
                 menuItems={shellMenuItems}
             />
             <VoltCardContentView classNames={['volt-wired__content']} gap={0}>
-                <div className="volt-wired__section volt-wired__summary">
+                <div className="volt-wired__section volt-wired__summary" style={headerControls ? { gap: 5, alignItems: 'center' } : undefined}>
                     {shellStyle === 'illumina' && (
                         <div className="volt-wired__banner" aria-hidden="true">
                             <WiredBannerCanvas />
@@ -298,7 +323,7 @@ export const WiredBaseView: FC<PropsWithChildren<WiredBaseViewProps>> = (props) 
                             <image href={volterAtlas} width={490} height={360} />
                         </svg>
                     )}
-                    <div className="volt-wired__summary-copy">
+                    <div className="volt-wired__summary-copy" style={headerControls ? { flex: 1 } : undefined}>
                         {shellStyle === 'illumina' ? (
                             <>
                                 <span className="volt-wired__summary-kind">{summaryKind.toUpperCase()}</span>
@@ -310,6 +335,7 @@ export const WiredBaseView: FC<PropsWithChildren<WiredBaseViewProps>> = (props) 
                             </Text>
                         )}
                     </div>
+                    {headerControls && <div className="volt-wired__header-controls" style={{ position: 'relative', zIndex: 1, marginLeft: 'auto', flexShrink: 0 }}>{headerControls}</div>}
                 </div>
                 <div className="volt-wired__body">
                     {isWiredVolterStyle(shellStyle) && shellStyle !== 'volter' ? (

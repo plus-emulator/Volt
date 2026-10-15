@@ -1,9 +1,11 @@
 import { GetSessionDataManager } from '@volt/renderer';
 import { FC, useEffect, useState } from 'react';
 import { LocalizeText, WIRED_STRING_DELIMETER, WiredFurniType } from '../../../../api';
-import { Button, LayoutAvatarImageView, Text } from '../../../../common';
+import { LayoutAvatarImageView } from '../../../../common';
 import { useWired } from '../../../../hooks';
-import { VoltInput } from '../../../../layout';
+import { WiredSection } from '../WiredSection';
+import { WiredTextInput } from '../WiredTextInput';
+import { WiredButtonRow } from '../WiredButtonRow';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredActionBaseView } from './WiredActionBaseView';
 import { normalizeBotSource, WIRED_BOT_NAMED_SOURCE } from '../../../../api';
@@ -38,6 +40,7 @@ export const WiredActionBotChangeFigureView: FC<{}> = (props) => {
     return (
         <WiredActionBaseView
             hasSpecialInput={true}
+            nativeLayout={true}
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE}
             save={save}
             footer={
@@ -50,15 +53,16 @@ export const WiredActionBotChangeFigureView: FC<{}> = (props) => {
             }
         >
             {botSource === WIRED_BOT_NAMED_SOURCE && (
-                <div className="flex flex-col gap-1">
-                    <Text bold>{LocalizeText('wiredfurni.params.bot.name')}</Text>
-                    <VoltInput maxLength={32} type="text" value={botName} onChange={(event) => setBotName(event.target.value)} />
-                </div>
+                <WiredSection title={LocalizeText('wiredfurni.params.bot.name')}>
+                    <WiredTextInput maxLength={32} value={botName} onChange={setBotName} />
+                </WiredSection>
             )}
-            <div className="flex items-center justify-center">
-                <LayoutAvatarImageView direction={4} figure={figure} />
-                <Button onClick={() => setFigure(GetSessionDataManager().figure)}>{LocalizeText('wiredfurni.params.capture.figure')}</Button>
-            </div>
+            <WiredSection title={LocalizeText('wiredfurni.params.capture.figure')}>
+                <div className="flex flex-col items-center gap-[4px]">
+                    <LayoutAvatarImageView direction={4} figure={figure} />
+                    <div className="w-full"><WiredButtonRow buttons={[{ id: 'capture', label: LocalizeText('wiredfurni.params.capture.figure'), onClick: () => setFigure(GetSessionDataManager().figure) }]} /></div>
+                </div>
+            </WiredSection>
         </WiredActionBaseView>
     );
 };

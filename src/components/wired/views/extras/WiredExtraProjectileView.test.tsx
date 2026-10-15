@@ -1,150 +1,132 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { PropsWithChildren } from 'react';
+import { createContext, PropsWithChildren } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { WiredNativeContext } from '../WiredNativeContext';
 
-const setIntParams = vi.fn();
-const setStringParam = vi.fn();
-let trigger: { intData: number[]; stringData?: string } | null = null;
-let baseProps: { save: () => void; showSelection?: boolean; validate?: () => boolean } | null = null;
-
-vi.mock('../../../../hooks', () => ({
-    useWired: () => ({ trigger, setIntParams, setStringParam }),
-    useWiredTools: () => ({
-        userVariableDefinitions: [{ itemId: 300, name: 'reload', availability: 0, hasValue: true }],
-        furniVariableDefinitions: [],
-        roomVariableDefinitions: [{ itemId: 500, name: 'range', availability: 0, hasValue: true }],
-        contextVariableDefinitions: []
-    })
+const state = vi.hoisted(() => ({
+    trigger: { intData: [] as number[], furniSources: [100, 301, 302], userSources: [101, 102, 103], variableIds: ['n', 'n'] },
+    setIntParams: vi.fn(), setStringParam: vi.fn(), setVariableIds: vi.fn(), setUserSources: vi.fn(), setFurniSources: vi.fn()
 }));
-
-vi.mock('../../../../common', () => ({
-    Text: ({ children }: PropsWithChildren) => <span>{children}</span>,
-    Slider: (props: { value: number; min: number; max: number; onChange: (value: number) => void }) => (
-        <input max={props.max} min={props.min} type="range" value={props.value} onChange={(event) => props.onChange(Number(event.target.value))} />
-    )
+vi.mock('../../../../api', async () => ({
+    ...(await vi.importActual('../../../../api/wired/WiredProjectile')),
+    ...(await vi.importActual('../../../../api/wired/WiredNativeVariables')),
+    LocalizeText: (key: string) => key,
+    localizeWithFallback: (_key: string, fallback: string) => fallback,
+    WiredFurniType: { STUFF_SELECTION_OPTION_BY_ID: 1 }
 }));
-
-vi.mock('../WiredFurniSelectorView', () => ({
-    WiredFurniSelectorView: () => <div>picked furni</div>
-}));
-
-vi.mock('../WiredSourcesSelector', async (importOriginal) => {
-    const original = await importOriginal<typeof import('../WiredSourcesSelector')>();
-
-    return { ...original, useAvailableUserSources: (_trigger: unknown, sources: unknown) => sources };
-});
-
-vi.mock('../WiredVariablePicker', () => ({
-    WiredVariablePicker: (props: { entries: { token: string; children?: { token: string }[] }[]; selectedToken: string; onSelect: (entry: { token: string }) => void }) => (
-        <div data-selected={props.selectedToken} data-testid="picker">
-            {props.entries.flatMap((entry) => (entry.children?.length ? entry.children : [entry])).map((entry) => (
-                <button key={entry.token} type="button" onClick={() => props.onSelect(entry)}>
-                    {entry.token}
-                </button>
-            ))}
-        </div>
-    )
-}));
-
-vi.mock('./WiredExtraBaseView', () => ({
-    WiredExtraBaseView: (props: PropsWithChildren<{ save: () => void; showSelection?: boolean; validate?: () => boolean }>) => {
-        baseProps = { save: props.save, showSelection: props.showSelection, validate: props.validate };
-        return <div>{props.children}</div>;
-    }
-}));
+vi.mock('../../../../hooks', () => ({ useWired: () => state, useWiredNativeVariables: () => ({}) }));
+vi.mock('../../../../common', () => ({ Text: ({ children }: PropsWithChildren) => <span>{children}</span>, Slider: () => null }));
+vi.mock('../WiredText', () => ({ WiredText: ({ text }: { text: string }) => <span>{text}</span>, WiredSurfaceContext: createContext(0) }));
+vi.mock('../WiredShellHeaderView', () => ({ WiredShellButton: ({ children, onClick, disabled }: PropsWithChildren<{ onClick: () => void; disabled: boolean }>) => <button disabled={disabled} onClick={onClick}>{children}</button> }));
+vi.mock('../WiredDropdown', () => ({ WiredDropdown: ({ caption, value, options, disabled, onChange }: { caption: string; value: number; options: { id: number; label: string }[]; disabled: boolean; onChange: (value: number) => void }) => <select aria-label={caption} value={value} disabled={disabled} onChange={event => onChange(Number(event.target.value))}>{options.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}</select> }));
+vi.mock('../WiredFurniSelectorView', () => ({ WiredFurniSelectorView: () => null }));
+vi.mock('../WiredSourcesSelector', () => ({ nativeSourceOptions: () => [101, 102, 103, 301, 302].map(value => ({ value, label: String(value) })) }));
+vi.mock('../WiredVariablePicker', () => ({ WiredVariablePicker: () => null }));
+vi.mock('../WiredVariablePickerData', () => ({ buildWiredVariablePickerEntries: () => [], flattenWiredVariablePickerEntries: () => [], createFallbackVariableEntry: () => null }));
+vi.mock('./WiredProjectileDirectionGrid', () => ({ WiredProjectileDirectionGrid: () => null }));
+vi.mock('./WiredExtraBaseView', () => ({ WiredExtraBaseView: ({ children, save, nativeLayout }: PropsWithChildren<{ save: () => void; nativeLayout: boolean }>) => <WiredNativeContext.Provider value={true}><div data-testid="editor" data-native-layout={String(nativeLayout)}>{children}<button onClick={save}>Save</button></div></WiredNativeContext.Provider> }));
 
 import { WiredExtraProjectileView } from './WiredExtraProjectileView';
+import { defaultProjectileParams } from '../../../../api/wired/WiredProjectile';
 
-describe('WiredExtraProjectileView', () => {
+const save = () => fireEvent.click(screen.getByText('Save'));
+const saved = () => state.setIntParams.mock.lastCall![0] as number[];
+const curveInput = () => document.querySelector<HTMLInputElement>('input[type="text"]')!;
+
+// AIR25 addons/class_3959: trajectory radio chooses whether int[18] is the typed curve or zero.
+describe('AIR projectile controls and current packet fields', () => {
     afterEach(cleanup);
-
     beforeEach(() => {
-        setIntParams.mockClear();
-        setStringParam.mockClear();
-        baseProps = null;
-        trigger = { intData: [], stringData: '' };
+        vi.clearAllMocks();
+        state.trigger = { intData: defaultProjectileParams().slice(0, 19), furniSources: [100, 301, 302], userSources: [101, 102, 103], variableIds: ['n', 'n'] };
     });
 
-    it('opens on the sections Habbo opens on and keeps the picked furni under advanced options', () => {
+    it('opens usage and direction, leaves advanced sections collapsed, and uses native layout', () => {
         render(<WiredExtraProjectileView />);
-
-        expect(screen.getByRole('button', { name: /Usage info/ }).getAttribute('aria-expanded')).toBe('true');
+        expect(screen.getByRole('button', { name: 'wiredfurni.params.general_box_info' }).getAttribute('aria-expanded')).toBe('true');
         expect(screen.getByRole('button', { name: /Projectile direction/ }).getAttribute('aria-expanded')).toBe('true');
-        expect(screen.getByRole('button', { name: /Animation trajectory/ }).getAttribute('aria-expanded')).toBe('false');
-        expect(screen.getByRole('button', { name: /Animation time/ }).getAttribute('aria-expanded')).toBe('false');
-        expect(screen.getByRole('button', { name: /Shift the rotation by 0/ }).getAttribute('aria-expanded')).toBe('true');
-        expect(screen.getByRole('button', { name: /internal variables/ }).getAttribute('aria-expanded')).toBe('false');
-        expect(baseProps.showSelection).toBe(false);
+        for (const name of [/Animation trajectory/, /Animation time/, /Shift the rotation/, /internal variables/])
+            expect(screen.getByRole('button', { name }).getAttribute('aria-expanded')).toBe('false');
+        expect(screen.getByTestId('editor').getAttribute('data-native-layout')).toBe('true');
     });
 
-    it('writes every edit back in the server order', () => {
-        trigger = { intData: [1, 0, 0, 0, 500, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0], stringData: '' };
-
+    it('accepts every integer curve, rejects invalid input, and retains the curve when switching straight and back', () => {
+        state.trigger.intData[18] = -123;
         render(<WiredExtraProjectileView />);
-
-        fireEvent.change(screen.getByRole('combobox', { name: 'System:' }), { target: { value: '1' } });
-        fireEvent.click(screen.getByLabelText("Visually change the shooter's direction"));
-        fireEvent.click(screen.getByLabelText('Do a little hop when shooting sideways'));
-        fireEvent.change(screen.getByRole('combobox', { name: 'Shooter:' }), { target: { value: '200' } });
-
         fireEvent.click(screen.getByRole('button', { name: /Animation trajectory/ }));
-        fireEvent.click(screen.getByLabelText('Fly past the target'));
-        fireEvent.change(screen.getByRole('spinbutton', { name: 'Tiles:' }), { target: { value: '-99' } });
-
-        fireEvent.click(screen.getByRole('button', { name: /internal variables/ }));
-        fireEvent.click(screen.getByLabelText('@projectile.animation.position.y'));
-        fireEvent.click(screen.getByLabelText('@projectile.animation.user_collisions'));
-
-        baseProps.save();
-
-        // Distance tiles clamp to the server's -64; the mask is bits 1 and 6.
-        expect(setIntParams).toHaveBeenCalledWith([1, 1, 0, 0, 500, 0, 0, 0, 0, 0, 2, 66, 1, 1, 1, 0, -64, 0, 0, 0, 0, 0, 0, 200]);
-        expect(setStringParam).toHaveBeenCalledWith('');
+        expect(screen.getByRole('radio', { name: 'Curved' })).toHaveProperty('checked', true);
+        expect(curveInput().value).toBe('-123');
+        fireEvent.change(curveInput(), { target: { value: '321' } });
+        save();
+        expect(saved()[18]).toBe(321);
+        fireEvent.change(curveInput(), { target: { value: '1001' } });
+        save();
+        expect(saved()[18]).toBe(321);
+        fireEvent.click(screen.getByRole('radio', { name: 'Straight' }));
+        expect(curveInput().disabled).toBe(true);
+        save();
+        expect(saved()[18]).toBe(0);
+        fireEvent.click(screen.getByRole('radio', { name: 'Curved' }));
+        save();
+        expect(saved()[18]).toBe(321);
     });
 
-    it('reads the time per tile from a variable when asked to', () => {
-        const { container } = render(<WiredExtraProjectileView />);
+    it('disables the rotation slider when direction changes are off without discarding its offset', () => {
+        state.trigger.intData[0] = 0;
+        state.trigger.intData[10] = 5;
+        render(<WiredExtraProjectileView />);
+        fireEvent.click(screen.getByRole('button', { name: /Shift the rotation by 5/ }));
+        const plus = document.querySelector<HTMLButtonElement>('.volt-wired__slider-row button:last-child')!;
+        expect(plus.disabled).toBe(true);
+        fireEvent.click(plus);
+        save();
+        expect(saved()[10]).toBe(5);
+        fireEvent.click(screen.getByRole('checkbox', { name: 'Rotate the projectile in the moving direction' }));
+        fireEvent.click(plus);
+        save();
+        expect(saved()[10]).toBe(6);
+    });
 
+    it('edits distance and animation timing within AIR bounds without changing mode or source tails', () => {
+        render(<WiredExtraProjectileView />);
+        fireEvent.click(screen.getByRole('button', { name: /Animation trajectory/ }));
+        fireEvent.click(screen.getByRole('radio', { name: 'Fly past the target' }));
+        const distance = document.querySelectorAll<HTMLInputElement>('input[type="text"]')[1];
+        fireEvent.change(distance, { target: { value: '-64' } });
+        save();
+        expect(saved()[14]).toBe(1);
+        expect(saved()[16]).toBe(-64);
+        fireEvent.change(distance, { target: { value: '-65' } });
+        save();
+        expect(saved()[16]).toBe(-64);
+        fireEvent.click(screen.getByRole('button', { name: /Animation trajectory/ }));
         fireEvent.click(screen.getByRole('button', { name: /Animation time/ }));
-        fireEvent.click(screen.getByLabelText('Scale the animation time with the distance'));
-        fireEvent.change(screen.getByRole('spinbutton', { name: 'Time per tile (ms):' }), { target: { value: '0' } });
-        fireEvent.click(container.querySelectorAll('input[name="projectileTimeValue"]')[1]);
-
-        expect(baseProps.validate()).toBe(false);
-
-        fireEvent.change(screen.getByRole('combobox', { name: 'Time per tile (ms): variable type' }), { target: { value: '3' } });
-        fireEvent.click(screen.getByRole('button', { name: 'custom:500' }));
-
-        expect(baseProps.validate()).toBe(true);
-        baseProps.save();
-
-        const saved = setIntParams.mock.calls[0][0] as number[];
-        expect(saved[2]).toBe(1);
-        expect(saved[3]).toBe(1);
-        // The input stops at the server's 1 ms.
-        expect(saved[4]).toBe(1);
-        expect(saved[5]).toBe(3);
-        expect(setStringParam).toHaveBeenCalledWith('custom:500\t');
+        fireEvent.click(screen.getByRole('checkbox', { name: 'Scale the animation time with the distance' }));
+        const [time, speed] = document.querySelectorAll<HTMLInputElement>('input[type="text"]');
+        fireEvent.change(time, { target: { value: '1' } });
+        fireEvent.change(speed, { target: { value: '100000' } });
+        save();
+        expect(saved()[2]).toBe(1);
+        expect(saved()[4]).toBe(1);
+        expect(saved()[9]).toBe(100000);
+        fireEvent.change(time, { target: { value: '0' } });
+        fireEvent.change(speed, { target: { value: '100001' } });
+        save();
+        expect(saved()[4]).toBe(1);
+        expect(saved()[9]).toBe(100000);
+        expect(state.setUserSources).toHaveBeenLastCalledWith([101, 102, 103]);
     });
 
-    it('carries the params and tokens it was handed through untouched', () => {
-        const stored = [1, 3, 1, 1, 250, 3, 1, 1, 1, 75, 6, 5, 1, 1, 2, 1, -12, 3, 400, 0, 101, 0, 200, 0];
-        trigger = { intData: stored, stringData: 'custom:500\tcustom:500' };
-
+    it('round-trips 19 integers with sources and variable ids in their own packet fields', () => {
+        const stored = [1, 3, 1, 1, 250, -10, 1, 1, 1, 75, 6, 5, 1, 1, 2, 1, -12, -10, 417];
+        state.trigger.intData = stored;
+        state.trigger.variableIds = ['500', '501'];
         render(<WiredExtraProjectileView />);
-        baseProps.save();
-
-        expect(setIntParams).toHaveBeenCalledWith(stored);
-        expect(setStringParam).toHaveBeenCalledWith('custom:500\tcustom:500');
-        expect(screen.getByRole('button', { name: /Shift the rotation by 6/ })).toBeTruthy();
-    });
-
-    it('opens a box saved before the time was applied at the default time per tile', () => {
-        trigger = { intData: [1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] };
-
-        render(<WiredExtraProjectileView />);
-        baseProps.save();
-
-        expect((setIntParams.mock.calls[0][0] as number[])[4]).toBe(500);
+        save();
+        expect(saved()).toEqual(stored);
+        expect(state.setVariableIds).toHaveBeenLastCalledWith(['500', '501']);
+        expect(state.setUserSources).toHaveBeenLastCalledWith([101, 102, 103]);
+        expect(state.setFurniSources).toHaveBeenLastCalledWith([100, 301, 302]);
+        expect(state.setStringParam).toHaveBeenLastCalledWith('');
     });
 });

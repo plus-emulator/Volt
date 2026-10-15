@@ -37,7 +37,6 @@ export const WiredConditionUserLevelNativeView: FC<{}> = () => {
                 titleKey="wiredfurni.params.level_selection"
                 unit="level"
                 value={level}
-                withInput={false}
                 onChange={setLevel}
             />
             <WiredSection title={LocalizeText('wiredfurni.params.comparison_selection')}>

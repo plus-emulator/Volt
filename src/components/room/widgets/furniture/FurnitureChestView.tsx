@@ -36,6 +36,8 @@ import { Column, Flex, LayoutCurrencyIcon, LayoutFurniImageView, VoltCardContent
 import { useMessageEvent, useNotification, usePurse } from '../../../../hooks';
 import { useInventoryFurni } from '../../../../hooks/inventory';
 import { ChestButton } from './ChestButton';
+import { ChestAppearanceFields, ChestSettingsSection } from './ChestSettingsFields';
+import { HabboDropMenuView } from '../../../../common/dropmenu/HabboDropMenuView';
 import { ChestFurniGroup, chestFurniDisplayName, groupStoredFurni } from './chestFurniGrouping';
 import { FurniChestGridItem } from './FurniChestGridItem';
 import { FurniChestSearchBar } from './FurniChestSearchBar';
@@ -178,16 +180,6 @@ export const FurnitureChestView: FC = () => {
             groups.some((f) => f.key === prev) ? prev : groups.length ? groups[0].key : '',
         );
     }, []);
-
-    const appearanceOptions = useMemo(
-        () => [
-            { value: 0, label: LocalizeText('wiredchests.settings.appearance.state.0') },
-            { value: 1, label: LocalizeText('wiredchests.settings.appearance.state.1') },
-            { value: 2, label: LocalizeText('wiredchests.settings.appearance.state.2') },
-            { value: 3, label: LocalizeText('wiredchests.settings.appearance.state.3') },
-        ],
-        [],
-    );
 
     const notifyModes = useMemo(
         () => [
@@ -814,14 +806,14 @@ export const FurnitureChestView: FC = () => {
 
             {/* ===== SETTINGS ===== */}
             {showSettings && (
-                <VoltCardView className="volt-widget-chest-settings" theme="primary-slim" style={{ width: 360 }}>
+                <VoltCardView className="volt-widget-chest-settings volt-chest-settings" theme="primary-slim" frameStyle={3} isResizable={false} style={{ width: 300 }}>
                     <VoltCardHeaderView
                         headerText={LocalizeText('wiredchests.settings.title', ['chest_type'], [chestTypeLabel])}
                         onCloseClick={() => setShowSettings(false)}
                     />
                     <VoltCardContentView>
                         <Column gap={2}>
-                            <Text bold>{LocalizeText('wiredchests.settings.access')}</Text>
+                            <ChestSettingsSection title={LocalizeText('wiredchests.settings.access')}>
                             <label className="flex items-center gap-2">
                                 <input type="checkbox" className="form-check-input" checked={accessOpen} onChange={(e) => setAccessOpen(e.target.checked)} />
                                 <Text small>{LocalizeText('wiredchests.settings.access.open')}</Text>
@@ -830,63 +822,18 @@ export const FurnitureChestView: FC = () => {
                                 <input type="checkbox" className="form-check-input" checked={accessDonate} onChange={(e) => setAccessDonate(e.target.checked)} />
                                 <Text small>{LocalizeText('wiredchests.settings.access.donate')}</Text>
                             </label>
-                            <Text bold>{LocalizeText('wiredchests.settings.info')}</Text>
+                            </ChestSettingsSection>
+                            <ChestSettingsSection title={LocalizeText('wiredchests.settings.info')}>
                             <Text small>{LocalizeText('wiredchests.settings.info.name')}</Text>
                             <input className="form-control form-control-sm" maxLength={30} value={name} onChange={(e) => setName(e.target.value)} />
                             <Text small>{LocalizeText('wiredchests.settings.info.desc')}</Text>
-                            <textarea className="form-control form-control-sm" rows={3} maxLength={200} value={description} onChange={(e) => setDescription(e.target.value)} />
-                            <Text bold>{LocalizeText('wiredchests.settings.appearance')}</Text>
-                            <Text small>{LocalizeText('wiredchests.settings.appearance.state')}</Text>
-                            <select className="form-select form-select-sm" value={appearanceState} onChange={(e) => setAppearanceState(parseInt(e.target.value, 10))}>
-                                {appearanceOptions.map((o) => (
-                                    <option key={o.value} value={o.value}>
-                                        {o.label}
-                                    </option>
-                                ))}
-                            </select>
-                            {isFurni && (
-                                <>
-                                    <label className="flex items-center gap-2">
-                                        <input
-                                            type="checkbox"
-                                            className="form-check-input"
-                                            checked={previewMode > 0}
-                                            onChange={(e) => setPreviewMode(e.target.checked ? 1 : 0)}
-                                        />
-                                        <Text small>
-                                            {localizeWithFallback(
-                                                'wiredchests.settings.appearance.preview',
-                                                'Show what is inside on top of the chest',
-                                            )}
-                                        </Text>
-                                    </label>
-                                    <Text small style={{ opacity: 0.6 }}>
-                                        {localizeWithFallback('wiredchests.settings.appearance.preview.note', '')}
-                                    </Text>
-                                    {previewMode > 0 && (
-                                        <Flex alignItems="center" gap={2}>
-                                            <Text small>
-                                                {localizeWithFallback(
-                                                    'wiredchests.settings.appearance.preview_amount',
-                                                    'How many',
-                                                )}
-                                            </Text>
-                                            <select
-                                                className="form-select form-select-sm"
-                                                value={previewAmount}
-                                                onChange={(e) => setPreviewAmount(parseInt(e.target.value, 10))}
-                                            >
-                                                {[1, 2, 3, 4].map((n) => (
-                                                    <option key={n} value={n}>
-                                                        {n}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </Flex>
-                                    )}
-                                </>
-                            )}
-                            <Text bold>{localizeWithFallback('wiredchests.settings.wired', 'Wired')}</Text>
+                            <textarea className="form-control form-control-sm" rows={4} maxLength={200} style={{ height: 64 }} value={description} onChange={(e) => setDescription(e.target.value)} />
+                            </ChestSettingsSection>
+                            <ChestSettingsSection title={LocalizeText('wiredchests.settings.appearance')}>
+                                <ChestAppearanceFields isFurni={isFurni} state={appearanceState} previewMode={previewMode} previewAmount={previewAmount}
+                                    onStateChange={setAppearanceState} onPreviewModeChange={setPreviewMode} onPreviewAmountChange={setPreviewAmount} />
+                            </ChestSettingsSection>
+                            <ChestSettingsSection title={localizeWithFallback('wiredchests.settings.wired', 'Wired')}>
                             {wiredEnabled ? (
                                 <Text small>
                                     {localizeWithFallback(
@@ -913,6 +860,7 @@ export const FurnitureChestView: FC = () => {
                                     </Text>
                                 </>
                             )}
+                            </ChestSettingsSection>
                             <div className="volt-chest__actions">
                                 <ChestButton wide onClick={saveSettings}>
                                     {LocalizeText('wiredchests.ready')}
@@ -928,13 +876,16 @@ export const FurnitureChestView: FC = () => {
 
             {/* ===== NOTIFICATIONS ===== */}
             {showNotifications && (
-                <VoltCardView className="volt-widget-chest-notifications" theme="primary-slim" style={{ width: 360 }}>
+                <VoltCardView className="volt-widget-chest-notifications volt-chest-settings" theme="primary-slim" frameStyle={3} isResizable={false} style={{ width: 350 }}>
                     <VoltCardHeaderView
                         headerText={LocalizeText('wiredchests.notification_settings.title', ['chest_type'], [chestTypeLabel])}
                         onCloseClick={() => setShowNotifications(false)}
                     />
                     <VoltCardContentView>
                         <Column gap={2}>
+                            <Text bold>{LocalizeText('wiredchests.notification_settings.notification_info')}</Text>
+                            <Text small>{LocalizeText('wiredchests.notification_settings.notification_info.desc')}</Text>
+                            <ChestSettingsSection title={LocalizeText('wiredchests.notification_settings.enable_notifications')}>
                             <Text bold>{LocalizeText('wiredchests.notification_settings.enable_notifications.generic')}</Text>
                             <label className="flex items-center gap-2">
                                 <input type="checkbox" className="form-check-input" checked={notifyFull} onChange={(e) => setNotifyFull(e.target.checked)} />
@@ -944,6 +895,7 @@ export const FurnitureChestView: FC = () => {
                                 <input type="checkbox" className="form-check-input" checked={notifyDonation} onChange={(e) => setNotifyDonation(e.target.checked)} />
                                 <Text small>{LocalizeText('wiredchests.notification_settings.enable_notifications.generic.1')}</Text>
                             </label>
+                            <fieldset disabled={!wiredEnabled} className="volt-chest-settings__wired-notifications">
                             <Text bold>{LocalizeText('wiredchests.notification_settings.enable_notifications.wired')}</Text>
                             <label className="flex items-center gap-2">
                                 <input type="checkbox" className="form-check-input" checked={notifyWithdraw} onChange={(e) => setNotifyWithdraw(e.target.checked)} />
@@ -957,14 +909,12 @@ export const FurnitureChestView: FC = () => {
                                 <input type="checkbox" className="form-check-input" checked={notifyWired} onChange={(e) => setNotifyWired(e.target.checked)} />
                                 <Text small>{LocalizeText('wiredchests.notification_settings.enable_notifications.wired.2')}</Text>
                             </label>
-                            <Text bold>{LocalizeText('wiredchests.notification_settings.notification_mode.when')}</Text>
-                            <select className="form-select form-select-sm" value={notifyMode} onChange={(e) => setNotifyMode(parseInt(e.target.value, 10))}>
-                                {notifyModes.map((o) => (
-                                    <option key={o.value} value={o.value}>
-                                        {o.label}
-                                    </option>
-                                ))}
-                            </select>
+                            </fieldset>
+                            </ChestSettingsSection>
+                            <ChestSettingsSection title={LocalizeText('wiredchests.notification_settings.notification_mode')}>
+                                <Text bold>{LocalizeText('wiredchests.notification_settings.notification_mode.when')}</Text>
+                                <HabboDropMenuView<number> skinStyle={3} label={LocalizeText('wiredchests.notification_settings.notification_mode.when')} value={notifyMode} options={notifyModes} onSelect={setNotifyMode} />
+                            </ChestSettingsSection>
                             <div className="volt-chest__actions">
                                 <ChestButton wide onClick={saveNotifications}>
                                     {LocalizeText('wiredchests.ready')}

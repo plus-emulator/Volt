@@ -1,6 +1,7 @@
 import { FC } from 'react';
 import { LocalizeText, WiredFurniType } from '../../../../api';
 import { useWired } from '../../../../hooks';
+import { WiredFurniSelectorSection } from '../WiredFurniSelectorView';
 import { WiredSection } from '../WiredSection';
 import { WiredText } from '../WiredText';
 import { WiredTriggerBaseView } from './WiredTriggerBaseView';
@@ -16,6 +17,8 @@ export const WiredTriggerReceiveLinkMessageView: FC<{}> = () => {
         <WiredTriggerBaseView
             hasSpecialInput={true}
             nativeLayout={true}
+            footerCollapsible={false}
+            selectionPreview={<WiredFurniSelectorSection title={LocalizeText('wiredfurni.params.link.endpoints')} hideInstructions />}
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID}
             save={() => {
                 setIntParams([]);
@@ -25,7 +28,6 @@ export const WiredTriggerReceiveLinkMessageView: FC<{}> = () => {
             <WiredSection title={LocalizeText('wiredfurni.params.general_box_info')}>
                 <WiredText soft={true} wrap={true} text={LocalizeText('wiredfurni.params.link.receive_message_info')} />
             </WiredSection>
-            <WiredSection title={LocalizeText('wiredfurni.params.link.endpoints')} />
         </WiredTriggerBaseView>
     );
 };

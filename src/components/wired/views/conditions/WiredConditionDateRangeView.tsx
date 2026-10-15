@@ -1,8 +1,8 @@
 import { FC, useEffect, useState } from 'react';
 import { LocalizeText, WiredDateToString, WiredFurniType } from '../../../../api';
-import { Text } from '../../../../common';
 import { useWired } from '../../../../hooks';
-import { VoltInput } from '../../../../layout';
+import { WiredSection } from '../WiredSection';
+import { WiredTextInput } from '../WiredTextInput';
 import { WiredConditionBaseView } from './WiredConditionBaseView';
 
 export const WiredConditionDateRangeView: FC<{}> = (props) => {
@@ -24,31 +24,21 @@ export const WiredConditionDateRangeView: FC<{}> = (props) => {
     };
 
     useEffect(() => {
-        // Seed both inputs (default "now") even for a never-configured furni so
-        // the first save can't send new Date('') → NaN.
-        let startDate = new Date();
-        let endDate = new Date();
+        if (!trigger) return;
 
-        if (trigger.intData.length >= 2) {
-            if (trigger.intData[0] > 0) startDate = new Date(trigger.intData[0] * 1000);
-
-            if (trigger.intData[1] > 0) endDate = new Date(trigger.intData[1] * 1000);
-        }
-
-        setStartDate(WiredDateToString(startDate));
-        setEndDate(WiredDateToString(endDate));
+        // AIR leaves each absent endpoint empty; zero is a configured Unix timestamp.
+        setStartDate(trigger.intData.length > 0 ? WiredDateToString(new Date(trigger.intData[0] * 1000)) : '');
+        setEndDate(trigger.intData.length > 1 ? WiredDateToString(new Date(trigger.intData[1] * 1000)) : '');
     }, [trigger]);
 
     return (
-        <WiredConditionBaseView hasSpecialInput={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save}>
-            <div className="flex flex-col gap-1">
-                <Text bold>{LocalizeText('wiredfurni.params.startdate')}</Text>
-                <VoltInput type="text" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-            </div>
-            <div className="flex flex-col gap-1">
-                <Text bold>{LocalizeText('wiredfurni.params.enddate')}</Text>
-                <VoltInput type="text" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-            </div>
+        <WiredConditionBaseView hasSpecialInput={true} nativeLayout={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save}>
+            <WiredSection title={LocalizeText('wiredfurni.params.startdate')}>
+                <WiredTextInput maxLength={1000} placeholder="YYYY/MM/DD HH:MM" value={startDate} onChange={setStartDate} />
+            </WiredSection>
+            <WiredSection title={LocalizeText('wiredfurni.params.enddate')}>
+                <WiredTextInput maxLength={1000} placeholder="YYYY/MM/DD HH:MM" value={endDate} onChange={setEndDate} />
+            </WiredSection>
         </WiredConditionBaseView>
     );
 };

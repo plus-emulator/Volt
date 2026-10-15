@@ -1,6 +1,7 @@
 import { FC, useEffect, useState } from 'react';
 import { LocalizeText, WiredFurniType } from '../../../../api';
-import { Text } from '../../../../common';
+import { WiredSection } from '../WiredSection';
+import { WiredRadioGroup } from '../WiredOptions';
 import { useWired } from '../../../../hooks';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredActionBaseView } from './WiredActionBaseView';
@@ -42,27 +43,14 @@ export const WiredActionControlClockView: FC<{}> = () => {
     return (
         <WiredActionBaseView
             hasSpecialInput={true}
+            nativeLayout={true}
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID_BY_TYPE_OR_FROM_CONTEXT}
             save={save}
             footer={<WiredSourcesSelector showFurni={true} furniSource={furniSource} onChangeFurni={setFurniSource} />}
         >
-            <div className="flex flex-col gap-2">
-                {CONTROL_OPTIONS.map((option) => {
-                    return (
-                        <div key={option.value} className="flex items-center gap-1">
-                            <input
-                                checked={control === option.value}
-                                className="form-check-input"
-                                id={`controlClock${option.value}`}
-                                name="controlClock"
-                                type="radio"
-                                onChange={() => setControl(option.value)}
-                            />
-                            <Text>{LocalizeText(option.label)}</Text>
-                        </div>
-                    );
-                })}
-            </div>
+            <WiredSection title={LocalizeText('wiredfurni.params.clock_control')}>
+                <WiredRadioGroup name="controlClock" value={control} onChange={setControl} options={CONTROL_OPTIONS.map(option => ({ id: option.value, label: LocalizeText(option.label) }))} />
+            </WiredSection>
         </WiredActionBaseView>
     );
 };

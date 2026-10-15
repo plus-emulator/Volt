@@ -7,7 +7,9 @@ import {
     parseVariablesWebApiKeys,
     withVariablesWebApiRoutes
 } from '../../../../api/wired/WiredVariablesWebApiKeys';
-import { Button, Text } from '../../../../common';
+import { WiredShellButton } from '../WiredShellHeaderView';
+import { WiredText } from '../WiredText';
+import { WiredTextArea } from '../WiredTextArea';
 import { useMessageEvent, useNotification, useWired } from '../../../../hooks';
 import { WiredCheckboxGroup, WiredCheckboxOption } from '../WiredOptions';
 import { WiredSection } from '../WiredSection';
@@ -99,30 +101,22 @@ export const WiredExtraVariablesWebApiNativeView: FC<{}> = () => {
                     isReadKey ? 'API key for reading:' : 'API key for writing:'
                 )}
             >
-                <div className="flex flex-col gap-1">
-                    <input
-                        aria-label={isReadKey ? 'Read key' : 'Write key'}
-                        className="form-control form-control-sm font-mono"
-                        readOnly
-                        spellCheck={false}
-                        type="text"
-                        value={key}
-                        onFocus={(event) => event.currentTarget.select()}
-                    />
-                    <div className="flex gap-1">
-                        <Button fullWidth variant="secondary" onClick={() => generate(isReadKey)}>
+                <div className="flex flex-col" style={{ gap: 5 }}>
+                    <div className="flex" style={{ gap: 12 }}>
+                        <WiredShellButton shellStyle="illumina" onClick={() => generate(isReadKey)}>
                             {localizeWithFallback(
                                 key ? 'wiredfurni.params.web_api.regenerate' : 'wiredfurni.params.web_api.generate',
                                 key ? 'Regenerate' : 'Generate'
                             )}
-                        </Button>
-                        <Button disabled={!key} fullWidth variant="secondary" onClick={() => (isReadKey ? setReadKey('') : setWriteKey(''))}>
+                        </WiredShellButton>
+                        <WiredShellButton shellStyle="illumina" disabled={!key} onClick={() => (isReadKey ? setReadKey('') : setWriteKey(''))}>
                             {localizeWithFallback('wiredfurni.params.web_api.clear', 'Clear')}
-                        </Button>
-                        <Button disabled={!key} fullWidth variant="secondary" onClick={() => void copyKey(key)}>
+                        </WiredShellButton>
+                        <WiredShellButton shellStyle="illumina" disabled={!key} onClick={() => void copyKey(key)}>
                             {localizeWithFallback('wiredfurni.params.web_api.copy', 'Copy')}
-                        </Button>
+                        </WiredShellButton>
                     </div>
+                    <WiredTextArea label={isReadKey ? 'Read key' : 'Write key'} height={30} readOnly wrap value={key} />
                 </div>
             </WiredSection>
         );
@@ -135,15 +129,12 @@ export const WiredExtraVariablesWebApiNativeView: FC<{}> = () => {
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE}
             save={save}
             footerCollapsible={false}
-            cardStyle={{ width: 400 }}
         >
             <WiredSection title={localizeText('wiredfurni.params.general_box_warning', 'Usage warning:')}>
-                <Text className="whitespace-pre-line" variant="danger">
-                    {localizeText(
+                <WiredText wrap color={15544371} text={localizeText(
                         'wiredfurni.params.web_api.usage_info',
                         "Create API keys for reading and writing variables from dedicated HTTPS endpoints.\nNobody else can see the contents of this box, and you should not share these keys with anyone you don't trust.\n\nAfter changing variable configurations in the room, you may need to reload the room for the API to work properly."
-                    )}
-                </Text>
+                    )} />
             </WiredSection>
             {keySection(true)}
             {keySection(false)}
@@ -157,14 +148,12 @@ export const WiredExtraVariablesWebApiNativeView: FC<{}> = () => {
                         onChange={toggleBulkDelete}
                     />
                 </WiredCheckboxGroup>
-                <Text small>
-                    {withVariablesWebApiRoutes(
+                <div style={{ paddingLeft: 23 }}><WiredText soft wrap text={withVariablesWebApiRoutes(
                         localizeText(
                             'wiredfurni.params.web_api.permissions.bulk_delete.info',
                             'Enables access to the /variables/bulk-delete endpoint. Use with caution!'
                         )
-                    )}
-                </Text>
+                    )} /></div>
             </WiredSection>
         </WiredExtraBaseView>
     );

@@ -2,8 +2,9 @@ import { FC, useEffect, useMemo, useState } from 'react';
 import { LocalizeText, WiredFurniType } from '../../../../api';
 import sourceFurniIcon from '../../../../assets/images/wired/source_furni.png';
 import sourceUserIcon from '../../../../assets/images/wired/source_user.png';
-import { Button, Text } from '../../../../common';
-import { WiredLegacySlider as Slider } from '../WiredSlider';
+import { WiredSliderSection } from '../WiredSlider';
+import { WiredRadioGroup } from '../WiredOptions';
+import { WiredSection } from '../WiredSection';
 import { useWired } from '../../../../hooks';
 import { WiredFurniSelectionSourceRow } from '../WiredFurniSelectionSourceRow';
 import { sortWiredSourceOptions, useAvailableUserSources } from '../WiredSourcesSelector';
@@ -16,7 +17,6 @@ const SOURCE_SELECTED = 100;
 const COMPARISON_OPTIONS = [0, 1, 2];
 const MIN_QUANTITY = 0;
 const MAX_QUANTITY = 100;
-const QUANTITY_PATTERN = /^\d*$/;
 
 const USER_SOURCES = sortWiredSourceOptions(
     [
@@ -58,7 +58,6 @@ export const WiredConditionSelectionQuantityView: FC<{}> = () => {
     const availableUserSources = useMemo(() => sortWiredSourceOptions(rawAvailableUserSources, 'users'), [rawAvailableUserSources]);
     const [comparison, setComparison] = useState(1);
     const [quantity, setQuantity] = useState(0);
-    const [quantityInput, setQuantityInput] = useState('0');
     const [sourceGroup, setSourceGroup] = useState(SOURCE_GROUP_USERS);
     const [userSource, setUserSource] = useState(SOURCE_TRIGGER);
     const [furniSource, setFurniSource] = useState(SOURCE_TRIGGER);
@@ -73,7 +72,6 @@ export const WiredConditionSelectionQuantityView: FC<{}> = () => {
 
         setComparison(COMPARISON_OPTIONS.includes(nextComparison) ? nextComparison : 1);
         setQuantity(nextQuantity);
-        setQuantityInput(nextQuantity.toString());
         setSourceGroup(nextSourceGroup);
         setUserSource(
             nextSourceGroup === SOURCE_GROUP_USERS
@@ -126,26 +124,6 @@ export const WiredConditionSelectionQuantityView: FC<{}> = () => {
         else setFurniSource(nextOption.value);
     };
 
-    const updateQuantity = (value: number) => {
-        const nextValue = clampQuantity(value);
-
-        setQuantity(nextValue);
-        setQuantityInput(nextValue.toString());
-    };
-
-    const updateQuantityInput = (value: string) => {
-        if (!QUANTITY_PATTERN.test(value)) return;
-
-        setQuantityInput(value);
-
-        if (!value.length) {
-            setQuantity(0);
-            return;
-        }
-
-        updateQuantity(parseInt(value));
-    };
-
     const save = () => {
         setIntParams([isUserGroup ? 1 : 0, clampQuantity(quantity), comparison]);
         setFurniSources([furniSource]);
@@ -156,38 +134,11 @@ export const WiredConditionSelectionQuantityView: FC<{}> = () => {
     };
 
     return (
-        <WiredConditionBaseView hasSpecialInput={true} requiresFurni={requiresFurni} save={save}>
-            <div className="flex flex-col gap-1">
-                <Text bold>{LocalizeText('wiredfurni.params.comparison_selection')}</Text>
-                {COMPARISON_OPTIONS.map((value) => {
-                    return (
-                        <label key={value} className="flex items-center gap-1">
-                            <input
-                                checked={comparison === value}
-                                className="form-check-input"
-                                name="selectionQuantityComparison"
-                                type="radio"
-                                onChange={() => setComparison(value)}
-                            />
-                            <Text>{LocalizeText(`wiredfurni.params.comparison.${value}`)}</Text>
-                        </label>
-                    );
-                })}
-            </div>
-            <div className="flex flex-col gap-2">
-                <input
-                    className="form-control form-control-sm"
-                    inputMode="numeric"
-                    max={MAX_QUANTITY}
-                    min={MIN_QUANTITY}
-                    type="text"
-                    value={quantityInput}
-                    onBlur={() => setQuantityInput(clampQuantity(quantity).toString())}
-                    onChange={(event) => updateQuantityInput(event.target.value)}
-                />
-                <Slider max={MAX_QUANTITY} min={MIN_QUANTITY} step={1} value={quantity} onChange={(event) => updateQuantity(event as number)} />
-                <Text small>{quantity}</Text>
-            </div>
+        <WiredConditionBaseView nativeLayout={true} hasSpecialInput={true} requiresFurni={requiresFurni} save={save}>
+            <WiredSection title={LocalizeText('wiredfurni.params.comparison_selection')}>
+                <WiredRadioGroup name="selectionQuantityComparison" options={COMPARISON_OPTIONS.map((id) => ({ id, label: LocalizeText(`wiredfurni.params.comparison.${id}`) }))} value={comparison} onChange={setComparison} />
+            </WiredSection>
+            <WiredSliderSection min={MIN_QUANTITY} max={MAX_QUANTITY} step={1} titleKey="wiredfurni.params.setamount2" value={quantity} onChange={setQuantity} />
             <WiredFurniSelectionSourceRow
                 title="wiredfurni.params.sources.merged.title"
                 options={activeSources}
