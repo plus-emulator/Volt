@@ -7,7 +7,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
     send: vi.fn(),
     openProfile: vi.fn(),
-    handlers: [] as Array<(event: any) => void>
+    handlers: [] as Array<(event: any) => void>,
+    roomSession: { roomId: 1 }
 }));
 
 vi.mock('../../api', () => ({
@@ -36,7 +37,8 @@ vi.mock('../../common', () => ({
 vi.mock('../../hooks', () => ({
     useMessageEvent: (_eventType: unknown, handler: (event: any) => void) => {
         mocks.handlers.push(handler);
-    }
+    },
+    useRoom: () => ({ roomSession: mocks.roomSession })
 }));
 
 import { HOLDER_TYPE_FURNI, HOLDER_TYPE_USER, WiredVariableOwnersView, wiredVariableIdOf } from './WiredVariableOwnersView';
@@ -49,7 +51,7 @@ const holder = (entityType: number, entityId: number, entityName: string, value:
 });
 
 const deliverPage = (page: { variableId?: string; totalEntries: number; currentPage: number; elements: any[]; userTypeFilter?: number; sortTypeFilter?: number }) => {
-    const parser = { variableId: 'user:42', userTypeFilter: 0, sortTypeFilter: -1, ...page };
+    const parser = { variableId: 'user:42', amount: 50, userTypeFilter: 0, sortTypeFilter: -1, ...page };
 
     act(() => {
         for (const handler of mocks.handlers) handler({ getParser: () => parser });
@@ -148,8 +150,12 @@ describe('WiredVariableOwnersView', () => {
         fireEvent.change(userTypeSelect, { target: { value: '1' } });
         expect(mocks.send.mock.calls[1][0].getMessageArray()).toEqual(['user:42', 1, 50, 1, 1]);
 
+        // A page for filters nobody asked for is a stale reply; the answer to the request sets the menus.
         deliverPage({ totalEntries: 0, currentPage: 1, elements: [], userTypeFilter: 1, sortTypeFilter: 2 });
+        expect(sortSelect.value).not.toBe('2');
+
+        deliverPage({ totalEntries: 0, currentPage: 1, elements: [], userTypeFilter: 1, sortTypeFilter: 1 });
         expect(userTypeSelect.value).toBe('1');
-        expect(sortSelect.value).toBe('2');
+        expect(sortSelect.value).toBe('1');
     });
 });

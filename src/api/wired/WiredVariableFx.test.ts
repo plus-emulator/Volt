@@ -61,10 +61,10 @@ describe('WiredVariableFx helpers', () => {
     });
 
     it('lets a level badge pass the segment count to the bar it draws', () => {
-        expect(wiredVariableFxSegmentRenderer(WIRED_FX_CATEGORY.LEVELLING_PROGRESS, 0, WIRED_FX_RENDERER.ARROW)).toBe(WIRED_FX_RENDERER.ARROW);
-        expect(wiredVariableFxSegmentRenderer(WIRED_FX_CATEGORY.LEVELLING_PROGRESS, 0, 77)).toBe(WIRED_FX_RENDERER.BLOCK);
-        expect(wiredVariableFxSegmentRenderer(WIRED_FX_CATEGORY.LEVELLING_PROGRESS, 1, WIRED_FX_RENDERER.ARROW)).toBe(WIRED_FX_RENDERER.CLASSIC_MINI);
-        expect(wiredVariableFxSegmentRenderer(WIRED_FX_CATEGORY.PROGRESS_BAR, 1, 0)).toBe(WIRED_FX_RENDERER.BLOCK);
+        expect(wiredVariableFxSegmentRenderer(WIRED_FX_CATEGORY.LEVELLING_PROGRESS, WIRED_FX_RENDERER.LEVEL_WITH_PROGRESS, WIRED_FX_RENDERER.ARROW)).toBe(WIRED_FX_RENDERER.ARROW);
+        expect(wiredVariableFxSegmentRenderer(WIRED_FX_CATEGORY.LEVELLING_PROGRESS, WIRED_FX_RENDERER.LEVEL_WITH_PROGRESS, 77)).toBe(WIRED_FX_RENDERER.BLOCK);
+        expect(wiredVariableFxSegmentRenderer(WIRED_FX_CATEGORY.LEVELLING_PROGRESS, WIRED_FX_RENDERER.LEVEL_DETAILS, WIRED_FX_RENDERER.ARROW)).toBe(WIRED_FX_RENDERER.LEVEL_DETAILS);
+        expect(wiredVariableFxSegmentRenderer(WIRED_FX_CATEGORY.PROGRESS_BAR, WIRED_FX_RENDERER.BLOCK, 0)).toBe(WIRED_FX_RENDERER.BLOCK);
     });
 
     it('draws against the status range when the server sent one and repairs an empty one', () => {
@@ -85,7 +85,7 @@ describe('WiredVariableFx helpers', () => {
         expect(resolveWiredVariableFxColor(config({ colorId: WIRED_FX_COLOR_DYNAMIC_TEAM }), status({ extra: { delegated_color: '#df291e' } }))).toBe('#df291e');
         expect(resolveWiredVariableFxColor(config({ colorId: WIRED_FX_COLOR_DYNAMIC_TEAM }), status())).toBeNull();
         expect(resolveWiredVariableFxColor(config({ colorId: WIRED_FX_COLOR_DYNAMIC_LEVELLING }), status({ extra: { current_level: '10', max_level: '10' } }))).toBe('hsl(120, 75%, 50%)');
-        expect(resolveWiredVariableFxColor(config({ colorId: 1 }), status())).toBe('#e04b4b');
+        expect(resolveWiredVariableFxColor(config({ colorId: 1 }), status())).toBe('#36b24a');
         expect(resolveWiredVariableFxColor(config({ category: WIRED_FX_CATEGORY.STATUS_BAR, extra: { color: '#4aa9f6' } }), status())).toBe('#4aa9f6');
         expect(resolveWiredVariableFxColor(config({ category: WIRED_FX_CATEGORY.STATUS_BAR }), status({ value: 100 }))).toBe('hsl(120, 75%, 50%)');
         expect(resolveWiredVariableFxColor(config(), status())).toBeNull();
@@ -106,7 +106,8 @@ describe('WiredVariableFx helpers', () => {
 
         const changing = config({ showMode: WIRED_FX_SHOW_MODE.WHEN_CHANGES, showDurationMs: 2000 });
 
-        expect(wiredVariableFxVisibleUntil(changing, 1000, 2500)).toEqual({ visible: true, until: 3000 });
-        expect(wiredVariableFxVisibleUntil(changing, 1000, 3000)).toEqual({ visible: false, until: 3000 });
+        // The caller passes the moment the value hides (change time + show duration), not the change time.
+        expect(wiredVariableFxVisibleUntil(changing, 3000, 2500)).toEqual({ visible: true, until: 3000 });
+        expect(wiredVariableFxVisibleUntil(changing, 3000, 3000)).toEqual({ visible: false, until: 3000 });
     });
 });

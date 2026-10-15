@@ -48,26 +48,4 @@ export class WiredConditionlayout {
     public static TRG_FURNI_ADJACENT_STATE: number = 46;
     public static CHEST_HAS_ITEMS: number = 45;
     public static CHEST_HAS_ITEM_TYPE: number = 46;
-    public static USER_ATTRIBUTE: number = 49;
-    public static NOT_USER_ATTRIBUTE: number = 50;
-    public static USER_AMOUNT: number = 51;
-    public static USER_STATE: number = 52;
-    public static NOT_USER_STATE: number = 53;
-    public static USER_TAG: number = 54;
-    public static NOT_USER_TAG: number = 55;
-    public static USER_MOTTO: number = 56;
-    public static USER_RANGE: number = 57;
-    public static FURNI_RANGE: number = 58;
-    public static FURNI_PROPERTY: number = 59;
-
-    public static CHECK_ARRAY: number = 60;
-
-    public static USER_LEVEL: number = 61;
-
-    public static USER_RANK: number = 62;
-    public static FURNI_OPACITY: number = 63;
-    public static USER_COOLDOWN: number = 64;
-    public static USER_ONCE: number = 65;
-    public static USER_DAILY: number = 66;
-    public static USER_HIGHSCORE_POINTS: number = 67;
 }

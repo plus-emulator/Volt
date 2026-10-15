@@ -3,7 +3,10 @@ import { PropsWithChildren, ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const setIntParams = vi.fn();
-let trigger: { intData: number[]; stringData: string } | null = null;
+const setUserSources = vi.fn();
+const setQuantifier = vi.fn();
+// Int params are [team, amount, comparison]; the user source and quantifier travel natively.
+let trigger: { intData: number[]; stringData: string; userSources: number[] } | null = null;
 
 vi.mock('../../../../api', () => ({
     LocalizeText: (key: string) => key,
@@ -12,7 +15,7 @@ vi.mock('../../../../api', () => ({
 }));
 
 vi.mock('../../../../hooks', () => ({
-    useWired: () => ({ trigger, setIntParams })
+    useWired: () => ({ trigger, setIntParams, setUserSources, quantifier: 0, setQuantifier })
 }));
 
 vi.mock('../../../../common', () => ({
@@ -41,32 +44,35 @@ import { WiredConditionTeamHasScoreView } from './WiredConditionTeamHasScoreView
 describe('the amount dialog shared by the credits, duckets, diamonds and item-count conditions', () => {
     beforeEach(() => {
         setIntParams.mockClear();
+        setUserSources.mockClear();
+        setQuantifier.mockClear();
     });
 
     afterEach(cleanup);
 
     it('keeps a six-code comparison the server now honours instead of coercing it to equal', () => {
-        trigger = { intData: [0, 5, 250, 0, 0], stringData: '' };
+        trigger = { intData: [1, 250, 4], stringData: '', userSources: [0] };
         render(<WiredConditionTeamHasScoreView scoped={false} />);
         fireEvent.click(screen.getByText('Save'));
 
-        expect(setIntParams).toHaveBeenCalledWith([1, 5, 250, 0, 0]);
+        expect(setIntParams).toHaveBeenCalledWith([1, 250, 4]);
+        expect(setUserSources).toHaveBeenCalledWith([0]);
     });
 
     it('lets the builder pick another operator', () => {
-        trigger = { intData: [0, 5, 10, 0, 0], stringData: '' };
+        trigger = { intData: [1, 10, 5], stringData: '', userSources: [0] };
         render(<WiredConditionTeamHasScoreView scoped={false} />);
         fireEvent.click(screen.getByText('<'));
         fireEvent.click(screen.getByText('Save'));
 
-        expect(setIntParams).toHaveBeenCalledWith([1, 0, 10, 0, 0]);
+        expect(setIntParams).toHaveBeenCalledWith([1, 10, 0]);
     });
 
     it('an unsaved box starts at "at least", which is what the boxes always did', () => {
-        trigger = { intData: [], stringData: '' };
+        trigger = { intData: [], stringData: '', userSources: [] };
         render(<WiredConditionTeamHasScoreView scoped={false} />);
         fireEvent.click(screen.getByText('Save'));
 
-        expect(setIntParams).toHaveBeenCalledWith([1, 5, 0, 0, 0]);
+        expect(setIntParams).toHaveBeenCalledWith([1, 0, 5]);
     });
 });

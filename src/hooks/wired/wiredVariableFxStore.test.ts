@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { WIRED_FX_SHOW_MODE } from '../../api/wired/WiredVariableFx';
 import { useWiredVariableFxStore } from './wiredVariableFxStore';
 
 const config = (configId: number) => ({
     configId,
     userFx: true,
-    showMode: 0,
-    updateMask: 0,
+    // "Show when changing" with the editor's default mask (new, up, down): only a real change reveals.
+    showMode: WIRED_FX_SHOW_MODE.WHEN_CHANGES,
+    updateMask: 7,
     showOnMouseHover: false,
     showDurationMs: 3000,
     category: 1,
@@ -42,7 +44,8 @@ describe('wiredVariableFxStore', () => {
         const state = useWiredVariableFxStore.getState();
         expect(Object.keys(state.configs)).toEqual(['7', '8']);
         expect(Object.keys(state.statuses).sort()).toEqual(['7|user:20|u|100', '8|user:20|u|100']);
-        expect(state.statuses['7|user:20|u|100'].changedAt).toBe(1000);
+        // A full sync initializes; initialization never counts as a change.
+        expect(state.statuses['7|user:20|u|100'].changedAt).toBe(0);
         expect(state.statuses['7|user:20|u|100'].previousValue).toBeNull();
     });
 
@@ -55,6 +58,7 @@ describe('wiredVariableFxStore', () => {
         let state = useWiredVariableFxStore.getState();
         expect(state.statuses['7|user:20|u|100'].status.value).toBe(59);
         expect(state.statuses['7|user:20|u|100'].changedAt).toBe(2000);
+        expect(state.statuses['7|user:20|u|100'].visibleUntil).toBe(5000);
         expect(state.statuses['7|user:20|u|100'].previousValue).toBe(60);
         expect(state.statuses['7|user:20|u|101'].status.value).toBe(20);
 
@@ -66,7 +70,8 @@ describe('wiredVariableFxStore', () => {
     it('an initialize status keeps the old change time and a same value does not count as a change', () => {
         const store = useWiredVariableFxStore.getState();
         store.applyConfigs([config(7)]);
-        store.applyStatuses(true, [status(7, 100, 60)], 1000);
+        store.applyStatuses(true, [status(7, 100, 59)], 500);
+        store.applyStatuses(false, [status(7, 100, 60)], 1000);
 
         store.applyStatuses(false, [status(7, 100, 60)], 2000);
         expect(useWiredVariableFxStore.getState().statuses['7|user:20|u|100'].changedAt).toBe(1000);

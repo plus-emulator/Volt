@@ -4,11 +4,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const setIntParams = vi.fn();
 const setStringParam = vi.fn();
-let trigger: { stringData: string; intData: number[] } | null = null;
+const setUserSources = vi.fn();
+let trigger: { stringData: string; intData: number[]; userSources?: number[] } | null = null;
 let baseProps: { save: () => void; validate?: () => boolean } | null = null;
 
 vi.mock('../../../../hooks', () => ({
-    useWired: () => ({ trigger, setIntParams, setStringParam }),
+    useWired: () => ({ trigger, setIntParams, setStringParam, setUserSources }),
     useAchievements: () => ({ enabledWiredAchievements: [] })
 }));
 
@@ -36,6 +37,7 @@ describe('reward track wired actions', () => {
     beforeEach(() => {
         setIntParams.mockClear();
         setStringParam.mockClear();
+        setUserSources.mockClear();
         baseProps = null;
     });
 
@@ -68,13 +70,15 @@ describe('reward track wired actions', () => {
     });
 
     it('reset: saves the track and the user source', () => {
-        trigger = { stringData: 'season_1', intData: [200] };
+        // The user source travels in the native source list, not in the int params.
+        trigger = { stringData: 'season_1', intData: [], userSources: [200] };
         render(<WiredActionResetRewardTrackView />);
 
         expect((screen.getByLabelText('track') as HTMLInputElement).value).toBe('season_1');
         baseProps.save();
         expect(setStringParam).toHaveBeenCalledWith('season_1');
-        expect(setIntParams).toHaveBeenCalledWith([200]);
+        expect(setIntParams).toHaveBeenCalledWith([]);
+        expect(setUserSources).toHaveBeenCalledWith([200]);
 
         fireEvent.change(screen.getByLabelText('track'), { target: { value: '' } });
         expect(baseProps.validate()).toBe(false);

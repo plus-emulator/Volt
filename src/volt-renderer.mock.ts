@@ -613,6 +613,19 @@ export const GetAvatarRenderManager = vi.fn(stubManager);
 // registerMessageEvent.
 const _msgEventWrappers = new WeakMap<MessageEvent, (ev: any) => void>();
 
+// One connection for the session, like the renderer's singleton: views compare it to drop replies
+// that arrive after a reconnect.
+const mockConnection = {
+    send: vi.fn(),
+    connectionState: Object.freeze({
+        phase: 'disconnected',
+        reconnectAttempt: 0,
+        maxReconnectAttempts: 7,
+        authenticated: false,
+        closeCode: null,
+        closeReason: ''
+    })
+};
 export const GetCommunication = vi.fn(() => ({
     registerMessageEvent(event: MessageEvent) {
         if (!event.callBack) return;
@@ -630,17 +643,7 @@ export const GetCommunication = vi.fn(() => ({
         if (wrapper) msgListeners.get(event.type)?.delete(wrapper);
     },
     // Stub for SendMessageComposer and renderer-owned connection snapshots.
-    connection: {
-        send: vi.fn(),
-        connectionState: Object.freeze({
-            phase: 'disconnected',
-            reconnectAttempt: 0,
-            maxReconnectAttempts: 7,
-            authenticated: false,
-            closeCode: null,
-            closeReason: ''
-        })
-    }
+    connection: mockConnection
 }));
 export const GetConfiguration = vi.fn(stubManager);
 export const GetLocalizationManager = vi.fn(stubManager);
@@ -945,8 +948,10 @@ export interface IWiredArrayInspectionData {
 }
 
 export class WiredVariableHoldersPageComposer extends RecordingComposer {}
+export class WiredVariableHoldersPage64Composer extends RecordingComposer {}
 export class WiredLogPageEvent extends StubClass {}
 export class WiredVariableHoldersPageEvent extends StubClass {}
+export class WiredVariableHoldersPage64Event extends StubClass {}
 export class WiredGenerateWebApiKeyComposer extends RecordingComposer {}
 export class WiredWebApiKeyResultEvent extends StubClass {}
 export class WiredClickSettingsEvent extends StubClass {}
