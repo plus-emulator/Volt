@@ -136,7 +136,20 @@ const useWiredState = () => {
 
         const trigger = triggerRef.current;
 
-        if (!IsOwnerOfFloorFurniture(trigger.id)) {
+        // AIR UserDefinedRoomEventsCtrl.as:1122-1131: a selector saved with Invert but without Filter asks first, and accepting it
+        // skips the non-owner confirmation.
+        if (trigger instanceof WiredSelectorDefinition && inverseRef.current && !filterRef.current) {
+            showConfirm(
+                LocalizeText('wiredfurni.danger.1.change.confirm.body'),
+                () => {
+                    save(trigger);
+                },
+                null,
+                null,
+                null,
+                LocalizeText('wiredfurni.danger.1.change.confirm.title')
+            );
+        } else if (!IsOwnerOfFloorFurniture(trigger.id)) {
             showConfirm(
                 LocalizeText('wiredfurni.nonowner.change.confirm.body'),
                 () => {

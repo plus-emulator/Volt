@@ -8,7 +8,7 @@ import { WiredRadioGroup } from '../WiredOptions';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredSelectorBaseView } from './WiredSelectorBaseView';
 
-/** Union (0) or intersection (1) of the remote selection with its stack. */
+/** Union (0) or intersection (1) of the selections of the picked Wired stacks (wiredfurni.params.remote_selection.type.info). */
 const UNION = 0;
 const INTERSECTION = 1;
 const STACK_COUNT_MAX = 2147483647;
@@ -36,13 +36,14 @@ export const WiredSelectorRemoteView: FC<{}> = () => {
         setFurniSources([furniSource]);
     }, [furniSource, setFurniSources, setIntParams, stackCount, stackFilter, unionIntersection]);
 
+    // AIR UserDefinedRoomEventsCtrl.as:520-556: the stack source row is in the advanced settings, which open when a non-default
+    // source is stored.
     return (
         <WiredSelectorBaseView
             hasSpecialInput={true} nativeLayout={true}
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID_BY_TYPE_OR_FROM_CONTEXT}
             save={save}
             hideDelay={true}
-
             footer={<WiredSourcesSelector showFurni={true} furniSource={furniSource} onChangeFurni={setFurniSource} />}
         >
             <WiredSection title={LocalizeText('wiredfurni.params.remote_selection.type')}>
