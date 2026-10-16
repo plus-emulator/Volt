@@ -3,6 +3,7 @@ import {
     parseWiredInt64,
     GetSessionDataManager,
     WiredMenuPermissionsSaveComposer,
+    WiredPermissionsEvent,
     WiredRoomSettingsDataEvent,
     WiredRoomSettingsRequestComposer,
     WiredRoomStateActionComposer,
@@ -290,6 +291,17 @@ export const useWiredToolsStore = () => {
             isLoaded: true,
             timezone: parser.timezone ?? ''
         });
+    });
+
+    // The server repeats the Wired permissions (canModify, canRead) when rights or the room's Wired settings change; refresh the settings this
+    // hotel's tools read access from, so :wired opens or closes without re-entering the room.
+    useMessageEvent<WiredPermissionsEvent>(WiredPermissionsEvent, (event) => {
+        const parser = event.getParser();
+
+        if (!roomSession || !roomSettings.isLoaded || roomSettings.roomId !== roomSession.roomId) return;
+        if (parser.canRead === roomSettings.canInspect && parser.canModify === roomSettings.canModify) return;
+
+        SendMessageComposer(new WiredRoomSettingsRequestComposer());
     });
 
     useMessageEvent<WiredUserVariablesData64Event>(WiredUserVariablesData64Event, (event) => {
