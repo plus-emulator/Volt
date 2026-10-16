@@ -21,6 +21,7 @@ import { MainView } from './components/MainView';
 import { ReconnectView } from './components/reconnect/ReconnectView';
 import { clearRoomToolsHistory } from './components/room/widgets/room-tools/roomToolsHistoryStore';
 import { ClearStoredChatHistory, getConnectionFailureAction, shouldClearLoginAfterDisconnect, useConnectionState, useDevicePixelRatio, useMessageEvent, useVoltEvent } from './hooks';
+import { listenForWiredLabels } from './hooks/rooms/widgets/useWiredLabelsState';
 import { clearPerkAllowances, listenForPerkAllowances } from './state/perkAllowancesStore';
 import { SharedHookRegistry } from './state/useSharedHook';
 
@@ -171,6 +172,7 @@ export const App: FC<{}> = (props) => {
                 // below still register their handlers first.
                 if (!communicationInitRef.current) {
                     listenForPerkAllowances();
+                    listenForWiredLabels();
                     communicationInitRef.current = takeEarlyCommunicationInit() ?? GetCommunication().init();
                     communicationInitRef.current.catch(() => {});
                 }
