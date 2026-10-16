@@ -1028,5 +1028,14 @@
   "wiredfurni.params.sources.users.10": "The reached user",
   "wiredfurni.params.sources.users.title.reward_user": "Users to reward:",
   "wiredfurni.params.sources.users.title.shooter": "The shooter:",
-  "wiredfurni.params.sources.users.title.signal_forward": "Users to forward:"
+  "wiredfurni.params.sources.users.title.signal_forward": "Users to forward:",
+  "wiredfurni.danger.1.change.confirm.title": "Are you sure?",
+  "wiredfurni.danger.1.change.confirm.body": "You have selected \"Invert\" without filtering. This will select all furni/users that do NOT match the requirement, which COULD be the entire room. Are you sure? (DANGEROUS!)",
+  "wiredfurni.params.remote_selection.type": "Selection type:",
+  "wiredfurni.params.remote_selection.type.0": "Union",
+  "wiredfurni.params.remote_selection.type.1": "Intersection",
+  "wiredfurni.params.remote_selection.type.info": "Select the behavior when multiple Wired stacks are selected",
+  "wiredfurni.params.remote_selection.filter": "Filter the stacks",
+  "wiredfurni.params.remote_selection.filter.0": "Use all selected Wired stacks",
+  "wiredfurni.params.remote_selection.filter.1": "Pick random amount:"
 }
