@@ -1,6 +1,7 @@
 import { CreateLinkEvent, GetRoomEngine, GetSessionDataManager } from '@volt/renderer';
 import { CSSProperties, FC, PropsWithChildren, ReactNode, useEffect, useRef, useState } from 'react';
 import {
+    isUsingAdvancedSettings,
     isWiredVolterStyle,
     LocalizeText,
     localizeWithFallback,
@@ -198,7 +199,8 @@ export const WiredBaseView: FC<PropsWithChildren<WiredBaseViewProps>> = (props) 
     useEffect(() => {
         if (!trigger) return;
 
-        setShowFooter(false);
+        // AIR opens the advanced section expanded when it holds a non-default choice (UserDefinedRoomEventsCtrl.as:703).
+        setShowFooter(isUsingAdvancedSettings(trigger, wiredType));
 
         WiredSelectionVisualizer.clearAllSelectionShaders();
 
@@ -206,7 +208,7 @@ export const WiredBaseView: FC<PropsWithChildren<WiredBaseViewProps>> = (props) 
             setIntParams(trigger.intData);
             setStringParam(trigger.stringData);
         }
-    }, [trigger, hasSpecialInput, setIntParams, setStringParam]);
+    }, [trigger, wiredType, hasSpecialInput, setIntParams, setStringParam]);
 
     useEffect(() => {
         if (!trigger) return;

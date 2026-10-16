@@ -4,6 +4,7 @@ import { useWired } from '../../../../hooks';
 import { WiredRadioGroup } from '../WiredOptions';
 import { WiredSection } from '../WiredSection';
 import { WiredSlider } from '../WiredSlider';
+import { WiredAdvancedSourceRows } from '../WiredAdvancedSourceRows';
 import { WiredActionBaseView } from './WiredActionBaseView';
 
 /**
@@ -33,7 +34,8 @@ export const WiredActionOverrideHeightNativeView: FC<{}> = () => {
     };
 
     return (
-        <WiredActionBaseView hasSpecialInput={true} nativeLayout={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID} save={save}>
+        <WiredActionBaseView hasSpecialInput={true} nativeLayout={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID} save={save}
+            footer={<WiredAdvancedSourceRows rows={[{ kind: 'furni', slot: 0 }]} />}>
             <WiredSection title={localizeWithFallback('wiredfurni.params.override_height.type', 'Height:')}>
                 <WiredRadioGroup
                     name="overrideHeightType"

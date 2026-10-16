@@ -5,6 +5,7 @@ import { WiredDropdown } from '../WiredDropdown';
 import { WiredRadioGroup } from '../WiredOptions';
 import { WiredSection } from '../WiredSection';
 import { WiredMergedSourceSection } from '../WiredSourcesSelector';
+import { WiredAdvancedSourceRows } from '../WiredAdvancedSourceRows';
 import { WiredActionBaseView } from './WiredActionBaseView';
 import {
     getWiredValueTargetCode,
@@ -26,7 +27,7 @@ const MODE_ADD_TO_EXISTING = 1;
 const SCORE_MAX = 2147483647;
 
 export const WiredActionProgressAchievementNativeView: FC<{}> = () => {
-    const { trigger = null, setIntParams = null, setStringParam = null, setVariableIds = null, setFurniSources = null, setUserSources = null } = useWired();
+    const { trigger = null, setIntParams = null, setStringParam = null, setVariableIds = null, setFurniSources = null, setUserSources = null, furniSources = [], userSources = [] } = useWired();
     const { enabledWiredAchievements = [] } = useAchievements();
     const [achievement, setAchievement] = useState('');
     const [mode, setMode] = useState(MODE_ADD_TO_EXISTING);
@@ -69,8 +70,8 @@ export const WiredActionProgressAchievementNativeView: FC<{}> = () => {
         setVariableIds([option === 1 ? variableSlotOf(variableToken) : WIRED_VARIABLE_ABSENT]);
         // Untouched source tails stay as loaded (useWired keeps the trigger's arrays); an edited holder writes only its own slot.
         if (sourcesEdited) {
-            const furni = [...(trigger?.furniSources ?? [])];
-            const users = [...(trigger?.userSources ?? [])];
+            const furni = [...furniSources];
+            const users = [...userSources];
             furni[0] = mergedFurniSource;
             users[0] = users[0] ?? 0;
             users[1] = mergedUserSource;
@@ -86,6 +87,7 @@ export const WiredActionProgressAchievementNativeView: FC<{}> = () => {
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE}
             save={save}
             validate={validate}
+            footer={<WiredAdvancedSourceRows rows={[{ kind: 'users', slot: 0 }]} />}
         >
             <WiredSection title={localizeWithFallback('wiredfurni.params.progress_achievement.name', 'Achievement to progress:')}>
                 <WiredDropdown caption={localizeWithFallback('wiredfurni.params.progress_achievement.name', 'Achievement to progress:')} options={dropdownOptions} value={names.indexOf(achievement)} onChange={(id) => setAchievement(names[id] ?? '')} />

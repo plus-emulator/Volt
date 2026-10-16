@@ -3,6 +3,7 @@ import { localizeWithFallback, WiredFurniType } from '../../../../api';
 import { useWired } from '../../../../hooks';
 import { WiredSection } from '../WiredSection';
 import { WiredTextInput } from '../WiredTextInput';
+import { WiredAdvancedSourceRows } from '../WiredAdvancedSourceRows';
 import { WiredActionBaseView } from './WiredActionBaseView';
 
 /**
@@ -29,7 +30,8 @@ export const WiredActionResetRewardTrackNativeView: FC<{}> = () => {
     };
 
     return (
-        <WiredActionBaseView hasSpecialInput={true} nativeLayout={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save}>
+        <WiredActionBaseView hasSpecialInput={true} nativeLayout={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save}
+            advancedAlwaysVisible footer={<WiredAdvancedSourceRows rows={[{ kind: 'users', slot: 0 }]} />}>
             <WiredSection title={localizeWithFallback('wiredfurni.params.reward_track.reset.track', 'Reward track:')}>
                 <WiredTextInput
                     maxLength={TRACK_MAX_LENGTH}

@@ -17,6 +17,8 @@ export interface WiredActionBaseViewProps {
     footerCollapsible?: boolean;
     advancedAlwaysVisible?: boolean;
     selectionPreview?: ReactNode;
+    /** False keeps furni picking on but leaves the picks section out (AIR forceHidePickFurniInstructions). */
+    showSelection?: boolean;
     nativeLayout?: boolean;
 }
 
@@ -33,6 +35,7 @@ export const WiredActionBaseView: FC<PropsWithChildren<WiredActionBaseViewProps>
         footerCollapsible = true,
         advancedAlwaysVisible = false,
         selectionPreview = null,
+        showSelection = true,
         nativeLayout = false
     } = props;
     const { trigger = null, actionDelay = 0, setActionDelay = null } = useWired();
@@ -53,6 +56,7 @@ export const WiredActionBaseView: FC<PropsWithChildren<WiredActionBaseViewProps>
             footerCollapsible={footerCollapsible}
             advancedAlwaysVisible={advancedAlwaysVisible}
             selectionPreview={selectionPreview}
+            showSelection={showSelection}
             nativeLayout={nativeLayout}
             delay={
                 !hideDelay && (

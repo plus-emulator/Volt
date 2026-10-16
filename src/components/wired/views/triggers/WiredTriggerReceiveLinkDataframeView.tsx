@@ -1,4 +1,3 @@
-import { WiredFurniSelectorSection } from '../WiredFurniSelectorView';
 import { FC, useEffect, useMemo, useState } from 'react';
 import { LocalizeText, tokenOfVariableSlot, variableSlotOf, WIRED_VARIABLE_ABSENT, WiredFurniType } from '../../../../api';
 import {
@@ -22,6 +21,7 @@ import { WiredDropdown } from '../WiredDropdown';
 import { WiredSection } from '../WiredSection';
 import { WiredText } from '../WiredText';
 import { WiredTextInput } from '../WiredTextInput';
+import { WiredAdvancedSourceRows } from '../WiredAdvancedSourceRows';
 import { WiredTriggerBaseView } from './WiredTriggerBaseView';
 
 /**
@@ -179,7 +179,8 @@ export const WiredTriggerReceiveLinkDataframeView: FC<{}> = () => {
     };
 
     return (
-        <WiredTriggerBaseView hasSpecialInput={true} nativeLayout={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID} selectionPreview={<WiredFurniSelectorSection title={LocalizeText('wiredfurni.params.link.endpoints')} hideInstructions />} save={save}>
+        <WiredTriggerBaseView hasSpecialInput={true} nativeLayout={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID} showSelection={false} save={save}
+            footer={<WiredAdvancedSourceRows rows={[{ kind: 'furni', slot: 0, title: 'wiredfurni.params.link.endpoints', pickCount: true }, { kind: 'furni', slot: 1, title: 'wiredfurni.params.link.source_furni' }]} />}>
             <WiredSection>
                 <WiredText soft={true} wrap={true} text={LocalizeText('wiredfurni.params.link.Receive_info')} />
             </WiredSection>

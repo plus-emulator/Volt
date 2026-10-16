@@ -3,6 +3,7 @@ import { LocalizeText, WiredFurniType } from '../../../../api';
 import { useWired } from '../../../../hooks';
 import { WiredCheckboxGroup, WiredCheckboxOption } from '../WiredOptions';
 import { WiredSection } from '../WiredSection';
+import { WiredAdvancedSourceRows } from '../WiredAdvancedSourceRows';
 import { WiredExtraBaseView } from './WiredExtraBaseView';
 
 /**
@@ -26,7 +27,8 @@ export const WiredExtraLinkSpeakerView: FC<{}> = () => {
     const save = () => setIntParams([message ? 1 : 0, dataframe ? 1 : 0]);
 
     return (
-        <WiredExtraBaseView hasSpecialInput={true} nativeLayout={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID} save={save}>
+        <WiredExtraBaseView hasSpecialInput={true} nativeLayout={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID} save={save}
+            footer={<WiredAdvancedSourceRows rows={[{ kind: 'furni', slot: 0 }]} />}>
             <WiredSection title={LocalizeText('wiredfurni.params.link_speaker.speak_for')}>
                 <WiredCheckboxGroup>
                     <WiredCheckboxOption checked={message} label={LocalizeText('wiredfurni.params.link_speaker.message')} onChange={setMessage} />

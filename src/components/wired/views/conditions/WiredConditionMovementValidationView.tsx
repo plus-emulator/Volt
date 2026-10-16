@@ -1,30 +1,27 @@
-import { FC, useEffect, useState } from 'react';
+import { FC } from 'react';
 import { WiredFurniType } from '../../../../api';
 import { useWired } from '../../../../hooks';
-import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredConditionBaseView } from './WiredConditionBaseView';
 
+/**
+ * wf_cnd_valid_moves (condition 39): Habbo sends no furni or user selections for this card (observed on AIR
+ * WIN63-202610131318-860371703), so there are no picks, no advanced section and the save carries no sources.
+ */
 export const WiredConditionMovementValidationView: FC<{}> = () => {
-    const { trigger, setIntParams, setStringParam, setFurniSources } = useWired();
-    const [furniSource, setFurniSource] = useState(100);
-
-    useEffect(() => {
-        setFurniSource(trigger?.furniSources[0] ?? 100);
-    }, [trigger]);
+    const { setIntParams, setStringParam, setFurniSources } = useWired();
 
     const save = () => {
         setIntParams([]);
         setStringParam('');
-        setFurniSources([furniSource]);
+        setFurniSources([]);
     };
 
     return (
         <WiredConditionBaseView
             hasSpecialInput={true}
             nativeLayout={true}
-            requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID}
+            requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE}
             save={save}
-            footer={<WiredSourcesSelector showFurni furniSource={furniSource} onChangeFurni={setFurniSource} />}
         />
     );
 };

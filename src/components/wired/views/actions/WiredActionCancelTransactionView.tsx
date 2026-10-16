@@ -44,6 +44,7 @@ export const WiredActionCancelTransactionView: FC<{}> = () => {
                         furniSlot={0}
                         furniSource={furniSource}
                         furniDisabled={matchMode === 1}
+                        rowDisabled={matchMode === 1}
                         onChangeFurni={setFurniSource}
                     />
                     <WiredSourcesSelector showUsers={true} userSlot={0} userSource={userSource} onChangeUsers={setUserSource} />

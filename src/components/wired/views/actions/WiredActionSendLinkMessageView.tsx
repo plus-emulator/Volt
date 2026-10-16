@@ -3,7 +3,7 @@ import { localizeWithFallback, WiredFurniType } from '../../../../api';
 import { Text } from '../../../../common';
 import { useWired } from '../../../../hooks';
 import { WiredRadioGroup } from '../WiredOptions';
-import { WiredFurniSelectorSection } from '../WiredFurniSelectorView';
+import { WiredAdvancedSourceRows } from '../WiredAdvancedSourceRows';
 import { WiredSection } from '../WiredSection';
 import { WiredActionBaseView } from './WiredActionBaseView';
 import { getWiredTextPlaceholderNames, WiredMessageEditor } from '../common/WiredMessageEditor';
@@ -48,7 +48,8 @@ export const WiredActionSendLinkMessageView: FC<{}> = () => {
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID}
             save={save}
             validate={() => !tooLarge}
-            selectionPreview={<WiredFurniSelectorSection title={localizeWithFallback('wiredfurni.params.link.endpoints', 'WIRED Links')} hideInstructions />}
+            showSelection={false}
+            footer={<WiredAdvancedSourceRows rows={[{ kind: 'furni', slot: 0, title: 'wiredfurni.params.link.endpoints', pickCount: true }]} />}
         >
             <WiredSection title={localizeWithFallback('wiredfurni.params.link.message_source', 'Message source')}>
                 <WiredRadioGroup

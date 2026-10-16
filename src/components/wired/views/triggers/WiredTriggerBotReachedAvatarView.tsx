@@ -13,7 +13,7 @@ const BOT_SOURCE_OPTIONS: WiredSourceOption[] = [
 
 export const WiredTriggerBotReachedAvatarView: FC<{}> = (props) => {
     const [botName, setBotName] = useState('');
-    const [botSource, setBotSource] = useState(0);
+    const [botSource, setBotSource] = useState(100);
     const { trigger = null, setStringParam = null, setIntParams = null, setFurniSources, setUserSources } = useWired();
 
     const save = () => {
@@ -24,7 +24,7 @@ export const WiredTriggerBotReachedAvatarView: FC<{}> = (props) => {
 
     useEffect(() => {
         setBotName(trigger.stringData);
-        setBotSource(trigger?.userSources[0] ?? 0);
+        setBotSource(trigger?.userSources[0] ?? trigger?.inputSources?.userDefaults[0] ?? 100);
     }, [trigger]);
 
     return (

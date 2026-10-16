@@ -197,7 +197,7 @@ export const WiredNeighborhoodSelectorView: FC = () => {
     const cycleSource = (direction: number) => { if (options.length) setSourceValue(options[(sourceIndex + direction + options.length) % options.length].value); };
     const tools: Array<{ mode: DrawMode; image: string; label: string }> = [{ mode: 'add', image: addAsset, label: 'Add tiles' }, { mode: 'remove', image: removeAsset, label: 'Remove tiles' }, { mode: 'root', image: referenceAsset, label: 'Set root tile' }];
     return <WiredSelectorBaseView advancedAlwaysVisible nativeLayout hasSpecialInput requiresFurni={!usersAnchor && sourceValue === 100 ? WiredFurniType.STUFF_SELECTION_OPTION_BY_ID : WiredFurniType.STUFF_SELECTION_OPTION_NONE} selectionPreview={<></>} widthMultiplier={bigMode ? 1.7 : 1} save={save} footerCollapsible={false}
-        footer={<><WiredSelectorOptionsSection /><WiredSection title={LocalizeText('wiredfurni.params.sources.merged.title.neighborhood')} headerOption={<WiredSourceTypeSelector types={['furni', 'user']} value={usersAnchor ? 'user' : 'furni'} onChange={type => { const users = type === 'user'; if (users !== usersAnchor) { setUsersAnchor(users); setSourceValue((users ? availableUserSources : furniOptions)[0]?.value ?? (users ? 0 : 100)); } }} />}>
+        footer={<><WiredSection title={LocalizeText('wiredfurni.params.sources.merged.title.neighborhood')} headerOption={<WiredSourceTypeSelector types={['furni', 'user']} value={usersAnchor ? 'user' : 'furni'} onChange={type => { const users = type === 'user'; if (users !== usersAnchor) { setUsersAnchor(users); setSourceValue((users ? availableUserSources : furniOptions)[0]?.value ?? (users ? 0 : 100)); } }} />}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, minHeight: 31 }}>
                 <WiredShellButton shellStyle="illumina" className="volt-wired__icon-button" aria-label="Previous source" onClick={() => cycleSource(-1)}><img src={arrowLeft} alt="" /></WiredShellButton>
                 <span style={{ flex: 1, minWidth: 0, textAlign: 'center' }}><WiredText wrap text={options[sourceIndex] ? LocalizeText(options[sourceIndex].label) : ''} /></span>
@@ -215,5 +215,7 @@ export const WiredNeighborhoodSelectorView: FC = () => {
                 <WiredText text="y:" /><WiredNumberInput ariaLabel="Root y" width={20} min={-64} max={64} value={root.y} onChange={y => setRoot(current => ({ ...current, y }))} />
             </div>
         </WiredSection>
+        {/* AIR builds the selector options right after the inputs (createSelectorOptions), outside the advanced section. */}
+        <WiredSelectorOptionsSection />
     </WiredSelectorBaseView>;
 };

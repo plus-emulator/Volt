@@ -47,9 +47,12 @@ export interface WiredSourceOption {
     label: string;
 }
 
-/** The card's own allowed group as options, labelled from the source keys; every value the server allows is listed. */
+/**
+ * The card's own allowed group as options, labelled from the source keys, in the order the server sends them: AIR's arrows walk
+ * InputSourcesConf's list as received (WiredInputSourcePicker.as:198-221, WIN63-202610131318-860371703).
+ */
 export const nativeSourceOptions = (values: number[] | undefined, kind: 'furni' | 'users'): WiredSourceOption[] =>
-    sortWiredSourceOptions((values ?? []).map((value) => ({ value, label: `wiredfurni.params.sources.${kind}.${value}` })), kind);
+    (values ?? []).map((value) => ({ value, label: `wiredfurni.params.sources.${kind}.${value}` }));
 
 const FURNI_SOURCE_LABEL_ORDER = [
     'wiredfurni.params.sources.furni.100',
@@ -251,18 +254,19 @@ export const WiredSourcesSelector: FC<WiredSourcesSelectorProps> = (props) => {
     } = props;
     const { trigger = null } = useWired();
     const native = useWiredNative();
-    const nativeFurniSources = trigger?.inputSources?.furniAllowed[furniSlot]?.map(value => ({ value, label: `wiredfurni.params.sources.furni.${value}` }));
-    const nativeUserSources = trigger?.inputSources?.usersAllowed[userSlot]?.map(value => ({ value, label: `wiredfurni.params.sources.users.${value}` }));
+    const nativeFurniSources = trigger?.inputSources?.furniAllowed[furniSlot] ? nativeSourceOptions(trigger.inputSources.furniAllowed[furniSlot], 'furni') : undefined;
+    const nativeUserSources = trigger?.inputSources?.usersAllowed[userSlot] ? nativeSourceOptions(trigger.inputSources.usersAllowed[userSlot], 'users') : undefined;
     // The card's own allowed groups are the list whenever it sends one; explicit lists are only the fallback.
     const hasNativeFurni = !!nativeFurniSources?.length;
     const hasNativeUsers = !!nativeUserSources?.length;
     const availableUserSources = useAvailableUserSources(trigger, hasNativeUsers ? nativeUserSources : (userSources ?? USER_SOURCES), usersTitle, !hasNativeUsers && allowClickedUserSource);
-    const orderedFurniSources = useMemo(() => sortWiredSourceOptions(hasNativeFurni ? nativeFurniSources : (furniSources ?? FURNI_SOURCES), 'furni'), [furniSources, hasNativeFurni, nativeFurniSources]);
+    // A server list keeps its own order; only the local fallback lists are sorted.
+    const orderedFurniSources = useMemo(() => hasNativeFurni ? nativeFurniSources : sortWiredSourceOptions(furniSources ?? FURNI_SOURCES, 'furni'), [furniSources, hasNativeFurni, nativeFurniSources]);
     const orderedUserSources = useMemo(() => {
-        if (usersTitle === BOT_SOURCE_TITLE) return [...availableUserSources];
+        if (hasNativeUsers || usersTitle === BOT_SOURCE_TITLE) return [...availableUserSources];
 
         return sortWiredSourceOptions(availableUserSources, 'users');
-    }, [availableUserSources, usersTitle]);
+    }, [availableUserSources, hasNativeUsers, usersTitle]);
 
     useEffect(() => {
         if (!showUsers || !onChangeUsers) return;
@@ -272,41 +276,28 @@ export const WiredSourcesSelector: FC<WiredSourcesSelectorProps> = (props) => {
         onChangeUsers(0);
     }, [availableUserSources, onChangeUsers, showUsers, userSource]);
 
-    const furniIndex = Math.max(
-        0,
-        orderedFurniSources.findIndex((s) => s.value === furniSource)
-    );
-    const userIndex = Math.max(
-        0,
-        orderedUserSources.findIndex((s) => s.value === userSource)
-    );
+    // A stored source the list does not offer keeps its own label, and either arrow then selects the first entry
+    // (WiredInputSourcePicker.as:205-221).
+    const rawFurniIndex = orderedFurniSources.findIndex((s) => s.value === furniSource);
+    const rawUserIndex = orderedUserSources.findIndex((s) => s.value === userSource);
+    const furniIndex = Math.max(0, rawFurniIndex);
+    const userIndex = Math.max(0, rawUserIndex);
+    const furniLabel = rawFurniIndex >= 0 || !hasNativeFurni ? orderedFurniSources[furniIndex]?.label : `wiredfurni.params.sources.furni.${furniSource}`;
+    const userLabel = rawUserIndex >= 0 || !hasNativeUsers ? orderedUserSources[userIndex]?.label : `wiredfurni.params.sources.users.${userSource}`;
+    const step = (options: WiredSourceOption[], index: number, found: boolean, delta: number) =>
+        options[found ? (index + delta + options.length) % options.length : 0].value;
 
-    const prevFurni = () => {
-        const next = (furniIndex - 1 + orderedFurniSources.length) % orderedFurniSources.length;
-        onChangeFurni && onChangeFurni(orderedFurniSources[next].value);
-    };
-
-    const nextFurni = () => {
-        const next = (furniIndex + 1) % orderedFurniSources.length;
-        onChangeFurni && onChangeFurni(orderedFurniSources[next].value);
-    };
-
-    const prevUsers = () => {
-        const next = (userIndex - 1 + orderedUserSources.length) % orderedUserSources.length;
-        onChangeUsers && onChangeUsers(orderedUserSources[next].value);
-    };
-
-    const nextUsers = () => {
-        const next = (userIndex + 1) % orderedUserSources.length;
-        onChangeUsers && onChangeUsers(orderedUserSources[next].value);
-    };
+    const prevFurni = () => onChangeFurni && onChangeFurni(step(orderedFurniSources, furniIndex, rawFurniIndex >= 0, -1));
+    const nextFurni = () => onChangeFurni && onChangeFurni(step(orderedFurniSources, furniIndex, rawFurniIndex >= 0, 1));
+    const prevUsers = () => onChangeUsers && onChangeUsers(step(orderedUserSources, userIndex, rawUserIndex >= 0, -1));
+    const nextUsers = () => onChangeUsers && onChangeUsers(step(orderedUserSources, userIndex, rawUserIndex >= 0, 1));
 
     if (!showFurni && !showUsers) return null;
 
     if (native) {
         const row = (label: string, onPrevious: () => void, onNext: () => void, disabled = false) => <WiredSourceRow disabled={disabled} label={LocalizeText(label)} onNext={onNext} onPrevious={onPrevious} />;
-        const furniRow = <WiredSourceRowFence disabled={rowDisabled}>{row(orderedFurniSources[furniIndex].label, prevFurni, nextFurni, furniDisabled)}{furniDetail}</WiredSourceRowFence>;
-        const userRow = <WiredSourceRowFence disabled={rowDisabled}>{row(orderedUserSources[userIndex].label, prevUsers, nextUsers)}{userDetail}</WiredSourceRowFence>;
+        const furniRow = <WiredSourceRowFence disabled={rowDisabled}>{row(furniLabel, prevFurni, nextFurni, furniDisabled)}{furniDetail}</WiredSourceRowFence>;
+        const userRow = <WiredSourceRowFence disabled={rowDisabled}>{row(userLabel, prevUsers, nextUsers)}{userDetail}</WiredSourceRowFence>;
 
         return (
             <>
@@ -328,7 +319,7 @@ export const WiredSourcesSelector: FC<WiredSourcesSelectorProps> = (props) => {
                         </Button>
                         <div className="flex min-w-0 flex-1 items-center justify-center volt-wired__picker-label">
                             <Text small className="text-center">
-                                {LocalizeText(orderedFurniSources[furniIndex].label)}
+                                {LocalizeText(furniLabel)}
                             </Text>
                         </div>
                         <Button variant="primary" classNames={['volt-wired__picker-button']} className="px-2 py-1" disabled={furniDisabled} onClick={nextFurni}>
@@ -351,7 +342,7 @@ export const WiredSourcesSelector: FC<WiredSourcesSelectorProps> = (props) => {
                         </Button>
                         <div className="flex min-w-0 flex-1 items-center justify-center volt-wired__picker-label">
                             <Text small className="text-center">
-                                {LocalizeText(orderedUserSources[userIndex].label)}
+                                {LocalizeText(userLabel)}
                             </Text>
                         </div>
                         <Button variant="primary" classNames={['volt-wired__picker-button']} className="px-2 py-1" onClick={nextUsers}>

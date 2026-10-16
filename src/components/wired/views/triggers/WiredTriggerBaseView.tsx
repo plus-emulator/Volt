@@ -11,6 +11,8 @@ export interface WiredTriggerBaseViewProps {
     /** AIR advancedAlwaysVisible: the footer is the expanded advanced wrapper with no toggle. */
     advancedAlwaysVisible?: boolean;
     selectionPreview?: ReactNode;
+    /** False keeps furni picking on but leaves the picks section out (AIR forceHidePickFurniInstructions). */
+    showSelection?: boolean;
     nativeLayout?: boolean;
 }
 
@@ -24,6 +26,7 @@ export const WiredTriggerBaseView: FC<PropsWithChildren<WiredTriggerBaseViewProp
         footerCollapsible = true,
         advancedAlwaysVisible = false,
         selectionPreview = null,
+        showSelection = true,
         nativeLayout = false
     } = props;
 
@@ -39,6 +42,7 @@ export const WiredTriggerBaseView: FC<PropsWithChildren<WiredTriggerBaseViewProp
             footerCollapsible={footerCollapsible}
             advancedAlwaysVisible={advancedAlwaysVisible}
             selectionPreview={selectionPreview}
+            showSelection={showSelection}
             nativeLayout={nativeLayout}
         >
             {children}

@@ -97,8 +97,10 @@ export const WiredSelectorWithVariableView: FC<WiredSelectorWithVariableViewProp
     const [referenceValid, setReferenceValid] = useState(true);
     const sameHolderActive = sameHolder && referenceTargetType === selectorTarget;
 
-    const availableUserSources = useAvailableUserSources(trigger, USER_SOURCES);
-    const orderedUserSources = useMemo(() => sortWiredSourceOptions(availableUserSources, 'users'), [availableUserSources]);
+    // The server's own user list wins (observed [0, 201] for this card); the local list is only the fallback.
+    const nativeUserSources = useMemo(() => trigger?.inputSources?.usersAllowed[0]?.length ? nativeSourceOptions(trigger.inputSources.usersAllowed[0], 'users') : null, [trigger]);
+    const availableUserSources = useAvailableUserSources(trigger, nativeUserSources ?? USER_SOURCES, undefined, !nativeUserSources);
+    const orderedUserSources = useMemo(() => nativeUserSources ? availableUserSources : sortWiredSourceOptions(availableUserSources, 'users'), [availableUserSources, nativeUserSources]);
     const orderedFurniSources = nativeSourceOptions(trigger?.inputSources?.furniAllowed[0], 'furni');
     const userSourceFallbackOptions = useMemo(() => sortWiredSourceOptions([...USER_SOURCES, CLICKED_USER_SOURCE], 'users'), []);
     const mainDefinitions = selectorTarget === 'user' ? userVariableDefinitions : furniVariableDefinitions;

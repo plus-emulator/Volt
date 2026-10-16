@@ -37,7 +37,7 @@ export const WiredActionControlClockView: FC<{}> = () => {
         if (!trigger) return;
 
         setControl(trigger.intData.length > 0 ? normalizeControl(trigger.intData[0]) : 0);
-        setFurniSource(trigger.furniSources[0]);
+        setFurniSource(trigger.furniSources[0] ?? trigger.inputSources?.furniDefaults[0] ?? 100);
     }, [trigger]);
 
     return (
