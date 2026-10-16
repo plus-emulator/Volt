@@ -797,8 +797,9 @@
 }
 
 /*
- * AIR variable picker (WIN63-202610131318-860371703, uibuilder/presets/newvariablepicker). Colours, widths, the
- * 300px list cap and the 9px scrollbar come from the classes; the field reuses the wired text-input skin.
+ * AIR variable picker (WIN63-202610131318-860371703, uibuilder/presets/newvariablepicker). Colours, tab widths, the
+ * 300px list cap and the 9px scrollbar come from the classes. The search_tree_dropdown layout is not indexed, so the
+ * frame, field, font and spacing are measured from the live AIR client at 1x (hhus, 2026-10-16).
  */
 .volt-wired__vpicker {
     position: relative;
@@ -811,38 +812,61 @@
 
 .volt-wired__vpicker-input-region {
     position: relative;
-    height: 21px;
+    box-sizing: border-box;
     cursor: text;
-    background: url('../assets/images/wired/native/input_left.png') 0 0 no-repeat, url('../assets/images/wired/native/input_right.png') 100% 0 no-repeat,
-        url('../assets/images/wired/native/input_mid.png') 0 0 repeat-x;
-    image-rendering: pixelated;
+    background: #fff;
+}
+
+/* Collapsed: a 21px white field, 1px #848484 rounded frame and a 10x5 drop-down triangle 8px from the right. */
+.volt-wired__vpicker-collapsed .volt-wired__vpicker-input-region {
+    height: 21px;
+    border: 1px solid #848484;
+    border-radius: 4px;
+}
+
+.volt-wired__vpicker-collapsed .volt-wired__vpicker-input-region::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    right: 7px;
+    border-top: 5px solid #555;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    pointer-events: none;
+}
+
+/* Expanded: a plain 20px field under the tabs, a #ddd line and 4px of white before the list. */
+.volt-wired__vpicker-search .volt-wired__vpicker-input-region {
+    height: 21px;
+    border-bottom: 1px solid #ddd;
 }
 
 .volt-wired .volt-wired__vpicker-input-region .volt-wired__vpicker-input,
 .volt-wired__vpicker-input-region .volt-wired__vpicker-input {
     position: absolute;
-    left: 4px;
-    top: 2px;
-    width: calc(100% - 22px);
-    height: 16px;
+    left: 8px;
+    top: 0;
+    width: calc(100% - 30px);
+    height: 19px;
     min-height: 0 !important;
-    padding: 0 0 0 3px;
+    padding: 0 !important;
     border: 0 !important;
     border-radius: 0 !important;
     background: transparent !important;
     box-shadow: none !important;
-    color: #4a4a4a !important;
-    font: 11px/16px HabboAirUbuntu, UbuntuRegular, sans-serif;
+    color: #555 !important;
+    font: 9px/19px Volter, sans-serif !important;
     outline: 0;
 }
 
 .volt-wired__vpicker-input::placeholder {
-    color: #9a9a9a;
+    color: #808080;
+    opacity: 1;
 }
 
 .volt-wired__vpicker-cancel {
     position: absolute;
-    top: 3px;
+    top: 2px;
     right: 4px;
     display: flex;
     align-items: center;
@@ -861,16 +885,19 @@
 
 .volt-wired__vpicker-expanded {
     position: fixed;
+    box-sizing: border-box;
+    padding-bottom: 1px;
     pointer-events: auto;
-    background: #fafafa;
-    box-shadow: 0 0 0 1px #8e8e8e, 0 2px 4px rgba(0, 0, 0, 0.25);
-    font: 11px HabboAirUbuntu, UbuntuRegular, sans-serif;
-    color: #000;
+    border: 1px solid #848484;
+    border-radius: 3px;
+    background: #fff;
+    color: #555;
+    font: 9px Volter, sans-serif;
+    overflow: visible;
 }
 
 .volt-wired__vpicker-tabs {
     display: flex;
-    padding: 2px 1px 1px 2px;
 }
 
 .volt-wired__vpicker-tab {
@@ -878,11 +905,16 @@
     flex: 0 0 auto;
     align-items: center;
     justify-content: center;
-    height: 22px;
+    box-sizing: content-box;
+    height: 18px;
     padding: 0;
     border: 0;
     border-radius: 0;
     cursor: pointer;
+}
+
+.volt-wired__vpicker-tabs .volt-wired__vpicker-tab:first-child {
+    border-top-left-radius: 2px;
 }
 
 .volt-wired__vpicker-tab img {
@@ -892,9 +924,11 @@
 
 .volt-wired__vpicker-content {
     position: relative;
+    margin-top: 4px;
 }
 
 .volt-wired__vpicker-list {
+    box-sizing: border-box;
     overflow-x: hidden;
     overflow-y: auto;
     scrollbar-width: thin;
@@ -906,20 +940,24 @@
 
 .volt-wired__vpicker-list.is-sublist {
     z-index: 1;
+    padding: 2px 0 2px;
     pointer-events: auto;
-    background: #fafafa;
-    border: 1px solid #8e8e8e;
-    box-sizing: border-box;
+    border: 1px solid #000;
+    border-radius: 3px;
+    background: #fff;
+    box-shadow: inset -1px -1px 0 #ccc;
+    color: #555;
+    font: 9px Volter, sans-serif;
 }
 
 .volt-wired__vpicker-node {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 0 4px 0 5px;
     box-sizing: border-box;
+    padding: 0 10px 0 9px;
     cursor: default;
     white-space: nowrap;
+    line-height: 20px;
 }
 
 .volt-wired__vpicker-node.is-selectable {
@@ -931,22 +969,21 @@
     min-width: 0;
     overflow: hidden;
     text-overflow: clip;
-    line-height: 18px;
 }
 
-/* right_triangle_icon (VariableNodeView.as:339-342): shown only for nodes with children. */
+/* right_triangle_icon (VariableNodeView.as:339-342), only on nodes with children: 5x10, #767676 on live AIR. */
 .volt-wired__vpicker-node-arrow {
     flex: 0 0 auto;
     width: 0;
     height: 0;
-    border-top: 4px solid transparent;
-    border-bottom: 4px solid transparent;
-    border-left: 4px solid #000;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 5px solid #767676;
 }
 
 .volt-wired__vpicker-empty {
-    padding: 4px 6px;
-    color: #8a8a8a;
+    padding: 4px 9px 5px;
+    color: #555;
 }
 
 /* Wired's frame margins override the WindowManager's generic frame defaults. */

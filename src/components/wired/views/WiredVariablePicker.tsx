@@ -76,10 +76,16 @@ const MAX_LIST_HEIGHT = 300;
 const SCROLLBAR_WIDTH = 9;
 /** VariableNodeListView.as:70: an empty list is 10px high. */
 const EMPTY_LIST_HEIGHT = 10;
-/** The node_template row height lives in the search_tree_dropdown layout, which the index does not carry. */
-const NODE_HEIGHT = 18;
-/** Sub-lists use window style 12, a 1px frame (VariableNodeListView.as:35-38, 62-65: rows at x=1, 3px narrower). */
-const SUBLIST_FRAME = 1;
+/*
+ * The search_tree_dropdown layout is not in the index; these were measured on the live AIR client (same build, hhus,
+ * 2026-10-16, 1x): 20px rows; the popup has a 1px #848484 frame and its rows leave a 1px gutter on the right;
+ * a sub-list (window style 12) is a 1px black frame with 2px above the rows and 1px + a #ccc line below and to the
+ * right, so it is 6px taller than its rows, and it starts on the parent frame's last column.
+ */
+const NODE_HEIGHT = 20;
+const ROOT_ROW_GUTTER = 1;
+const SUBLIST_EXTRA_HEIGHT = 6;
+const SUBLIST_EXTRA_WIDTH = 2;
 
 const isUserCreated = (entry: IWiredVariablePickerEntry) =>
     entry.variableType === undefined ? entry.kind === 'custom' : entry.variableType === WIRED_VARIABLE_TYPE_USER || entry.variableType === WIRED_VARIABLE_TYPE_USER_DERIVED;
@@ -164,7 +170,7 @@ const WiredVariableNodeList: FC<INodeListProps> = ({ nodes, width, isRoot, posit
     const height = listHeight(nodes.length);
     // VariableNodeListView.as:52-66, 74-77: rows are the list width less the scrollbar, and 3px less inside a sub-list.
     const scrollbarWidth = nodes.length * NODE_HEIGHT > MAX_LIST_HEIGHT ? SCROLLBAR_WIDTH : 0;
-    const rowWidth = width - scrollbarWidth - (isRoot ? 0 : 3);
+    const rowWidth = width - scrollbarWidth - (isRoot ? ROOT_ROW_GUTTER : 3);
     const hoveredNode = hover ? nodes[hover.index] : null;
 
     // VariableNodeListView.setHover (VariableNodeListView.as:79-95): nodes only react to WME_OVER, so a node stays
@@ -179,17 +185,18 @@ const WiredVariableNodeList: FC<INodeListProps> = ({ nodes, width, isRoot, posit
         let top = rect.top;
 
         if (node.children.size) {
-            const sublistHeight = listHeight(node.children.size) + SUBLIST_FRAME * 2;
+            const sublistHeight = listHeight(node.children.size) + SUBLIST_EXTRA_HEIGHT;
 
             if (top + sublistHeight > window.innerHeight) top = Math.max(0, window.innerHeight - sublistHeight);
         }
 
-        setHover({ index, left: rect.left + rowWidth + scrollbarWidth, top });
+        // No horizontal clamp: AIR lets a deep sub-list run past the window edge.
+        setHover({ index, left: rect.left + rowWidth + (isRoot ? ROOT_ROW_GUTTER : 1) + scrollbarWidth, top });
     };
 
     const style: CSSProperties = isRoot
         ? { width, height }
-        : { position: 'fixed', left: position?.left ?? 0, top: position?.top ?? 0, width, height: height + SUBLIST_FRAME * 2 };
+        : { position: 'fixed', left: position?.left ?? 0, top: position?.top ?? 0, width, height: height + SUBLIST_EXTRA_HEIGHT };
 
     return (
         <>
@@ -215,7 +222,6 @@ const WiredVariableNodeList: FC<INodeListProps> = ({ nodes, width, isRoot, posit
                             style={{
                                 width: rowWidth,
                                 height: NODE_HEIGHT,
-                                marginLeft: isRoot ? 0 : SUBLIST_FRAME,
                                 background: hovered ? NODE_HOVER_BG : index % 2 === 0 ? NODE_MODE1_BG : NODE_MODE2_BG
                             }}
                             onMouseEnter={(event) => hoverNode(index, event.currentTarget)}
@@ -239,7 +245,7 @@ const WiredVariableNodeList: FC<INodeListProps> = ({ nodes, width, isRoot, posit
                 <WiredVariableNodeList
                     key={`${hover.index}:${hoveredNode.name}`}
                     nodes={[...hoveredNode.children.values()]}
-                    width={rowWidth}
+                    width={rowWidth - SUBLIST_EXTRA_WIDTH}
                     isRoot={false}
                     position={{ left: hover.left, top: hover.top }}
                     onSelect={onSelect}
@@ -483,7 +489,6 @@ export const WiredVariablePicker: FC<WiredVariablePickerProps> = (props) => {
                             className="volt-wired__vpicker-expanded"
                             style={{ left: panelRect.left, top: panelRect.top, width: panelRect.width }}
                         >
-                            <div className="volt-wired__vpicker-search">{input}</div>
                             <div className="volt-wired__vpicker-tabs">
                                 {TAB_BUTTONS.map((tab, index) => {
                                     const colors = tab.id === tabId ? TAB_COLORS.active : hoveredTab === tab.id ? TAB_COLORS.hover : TAB_COLORS.none;
@@ -495,7 +500,7 @@ export const WiredVariablePicker: FC<WiredVariablePickerProps> = (props) => {
                                             className="volt-wired__vpicker-tab"
                                             title={LocalizeText(tab.tooltip)}
                                             type="button"
-                                            style={{ width: widths[index], background: colors.border, boxShadow: `inset 0 -2px 0 ${colors.shadow}` }}
+                                            style={{ width: widths[index], background: colors.border, borderBottom: `1px solid ${colors.shadow}` }}
                                             onClick={() => selectTab(tab.id)}
                                             onMouseEnter={() => setHoveredTab(tab.id)}
                                             onMouseLeave={() => setHoveredTab(null)}
@@ -505,9 +510,11 @@ export const WiredVariablePicker: FC<WiredVariablePickerProps> = (props) => {
                                     );
                                 })}
                             </div>
+                            {/* Live AIR: the tab row is above the search field. */}
+                            <div className="volt-wired__vpicker-search">{input}</div>
                             <div className="volt-wired__vpicker-content">
                                 {rootNodes.length ? (
-                                    <WiredVariableNodeList key={`${tabId}:${tabLoad}`} isRoot nodes={rootNodes} width={panelRect.width} onSelect={select} />
+                                    <WiredVariableNodeList key={`${tabId}:${tabLoad}`} isRoot nodes={rootNodes} width={panelRect.width - 2} onSelect={select} />
                                 ) : (
                                     <div className="volt-wired__vpicker-empty">{emptyText}</div>
                                 )}

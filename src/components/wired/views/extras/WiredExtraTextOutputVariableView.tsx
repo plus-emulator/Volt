@@ -177,11 +177,15 @@ export const WiredExtraTextOutputVariableView: FC<{}> = () => {
         setDelimiter(normalizeDelimiter(nextDelimiter));
     }, [furniAllowed, furniDefault, trigger, userAllowed, userDefault]);
 
+    // VariablePlaceholderAddon.onChangeVariable (addons/VariablePlaceholderAddon.as:110-117): Textual is disabled and
+    // the mode falls back to Numeric when no variable is chosen or the variable has no text connector. A stored id
+    // whose definition has not arrived yet is left alone.
     useEffect(() => {
-        if (!selectedCustomDefinition || canUseTextDisplay || displayType !== DISPLAY_TEXTUAL) return;
+        if (canUseTextDisplay || displayType !== DISPLAY_TEXTUAL) return;
+        if (variableToken && !selectedCustomDefinition) return;
 
         setDisplayType(DISPLAY_NUMERIC);
-    }, [canUseTextDisplay, displayType, selectedCustomDefinition]);
+    }, [canUseTextDisplay, displayType, selectedCustomDefinition, variableToken]);
 
     const save = () => {
         setIntParams([

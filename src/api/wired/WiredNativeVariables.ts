@@ -62,7 +62,8 @@ export const nativeVariableDefinitions = (
             hasValue: variable.hasValue,
             isReadOnly: !variable.canWriteValue,
             requiresExecutionContext: variable.requiresExecutionContext,
-            isTextConnected: !!variable.textConnector?.length,
+            // AIR WiredVariable.hasTextConnector is `textConnector != null` (package_223/WiredVariable.as:156-159): an empty connector counts.
+            isTextConnected: variable.textConnector != null,
             textConnector: variable.textConnector ?? [],
             canCreateAndDelete: variable.canCreateAndDelete,
             canReadCreationTime: variable.canReadCreationTime,

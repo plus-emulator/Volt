@@ -44,7 +44,7 @@ describe('AIR text placeholder/capture editors', () => {
         render(<WiredExtraTextOutputVariableView />); save(); expect(state.setIntParams).toHaveBeenLastCalledWith([1, 1, 1]); expect(state.setStringParam).toHaveBeenLastCalledWith('names\t | '); expect(state.setVariableIds).toHaveBeenLastCalledWith(['value']);
         fireEvent.change(screen.getByLabelText('Scope'), { target: { value: 'global' } });
         expect(screen.getByRole('radio', { name: 'wiredfurni.params.texts.placeholder_type.2' })).toBeDisabled(); expect(screen.getAllByRole('textbox')[1]).toBeDisabled();
-        fireEvent.change(screen.getByLabelText('Variable'), { target: { value: 'custom:value' } }); save(); expect(state.setIntParams).toHaveBeenLastCalledWith([0, -10, 1]); expect(state.setStringParam).toHaveBeenLastCalledWith('names');
+        fireEvent.change(screen.getByLabelText('Variable'), { target: { value: 'custom:value' } }); save(); /* AIR onChangeVariable(null) on the target switch forces Numeric (VariablePlaceholderAddon.as:110-117). */ expect(state.setIntParams).toHaveBeenLastCalledWith([0, -10, 0]); expect(state.setStringParam).toHaveBeenLastCalledWith('names');
         fireEvent.change(screen.getByLabelText('Scope'), { target: { value: 'user' } }); expect(screen.getAllByRole('textbox')[1]).toHaveValue(' | ');
     });
     it('restores each variable target its own last choice, like AIR NewVariablePicker.variableTarget', () => {
