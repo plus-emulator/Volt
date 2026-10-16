@@ -3,6 +3,34 @@ import { FC, useEffect, useRef } from 'react';
 import { GetAnimationFrameInterval } from '../../api/volt/room/AddAnimationTickerCallback';
 import { PIXEL_ART_RENDERING } from './PixelArtRendering';
 
+type BackdropColor = [number, number, number, number];
+
+// AIR puts the preview canvas on the display list, so additive layers (lamp
+// glows) blend onto the window behind it. This view renders into a texture
+// first, where an additive layer over a transparent pixel turns opaque black.
+// Clear the texture with the backdrop colour so it composites like AIR.
+// A backdrop image cannot be reproduced, so the texture stays transparent then.
+export const resolvePreviewBackdropColor = (element: HTMLElement): BackdropColor | null => {
+    for (let node: HTMLElement | null = element; node; node = node.parentElement) {
+        const style = getComputedStyle(node);
+
+        if (style.backgroundImage && style.backgroundImage !== 'none') return null;
+
+        const match = style.backgroundColor.match(/rgba?\(([^)]+)\)/);
+
+        if (!match) continue;
+
+        const [r, g, b, a = 1] = match[1].split(/[\s,/]+/).filter(Boolean).map(Number);
+
+        if (!a) continue;
+        if (a < 1) return null;
+
+        return [r / 255, g / 255, b / 255, 1];
+    }
+
+    return null;
+};
+
 export const LayoutRoomPreviewerView: FC<{
     roomPreviewer: RoomPreviewer;
     height?: number;
@@ -43,6 +71,7 @@ export const LayoutRoomPreviewerView: FC<{
         let texture: ReturnType<typeof TextureUtils.createRenderTexture> = null;
         let roomCanvasInitialized = false;
         let frameImageData: ImageData = null;
+        let backdropColor: BackdropColor | null = null;
 
         renderFailuresRef.current = 0;
 
@@ -67,7 +96,8 @@ export const LayoutRoomPreviewerView: FC<{
             GetRenderer().render({
                 target: texture,
                 container: renderingCanvas.master,
-                clear: true
+                clear: true,
+                clearColor: backdropColor ?? [0, 0, 0, 0]
             });
 
             const { pixels, width, height: frameHeight } = GetRenderer().texture.getPixels(texture);
@@ -119,6 +149,8 @@ export const LayoutRoomPreviewerView: FC<{
         const resizeToParent = () => {
             const width = Math.round(parent.clientWidth);
             const targetHeight = fitParent ? Math.round(parent.clientHeight) : height;
+
+            backdropColor = resolvePreviewBackdropColor(element);
 
             if (width <= 0 || targetHeight <= 0 || (width === textureWidth && targetHeight === textureHeight)) return;
 
