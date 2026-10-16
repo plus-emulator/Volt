@@ -1,6 +1,5 @@
-import { BadgeImageReadyEvent, GetEventDispatcher, GetSessionDataManager, VoltSprite, TextureUtils } from '@volt/renderer';
+import { BadgeImageReadyEvent, GetEventDispatcher, GetSessionDataManager, TextureUtils, VoltSprite } from '@volt/renderer';
 import { CSSProperties, FC, useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import {
     BadgeLeaderboardStat,
     BadgeRarityKey,
@@ -8,10 +7,10 @@ import {
     GetConfigurationValue,
     getCachedBadgeRarityStat,
     LocalizeBadgeDescription,
-    LocalizeBadgeName,
-    LocalizeText
+    LocalizeBadgeName
 } from '../../api';
 import { Base, BaseProps } from '../Base';
+import { BadgeDetailsTooltip } from './BadgeDetailsTooltip';
 import { PIXEL_ART_RENDERING } from './PixelArtRendering';
 
 export interface LayoutBadgeImageViewProps extends BaseProps<HTMLDivElement> {
@@ -51,26 +50,14 @@ export const LayoutBadgeImageView: FC<LayoutBadgeImageViewProps> = (props) => {
         ...rest
     } = props;
     const [imageElement, setImageElement] = useState<HTMLImageElement>(null);
-    const [tooltipPosition, setTooltipPosition] = useState<{ top: number; left: number } | null>(null);
+    const [isTooltipVisible, setIsTooltipVisible] = useState(false);
     const [badgeRarityStat, setBadgeRarityStat] = useState<BadgeLeaderboardStat>(null);
     const badgeRef = useRef<HTMLDivElement>(null);
 
     const tooltipsEnabled = showInfo && GetConfigurationValue<boolean>('badge.descriptions.enabled', true);
 
-    const showTooltip = () => {
-        if (!tooltipsEnabled || !badgeRef.current) return;
-
-        const rect = badgeRef.current.getBoundingClientRect();
-        const tooltipWidth = 210;
-        const gap = 10;
-        let left = rect.left - tooltipWidth - gap;
-
-        if (left < gap) left = rect.right + gap;
-
-        setTooltipPosition({ top: rect.top, left });
-    };
-
-    const hideTooltip = () => setTooltipPosition(null);
+    const showTooltip = () => setIsTooltipVisible(true);
+    const hideTooltip = () => setIsTooltipVisible(false);
 
     const getClassNames = useMemo(() => {
         const newClassNames: string[] = ['relative w-[40px] h-[40px] bg-no-repeat bg-center'];
@@ -205,11 +192,6 @@ export const LayoutBadgeImageView: FC<LayoutBadgeImageViewProps> = (props) => {
         };
     }, [badgeCode, highlightRarity, isGroup, showRarityInfo]);
 
-    const rarityColors = badgeRarityStat ? BADGE_RARITY_COLORS[badgeRarityStat.rarity] : null;
-    const rarityLabel = badgeRarityStat ? LocalizeText(`badge.rarity.${badgeRarityStat.rarity}`) : '';
-    const rarityText = badgeRarityStat ? LocalizeText('badge.rarity.badge', ['rarity'], [rarityLabel]) : '';
-    const ownersText = badgeRarityStat ? LocalizeText('badge.owner_count', ['count'], [badgeRarityStat.ownerCount.toString()]) : '';
-
     return (
         <Base
             innerRef={badgeRef}
@@ -219,33 +201,15 @@ export const LayoutBadgeImageView: FC<LayoutBadgeImageViewProps> = (props) => {
             onMouseLeave={tooltipsEnabled ? hideTooltip : undefined}
             {...rest}
         >
-            {tooltipsEnabled &&
-                tooltipPosition &&
-                createPortal(
-                    <div
-                        className="fixed z-[9999] pointer-events-none select-none w-[210px] rounded-[.25rem] bg-[#fff] text-black py-1 px-2 small"
-                        style={{ top: tooltipPosition.top, left: tooltipPosition.left }}
-                    >
-                        <div className="font-bold mb-1">{isGroup ? customTitle : LocalizeBadgeName(badgeCode)}</div>
-                        {showRarityInfo && badgeRarityStat && (
-                            <div className="flex flex-col gap-1 mb-1">
-                                <div
-                                    className="inline-flex items-center self-start rounded-full px-2 py-[2px] text-[10px] font-bold uppercase tracking-[0.04em]"
-                                    style={{
-                                        background: rarityColors.pillBackground,
-                                        border: `1px solid ${rarityColors.pillBorder}`,
-                                        color: rarityColors.pillText
-                                    }}
-                                >
-                                    {rarityText}
-                                </div>
-                                <div className="text-[10px] text-[#5f5f5f]">{ownersText}</div>
-                            </div>
-                        )}
-                        <div>{isGroup ? LocalizeText('group.badgepopup.body') : LocalizeBadgeDescription(badgeCode)}</div>
-                    </div>,
-                    document.body
-                )}
+            {tooltipsEnabled && isTooltipVisible && (
+                <BadgeDetailsTooltip
+                    key={badgeCode}
+                    anchor={badgeRef}
+                    name={isGroup ? (customTitle ?? '') : LocalizeBadgeName(badgeCode)}
+                    description={isGroup ? '' : LocalizeBadgeDescription(badgeCode)}
+                    rarity={showRarityInfo ? badgeRarityStat : null}
+                />
+            )}
             {children}
         </Base>
     );
