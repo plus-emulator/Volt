@@ -8,6 +8,8 @@ export interface WiredTriggerBaseViewProps {
     save: () => void;
     footer?: ReactNode;
     footerCollapsible?: boolean;
+    /** AIR advancedAlwaysVisible: the footer is the expanded advanced wrapper with no toggle. */
+    advancedAlwaysVisible?: boolean;
     selectionPreview?: ReactNode;
     nativeLayout?: boolean;
 }
@@ -20,6 +22,7 @@ export const WiredTriggerBaseView: FC<PropsWithChildren<WiredTriggerBaseViewProp
         children = null,
         footer = null,
         footerCollapsible = true,
+        advancedAlwaysVisible = false,
         selectionPreview = null,
         nativeLayout = false
     } = props;
@@ -34,6 +37,7 @@ export const WiredTriggerBaseView: FC<PropsWithChildren<WiredTriggerBaseViewProp
             wiredType="trigger"
             footer={footer}
             footerCollapsible={footerCollapsible}
+            advancedAlwaysVisible={advancedAlwaysVisible}
             selectionPreview={selectionPreview}
             nativeLayout={nativeLayout}
         >

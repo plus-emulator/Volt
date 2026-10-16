@@ -40,6 +40,9 @@
     outline-offset: 1px;
 }
 
+/* The open list covers the field; AIR draws no focus ring around it. */
+.habbo-dropmenu[aria-expanded='true']:focus-visible { outline: none; }
+
 .habbo-dropmenu .habbo-dropmenu-caption {
     position: absolute;
     top: 4px;
@@ -150,22 +153,25 @@
 /* AIR dropmenu_3 / dropmenu_item_3: Ubuntu captions, (6,4) closed text, 2px list inset. */
 .habbo-dropmenu.habbo-dropmenu--ubuntu,
 .habbo-dropmenu-popup.habbo-dropmenu--ubuntu {
-    border-image-source: url('../../assets/images/habbo-skin/slices/dropmenu-3.png') !important;
+    border-image-source: url('../../assets/images/habbo-skin/slices/dropmenu-3-frame.png') !important;
     border-image-slice: 6 fill !important;
     border-image-width: 6px !important;
     font: 400 12px/14px HabboAirUbuntu, UbuntuRegular, sans-serif !important;
     font-kerning: normal;
 }
 .habbo-dropmenu--ubuntu .habbo-dropmenu-caption {
-    left: 6px; top: 4px; right: 24px; height: 16px; padding: 0;
+    /* _DROPLIST_TITLETEXT (6,4) plus the text field's 2px gutter; measured on live AIR at 1x. */
+    left: 9px; top: 6px; right: 24px; height: 16px; padding: 0;
     font: 400 12px/14px HabboAirUbuntu, UbuntuRegular, sans-serif !important;
     font-kerning: normal;
 }
-.habbo-dropmenu--ubuntu .habbo-dropmenu-arrow { top: 4px; right: 6px; }
+/* dropmenu_frame_3 arrow entity: the 22x20 cell at (16,2) of the 40px layout, moved with the right edge (2px from it). */
+.habbo-dropmenu--ubuntu .habbo-dropmenu-arrow { top: 2px; right: 2px; width: 22px; height: 20px; }
 .habbo-dropmenu--ubuntu .habbo-dropmenu-list { left: 2px; right: 2px; }
-.habbo-dropmenu--ubuntu .habbo-dropmenu-item { height: 20px; padding: 2px 4px 4px; }
+/* dropmenu_item_3: a u_regular label (17px line) inside margins 4/2/4/4, so rows are 23px (live AIR, 1x). */
+.habbo-dropmenu--ubuntu .habbo-dropmenu-item { height: 23px; padding: 2px 4px 4px 7px; }
 .habbo-dropmenu--ubuntu .habbo-dropmenu-item span {
-    padding: 0; font: 400 12px/14px HabboAirUbuntu, UbuntuRegular, sans-serif;
+    padding: 0; font: 400 12px/17px HabboAirUbuntu, UbuntuRegular, sans-serif;
     font-kerning: normal;
 }
 .habbo-dropmenu--ubuntu .habbo-dropmenu-item:hover,
@@ -192,8 +198,10 @@
         url('../../assets/images/wired/native/dropdown_mid_hover.png') 0 0 repeat-x !important;
 }
 .habbo-dropmenu--illumina .habbo-dropmenu-caption { left: 10px; top: 3px; right: 30px; height: 14px; padding: 0; }
-.habbo-dropmenu--illumina .habbo-dropmenu-item { height: 19px; padding: 1px 4px 0; }
-.habbo-dropmenu--illumina .habbo-dropmenu-item > span { padding: 0; }
+/* Live AIR at 1x: the item caption sits at the same place as the closed field's caption (2px left of and 2px above the
+   generic list inset), so the 19px row keeps its glyph canvas inside the row. */
+.habbo-dropmenu--illumina .habbo-dropmenu-item { height: 19px; padding: 0 4px 0 2px; }
+.habbo-dropmenu--illumina .habbo-dropmenu-item > span { position: relative; top: -1px; padding: 0; }
 .habbo-dropmenu--illumina .habbo-dropmenu-item.is-selected { background: #ddd; }
 .habbo-dropmenu--illumina .habbo-dropmenu-item:hover,
 .habbo-dropmenu--illumina .habbo-dropmenu-item.is-active { background: #ebebeb; }

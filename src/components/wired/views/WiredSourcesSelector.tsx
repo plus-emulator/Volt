@@ -366,7 +366,8 @@ export const WiredSourcesSelector: FC<WiredSourcesSelectorProps> = (props) => {
 };
 
 /** Native height of the LR list (inputSourceListMinHeight) and of the arrow buttons. */
-const SOURCE_LIST_MIN_HEIGHT = 23;
+// WiredStyle.inputSourceListMinHeight is 26 in every AIR style (IlluminaWiredStyle.as:129-132).
+const SOURCE_LIST_MIN_HEIGHT = 26;
 const SOURCE_BUTTON_HEIGHT = 20;
 
 /**

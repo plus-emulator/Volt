@@ -66,7 +66,7 @@ export const WiredSelectorScanChestFurniByType: FC<{}> = () => {
     const lists = [0, 1].filter((list) => [typesSource, chestSource].includes(list === 0 ? 100 : 101));
 
     return (
-        <WiredExtraBaseView
+        <WiredExtraBaseView advancedAlwaysVisible
             hasSpecialInput={true}
             nativeLayout={true}
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID}

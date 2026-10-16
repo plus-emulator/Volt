@@ -38,8 +38,15 @@ export const getNativeVariableId = (token: string) => (token?.startsWith(CUSTOM_
 /** A variable slot as the server stores it: the chosen catalog id, or the absent id when nothing is chosen. */
 export const variableSlotOf = (token: string): string => getNativeVariableId(token) || WIRED_VARIABLE_ABSENT;
 
-/** The picker token of a stored slot; the absent id reads as no selection. */
-export const tokenOfVariableSlot = (slot: string | undefined): string => (slot && slot !== WIRED_VARIABLE_ABSENT ? createNativeVariableToken(slot) : '');
+/**
+ * Ids that name no variable. AIR's codec treats "0" and "n" as the null id (VariableLeaderboardConfigCodec.isNullVariableId,
+ * addons/leaderboard/VariableLeaderboardConfigCodec.as:523-526), and a fresh editor frame carries "0" in every slot. The picker
+ * finds no variable for them, so it shows its placeholder (NewVariablePicker.init/findVariableById, NewVariablePicker.as:180-237).
+ */
+export const isWiredNullVariableId = (id: string | null | undefined): boolean => !id || id === '0' || id === WIRED_VARIABLE_ABSENT;
+
+/** The picker token of a stored slot; a null id ("0", "n" or empty) reads as no selection. */
+export const tokenOfVariableSlot = (slot: string | undefined): string => (isWiredNullVariableId(slot) ? '' : createNativeVariableToken(slot));
 
 /** The catalog's variables of one scope, keyed by their opaque server id. */
 export const nativeVariableDefinitions = (

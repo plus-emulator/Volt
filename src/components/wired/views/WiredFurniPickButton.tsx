@@ -23,3 +23,16 @@ export const WiredFurniPickButton: FC<{ kind: 'primary' | 'secondary'; active: b
         <img src={kind === 'primary' ? primaryIcon : secondaryIcon} alt="" draggable={false} style={{ position: 'absolute', left: 3, top: 2, width: 13, height: 15, objectFit: 'none', imageRendering: 'pixelated', pointerEvents: 'none' }} />
     </button>;
 };
+
+/** PressedButtonMiniAssetIconButtonPreset with a neutral asset: the same 19x19 plain skin, always white (selectedColor 0xffffff). */
+export const WiredMiniIconButton: FC<{ icon: string; label: string; disabled?: boolean; onClick: () => void }> = ({ icon, label, disabled, onClick }) => {
+    const [hover, setHover] = useState(false);
+    const [pressed, setPressed] = useState(false);
+    const hovered = !disabled && hover;
+    return <button type="button" aria-label={label} title={label || undefined} disabled={disabled}
+        style={{ position: 'relative', display: 'block', flex: '0 0 19px', width: 19, height: 19, border: 0, padding: 0, background: 'transparent', opacity: disabled ? 0.5 : 1 }}
+        onMouseEnter={() => setHover(true)} onMouseLeave={() => { setHover(false); setPressed(false); }} onPointerDown={() => setPressed(true)} onPointerUp={() => setPressed(false)} onClick={onClick}>
+        <NativeSkinView skin={skin} layout="illumina_light_button_plain" atlas={atlas} width={19} height={19} state={!disabled && pressed ? 'pressed' : hovered ? 'hovering' : 'default'} color={0xffffff} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
+        <img src={icon} alt="" draggable={false} style={{ position: 'absolute', left: 3, top: 2, width: 13, height: 15, objectFit: 'none', imageRendering: 'pixelated', pointerEvents: 'none' }} />
+    </button>;
+};

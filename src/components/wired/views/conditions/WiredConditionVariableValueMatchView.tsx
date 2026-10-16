@@ -128,7 +128,7 @@ export const WiredConditionVariableValueMatchView: FC<{}> = () => {
     };
 
     return (
-        <WiredConditionBaseView nativeLayout hasSpecialInput requiresFurni={requiresFurni} save={save} validate={validate} footerCollapsible={false}
+        <WiredConditionBaseView advancedAlwaysVisible nativeLayout hasSpecialInput requiresFurni={requiresFurni} save={save} validate={validate} footerCollapsible={false}
             footer={<>
                 <VariableQuantifierRadios name="wiredConditionVariableValueQuantifier" value={quantifier} onChange={setQuantifier} />
                 {/* AIR mergedSelections [[0,0],[1,1]]: slot 0 is the footer "Variables" section; slot 1 is claimed by the reference value section and lives in its popup. */}

@@ -9,7 +9,7 @@ import { WiredNumberInput } from '../WiredNumberInput';
 import { WiredSection } from '../WiredSection';
 import { WiredText } from '../WiredText';
 import { WiredVariablePickerTarget } from '../WiredVariablePickerData';
-import { tokenOfVariableSlot, variableSlotOf, WIRED_VARIABLE_ABSENT } from '../../../../api';
+import { isWiredNullVariableId, tokenOfVariableSlot, variableSlotOf, WIRED_VARIABLE_ABSENT } from '../../../../api';
 import { WiredActionBaseView } from './WiredActionBaseView';
 
 /** AIR's merged variable targets for the multiplier: furni 0, user 1, room -10, context -20. */
@@ -67,7 +67,7 @@ export const WiredActionInitTransactionView: FC<{}> = () => {
         setMode(nextMode);
         setMultiplierValid(true);
         setMultiplier(clamp(nextMultiplier, MULTIPLIER_MIN, MULTIPLIER_MAX));
-        setUseVariable(nextOption === 1 && variableId !== WIRED_VARIABLE_ABSENT);
+        setUseVariable(nextOption === 1 && !isWiredNullVariableId(variableId));
         setTarget(MULTIPLIER_TARGETS.find((entry) => entry.code === nextTarget)?.target ?? 'user');
         setVariableToken(tokenOfVariableSlot(variableId));
         setTimeoutEnabled(nextTimeout === 1);
@@ -98,7 +98,7 @@ export const WiredActionInitTransactionView: FC<{}> = () => {
     const lists = [0, 1].filter((list) => [chestSource, contractSource].includes(list === 0 ? 100 : 101));
 
     return (
-        <WiredActionBaseView
+        <WiredActionBaseView advancedAlwaysVisible
             hasSpecialInput={true}
             nativeLayout
             footerCollapsible={false}

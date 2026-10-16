@@ -10,6 +10,8 @@ export interface WiredConditionBaseViewProps {
     cardStyle?: CSSProperties;
     footer?: ReactNode;
     footerCollapsible?: boolean;
+    /** AIR advancedAlwaysVisible: the footer is the expanded advanced wrapper with no toggle. */
+    advancedAlwaysVisible?: boolean;
     selectionPreview?: ReactNode;
     nativeLayout?: boolean;
 }
@@ -24,6 +26,7 @@ export const WiredConditionBaseView: FC<PropsWithChildren<WiredConditionBaseView
         children = null,
         footer = null,
         footerCollapsible = true,
+        advancedAlwaysVisible = false,
         selectionPreview = null,
         nativeLayout = false
     } = props;
@@ -40,6 +43,7 @@ export const WiredConditionBaseView: FC<PropsWithChildren<WiredConditionBaseView
             wiredType="condition"
             footer={footer}
             footerCollapsible={footerCollapsible}
+            advancedAlwaysVisible={advancedAlwaysVisible}
             selectionPreview={selectionPreview}
             nativeLayout={nativeLayout}
         >

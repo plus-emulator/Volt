@@ -15,7 +15,7 @@ export const WiredActionRemoveFurniView: FC<{}> = () => {
         setFurniSources([source]);
     };
     return (
-        <WiredActionBaseView
+        <WiredActionBaseView advancedAlwaysVisible
             nativeLayout={true}
             hasSpecialInput={true}
             requiresFurni={source === 100 ? WiredFurniType.STUFF_SELECTION_OPTION_BY_ID : WiredFurniType.STUFF_SELECTION_OPTION_NONE}

@@ -42,7 +42,7 @@ export const WiredActionMoveFurniAsGroupView: FC<{}> = () => {
             selectionLimit={trigger.maximumItemSelectionCount ?? 0} selectionEnabledValues={users ? [] : [100, 101]} showSelectionToggle={!users}
             onSelectionActivate={() => setActivePickSlot(pickSlot)} />;
     };
-    return <WiredActionBaseView hasSpecialInput nativeLayout requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID_OR_BY_TYPE} save={save}
+    return <WiredActionBaseView advancedAlwaysVisible hasSpecialInput nativeLayout requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID_OR_BY_TYPE} save={save}
         selectionPreview={<></>} footerCollapsible={false} validate={() => !offsetsRef.current?.querySelector('.is-invalid')}
         footer={<>{sourceRow(0, moverSource, setMoverSource)}{sourceRow(1, targetUser ? userSource : targetSource, targetUser ? setUserSource : setTargetSource)}</>}>
         <WiredCollapsibleSection defaultExpanded title={LocalizeText('wiredfurni.params.general_box_info')}>

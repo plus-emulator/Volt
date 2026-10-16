@@ -53,7 +53,7 @@ export const WiredActionSetFurniTransparencyView: FC<{}> = () => {
     };
 
     return (
-        <WiredActionBaseView
+        <WiredActionBaseView advancedAlwaysVisible
             hasSpecialInput={true}
             nativeLayout={true}
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID_BY_TYPE_OR_FROM_CONTEXT}

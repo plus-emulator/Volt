@@ -806,8 +806,9 @@
     width: 100%;
 }
 
+/* search_tree_dropdown is 22px high (search_tree_dropdown_xml). */
 .volt-wired__vpicker-collapsed {
-    height: 21px;
+    height: 22px;
 }
 
 .volt-wired__vpicker-input-region {
@@ -817,11 +818,23 @@
     background: #fff;
 }
 
-/* Collapsed: a 21px white field, 1px #848484 rounded frame and a 10x5 drop-down triangle 8px from the right. */
+/* Collapsed: the 22px collapsed_view (search_tree_dropdown) in border style 105, with a 10x5 drop-down triangle. */
 .volt-wired__vpicker-collapsed .volt-wired__vpicker-input-region {
-    height: 21px;
-    border: 1px solid #848484;
-    border-radius: 4px;
+    height: 22px;
+    border: 1px solid transparent;
+    background: transparent;
+}
+
+.volt-wired__vpicker-collapsed .volt-wired__vpicker-input-region {
+    isolation: isolate;
+}
+
+/* The skin covers the border box and stays under the content of its isolated owner. */
+.volt-wired__vpicker-frame {
+    position: absolute;
+    inset: -1px;
+    z-index: -1;
+    pointer-events: none;
 }
 
 .volt-wired__vpicker-collapsed .volt-wired__vpicker-input-region::after {
@@ -859,6 +872,11 @@
     outline: 0;
 }
 
+/* The official frame sizes every body input to --wired-body-font-size (0,3,1); the picker field keeps AIR's 9px "regular". */
+.volt-wired.volt-wired--official .volt-wired__body .volt-wired__vpicker-input-region .volt-wired__vpicker-input {
+    font: 9px/19px Volter, sans-serif !important;
+}
+
 .volt-wired__vpicker-input::placeholder {
     color: #808080;
     opacity: 1;
@@ -888,9 +906,9 @@
     box-sizing: border-box;
     padding-bottom: 1px;
     pointer-events: auto;
-    border: 1px solid #848484;
-    border-radius: 3px;
-    background: #fff;
+    isolation: isolate;
+    border: 1px solid transparent;
+    background: transparent;
     color: #555;
     font: 9px Volter, sans-serif;
     overflow: visible;
@@ -1890,7 +1908,8 @@
 /* The 21px Illumina input: background and border parts pre-composed at the template height. */
 .volt-wired__input-box::before,
 .volt-wired--native-layout .volt-wired__section--body :is(input[type='text'], input[type='number'], .form-control) {
-    background: url('../assets/images/wired/native/input_left.png') 0 0 no-repeat, url('../assets/images/wired/native/input_right.png') 100% 0 no-repeat, url('../assets/images/wired/native/input_mid.png') 0 0 repeat-x;
+    /* The 14px end caps have transparent rounded corners, so the middle part only spans the space between them. */
+    background: url('../assets/images/wired/native/input_left.png') 0 0 no-repeat, url('../assets/images/wired/native/input_right.png') 100% 0 no-repeat, url('../assets/images/wired/native/input_mid.png') 14px 0 / calc(100% - 28px) 21px no-repeat;
 }
 
 .volt-wired__input-box.is-invalid::before {
@@ -1939,6 +1958,11 @@
 .volt-wired__icon-button img {
     display: block;
     image-rendering: pixelated;
+}
+
+/* A disabled Illumina icon button keeps its frame; only the icon is drawn at half alpha (live AIR, 1x: 126 -> 176 on 226). */
+.volt-wired__icon-button.volt-wired__shell-button--illumina:disabled img {
+    opacity: 0.5;
 }
 
 .volt-wired__slider {
@@ -2896,3 +2920,59 @@
 .volt-wired__dataframe-field > .volt-wired__native-text { margin-top: 2px; }
 .volt-wired__dataframe-controls { display: flex; min-width: 0; gap: 5px; }
 .volt-wired__dataframe-controls > * { flex: 1 1 0; min-width: 0; width: 0 !important; }
+
+/* ValueOrVariablePopupPreset header inside the picker's external popup: a vertical list (genericVerticalSpacing 5) of the
+   padded "Variable source:" section (5/5/5/0), a splitter, the padded same-holder checkbox (5/0/5/0) and a splitter. */
+.volt-wired__value-popup-header {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 1px;
+}
+
+/* Under the list: the overview's 3px spacing and main_cont's 2px spacing (search_tree_dropdown_xml). */
+.volt-wired__vpicker-expanded.volt-wired__value-popup {
+    padding-bottom: 4px;
+}
+
+.volt-wired__value-popup-source {
+    padding: 4px 4px 0 5px;
+}
+
+/* The title is a TextPreset, not a section caption: it has no caption gutter (live AIR, 1x). */
+.volt-wired__value-popup-source .volt-wired__native-section-header > .volt-wired__text {
+    margin-left: -1px;
+    padding-left: 0;
+}
+
+/* The claimed InputSourceControlPreset keeps staticHeight(inputSourceListMinHeight + 2 * LRContainerTopBottomPadding). */
+.volt-wired__value-popup-source-row {
+    min-width: 0;
+    height: 34px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.volt-wired__value-popup-same-holder {
+    padding: 0 5px;
+}
+
+.volt-wired__value-popup-same-holder .volt-wired__option {
+    height: auto;
+}
+
+/* Dual furni picking: the hidden furni-pick mini buttons (19px) still size the merged section's header. */
+.volt-wired__dual-pick-sources .volt-wired__native-section-header {
+    min-height: 19px;
+}
+
+/* ValueOrVariableInputPreset's text sits 1px further left than a NumberInputPreset's (live AIR, 1x). */
+.volt-wired .volt-wired__input-box .volt-wired__input-field.volt-wired__value-input {
+    padding-left: 2px;
+}
+
+/* ActionDelaySection: the number input starts 7px after the title's last glyph (live AIR, 1x). */
+.volt-wired__section--delay .volt-wired__native-section-header > .volt-wired__input-box {
+    margin-left: -1px;
+}
