@@ -1739,11 +1739,18 @@ export const WiredCreatorToolsView: FC<{}> = () => {
     useEffect(() => {
         const nativeLinkTracker: ILinkEventTracker = {
             eventUrlPrefix: 'wiredmenu/',
-            linkReceived: url => { openWiredMenuLink(url, variableDefinitionsByType); }
+            linkReceived: url => {
+                // AIR WiredMenuController.as:154-158: without read permission every menu link only alerts.
+                if (!roomSettings.canInspect) {
+                    simpleAlert?.(LocalizeText('wiredmenu.invalid_room.desc'), NotificationAlertType.ALERT, null, null, LocalizeText('wiredmenu.invalid_room.title'));
+                    return;
+                }
+                openWiredMenuLink(url, variableDefinitionsByType);
+            }
         };
         AddLinkEventTracker(nativeLinkTracker);
         return () => RemoveLinkEventTracker(nativeLinkTracker);
-    }, [variableDefinitionsByType]);
+    }, [variableDefinitionsByType, roomSettings.canInspect, simpleAlert]);
 
 
     useEffect(() => {
