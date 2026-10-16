@@ -35,7 +35,7 @@ export const WiredExtraMoveCarryUsersView: FC<{}> = () => {
     };
 
     return (
-        <WiredExtraBaseView
+        <WiredExtraBaseView advancedAlwaysVisible
             hasSpecialInput={true}
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE}
             save={save}

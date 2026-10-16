@@ -66,6 +66,12 @@ describe('Native variable action read/edit/save', () => {
         expect(within(popup).getByText('holder global')).toBeTruthy();
         expect(screen.queryByRole('textbox', { name: 'Source 1' })).toBeNull();
     });
+    it('shows no variable for the "0" ids of a fresh AIR frame (ints [1,0,0,0,0,-10,0])', () => {
+        state.trigger = { intData: [1, 0, 0, 0, 0, -10, 0], variableIds: ['0', '0'], furniSources: [0, 200], userSources: [0, 200] };
+        render(<WiredActionChangeVariableValueView />);
+        expect(screen.queryByRole('option', { name: '#0' })).toBeNull();
+        expect(screen.getByRole('textbox', { name: 'wiredfurni.params.variables.reference_value' })).toHaveProperty('value', '0');
+    });
     it('saves Change seven fields and disables but preserves reference UI for unary operations', () => {
         state.trigger.intData = [1, 1, 1, 0, 0, 1, 1]; render(<WiredActionChangeVariableValueView />); save();
         expect(state.setIntParams).toHaveBeenLastCalledWith([1, 1, 1, 0, 0, 1, 1]); expect(state.setVariableIds).toHaveBeenLastCalledWith(['destination', 'reference']);

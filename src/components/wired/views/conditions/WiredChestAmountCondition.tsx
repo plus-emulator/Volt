@@ -1,5 +1,5 @@
 import { FC, useEffect, useState } from 'react';
-import { localizeWithFallback, tokenOfVariableSlot, variableSlotOf, WIRED_VARIABLE_ABSENT, WiredFurniType } from '../../../../api';
+import { localizeWithFallback, isWiredNullVariableId, tokenOfVariableSlot, variableSlotOf, WIRED_VARIABLE_ABSENT, WiredFurniType } from '../../../../api';
 import { useWired } from '../../../../hooks';
 import { AMOUNT_TARGETS } from '../actions/WiredChestRewardForm';
 import { WIRED_CMP_GREATER, WiredComparisonOperator } from '../WiredComparisonOperator';
@@ -46,7 +46,7 @@ export const WiredChestAmountCondition: FC<{ itemTypes: boolean }> = ({ itemType
         const variableId = trigger.variableIds[0] ?? WIRED_VARIABLE_ABSENT;
 
         setAmount(clampAmount(nextOption === 1 ? 1 : nextAmount));
-        setUseVariable(nextOption === 1 && variableId !== WIRED_VARIABLE_ABSENT);
+        setUseVariable(nextOption === 1 && !isWiredNullVariableId(variableId));
         setTarget(AMOUNT_TARGETS.find((entry) => entry.code === nextTarget)?.target ?? 'user');
         setVariableToken(tokenOfVariableSlot(variableId));
         setComparison(nextComparison);
@@ -76,7 +76,7 @@ export const WiredChestAmountCondition: FC<{ itemTypes: boolean }> = ({ itemType
     );
 
     return (
-        <WiredConditionBaseView
+        <WiredConditionBaseView advancedAlwaysVisible
             hasSpecialInput={true}
             nativeLayout={true}
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID}

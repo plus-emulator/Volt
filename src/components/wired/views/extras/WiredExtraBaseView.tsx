@@ -14,6 +14,8 @@ export interface WiredExtraBaseViewProps {
     footer?: ReactNode;
     headerControls?: ReactNode;
     footerCollapsible?: boolean;
+    /** AIR advancedAlwaysVisible: the footer is the expanded advanced wrapper with no toggle. */
+    advancedAlwaysVisible?: boolean;
     selectionPreview?: ReactNode;
     nativeLayout?: boolean;
     showSelection?: boolean;
@@ -31,6 +33,7 @@ export const WiredExtraBaseView: FC<PropsWithChildren<WiredExtraBaseViewProps>> 
         footer = null,
         headerControls = null,
         footerCollapsible = true,
+        advancedAlwaysVisible = false,
         selectionPreview = null,
         showSelection = true,
         nativeLayout = false
@@ -53,6 +56,7 @@ export const WiredExtraBaseView: FC<PropsWithChildren<WiredExtraBaseViewProps>> 
             footer={footer}
             headerControls={headerControls}
             footerCollapsible={footerCollapsible}
+            advancedAlwaysVisible={advancedAlwaysVisible}
             selectionPreview={selectionPreview}
             nativeLayout={nativeLayout}
             showSelection={showSelection}

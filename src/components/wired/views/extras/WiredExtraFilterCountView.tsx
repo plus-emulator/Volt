@@ -2,7 +2,7 @@ import { FC, useEffect, useState } from 'react';
 import { localizeWithFallback, WiredFurniType } from '../../../../api';
 import { useWired } from '../../../../hooks';
 import { WiredMergedSourceSection } from '../WiredSourcesSelector';
-import { tokenOfVariableSlot, variableSlotOf, WIRED_VARIABLE_ABSENT } from '../../../../api';
+import { isWiredNullVariableId, tokenOfVariableSlot, variableSlotOf, WIRED_VARIABLE_ABSENT } from '../../../../api';
 import { FurniPickSlotButtons } from '../conditions/WiredVariableConditionParts';
 import { WiredActionValueOrVariableSection, WiredValueTargetType } from '../actions/WiredActionValueOrVariableSection';
 import { WiredExtraBaseView } from './WiredExtraBaseView';
@@ -42,7 +42,7 @@ export const WiredExtraFilterCountView: FC<{ furni: boolean }> = ({ furni }) => 
         const variableId = trigger.variableIds[0] ?? WIRED_VARIABLE_ABSENT;
 
         setCount(clampCount(nextCount));
-        setUseVariable(nextOption === 1 && variableId !== WIRED_VARIABLE_ABSENT);
+        setUseVariable(nextOption === 1 && !isWiredNullVariableId(variableId));
         setTarget(COUNT_TARGETS.find((entry) => entry.code === nextTarget)?.target ?? 'user');
         setVariableToken(tokenOfVariableSlot(variableId));
         setFurniSource(trigger.furniSources[0] ?? 100);

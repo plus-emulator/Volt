@@ -75,7 +75,7 @@ export const WiredConditionHasVariableView: FC<WiredConditionHasVariableViewProp
     };
 
     return (
-        <WiredConditionBaseView
+        <WiredConditionBaseView advancedAlwaysVisible
             nativeLayout
             hasSpecialInput={true}
             requiresFurni={requiresFurni}

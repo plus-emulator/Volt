@@ -32,6 +32,8 @@ export const WiredActionTeleportView: FC<{}> = () => {
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID_BY_TYPE_OR_FROM_CONTEXT}
             save={save}
             footerCollapsible={!isUserToFurni}
+            // AIR class_3993 (furni to user) and class_3932 (user to furni) return advancedAlwaysVisible true; teleport_to does not.
+            advancedAlwaysVisible={trigger?.code === 35 || isUserToFurni}
             footer={
                 <WiredSourcesSelector
                     showFurni={true}

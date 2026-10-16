@@ -4,7 +4,7 @@ import { useWired } from '../../../../hooks';
 import { WiredCheckboxOption, WiredRadioGroup } from '../WiredOptions';
 import { WiredMergedSourceSection, WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredVariablePickerTarget } from '../WiredVariablePickerData';
-import { tokenOfVariableSlot, variableSlotOf, WIRED_VARIABLE_ABSENT } from '../../../../api';
+import { isWiredNullVariableId, tokenOfVariableSlot, variableSlotOf, WIRED_VARIABLE_ABSENT } from '../../../../api';
 import { WiredActionBaseView } from './WiredActionBaseView';
 import { WiredActionValueOrVariableSection } from './WiredActionValueOrVariableSection';
 import { WiredSection } from '../WiredSection';
@@ -56,7 +56,7 @@ export const WiredChestRewardForm: FC<{ kind: 'currency' | 'furni' }> = ({ kind 
 
         setMode(nextMode === 1 ? 1 : 0);
         setAmount(clampAmount(nextAmount));
-        setUseVariable(nextOption === 1 && variableId !== WIRED_VARIABLE_ABSENT);
+        setUseVariable(nextOption === 1 && !isWiredNullVariableId(variableId));
         setTarget(AMOUNT_TARGETS.find((entry) => entry.code === nextTarget)?.target ?? 'user');
         setVariableToken(tokenOfVariableSlot(variableId));
         setShowByDefault(nextShow === 1);
@@ -82,7 +82,7 @@ export const WiredChestRewardForm: FC<{ kind: 'currency' | 'furni' }> = ({ kind 
     const validate = () => mode === 1 || (amountValid && (!useVariable || !!variableToken));
 
     return (
-        <WiredActionBaseView
+        <WiredActionBaseView advancedAlwaysVisible
             hasSpecialInput={true}
             nativeLayout={true}
             footerCollapsible={false}
