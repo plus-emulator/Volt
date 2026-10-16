@@ -158,14 +158,16 @@ export class AvatarInfoUtilities {
         furniInfo.ownerId = model.getValue<number>(RoomObjectVariable.FURNITURE_OWNER_ID);
         furniInfo.ownerName = model.getValue<string>(RoomObjectVariable.FURNITURE_OWNER_NAME);
         furniInfo.usagePolicy = model.getValue<number>(RoomObjectVariable.FURNITURE_USAGE_POLICY);
-        furniInfo.allowStack = model.getValue<number>(RoomObjectVariable.FURNITURE_ALLOW_STACK) > 0;
-        furniInfo.allowSit = model.getValue<number>(RoomObjectVariable.FURNITURE_ALLOW_SIT) > 0;
-        furniInfo.allowLay = model.getValue<number>(RoomObjectVariable.FURNITURE_ALLOW_LAY) > 0;
-        furniInfo.allowWalk = model.getValue<number>(RoomObjectVariable.FURNITURE_ALLOW_WALK) > 0;
-        furniInfo.teleportTargetId = Number(model.getValue<number>(RoomObjectVariable.FURNITURE_TELEPORT_TARGET_ID) ?? 0);
+        const metadata = GetRoomEngine().getFurnitureMetadata(roomSession.roomId, objectId);
 
-        const dimensionsX = model.getValue<number>(RoomObjectVariable.FURNITURE_DIMENSIONS_X);
-        const dimensionsY = model.getValue<number>(RoomObjectVariable.FURNITURE_DIMENSIONS_Y);
+        furniInfo.allowStack = metadata?.allowStack ?? false;
+        furniInfo.allowSit = metadata?.allowSit ?? false;
+        furniInfo.allowLay = metadata?.allowLay ?? false;
+        furniInfo.allowWalk = metadata?.allowWalk ?? false;
+        furniInfo.teleportTargetId = metadata?.teleportTargetId ?? 0;
+
+        const dimensionsX = metadata?.dimensionsX ?? 0;
+        const dimensionsY = metadata?.dimensionsY ?? 0;
 
         if (dimensionsX > 0) furniInfo.tileSizeX = dimensionsX;
 
