@@ -62,6 +62,7 @@ vi.mock('../../../../../api', () => ({
 vi.mock('../../../../../events', () => ({ HelpNameChangeEvent: class {} }));
 
 vi.mock('../../../../../hooks', () => ({
+    useAvatarEditor: () => ({ effects: [] }),
     useRoom: () => ({
         roomSession: {
             sendDanceMessage: mocks.sendDanceMessage,
