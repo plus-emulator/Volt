@@ -190,12 +190,12 @@
     height: 22px;
     background: url('../../assets/images/wired/native/dropdown_left.png') 0 0 no-repeat,
         url('../../assets/images/wired/native/dropdown_right.png') 100% 0 no-repeat,
-        url('../../assets/images/wired/native/dropdown_mid.png') 0 0 repeat-x !important;
+        url('../../assets/images/wired/native/dropdown_mid.png') 6px 0 / calc(100% - 30px) 22px no-repeat !important;
 }
 .habbo-dropmenu.habbo-dropmenu--illumina:not(:disabled):hover {
     background: url('../../assets/images/wired/native/dropdown_left_hover.png') 0 0 no-repeat,
         url('../../assets/images/wired/native/dropdown_right_hover.png') 100% 0 no-repeat,
-        url('../../assets/images/wired/native/dropdown_mid_hover.png') 0 0 repeat-x !important;
+        url('../../assets/images/wired/native/dropdown_mid_hover.png') 6px 0 / calc(100% - 30px) 22px no-repeat !important;
 }
 .habbo-dropmenu--illumina .habbo-dropmenu-caption { left: 10px; top: 3px; right: 30px; height: 14px; padding: 0; }
 /* Live AIR at 1x: the item caption sits at the same place as the closed field's caption (2px left of and 2px above the

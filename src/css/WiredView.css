@@ -1912,6 +1912,22 @@
     background: url('../assets/images/wired/native/input_left.png') 0 0 no-repeat, url('../assets/images/wired/native/input_right.png') 100% 0 no-repeat, url('../assets/images/wired/native/input_mid.png') 14px 0 / calc(100% - 28px) 21px no-repeat;
 }
 
+/* A bare input is the whole border_105 box: the skin replaces the generic .volt-wired input frame and its CSS-rounded corners. */
+.volt-wired--native-layout .volt-wired__section--body :is(input[type='text'], input[type='number'], .form-control):not(.volt-wired__input-field) {
+    box-sizing: border-box;
+    height: 21px !important;
+    min-height: 0 !important;
+    padding: 2px 4px 3px 7px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: url('../assets/images/wired/native/input_left.png') 0 0 no-repeat, url('../assets/images/wired/native/input_right.png') 100% 0 no-repeat, url('../assets/images/wired/native/input_mid.png') 14px 0 / calc(100% - 28px) 21px no-repeat !important;
+    box-shadow: none !important;
+    color: #4a4a4a !important;
+    font-size: 11px !important;
+    line-height: 16px;
+    image-rendering: pixelated;
+}
+
 .volt-wired__input-box.is-invalid::before {
     filter: sepia(1) saturate(4) hue-rotate(-30deg);
 }
@@ -2257,7 +2273,7 @@
     padding: 0 28px 0 10px !important;
     border: 0 !important;
     border-radius: 0 !important;
-    background: url('../assets/images/wired/native/dropdown_left.png') 0 0 no-repeat, url('../assets/images/wired/native/dropdown_right.png') 100% 0 no-repeat, url('../assets/images/wired/native/dropdown_mid.png') 0 0 repeat-x !important;
+    background: url('../assets/images/wired/native/dropdown_left.png') 0 0 no-repeat, url('../assets/images/wired/native/dropdown_right.png') 100% 0 no-repeat, url('../assets/images/wired/native/dropdown_mid.png') 6px 0 / calc(100% - 30px) 22px no-repeat !important;
     box-shadow: none !important;
     color: #000 !important;
     font-size: 11px !important;
@@ -2266,7 +2282,7 @@
 }
 
 .volt-wired.volt-wired--native-layout :is(select, .form-select):hover {
-    background: url('../assets/images/wired/native/dropdown_left_hover.png') 0 0 no-repeat, url('../assets/images/wired/native/dropdown_right_hover.png') 100% 0 no-repeat, url('../assets/images/wired/native/dropdown_mid_hover.png') 0 0 repeat-x !important;
+    background: url('../assets/images/wired/native/dropdown_left_hover.png') 0 0 no-repeat, url('../assets/images/wired/native/dropdown_right_hover.png') 100% 0 no-repeat, url('../assets/images/wired/native/dropdown_mid_hover.png') 6px 0 / calc(100% - 30px) 22px no-repeat !important;
 }
 
 .volt-wired__source-row {
@@ -2776,12 +2792,12 @@
 .volt-wired__dropdown {
     position: relative;
     height: 22px;
-    background: url('../assets/images/wired/native/dropdown_left.png') 0 0 no-repeat, url('../assets/images/wired/native/dropdown_right.png') 100% 0 no-repeat, url('../assets/images/wired/native/dropdown_mid.png') 0 0 repeat-x;
+    background: url('../assets/images/wired/native/dropdown_left.png') 0 0 no-repeat, url('../assets/images/wired/native/dropdown_right.png') 100% 0 no-repeat, url('../assets/images/wired/native/dropdown_mid.png') 6px 0 / calc(100% - 30px) 22px no-repeat;
     image-rendering: pixelated;
 }
 
 .volt-wired__dropdown:not(.is-disabled):hover {
-    background: url('../assets/images/wired/native/dropdown_left_hover.png') 0 0 no-repeat, url('../assets/images/wired/native/dropdown_right_hover.png') 100% 0 no-repeat, url('../assets/images/wired/native/dropdown_mid_hover.png') 0 0 repeat-x;
+    background: url('../assets/images/wired/native/dropdown_left_hover.png') 0 0 no-repeat, url('../assets/images/wired/native/dropdown_right_hover.png') 100% 0 no-repeat, url('../assets/images/wired/native/dropdown_mid_hover.png') 6px 0 / calc(100% - 30px) 22px no-repeat;
 }
 
 .volt-wired__dropdown.is-disabled {
