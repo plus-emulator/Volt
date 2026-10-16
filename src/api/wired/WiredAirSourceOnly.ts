@@ -12,10 +12,10 @@ export const AIR_SOURCE_ONLY_WIRED: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Wired cards whose runtime was read from the turbo-cloud emulator and never fired on the official hotel. Most editors
+ * Wired cards whose runtime has not yet been observed on the official hotel. Most editors
  * were observed on hhus (the AIR code only for at_time_long and move_furni_to); the server behaviour needs a live check.
  */
-export const TURBO_REFERENCE_ONLY_WIRED: ReadonlySet<string> = new Set([
+export const UNOBSERVED_RUNTIME_WIRED: ReadonlySet<string> = new Set([
     'wf_act_bot_teleport', // AS3 wired_setup/actiontypes/class_4125.as
     'wf_act_bot_move', // AS3 wired_setup/actiontypes/class_4124.as
     'wf_act_bot_talk', // AS3 wired_setup/actiontypes/class_4250.as
