@@ -3,7 +3,9 @@ import {
     explorerErrorMessage,
     giveableVariables,
     loadRememberedKeys,
-    parseInt32,
+    addInt64,
+    parseInt64,
+    profileEntityId,
     profileToEntries,
     rememberedKeysStorageKey,
     sanitizeRoomIdInput,
@@ -99,50 +101,74 @@ describe('remembered keys', () => {
 
 describe('explorer data helpers', () => {
     const variables: WebApiVariable[] = [
-        { name: 'score', scope: 'user', hasValue: true, textConnected: false },
-        { name: 'vip', scope: 'user', hasValue: false, textConnected: false },
-        { name: 'level', scope: 'user', hasValue: true, textConnected: true },
-        { name: 'lamp', scope: 'furni', hasValue: true, textConnected: false }
+        { name: 'score', scope: 'user' },
+        { name: 'vip', scope: 'user' },
+        { name: 'level', scope: 'user' },
+        { name: 'lamp', scope: 'furni' }
     ];
 
-    it('lists a profile by name and hides values of value-less variables', () => {
-        const entries = profileToEntries({ variables: { vip: { createdAt: 1, updatedAt: 1 }, score: { value: 12, createdAt: 2, updatedAt: 3 } } }, variables);
+    it('lists a profile by name; a variable without a value has only its times', () => {
+        const entries = profileToEntries({
+            variables: {
+                vip: { creation_time: '2023-11-16T22:13:20Z', update_time: '2023-11-16T22:13:20Z' },
+                score: { value: '9007199254740993', creation_time: '2023-11-17T08:00:00Z', update_time: '2023-11-17T09:30:00Z' }
+            }
+        });
 
         expect(entries).toEqual([
-            { name: 'score', hasValue: true, value: 12, createdAt: 2, updatedAt: 3 },
-            { name: 'vip', hasValue: false, value: null, createdAt: 1, updatedAt: 1 }
+            {
+                name: 'score',
+                hasValue: true,
+                value: '9007199254740993',
+                createdAt: Date.parse('2023-11-17T08:00:00Z'),
+                updatedAt: Date.parse('2023-11-17T09:30:00Z')
+            },
+            { name: 'vip', hasValue: false, value: null, createdAt: Date.parse('2023-11-16T22:13:20Z'), updatedAt: Date.parse('2023-11-16T22:13:20Z') }
         ]);
-        expect(profileToEntries(null, variables)).toEqual([]);
+        expect(profileToEntries(null)).toEqual([]);
     });
 
     it('offers only variables of the scope the holder does not have', () => {
-        const entries = profileToEntries({ variables: { score: { value: 1, createdAt: 0, updatedAt: 0 } } }, variables);
+        const entries = profileToEntries({ variables: { score: { value: '1' } } });
 
         expect(giveableVariables(variables, 'user', entries).map((variable) => variable.name)).toEqual(['level', 'vip']);
     });
 
-    it('turns an api entry into a holder row', () => {
-        const holder = webApiEntryToHolder({ entityId: 7, value: 3, createdAt: 100, updatedAt: 200 }, 'furni', 'wall');
+    it('turns a listed value into a holder row', () => {
+        const holder = webApiEntryToHolder(
+            { id: 7, value: '3', creation_time: '2023-11-16T22:13:20Z', update_time: '2023-11-17T09:30:00Z' },
+            'furni',
+            'wall-items'
+        );
 
         expect(holder).toMatchObject({
             entityType: 2,
             entityId: 7,
             entityName: 'Wall furni #7',
-            storage: { value: 3, creationTime: 100_000, lastUpdateTime: 200_000 }
+            storage: { value: 3, creationTime: Date.parse('2023-11-16T22:13:20Z'), lastUpdateTime: Date.parse('2023-11-17T09:30:00Z') }
         });
         expect(holder.storage.creationTimeStr).not.toBe('');
     });
 
-    it('parses 32-bit integers only', () => {
-        expect(parseInt32('-15')).toBe(-15);
-        expect(parseInt32(' 2147483647 ')).toBe(2147483647);
-        expect(parseInt32('2147483648')).toBeNull();
-        expect(parseInt32('1.5')).toBeNull();
-        expect(parseInt32('')).toBeNull();
+    it('parses and adds signed 64-bit integers as decimal strings', () => {
+        expect(parseInt64('-15')).toBe('-15');
+        expect(parseInt64(' 9223372036854775807 ')).toBe('9223372036854775807');
+        expect(parseInt64('9223372036854775808')).toBeNull();
+        expect(parseInt64('1.5')).toBeNull();
+        expect(parseInt64('')).toBeNull();
+        expect(addInt64('9007199254740993', '2')).toBe('9007199254740995');
+        expect(addInt64('9223372036854775807', '1')).toBeNull();
     });
 
-    it('explains a rate limit with its wait', () => {
-        expect(explorerErrorMessage(new VariablesWebApiError(429, 'rate_limited', 'x', 12))).toBe('Too many requests. Try again in 12 s.');
-        expect(explorerErrorMessage(new VariablesWebApiError(401, 'unauthorized', 'x'))).toBe('The key was not accepted.');
+    it('names the profile target whatever its kind', () => {
+        expect(profileEntityId({ wall_item: { id: 91 }, variables: {} })).toBe(91);
+        expect(profileEntityId({ variables: {} })).toBeNull();
+    });
+
+    it('explains the official error codes', () => {
+        expect(explorerErrorMessage(new VariablesWebApiError(429, 'wired.variables.too_many_requests', 'x', 12))).toBe('Too many requests. Try again in 12 s.');
+        expect(explorerErrorMessage(new VariablesWebApiError(403, 'wired.variables.key_invalid', 'x'))).toBe('The key was not accepted.');
+        expect(explorerErrorMessage(new VariablesWebApiError(404, 'not-found', 'x'))).toBe('There is no such room.');
+        expect(explorerErrorMessage(new VariablesWebApiError(403, 'wired.variables.bulk_delete_not_enabled', 'x'))).toContain('Allow mass deletion');
     });
 });

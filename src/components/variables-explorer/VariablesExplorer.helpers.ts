@@ -1,4 +1,14 @@
-import { targetKindLabel, WebApiHolderScope, WebApiProfile, WebApiTargetKind, WebApiUserTargetKind, WebApiVariable, WebApiVariableScope } from '../../api';
+import {
+    profileEntityId,
+    profileTarget,
+    targetKindLabel,
+    WebApiHolderScope,
+    WebApiProfile,
+    WebApiTargetKind,
+    WebApiUserTargetKind,
+    WebApiVariable,
+    WebApiVariableScope
+} from '../../api';
 import { VARIABLES_ELEMENTS } from '../wired-tools/WiredCreatorTools.constants';
 import { VariableDefinition, VariablesElementButton, VariablesElementType } from '../wired-tools/WiredCreatorTools.types';
 
@@ -11,19 +21,22 @@ export const scopeOfVariablesType = (type: VariablesElementType): WebApiVariable
 
 const TARGET_OF_SCOPE: Record<WebApiVariableScope, VariableDefinition['target']> = { user: 'User', furni: 'Furni', global: 'Global' };
 
-/** A web api variable as the creator tools' variable picker lists it. Everything the API shows is permanent. */
+/**
+ * A web api variable as the creator tools' variable picker lists it. The API names variables only, so whether one holds a value
+ * shows per holder (a value-less variable comes without `value`).
+ */
 export const toVariableDefinition = (variable: WebApiVariable, canWrite: boolean): VariableDefinition => ({
     key: variable.name,
     target: TARGET_OF_SCOPE[variable.scope] ?? 'User',
     type: 'Custom',
-    hasValue: variable.hasValue,
+    hasValue: true,
     availability: 'Permanent',
-    canWriteTo: canWrite && variable.hasValue,
+    canWriteTo: canWrite,
     canCreateDelete: canWrite && variable.scope !== 'global',
     canIntercept: false,
     hasCreationTime: true,
     hasUpdateTime: true,
-    isTextConnected: variable.textConnected
+    isTextConnected: false
 });
 
 export const variableProperties = (definition: VariableDefinition | null): { key: string; value: string }[] => {
@@ -56,9 +69,13 @@ export const EXPLORER_LOOKUP_KINDS: { value: ExplorerLookupKind; label: string }
     { value: 'users', label: 'User id' },
     { value: 'pets', label: 'Pet id' },
     { value: 'bots', label: 'Bot id' },
-    { value: 'floor', label: 'Floor furni id' },
-    { value: 'wall', label: 'Wall furni id' }
+    { value: 'furni', label: 'Floor furni id' },
+    { value: 'wall-items', label: 'Wall furni id' },
+    { value: 'furni-bc', label: 'Builders Club floor furni id' },
+    { value: 'wall-items-bc', label: 'Builders Club wall furni id' }
 ];
+
+const FURNI_LOOKUP_KINDS: ExplorerLookupKind[] = ['furni', 'wall-items', 'furni-bc', 'wall-items-bc'];
 
 /** The lookup field's target, or `null` when the input does not fit the kind. */
 export const lookupTarget = (kind: ExplorerLookupKind, input: string): ExplorerHolderTarget | null => {
@@ -73,7 +90,7 @@ export const lookupTarget = (kind: ExplorerLookupKind, input: string): ExplorerH
 
     if (entityId <= 0 || entityId > 2147483647) return null;
 
-    return { scope: kind === 'floor' || kind === 'wall' ? 'furni' : 'user', kind, entityId };
+    return { scope: FURNI_LOOKUP_KINDS.includes(kind) ? 'furni' : 'user', kind, entityId };
 };
 
 /** The id writes go to: the target's own, or the one a name lookup resolved to. */
@@ -81,7 +98,7 @@ export const resolvedEntityId = (target: ExplorerHolderTarget, profile: WebApiPr
     if (target.scope === 'global') return null;
     if ('entityId' in target) return target.entityId;
 
-    return typeof profile?.entityId === 'number' ? profile.entityId : null;
+    return profileEntityId(profile);
 };
 
 export const holderPanelTitle = (target: ExplorerHolderTarget): string => {
@@ -111,7 +128,7 @@ export const holderInfoLines = (target: ExplorerHolderTarget, profile: WebApiPro
         ];
     }
 
-    const name = profile?.name || localName || ('username' in target ? target.username : '');
+    const name = profileTarget(profile)?.name || localName || ('username' in target ? target.username : '');
 
     return [
         `User type: ${targetKindLabel(target.kind as WebApiUserTargetKind)}`,

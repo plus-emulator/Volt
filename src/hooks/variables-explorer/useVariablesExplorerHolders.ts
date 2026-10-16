@@ -14,7 +14,7 @@ import { calculateLastPage, NO_PAGE } from '../../components/wired-tools/WiredPa
 import { useWiredPageRequests } from '../wired-tools/useWiredPageRequests';
 
 export const VARIABLES_EXPLORER_PAGE_SIZE = 50;
-/** Keeps paging well under the API's 60 requests per 10 s per key. */
+/** Keeps paging (two requests a page) well under the hotel's rate limit. */
 const REQUEST_PAGE_RATELIMIT = 400;
 
 interface HoldersPage {
@@ -37,14 +37,18 @@ export const useVariablesExplorerHolders = (client: VariablesWebApiClient, scope
         const option = sortOptionById(sort);
 
         try {
-            const result = await client.listEntries(scope, name, kind, requested, VARIABLES_EXPLORER_PAGE_SIZE, option.sort, option.order);
+            // A page carries no total; the count endpoint gives it.
+            const [result, total] = await Promise.all([
+                client.listEntries(scope, name, kind, requested, VARIABLES_EXPLORER_PAGE_SIZE, option.orderBy, option.orderDir),
+                client.countEntries(scope, name, kind)
+            ]);
 
             if (id !== requestId.current) return;
 
             setPage({
                 page: result?.page ?? requested,
-                total: result?.total ?? 0,
-                holders: (result?.entries ?? []).map((entry) => webApiEntryToHolder(entry, scope, kind))
+                total,
+                holders: (result?.items ?? []).map((entry) => webApiEntryToHolder(entry, scope, kind))
             });
             setScrollKey((key) => key + 1);
             setStatus('');

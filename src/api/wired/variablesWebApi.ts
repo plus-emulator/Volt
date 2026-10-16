@@ -1,52 +1,79 @@
 /**
- * Client for the Variables Web API (`/api/public/rooms/{roomId}/...`).
- * Keys only ever travel in the `Authorization` header. After a 429 the client refuses further calls
- * until `Retry-After` has passed instead of retrying.
+ * Client for Habbo's public Wired Variables Web API (`/api/public/rooms/{roomId}/variables...`, tag "Wired Variables" of
+ * habbo.com /api/public/api-docs/). Keys travel only in the `X-Wired-Read-Key` / `X-Wired-Write-Key` headers; values are signed
+ * 64-bit integers as decimal strings. After a 429 the client refuses further calls until `Retry-After` (or 10 s) has passed.
  */
 
 export type WebApiVariableScope = 'user' | 'furni' | 'global';
 export type WebApiUserTargetKind = 'users' | 'pets' | 'bots';
-export type WebApiFurniTargetKind = 'floor' | 'wall';
+export type WebApiFurniTargetKind = 'furni' | 'furni-bc' | 'wall-items' | 'wall-items-bc';
 export type WebApiTargetKind = WebApiUserTargetKind | WebApiFurniTargetKind;
 export type WebApiHolderScope = Exclude<WebApiVariableScope, 'global'>;
-export type WebApiSortField = 'value' | 'entityId';
-export type WebApiSortOrder = 'asc' | 'desc';
+export type WebApiOrderBy = 'value' | 'creation_time' | 'update_time';
+export type WebApiOrderDir = 'asc' | 'desc';
 
+/** A room variable as the explorer lists it: its name and scope (`GET /variables` gives names by scope). */
 export interface WebApiVariable {
     name: string;
     scope: WebApiVariableScope;
-    hasValue: boolean;
-    textConnected: boolean;
 }
 
-export interface WebApiEntry {
-    entityId: number;
-    value?: number;
-    createdAt: number;
-    updatedAt: number;
+/** WiredRoomVariables. */
+export interface WebApiRoomVariables {
+    users?: string[];
+    furni?: string[];
+    global?: string[];
 }
 
-export interface WebApiEntryPage {
+/** WiredVariable: a variable without a value has only its times. */
+export interface WebApiValue {
+    value?: string;
+    creation_time?: string;
+    update_time?: string;
+}
+
+/** An item of WiredPagedVariables: the holder's id and its value. */
+export interface WebApiPageItem extends WebApiValue {
+    id: number;
+}
+
+export interface WebApiPage {
+    items: WebApiPageItem[];
     page: number;
-    pageSize: number;
-    total: number;
-    entries: WebApiEntry[];
+    size: number;
 }
 
-export interface WebApiStoredValue {
-    value?: number;
-    createdAt: number;
-    updatedAt: number;
-}
-
-export interface WebApiProfile {
-    targetKind?: string;
-    entityId?: number;
+export interface WebApiProfileTarget {
+    id: number;
     name?: string;
-    variables: Record<string, WebApiStoredValue>;
+    unique_id?: string;
 }
 
-export type WebApiValueChange = { value?: number } | { add: number };
+/** WiredVariablesProfile: one of user, pet, bot, furni, furni_bc, wall_item, wall_item_bc (none for global) and the variables. */
+export interface WebApiProfile {
+    user?: WebApiProfileTarget;
+    pet?: WebApiProfileTarget;
+    bot?: WebApiProfileTarget;
+    furni?: WebApiProfileTarget;
+    furni_bc?: WebApiProfileTarget;
+    wall_item?: WebApiProfileTarget;
+    wall_item_bc?: WebApiProfileTarget;
+    variables: Record<string, WebApiValue>;
+}
+
+export interface WebApiBatchOperation {
+    op_id?: string;
+    method: 'GET' | 'PUT' | 'PATCH' | 'DELETE';
+    path: string;
+    body?: { value: string };
+}
+
+export interface WebApiBatchResult {
+    op_id?: string | null;
+    status: number;
+    body?: WebApiValue;
+    error?: { code: string; message: string };
+}
 
 export interface WebApiRateLimit {
     limit: number | null;
@@ -54,27 +81,41 @@ export interface WebApiRateLimit {
     reset: number | null;
 }
 
-export type WebApiErrorCode =
-    | 'bad_request'
-    | 'unauthorized'
-    | 'forbidden'
-    | 'not_found'
-    | 'conflict'
-    | 'payload_too_large'
-    | 'rate_limited'
-    | 'disabled'
-    | 'internal'
-    | 'timeout'
-    | 'network'
-    | 'no_key'
-    | 'invalid_response';
+/** Error codes the API answers (`{"error": code}`), and the client's own for failures before an answer. */
+export const WEB_API_ERRORS = {
+    keyMissing: 'wired.variables.key_missing',
+    keyInvalid: 'wired.variables.key_invalid',
+    apiDisabled: 'wired.variables.api_disabled',
+    invalidTarget: 'wired.variables.invalid_target',
+    invalidValue: 'wired.variables.invalid_value',
+    operationNotAllowed: 'wired.variables.operation_not_allowed',
+    userNotParticipating: 'wired.variables.user_not_participating',
+    bulkDeleteEmpty: 'wired.variables.bulk_delete_empty',
+    bulkDeleteInvalidVariable: 'wired.variables.bulk_delete_invalid_variable',
+    bulkDeleteNotEnabled: 'wired.variables.bulk_delete_not_enabled',
+    batchEmpty: 'wired.variables.batch_empty',
+    batchLimitExceeded: 'wired.variables.batch_limit_exceeded',
+    entityNotFound: 'wired.variables.entity_not_found',
+    notFound: 'wired.variables.not_found',
+    tooManyRequests: 'wired.variables.too_many_requests',
+    roomNotFound: 'room.not_found',
+    /** habbo.com: a room id that names no room, or an entity id that is not a number. */
+    missing: 'not-found',
+    /** habbo.com: a value that is present but not a decimal string. */
+    requestFailed: 'request-failed-non-200',
+    noKey: 'no_key',
+    timeout: 'timeout',
+    network: 'network',
+    invalidResponse: 'invalid_response',
+    http: 'http_error'
+} as const;
 
 export class VariablesWebApiError extends Error {
     public readonly status: number;
-    public readonly code: WebApiErrorCode | string;
+    public readonly code: string;
     public readonly retryAfterSeconds: number | null;
 
-    constructor(status: number, code: WebApiErrorCode | string, message: string, retryAfterSeconds: number | null = null) {
+    constructor(status: number, code: string, message: string, retryAfterSeconds: number | null = null) {
         super(message);
         this.name = 'VariablesWebApiError';
         this.status = status;
@@ -96,9 +137,13 @@ export interface VariablesWebApiClientOptions {
 export const DEFAULT_WEB_API_TIMEOUT_MS = 10_000;
 /** Used when a 429 comes without a readable `Retry-After`. */
 export const DEFAULT_RETRY_AFTER_SECONDS = 10;
-export const MAX_WEB_API_PAGE_SIZE = 100;
+/** `requests` of a batch holds 1 to 50 operations (WiredBatchRequest). */
+export const MAX_WEB_API_BATCH = 50;
 
-type KeyKind = 'read' | 'write';
+export const READ_KEY_HEADER = 'X-Wired-Read-Key';
+export const WRITE_KEY_HEADER = 'X-Wired-Write-Key';
+
+type KeyKind = 'read' | 'write' | 'both';
 
 interface RequestOptions {
     key: KeyKind;
@@ -132,29 +177,26 @@ const readHeaderNumber = (headers: Headers, name: string): number | null => {
 
 const segment = (value: string | number): string => encodeURIComponent(String(value));
 
-const readErrorEnvelope = async (response: Response): Promise<{ code: string; message: string } | null> => {
+const readErrorCode = async (response: Response): Promise<string | null> => {
     try {
-        const body = (await response.json()) as { error?: { code?: unknown; message?: unknown } };
-        const code = body?.error?.code;
-        const message = body?.error?.message;
+        const body = (await response.json()) as { error?: unknown };
 
-        if (typeof code !== 'string') return null;
-
-        return { code, message: typeof message === 'string' ? message : code };
+        return typeof body?.error === 'string' ? body.error : null;
     } catch {
         return null;
     }
 };
 
-const STATUS_CODES: Record<number, WebApiErrorCode> = {
-    400: 'bad_request',
-    401: 'unauthorized',
-    403: 'forbidden',
-    404: 'not_found',
-    409: 'conflict',
-    413: 'payload_too_large',
-    429: 'rate_limited'
-};
+/** The profile's target, whichever kind it names. */
+export const profileTarget = (profile: WebApiProfile | null | undefined): WebApiProfileTarget | null =>
+    profile?.user ?? profile?.pet ?? profile?.bot ?? profile?.furni ?? profile?.furni_bc ?? profile?.wall_item ?? profile?.wall_item_bc ?? null;
+
+/** `GET /variables` as a flat list. */
+export const roomVariablesToList = (variables: WebApiRoomVariables | null | undefined): WebApiVariable[] => [
+    ...(variables?.users ?? []).map((name) => ({ name, scope: 'user' as const })),
+    ...(variables?.furni ?? []).map((name) => ({ name, scope: 'furni' as const })),
+    ...(variables?.global ?? []).map((name) => ({ name, scope: 'global' as const }))
+];
 
 export const createVariablesWebApiClient = (options: VariablesWebApiClientOptions) => {
     const { baseUrl, roomId, readKey = '', writeKey = '', timeoutMs = DEFAULT_WEB_API_TIMEOUT_MS } = options;
@@ -165,27 +207,29 @@ export const createVariablesWebApiClient = (options: VariablesWebApiClientOption
     let blockedUntil = 0;
     let rateLimit: WebApiRateLimit = { limit: null, remaining: null, reset: null };
 
-    const keyFor = (kind: KeyKind): string => (kind === 'write' ? writeKey : readKey || writeKey);
-
     const request = async <T>(method: string, path: string, requestOptions: RequestOptions): Promise<T> => {
         const current = now();
 
         if (blockedUntil > current) {
             const seconds = Math.ceil((blockedUntil - current) / 1000);
 
-            throw new VariablesWebApiError(429, 'rate_limited', 'Too many requests', seconds);
+            throw new VariablesWebApiError(429, WEB_API_ERRORS.tooManyRequests, 'Too many requests', seconds);
         }
 
-        const key = keyFor(requestOptions.key);
+        const headers: Record<string, string> = { Accept: 'application/json' };
 
-        if (!key) throw new VariablesWebApiError(0, 'no_key', requestOptions.key === 'write' ? 'A write key is needed' : 'A read key is needed');
+        if (requestOptions.key !== 'write' && readKey) headers[READ_KEY_HEADER] = readKey;
+        if (requestOptions.key !== 'read' && writeKey) headers[WRITE_KEY_HEADER] = writeKey;
+
+        if (!headers[READ_KEY_HEADER] && !headers[WRITE_KEY_HEADER]) {
+            throw new VariablesWebApiError(0, WEB_API_ERRORS.noKey, requestOptions.key === 'write' ? 'A write key is needed' : 'A read key is needed');
+        }
 
         const query = Object.entries(requestOptions.query ?? {})
             .filter(([, value]) => value !== undefined && value !== '')
             .map(([name, value]) => `${encodeURIComponent(name)}=${encodeURIComponent(String(value))}`)
             .join('&');
         const url = `${roomBase}${path}${query ? `?${query}` : ''}`;
-        const headers: Record<string, string> = { Accept: 'application/json', Authorization: `Bearer ${key}` };
         const hasBody = requestOptions.body !== undefined;
 
         if (hasBody) headers['Content-Type'] = 'application/json';
@@ -205,9 +249,9 @@ export const createVariablesWebApiClient = (options: VariablesWebApiClientOption
                 referrerPolicy: 'no-referrer'
             });
         } catch (error) {
-            if (controller.signal.aborted) throw new VariablesWebApiError(0, 'timeout', 'The request timed out');
+            if (controller.signal.aborted) throw new VariablesWebApiError(0, WEB_API_ERRORS.timeout, 'The request timed out');
 
-            throw new VariablesWebApiError(0, 'network', error instanceof Error && error.message ? error.message : 'Network error');
+            throw new VariablesWebApiError(0, WEB_API_ERRORS.network, error instanceof Error && error.message ? error.message : 'Network error');
         } finally {
             clearTimeout(timer);
         }
@@ -219,7 +263,7 @@ export const createVariablesWebApiClient = (options: VariablesWebApiClientOption
         };
 
         if (!response.ok) {
-            const envelope = await readErrorEnvelope(response);
+            const code = await readErrorCode(response);
             let retryAfter: number | null = null;
 
             if (response.status === 429) {
@@ -227,12 +271,7 @@ export const createVariablesWebApiClient = (options: VariablesWebApiClientOption
                 blockedUntil = now() + retryAfter * 1000;
             }
 
-            throw new VariablesWebApiError(
-                response.status,
-                envelope?.code ?? STATUS_CODES[response.status] ?? 'internal',
-                envelope?.message ?? `HTTP ${response.status}`,
-                retryAfter
-            );
+            throw new VariablesWebApiError(response.status, code ?? WEB_API_ERRORS.http, code ?? `HTTP ${response.status}`, retryAfter);
         }
 
         if (response.status === 204) return undefined as T;
@@ -240,7 +279,7 @@ export const createVariablesWebApiClient = (options: VariablesWebApiClientOption
         try {
             return (await response.json()) as T;
         } catch {
-            throw new VariablesWebApiError(response.status, 'invalid_response', 'The server sent an unreadable response');
+            throw new VariablesWebApiError(response.status, WEB_API_ERRORS.invalidResponse, 'The server sent an unreadable response');
         }
     };
 
@@ -254,19 +293,19 @@ export const createVariablesWebApiClient = (options: VariablesWebApiClientOption
         get blockedForSeconds(): number {
             return Math.max(0, Math.ceil((blockedUntil - now()) / 1000));
         },
-        hasReadAccess: !!(readKey || writeKey),
+        hasReadAccess: !!readKey,
         hasWriteAccess: !!writeKey,
 
-        listVariables: () => request<{ variables: WebApiVariable[] }>('GET', '/variables', { key: 'read' }).then((body) => body?.variables ?? []),
+        listVariables: () => request<WebApiRoomVariables>('GET', '/variables', { key: 'read' }).then(roomVariablesToList),
 
         getEntry: (scope: WebApiHolderScope, name: string, targetKind: WebApiTargetKind, entityId: number) =>
-            request<WebApiEntry>('GET', entryPath(scope, name, targetKind, entityId), { key: 'read' }),
+            request<WebApiValue>('GET', entryPath(scope, name, targetKind, entityId), { key: 'read' }),
 
-        putEntry: (scope: WebApiHolderScope, name: string, targetKind: WebApiTargetKind, entityId: number, value?: number) =>
-            request<WebApiEntry>('PUT', entryPath(scope, name, targetKind, entityId), { key: 'write', body: value === undefined ? {} : { value } }),
+        putEntry: (scope: WebApiHolderScope, name: string, targetKind: WebApiTargetKind, entityId: number, value: string) =>
+            request<WebApiValue>('PUT', entryPath(scope, name, targetKind, entityId), { key: 'write', body: { value } }),
 
-        patchEntry: (scope: WebApiHolderScope, name: string, targetKind: WebApiTargetKind, entityId: number, change: WebApiValueChange) =>
-            request<WebApiEntry>('PATCH', entryPath(scope, name, targetKind, entityId), { key: 'write', body: change }),
+        patchEntry: (scope: WebApiHolderScope, name: string, targetKind: WebApiTargetKind, entityId: number, value: string) =>
+            request<WebApiValue>('PATCH', entryPath(scope, name, targetKind, entityId), { key: 'write', body: { value } }),
 
         deleteEntry: (scope: WebApiHolderScope, name: string, targetKind: WebApiTargetKind, entityId: number) =>
             request<void>('DELETE', entryPath(scope, name, targetKind, entityId), { key: 'write' }),
@@ -276,13 +315,13 @@ export const createVariablesWebApiClient = (options: VariablesWebApiClientOption
             name: string,
             targetKind: WebApiTargetKind,
             page: number,
-            pageSize: number,
-            sort?: WebApiSortField,
-            order?: WebApiSortOrder
+            size: number,
+            orderBy?: WebApiOrderBy,
+            orderDir?: WebApiOrderDir
         ) =>
-            request<WebApiEntryPage>('GET', `/variables/${segment(scope)}/${segment(name)}/${segment(targetKind)}`, {
+            request<WebApiPage>('GET', `/variables/${segment(scope)}/${segment(name)}/${segment(targetKind)}`, {
                 key: 'read',
-                query: { page, pageSize: Math.min(Math.max(1, pageSize), MAX_WEB_API_PAGE_SIZE), sort, order }
+                query: { order_by: orderBy, order_dir: orderDir, page, size }
             }),
 
         countEntries: (scope: WebApiHolderScope, name: string, targetKind: WebApiTargetKind) =>
@@ -290,22 +329,24 @@ export const createVariablesWebApiClient = (options: VariablesWebApiClientOption
                 (body) => body?.count ?? 0
             ),
 
-        bulkDelete: (names: string[]) =>
-            request<{ deleted: Record<string, number> }>('POST', '/variables/bulk-delete', { key: 'write', body: { names } }).then(
-                (body) => body?.deleted ?? {}
-            ),
+        bulkDelete: (names: string[]) => request<void>('POST', '/variables/bulk-delete', { key: 'write', body: { variables: names } }),
 
-        getGlobal: (name: string) => request<WebApiStoredValue>('GET', `/variables/global/${segment(name)}`, { key: 'read' }),
+        batch: (scope: WebApiHolderScope, name: string, requests: WebApiBatchOperation[]) =>
+            request<{ results: WebApiBatchResult[] }>('POST', `/variables/${segment(scope)}/${segment(name)}/batch`, {
+                key: 'both',
+                body: { requests }
+            }).then((body) => body?.results ?? []),
 
-        patchGlobal: (name: string, change: WebApiValueChange) =>
-            request<WebApiStoredValue>('PATCH', `/variables/global/${segment(name)}`, { key: 'write', body: change }),
+        getGlobal: (name: string) => request<WebApiValue>('GET', `/variables/global/${segment(name)}`, { key: 'read' }),
+
+        patchGlobal: (name: string, value: string) => request<WebApiValue>('PATCH', `/variables/global/${segment(name)}`, { key: 'write', body: { value } }),
 
         getUserProfileByName: (username: string) => request<WebApiProfile>('GET', '/variables_profile/user/users', { key: 'read', query: { name: username } }),
 
         getProfile: (scope: WebApiHolderScope, targetKind: WebApiTargetKind, entityId: number) =>
             request<WebApiProfile>('GET', `/variables_profile/${segment(scope)}/${segment(targetKind)}/${segment(entityId)}`, { key: 'read' }),
 
-        patchProfile: (scope: WebApiHolderScope, targetKind: WebApiTargetKind, entityId: number, variables: Record<string, number | null | true>) =>
+        patchProfile: (scope: WebApiHolderScope, targetKind: WebApiTargetKind, entityId: number, variables: Record<string, string | null>) =>
             request<WebApiProfile>('PATCH', `/variables_profile/${segment(scope)}/${segment(targetKind)}/${segment(entityId)}`, {
                 key: 'write',
                 body: { variables }
@@ -316,7 +357,7 @@ export const createVariablesWebApiClient = (options: VariablesWebApiClientOption
 
         getGlobalProfile: () => request<WebApiProfile>('GET', '/variables_profile/global', { key: 'read' }),
 
-        patchGlobalProfile: (variables: Record<string, number>) =>
+        patchGlobalProfile: (variables: Record<string, string>) =>
             request<WebApiProfile>('PATCH', '/variables_profile/global', { key: 'write', body: { variables } })
     };
 };

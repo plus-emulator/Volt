@@ -2,11 +2,12 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { ButtonHTMLAttributes, PropsWithChildren, ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { WiredNativeContext } from '../WiredNativeContext';
-const state=vi.hoisted(()=>({trigger:{id:55,stringData:'read\twrite',intData:[1],furniSources:[100],userSources:[0],variableIds:['n']},setIntParams:vi.fn(),setStringParam:vi.fn(),send:vi.fn(),copy:vi.fn(async()=>true),confirm:vi.fn(),alert:vi.fn(),setFurniSources:vi.fn(),setUserSources:vi.fn(),setQuantifier:vi.fn(),setVariableIds:vi.fn(),quantifier:1}));
+const state=vi.hoisted(()=>({trigger:{id:55,stringData:'read\twrite',intData:[1],furniSources:[100],userSources:[0],variableIds:['n']},setIntParams:vi.fn(),setStringParam:vi.fn(),send:vi.fn(),copy:vi.fn(async()=>true),confirm:vi.fn(),open:vi.fn(),alert:vi.fn(),setFurniSources:vi.fn(),setUserSources:vi.fn(),setQuantifier:vi.fn(),setVariableIds:vi.fn(),quantifier:1}));
 vi.mock('../../../../api',async()=>({
     ...(await vi.importActual('../../../../api/wired/WiredNativeVariables')),
     LocalizeText:(key:string)=>key,localizeWithFallback:(_key:string,fallback:string)=>fallback,
     expandLocalizedText:(text:string)=>text,CopyToClipboard:state.copy,SendMessageComposer:state.send,
+    GetWebApiDocsUrl:()=>'https://hotel.example/api/public/api-docs/',OpenUrl:state.open,
     NotificationBubbleType:{INFO:'info'},WiredFurniType:{STUFF_SELECTION_OPTION_NONE:0,STUFF_SELECTION_OPTION_BY_ID:1,STUFF_SELECTION_OPTION_BY_ID_BY_TYPE_OR_FROM_CONTEXT:2}
 }));
 vi.mock('../../../../hooks',()=>({useWired:()=>state,useWiredNativeVariables:()=>({}),useAchievements:()=>({enabledWiredAchievements:['ACH_Test']}),useMessageEvent:()=>{},useNotification:()=>({showConfirm:state.confirm,simpleAlert:state.alert,showSingleBubble:vi.fn()})}));
@@ -57,6 +58,14 @@ describe('AIR catalogue native editor controls',()=>{
         expect(screen.getByRole('checkbox')).toHaveProperty('disabled',true);
         fireEvent.click(screen.getByRole('button',{name:'Save'}));
         expect(state.setStringParam).toHaveBeenLastCalledWith('read\t');expect(state.setIntParams).toHaveBeenLastCalledWith([0]);
+    });
+    it('shows Habbo\'s own mass deletion texts and opens the hotel\'s API documentation',()=>{
+        render(<WiredExtraVariablesWebApiNativeView/>);
+        expect(screen.getByText('Enables access to the /variables/bulk-delete endpoint. Use with caution!')).toBeTruthy();
+        fireEvent.click(screen.getByRole('checkbox'));fireEvent.click(screen.getByRole('checkbox'));
+        expect(state.confirm.mock.lastCall![0]).toContain('Accidentally calling the "/variables/bulk-delete" endpoint');
+        fireEvent.click(screen.getByRole('button',{name:'Open API documentation'}));
+        expect(state.open).toHaveBeenCalledWith('https://hotel.example/api/public/api-docs/');
     });
     it('keeps achievement names multiline in a 60px native field with a 2000-character limit',()=>{
         state.trigger.stringData='ACH_Game\nACH_Race';render(<WiredExtraAchievementEnablerNativeView/>);

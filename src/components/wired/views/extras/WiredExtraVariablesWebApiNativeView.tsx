@@ -1,12 +1,7 @@
 import { WiredGenerateWebApiKeyComposer, WiredWebApiKeyResultEvent } from '@volt/renderer';
 import { FC, useEffect, useState } from 'react';
-import { CopyToClipboard, expandLocalizedText, localizeWithFallback, NotificationBubbleType, SendMessageComposer, WiredFurniType } from '../../../../api';
-import {
-    buildVariablesWebApiKeys,
-    canAllowVariablesBulkDelete,
-    parseVariablesWebApiKeys,
-    withVariablesWebApiRoutes
-} from '../../../../api/wired/WiredVariablesWebApiKeys';
+import { CopyToClipboard, expandLocalizedText, GetWebApiDocsUrl, localizeWithFallback, NotificationBubbleType, OpenUrl, SendMessageComposer, WiredFurniType } from '../../../../api';
+import { buildVariablesWebApiKeys, canAllowVariablesBulkDelete, parseVariablesWebApiKeys } from '../../../../api/wired/WiredVariablesWebApiKeys';
 import { WiredShellButton } from '../WiredShellHeaderView';
 import { WiredText } from '../WiredText';
 import { WiredTextArea } from '../WiredTextArea';
@@ -20,6 +15,8 @@ import { WiredExtraBaseView } from './WiredExtraBaseView';
  * write key (createApiKeySection true, onWriteKeyChange L93), and the bulk delete permission (L72-91, confirm before enabling).
  * Keys are minted by the server: generate sends WiredGenerateWebApiKeyComposer(trigger.id, isReadKey), read true, write false (L123-130).
  * Save and load: VariablesWebApiAddon.as L98-116, see api/wired/WiredVariablesWebApiKeys.ts.
+ * The texts are Habbo's own: the bulk delete permission opens the official POST /variables/bulk-delete route. The documentation
+ * link is the classic client's (wiredfurni.params.web_api.link, property wired.api.docs.link, classic-js 95_classic-js-136a67dad466).
  */
 /** Hotel texts carry `${key}` references and `\n` as two characters; the official box expands both. */
 const localizeText = (key: string, fallback: string): string =>
@@ -70,11 +67,9 @@ export const WiredExtraVariablesWebApiNativeView: FC<{}> = () => {
         }
 
         showConfirm(
-            withVariablesWebApiRoutes(
-                localizeText(
-                    'wiredfurni.params.web_api.permissions.bulk_delete.warning.desc',
-                    'Enabling this option is dangerous.\nAccidentally calling the "/variables/bulk-delete" endpoint irreversibly deletes all contents of variables.\n\nMake sure to test your application on test variables in a different room first.'
-                )
+            localizeText(
+                'wiredfurni.params.web_api.permissions.bulk_delete.warning.desc',
+                'Enabling this option is dangerous.\nAccidentally calling the "/variables/bulk-delete" endpoint irreversibly deletes all contents of variables.\n\nMake sure to test your application on test variables in a different room first.'
             ),
             () => setBulkDelete(true),
             null,
@@ -122,6 +117,8 @@ export const WiredExtraVariablesWebApiNativeView: FC<{}> = () => {
         );
     };
 
+    const docsUrl = GetWebApiDocsUrl();
+
     return (
         <WiredExtraBaseView
             hasSpecialInput={true}
@@ -130,6 +127,11 @@ export const WiredExtraVariablesWebApiNativeView: FC<{}> = () => {
             save={save}
             footerCollapsible={false}
         >
+            {!!docsUrl && (
+                <button type="button" className="volt-wired__advanced-toggle self-center" onClick={() => OpenUrl(docsUrl)}>
+                    <WiredText underline text={localizeWithFallback('wiredfurni.params.web_api.link', 'Open API documentation')} />
+                </button>
+            )}
             <WiredSection title={localizeText('wiredfurni.params.general_box_warning', 'Usage warning:')}>
                 <WiredText wrap color={15544371} text={localizeText(
                         'wiredfurni.params.web_api.usage_info',
@@ -148,11 +150,9 @@ export const WiredExtraVariablesWebApiNativeView: FC<{}> = () => {
                         onChange={toggleBulkDelete}
                     />
                 </WiredCheckboxGroup>
-                <div style={{ paddingLeft: 23 }}><WiredText soft wrap text={withVariablesWebApiRoutes(
-                        localizeText(
-                            'wiredfurni.params.web_api.permissions.bulk_delete.info',
-                            'Enables access to the /variables/bulk-delete endpoint. Use with caution!'
-                        )
+                <div style={{ paddingLeft: 23 }}><WiredText soft wrap text={localizeText(
+                        'wiredfurni.params.web_api.permissions.bulk_delete.info',
+                        'Enables access to the /variables/bulk-delete endpoint. Use with caution!'
                     )} /></div>
             </WiredSection>
         </WiredExtraBaseView>

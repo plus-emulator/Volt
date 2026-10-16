@@ -1,6 +1,6 @@
 import { GetRoomEngine, GetSessionDataManager, RoomObjectCategory, RoomObjectVariable } from '@volt/renderer';
 import { FC, KeyboardEvent, ReactNode, useMemo, useState } from 'react';
-import { GetRoomSession, giveableVariables, parseInt32, profileToEntries, VariablesWebApiClient, WebApiVariable } from '../../api';
+import { addInt64, GetRoomSession, giveableVariables, parseInt64, profileToEntries, VariablesWebApiClient, WebApiVariable } from '../../api';
 import wiredGlobalPlaceholderImage from '../../assets/images/wiredtools/wired_global_placeholder.png';
 import { Button, LayoutAvatarImageView, LayoutPetImageView, LayoutRoomObjectImageView } from '../../common';
 import { useVariablesExplorerProfile } from '../../hooks/variables-explorer/useVariablesExplorerProfile';
@@ -34,13 +34,15 @@ const describeLocalHolder = (target: ExplorerHolderTarget, entityId: number | nu
     if (target.scope === 'global' || entityId === null || !session || session.roomId !== roomId) return null;
 
     if (target.scope === 'furni') {
-        const category = target.kind === 'wall' ? RoomObjectCategory.WALL : RoomObjectCategory.FLOOR;
+        if (target.kind !== 'furni' && target.kind !== 'wall-items') return null;
+
+        const category = target.kind === 'wall-items' ? RoomObjectCategory.WALL : RoomObjectCategory.FLOOR;
         const roomObject = GetRoomEngine().getRoomObject(roomId, entityId, category);
 
         if (!roomObject) return null;
 
         const typeId = roomObject.model?.getValue<number>(RoomObjectVariable.FURNITURE_TYPE_ID);
-        const data = target.kind === 'wall' ? GetSessionDataManager().getWallItemData(typeId) : GetSessionDataManager().getFloorItemData(typeId);
+        const data = target.kind === 'wall-items' ? GetSessionDataManager().getWallItemData(typeId) : GetSessionDataManager().getFloorItemData(typeId);
 
         return {
             name: data?.name || data?.className || '',
@@ -84,15 +86,15 @@ export const VariablesExplorerHolderView: FC<VariablesExplorerHolderViewProps> =
     const canWrite = client.hasWriteAccess;
     const entityId = resolvedEntityId(target, profile);
 
-    const entries = useMemo(() => profileToEntries(profile, variables), [profile, variables]);
+    const entries = useMemo(() => profileToEntries(profile), [profile]);
     const giveOptions = useMemo(() => (target.scope === 'global' ? [] : giveableVariables(variables, target.scope, entries)), [target, variables, entries]);
     const selectedEntry = entries.find((entry) => entry.name === selectedName) ?? entries[0] ?? null;
     const selectedGive = giveOptions.find((option) => option.name === giveName) ?? giveOptions[0] ?? null;
     const holderReady = target.scope === 'global' || entityId !== null;
 
-    const setValues = (values: Record<string, number | null | true>) => {
+    const setValues = (values: Record<string, string | null>) => {
         if (target.scope === 'global') {
-            const numbers = Object.fromEntries(Object.entries(values).filter((entry): entry is [string, number] => typeof entry[1] === 'number'));
+            const numbers = Object.fromEntries(Object.entries(values).filter((entry): entry is [string, string] => typeof entry[1] === 'string'));
 
             return write(() => client.patchGlobalProfile(numbers));
         }
@@ -105,7 +107,7 @@ export const VariablesExplorerHolderView: FC<VariablesExplorerHolderViewProps> =
     const commitEdit = () => {
         if (!editingName) return;
 
-        const value = parseInt32(editingValue);
+        const value = parseInt64(editingValue);
 
         setEditingName(null);
 
@@ -132,14 +134,15 @@ export const VariablesExplorerHolderView: FC<VariablesExplorerHolderViewProps> =
     const give = () => {
         if (!selectedGive) return;
 
-        const value = selectedGive.hasValue ? parseInt32(giveValue) : null;
+        // A variable without a value takes any value and keeps none.
+        const value = parseInt64(giveValue);
 
-        if (selectedGive.hasValue && value === null) {
+        if (value === null) {
             setStatus('Enter a whole number.');
             return;
         }
 
-        void setValues({ [selectedGive.name]: selectedGive.hasValue ? value : true }).then((ok) => {
+        void setValues({ [selectedGive.name]: value }).then((ok) => {
             if (ok) {
                 setIsGiveOpen(false);
                 setSelectedName(selectedGive.name);
@@ -150,17 +153,19 @@ export const VariablesExplorerHolderView: FC<VariablesExplorerHolderViewProps> =
     const addToSelected = () => {
         if (!selectedEntry?.hasValue) return;
 
-        const amount = parseInt32(addValue);
+        const amount = parseInt64(addValue);
+        // The API sets values; adding is a read of the shown value and a set of the sum.
+        const sum = amount === null || selectedEntry.value === null ? null : addInt64(selectedEntry.value, amount);
 
-        if (amount === null) {
+        if (sum === null) {
             setStatus('Enter a whole number.');
             return;
         }
 
         if (target.scope === 'global') {
-            void write(() => client.patchGlobal(selectedEntry.name, { add: amount }));
+            void write(() => client.patchGlobal(selectedEntry.name, sum));
         } else if (entityId !== null) {
-            void write(() => client.patchEntry(target.scope, selectedEntry.name, target.kind, entityId, { add: amount }));
+            void write(() => client.patchEntry(target.scope, selectedEntry.name, target.kind, entityId, sum));
         }
     };
 
@@ -191,7 +196,7 @@ export const VariablesExplorerHolderView: FC<VariablesExplorerHolderViewProps> =
                 name: entry.name,
                 availability: 'Permanent',
                 hasValue: entry.hasValue,
-                value: entry.value
+                value: entry.value === null ? null : BigInt(entry.value)
             }))}
             selectedId={selectedEntry?.name ?? null}
             onSelect={setSelectedName}
@@ -208,7 +213,7 @@ export const VariablesExplorerHolderView: FC<VariablesExplorerHolderViewProps> =
             onEditKeyDown={onEditKeyDown}
             isGiveOpen={isGiveOpen}
             onToggleGive={() => setIsGiveOpen((value) => !value)}
-            giveOptions={giveOptions.map((option) => ({ id: option.name, name: option.name, hasValue: option.hasValue }))}
+            giveOptions={giveOptions.map((option) => ({ id: option.name, name: option.name, hasValue: true }))}
             giveSelectedId={selectedGive?.name ?? ''}
             onGiveSelect={setGiveName}
             giveValue={giveValue}
