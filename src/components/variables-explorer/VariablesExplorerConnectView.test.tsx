@@ -62,14 +62,14 @@ describe('VariablesExplorerConnectView', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Open explorer' }));
 
         expect(screen.getByText('Enter a room id')).toBeInTheDocument();
-        expect(screen.getByText('Enter a read key or a write key')).toBeInTheDocument();
+        expect(screen.getByText('Enter a read key')).toBeInTheDocument();
         expect(fetchMock).not.toHaveBeenCalled();
         expect(onConnected).not.toHaveBeenCalled();
     });
 
     it('connects with the prefilled room and key', async () => {
         const onConnected = vi.fn();
-        fetchMock.mockResolvedValue(new Response(JSON.stringify({ variables: [] }), { status: 200 }));
+        fetchMock.mockResolvedValue(new Response(JSON.stringify({ users: [], furni: [], global: [] }), { status: 200 }));
 
         render(<VariablesExplorerConnectView prefill={{ roomId: 88, readKey: KEY }} onConnected={onConnected} onClose={vi.fn()} />);
         fireEvent.click(screen.getByRole('button', { name: 'Open explorer' }));
@@ -80,9 +80,9 @@ describe('VariablesExplorerConnectView', () => {
     });
 
     it('shows the server error when the key is refused', async () => {
-        fetchMock.mockResolvedValue(new Response(JSON.stringify({ error: { code: 'unauthorized', message: 'Unknown key' } }), { status: 401 }));
+        fetchMock.mockResolvedValue(new Response(JSON.stringify({ error: 'wired.variables.key_invalid' }), { status: 403 }));
 
-        render(<VariablesExplorerConnectView prefill={{ roomId: 88, writeKey: KEY }} onConnected={vi.fn()} onClose={vi.fn()} />);
+        render(<VariablesExplorerConnectView prefill={{ roomId: 88, readKey: KEY }} onConnected={vi.fn()} onClose={vi.fn()} />);
         fireEvent.click(screen.getByRole('button', { name: 'Open explorer' }));
 
         expect(await screen.findByText('The key was not accepted.')).toBeInTheDocument();

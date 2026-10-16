@@ -27,12 +27,3 @@ export const buildVariablesWebApiKeys = (keys: IVariablesWebApiKeys): { stringPa
     stringParam: `${keys.readKey}${KEY_SEPARATOR}${keys.writeKey}`,
     intParams: [canAllowVariablesBulkDelete(keys.writeKey) && keys.bulkDelete ? 1 : 0]
 });
-
-/** The hotel's web API route a write key with the bulk-delete grant may call (PlusEMU WiredWebApiEndpoints). */
-export const VARIABLES_WEB_API_DELETE_ROUTE = 'DELETE /api/wired/variables/{id}';
-
-/**
- * The official texts name AIR's "/variables/bulk-delete" endpoint, which this hotel does not serve: it deletes
- * through DELETE /api/wired/variables/{id} with the bearer write key, so the route in the text is swapped for it.
- */
-export const withVariablesWebApiRoutes = (text: string): string => (text ?? '').split('/variables/bulk-delete').join(VARIABLES_WEB_API_DELETE_ROUTE);

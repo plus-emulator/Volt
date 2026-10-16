@@ -1,13 +1,5 @@
 import { FC, useMemo, useState } from 'react';
-import {
-    createVariablesWebApiClient,
-    ExplorerConnection,
-    explorerErrorMessage,
-    GetWebApiHotels,
-    localizeWithFallback,
-    VariablesWebApiError,
-    WebApiVariable
-} from '../../api';
+import { createVariablesWebApiClient, ExplorerConnection, explorerErrorMessage, GetWebApiHotels, localizeWithFallback, WebApiVariable } from '../../api';
 import { Button, DraggableWindowPosition, VoltCardContentView, VoltCardHeaderView, VoltCardView, Text } from '../../common';
 import { WiredVariablesTabView } from '../wired-tools/WiredVariablesTabView';
 import {
@@ -35,10 +27,7 @@ export interface VariablesExplorerMainViewProps {
 const FIELD_CLASS = 'rounded border border-[#b8b2a4] bg-white px-2 py-[3px] text-[12px]';
 
 const emptyPickerText = (scope: 'user' | 'furni' | 'global'): string =>
-    localizeWithFallback(
-        `wiredmenu.variables_explorer.empty.${scope}`,
-        `No permanent ${scope} variables in this room. Set a variable to Permanent in its wired box to use it here.`
-    );
+    localizeWithFallback(`wiredmenu.variables_explorer.empty.${scope}`, `No ${scope} variables in this room.`);
 
 export const VariablesExplorerMainView: FC<VariablesExplorerMainViewProps> = ({ connection, initialVariables, onDisconnect, onClose }) => {
     const client = useMemo(() => createVariablesWebApiClient({ ...connection, baseUrl: connection.hotelUrl }), [connection]);
@@ -91,17 +80,12 @@ export const VariablesExplorerMainView: FC<VariablesExplorerMainViewProps> = ({ 
         setBulkBusy(true);
         client
             .bulkDelete([bulkDeleteName])
-            .then((deleted) => {
-                setStatus({ text: `Deleted ${deleted[bulkDeleteName] ?? 0} entries of ${bulkDeleteName}.`, isError: false });
+            .then(() => {
+                setStatus({ text: `Deleted every value of ${bulkDeleteName}.`, isError: false });
                 setBulkDeleteName(null);
             })
             .catch((error) => {
-                if (error instanceof VariablesWebApiError && error.status === 403) {
-                    setStatus({ text: 'This write key may not bulk delete. Allow mass deletion in the Web API add-on first.', isError: true });
-                } else {
-                    reportError(error);
-                }
-
+                reportError(error);
                 setBulkDeleteName(null);
             })
             .finally(() => setBulkBusy(false));
