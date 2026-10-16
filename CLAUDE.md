@@ -1,5 +1,9 @@
 # Claude Code — project memory for Volt
 
+## Tests
+
+- Never write new tests in this repo: no Vitest unit, component, hook or renderer tests, and no new `*.test.ts(x)` files. Verify a change by building it and checking it in the running client.
+
 This file is read automatically by Claude Code at session start. It captures
 the conventions and current state of this branch so a new session can hit
 the ground running.
