@@ -19,7 +19,7 @@ import {
 } from '@volt/renderer';
 import { HasPermission, Permission } from '../../permissions';
 import { GetRoomSession, IsOwnerOfFurniture } from '../../volt';
-import { LocalizeText } from '../../utils';
+import { IsTemporaryFurniId, LocalizeText } from '../../utils';
 import { AvatarInfoFurni } from './AvatarInfoFurni';
 import { AvatarInfoName } from './AvatarInfoName';
 import { AvatarInfoPet } from './AvatarInfoPet';
@@ -78,7 +78,8 @@ export class AvatarInfoUtilities {
     }
 
     public static getFurniInfo(objectId: number, category: number): AvatarInfoFurni {
-        // Temporary objects, such as an offer dropped from the catalog, have no infostand.
+        // Client-side preview objects, such as an offer dropped from the catalog, have negative ids and no infostand.
+        // A Wired copy has a positive id in the temporary band and does get one (see isTemporary).
         if (objectId < 0) return null;
 
         const roomSession = GetRoomSession();
@@ -90,6 +91,7 @@ export class AvatarInfoUtilities {
 
         furniInfo.id = objectId;
         furniInfo.category = category;
+        furniInfo.isTemporary = IsTemporaryFurniId(objectId);
 
         const model = roomObject.model;
 
