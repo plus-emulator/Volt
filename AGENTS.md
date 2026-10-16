@@ -1,5 +1,9 @@
 # Volt — agent instructions
 
+## Tests
+
+- Never write new tests in this repo: no Vitest unit, component, hook or renderer tests, and no new `*.test.ts(x)` files. Verify a change by building it and checking it in the running client.
+
 ## Commits and pull requests
 
 - Titles use [Conventional Commits](https://www.conventionalcommits.org/): `type(scope): summary`, e.g. `fix(wired): re-stack a furni_to_furni mover already on its target`.
