@@ -196,11 +196,11 @@ export const WiredRoomLogsView = ({ onClose }: WiredRoomLogsViewProps) => {
             <VoltCardHeaderView headerText={localizeWithFallback('wiredmenu.logs_overview.title', 'Wired room logs')} onCloseClick={onClose} />
             <VoltCardContentView className="text-black bg-[#f4efe3] p-3 flex flex-col gap-3 min-h-0" overflow="hidden">
                 <div className="rounded border border-[#c8c2b2] bg-white p-3 flex items-center justify-between gap-3">
-                    <Text>
+                    <Text className="whitespace-pre-line">
                         {localizeWithFallback(
                             'wiredmenu.logs_overview.info',
                             'Every line the wired engine wrote for this room, newest first. Filter by text, source or level.'
-                        )}
+                        ).replace(/\\n/g, '\n')}
                     </Text>
                     <label className="flex items-center gap-1 text-[12px] whitespace-nowrap">
                         <input type="checkbox" checked={autoRefresh} onChange={(event) => setAutoRefresh(event.target.checked)} />
@@ -212,7 +212,7 @@ export const WiredRoomLogsView = ({ onClose }: WiredRoomLogsViewProps) => {
                 </div>
                 <div className="flex flex-wrap items-center gap-4 text-[12px]">
                     <label className="flex items-center gap-2">
-                        <Text bold>{localizeWithFallback('wiredmenu.logs_overview.filter', 'Filter')}:</Text>
+                        <Text bold>{localizeWithFallback('wiredmenu.logs_overview.filter', 'Filter:')}</Text>
                         <input
                             className="w-[240px] rounded border border-[#b8b2a4] bg-white px-2 py-[2px] text-[12px]"
                             type="text"
@@ -228,7 +228,7 @@ export const WiredRoomLogsView = ({ onClose }: WiredRoomLogsViewProps) => {
                         />
                     </label>
                     <label className="flex items-center gap-2">
-                        <Text bold>{localizeWithFallback('wiredmenu.logs_overview.log_source', 'Source')}:</Text>
+                        <Text bold>{localizeWithFallback('wiredmenu.logs_overview.log_source', 'Log source:')}</Text>
                         <select
                             className="rounded border border-[#b8b2a4] bg-white px-2 py-[2px] text-[12px]"
                             value={source}
@@ -248,7 +248,7 @@ export const WiredRoomLogsView = ({ onClose }: WiredRoomLogsViewProps) => {
                         </select>
                     </label>
                     <label className="flex items-center gap-2">
-                        <Text bold>{localizeWithFallback('wiredmenu.logs_overview.log_level', 'Level')}:</Text>
+                        <Text bold>{localizeWithFallback('wiredmenu.logs_overview.log_level', 'Log level:')}</Text>
                         <select
                             className="rounded border border-[#b8b2a4] bg-white px-2 py-[2px] text-[12px]"
                             value={level}
