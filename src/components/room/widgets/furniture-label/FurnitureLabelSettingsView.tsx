@@ -67,7 +67,7 @@ export const FurnitureLabelSettingsCardView: FC<FurnitureLabelSettingsCardViewPr
                         <NativeText text={localizeWithFallback('generic.cancel', 'Cancel')} textStyle="button_shiny_bold" background={0xffffff} />
                     </button>
                     <button className="volt-furni-label-settings__save fnd-button fnd-button-thick fnd-button-green" type="button" onClick={save}>
-                        <NativeText text={localizeWithFallback('wiredfurni.ready', 'Ready')} textStyle="button_shiny_bold" background={0xffffff} />
+                        <NativeText text={localizeWithFallback('wiredfurni.ready', 'Ready')} textStyle="button_shiny_bold_white" background={0x000000} />
                     </button>
                 </div>
             </section>

@@ -1,15 +1,10 @@
-import { createContext, FC, useContext, useLayoutEffect, useRef, useState } from 'react';
+import { FC, useContext, useLayoutEffect, useRef, useState } from 'react';
 import { Text } from '../../../common';
 import { NativeText } from '../../../common/native-text/NativeText';
 import { useWiredNative } from './WiredNativeContext';
+import { WIRED_SOFT_TEXT_COLOR, WiredSurfaceContext } from './WiredSurface';
 
-/** IlluminaWiredStyle.frameColor; the advanced settings wrapper paints advancedBackgroundColor (0xCCCCCC). */
-export const WIRED_SURFACE_COLOR = 0xe2e2e2;
-export const WIRED_ADVANCED_SURFACE_COLOR = 0xcccccc;
-/** IlluminaWiredStyle.softTextColor. */
-export const WIRED_SOFT_TEXT_COLOR = 0x444444;
-
-export const WiredSurfaceContext = createContext(WIRED_SURFACE_COLOR);
+export { WIRED_ADVANCED_SURFACE_COLOR, WIRED_SOFT_TEXT_COLOR, WIRED_SURFACE_COLOR, WiredSurfaceContext } from './WiredSurface';
 
 export interface WiredTextProps {
     text: string;

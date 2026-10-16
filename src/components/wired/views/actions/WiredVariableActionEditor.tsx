@@ -79,8 +79,12 @@ export const WiredVariableActionEditor: FC<{ kind: 'give' | 'remove' | 'change' 
         setStringParam('');
     };
     const validate = () => !!getNativeVariableId(variable) && (kind === 'remove' || referenceDisabled || (validInput && (option === 1 ? !!getNativeVariableId(reference) : parseWiredLiteral(literal) !== null)));
+    // InputSourcesConf.isDualFurniPickingMode: the merged sections then carry the two furni-pick mini buttons in their header,
+    // which keep the header 19px high even while hidden (SectionPreset.resizeToWidth, InputSourceControlPreset.dualPickHeaderOptions).
+    const furniAllowed = trigger?.inputSources?.furniAllowed ?? [];
+    const dualFurniPicking = furniAllowed.some(sources => sources.includes(100) || sources.includes(110)) && furniAllowed.some(sources => sources.includes(101));
     const sourceControl = (slot: number, sourceTarget: WiredValueTargetType, title: string, disabled = false) => (
-        <fieldset disabled={disabled} inert={disabled} style={{ minWidth: 0, border: 0, padding: 0, margin: 0, opacity: disabled ? 0.5 : undefined }}>
+        <fieldset className={dualFurniPicking ? 'volt-wired__dual-pick-sources' : undefined} disabled={disabled} inert={disabled} style={{ minWidth: 0, border: 0, padding: 0, margin: 0, opacity: disabled ? 0.5 : undefined }}>
             {sourceTarget === 'global' || sourceTarget === 'context'
                 ? <WiredHolderSourceSection title={title} scope={sourceTarget} />
                 : <WiredSourcesSelector furniSlot={slot} userSlot={slot} showFurni={sourceTarget === 'furni'} showUsers={sourceTarget === 'user'} furniTitle={title} usersTitle={title}
@@ -90,10 +94,10 @@ export const WiredVariableActionEditor: FC<{ kind: 'give' | 'remove' | 'change' 
         </fieldset>
     );
     const referenceTitle = LocalizeText(kind === 'give' ? 'wiredfurni.params.variables.value_settings.initial_value' : 'wiredfurni.params.variables.reference_value');
-    return <WiredActionBaseView nativeLayout hasSpecialInput requiresFurni={pickSlots.length ? WiredFurniType.STUFF_SELECTION_OPTION_BY_ID : WiredFurniType.STUFF_SELECTION_OPTION_NONE} selectionPreview={<></>} save={save} validate={validate} footerCollapsible={false}
+    return <WiredActionBaseView nativeLayout hasSpecialInput requiresFurni={pickSlots.length ? WiredFurniType.STUFF_SELECTION_OPTION_BY_ID : WiredFurniType.STUFF_SELECTION_OPTION_NONE} selectionPreview={<></>} save={save} validate={validate} footerCollapsible={false} advancedAlwaysVisible
         footer={sourceControl(0, target, kind === 'remove' ? 'wiredfurni.params.sources.merged.title.variables' : 'wiredfurni.params.sources.merged.title.variables_destination')}>
         <FurniPickSlotButtons slots={[...new Set(pickSlots)].map(slot => ({ slot: slot as 0 | 1, count: slot === 0 ? furniIds.length : secondaryFurniIds.length }))} />
-        <WiredSection title={LocalizeText('wiredfurni.params.variables.variable_selection')} headerOption={<WiredSourceTypeSelector types={kind === 'change' ? ['furni', 'user', 'global', 'context'] : ['furni', 'user', 'context']} value={target} onChange={next => { setTarget(next); setVariable(''); }} />}>
+        <WiredSection title={LocalizeText('wiredfurni.params.variables.variable_selection')} headerOptionsRight={<WiredSourceTypeSelector types={kind === 'change' ? ['furni', 'user', 'global', 'context'] : ['furni', 'user', 'context']} value={target} onChange={next => { setTarget(next); setVariable(''); }} />}>
             <WiredVariablePicker entries={entries} recentScope="variable-effects" selectedToken={variable} onSelect={entry => setVariable(entry.token)} onClear={() => setVariable('')} />
             {kind === 'give' && <WiredCheckboxOption label={LocalizeText('wiredfurni.params.variables.value_settings.override_existing')} checked={overrideExisting} onChange={setOverrideExisting} />}
         </WiredSection>

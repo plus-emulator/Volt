@@ -15,6 +15,7 @@ export interface WiredActionBaseViewProps {
     hideDelay?: boolean;
     footer?: ReactNode;
     footerCollapsible?: boolean;
+    advancedAlwaysVisible?: boolean;
     selectionPreview?: ReactNode;
     nativeLayout?: boolean;
 }
@@ -30,6 +31,7 @@ export const WiredActionBaseView: FC<PropsWithChildren<WiredActionBaseViewProps>
         hideDelay = false,
         footer = null,
         footerCollapsible = true,
+        advancedAlwaysVisible = false,
         selectionPreview = null,
         nativeLayout = false
     } = props;
@@ -49,6 +51,7 @@ export const WiredActionBaseView: FC<PropsWithChildren<WiredActionBaseViewProps>
             cardStyle={cardStyle}
             footer={footer}
             footerCollapsible={footerCollapsible}
+            advancedAlwaysVisible={advancedAlwaysVisible}
             selectionPreview={selectionPreview}
             nativeLayout={nativeLayout}
             delay={

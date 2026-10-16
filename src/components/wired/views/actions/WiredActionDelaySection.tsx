@@ -1,11 +1,24 @@
-import { FC, useEffect, useState } from 'react';
+import { FC, useEffect, useRef, useState } from 'react';
 import { localizeWithFallback, WIRED_SLIDER_PRECISE_DELAY, WIRED_SLIDER_PULSES } from '../../../../api';
-import { WiredSliderSection } from '../WiredSlider';
+import delayPreciseIcon from '../../../../assets/images/wired/native/delay_precise.png';
+import delayStandardIcon from '../../../../assets/images/wired/native/delay_standard.png';
+import { HabboDropMenuHandle, HabboDropMenuView } from '../../../../common/dropmenu/HabboDropMenuView';
+import { WiredMiniIconButton } from '../WiredFurniPickButton';
+import { WiredNumberInput } from '../WiredNumberInput';
+import { WiredSection } from '../WiredSection';
+import { WiredSlider } from '../WiredSlider';
 
-/** ActionDelaySection limits: the standard slider counts 500 ms pulses, the precise one 50 ms steps. */
+/**
+ * AIR ActionDelaySection (uibuilder/presets/sections/ActionDelaySection.as, build WIN63-202610131318-860371703):
+ * "Delay (seconds):" with a 40px number input beside the title, a mini icon button at the right that opens the
+ * Standard/Precise menu, and one slider per mode under it. Standard counts 500 ms pulses, Precise 50 ms steps.
+ */
 const STANDARD_MAX = 120;
 const PRECISE_MAX = 1200;
 const PRECISE_STEP_MS = 50;
+const DELAY_INPUT_WIDTH = 40;
+const MODE_DROPDOWN_WIDTH = 90;
+const MINI_BUTTON_SIZE = 19;
 
 interface WiredActionDelaySectionProps {
     /** The delay as the wire carries it: pulses when >= 0, minus the milliseconds in precise mode. */
@@ -15,6 +28,34 @@ interface WiredActionDelaySectionProps {
 }
 
 const encode = (precise: boolean, standardValue: number, preciseValue: number) => (precise ? -(preciseValue * PRECISE_STEP_MS) : standardValue);
+
+/** MiniIconDropdownPreset: the dropdown stays hidden under the button's right edge and only its list is shown. */
+const WiredDelayModeButton: FC<{ precise: boolean; onChange: (precise: boolean) => void }> = ({ precise, onChange }) => {
+    const menuRef = useRef<HabboDropMenuHandle>(null);
+
+    return (
+        <div style={{ position: 'relative', width: MINI_BUTTON_SIZE, height: MINI_BUTTON_SIZE }}>
+            <WiredMiniIconButton
+                icon={precise ? delayPreciseIcon : delayStandardIcon}
+                label={localizeWithFallback(precise ? 'wiredfurni.params.delay.mode.precise' : 'wiredfurni.params.delay.mode.standard', precise ? 'Precise (per 0.05s)' : 'Standard (per 0.5s)')}
+                onClick={() => menuRef.current?.open()}
+            />
+            <HabboDropMenuView<number>
+                menuRef={menuRef}
+                skinStyle={100}
+                label=""
+                className="volt-wired__delay-mode-menu"
+                style={{ position: 'absolute', left: MINI_BUTTON_SIZE - MODE_DROPDOWN_WIDTH, top: MINI_BUTTON_SIZE, width: MODE_DROPDOWN_WIDTH, visibility: 'hidden' }}
+                value={precise ? 1 : 0}
+                options={[
+                    { value: 0, label: localizeWithFallback('wiredfurni.params.delay.mode.standard', 'Standard (per 0.5s)') },
+                    { value: 1, label: localizeWithFallback('wiredfurni.params.delay.mode.precise', 'Precise (per 0.05s)') }
+                ]}
+                onSelect={(mode) => onChange(mode === 1)}
+            />
+        </div>
+    );
+};
 
 export const WiredActionDelaySection: FC<WiredActionDelaySectionProps> = ({ value, onChange, className }) => {
     const [precise, setPrecise] = useState(value < 0);
@@ -35,50 +76,44 @@ export const WiredActionDelaySection: FC<WiredActionDelaySectionProps> = ({ valu
         onChange(encode(nextPrecise, standardValue, preciseValue));
     };
 
-    const modeSelect = (
-        <select
-            aria-label={localizeWithFallback('wiredfurni.params.delay.mode.title', 'Delay mode')}
-            className="form-select form-select-sm"
-            style={{ width: 90 }}
-            value={precise ? 1 : 0}
-            onChange={(event) => changeMode(event.target.value === '1')}
-        >
-            <option value={0}>{localizeWithFallback('wiredfurni.params.delay.mode.standard', 'Standard')}</option>
-            <option value={1}>{localizeWithFallback('wiredfurni.params.delay.mode.precise', 'Precise')}</option>
-        </select>
-    );
+    const change = (next: number) => {
+        if (precise) {
+            setPreciseValue(next);
+            onChange(encode(true, standardValue, next));
+            return;
+        }
 
-    return precise ? (
-        <WiredSliderSection
+        setStandardValue(next);
+        onChange(encode(false, next, preciseValue));
+    };
+
+    const converter = precise ? WIRED_SLIDER_PRECISE_DELAY : WIRED_SLIDER_PULSES;
+    const max = precise ? PRECISE_MAX : STANDARD_MAX;
+    const active = precise ? preciseValue : standardValue;
+    const title = localizeWithFallback('wiredfurni.params.delay.seconds', 'Delay (seconds):');
+
+    return (
+        <WiredSection
             className={className}
-            converter={WIRED_SLIDER_PRECISE_DELAY}
-            headerOptionsRight={modeSelect}
-            max={PRECISE_MAX}
-            min={0}
-            titleKey="wiredfurni.params.delay"
-            unit="seconds"
-            value={preciseValue}
-            withInput={false}
-            onChange={(next) => {
-                setPreciseValue(next);
-                onChange(encode(true, standardValue, next));
-            }}
-        />
-    ) : (
-        <WiredSliderSection
-            className={className}
-            converter={WIRED_SLIDER_PULSES}
-            headerOptionsRight={modeSelect}
-            max={STANDARD_MAX}
-            min={0}
-            titleKey="wiredfurni.params.delay"
-            unit="seconds"
-            value={standardValue}
-            withInput={false}
-            onChange={(next) => {
-                setStandardValue(next);
-                onChange(encode(false, next, preciseValue));
-            }}
-        />
+            title={title}
+            // SectionParam.titleYOffset = WiredStyle.namedInputOffset: the title sits level with the input text.
+            titleOffset={2}
+            headerOption={
+                <WiredNumberInput
+                    key={precise ? 'precise' : 'standard'}
+                    ariaLabel={title}
+                    endsWithFive={converter.endsWithFive}
+                    max={max}
+                    min={0}
+                    precision={converter.precision}
+                    value={active}
+                    width={DELAY_INPUT_WIDTH}
+                    onChange={change}
+                />
+            }
+            headerOptionsRight={<WiredDelayModeButton precise={precise} onChange={changeMode} />}
+        >
+            <WiredSlider key={precise ? 'precise' : 'standard'} max={max} min={0} value={active} onChange={change} />
+        </WiredSection>
     );
 };

@@ -164,24 +164,31 @@
 .volt-furni-label-settings__always-open { left: 12px; top: 123px; width: 290px; height: 22px; cursor: pointer; }
 .volt-furni-label-settings__always-open[aria-disabled='true'] { cursor: default; }
 .volt-furni-label-settings__always-open > span { position: absolute; left: 22px; top: 2px; width: 268px; height: 18px; }
+/* checkbox style 102 has no element entry, so AIR draws the default checkbox skin: a 15x15 cell of habbo_blue_skin_png
+   (410,0) / (410,16), at half alpha while disabled. */
 .volt-furni-label-settings__always-open input {
-    appearance: none; position: absolute; left: 0; top: 1px; width: 18px; height: 18px;
+    appearance: none; position: absolute; left: 0; top: 1px; width: 15px; height: 15px;
     padding: 0; margin: 0; border: 0; border-radius: 0; box-shadow: none;
-    background: url('../../assets/images/habbo-skin/slices/checkbox-default.png') 0 0 no-repeat;
+    background: url('../../assets/images/wired/label/checkbox-default.png') 0 0 no-repeat;
     image-rendering: pixelated;
 }
-.volt-furni-label-settings__always-open input:checked { background-image: url('../../assets/images/habbo-skin/slices/checkbox-checked.png'); }
+.volt-furni-label-settings__always-open input:checked { background-image: url('../../assets/images/wired/label/checkbox-checked.png'); }
 .volt-furni-label-settings__always-open input:disabled { opacity: .5; }
 .volt-furni-label-settings__cancel { left: 12px; top: 151px; width: 61px; height: 28px; }
-.volt-furni-label-settings__save { left: 186px; top: 151px; width: 119px; height: 28px; }
+/* save_button keeps its right edge (186 + 119) and shrinks to its caption with the label margins (live AIR: 60px for "Ready"). */
+.volt-furni-label-settings__save { left: auto; right: 13px; top: 151px; width: auto; min-width: 0; height: 28px; }
+.volt-furni-label-settings .volt-furni-label-settings__save.fnd-button { padding: 0 5px 0 4px; }
 
 /* Higher specificity than the shared dropdown's sizing rules, regardless of CSS import order. */
 .volt-furni-label-settings .habbo-dropmenu.habbo-dropmenu--ubuntu { position: absolute; height: 25px; }
 .volt-furni-label-settings .habbo-dropmenu.volt-furni-label-settings__color { width: 226px; }
 .volt-furni-label-settings .habbo-dropmenu.volt-furni-label-settings__visibility { width: 290px; }
 
-/* button_thick style5 multiplies the source bitmap by the XML colour 0x3f9f3f. */
-.volt-furni-label-settings__save.fnd-button.fnd-button-green { border-image-source: url('../../assets/images/wired/label/button-ready-default.png'); }
-.volt-furni-label-settings__save.fnd-button.fnd-button-green:hover { border-image-source: url('../../assets/images/wired/label/button-ready-hover.png'); }
-.volt-furni-label-settings__save.fnd-button.fnd-button-green:active { border-image-source: url('../../assets/images/wired/label/button-ready-pressed.png'); }
+/* button_thick style5 multiplies the source bitmap by the XML colour 0x3f9f3f. The extra class keeps these ahead of the
+   shared green button, whose stylesheet loads later. */
+.volt-furni-label-settings .volt-furni-label-settings__save.fnd-button.fnd-button-green { border-image-source: url('../../assets/images/wired/label/button-ready-default.png'); }
+.volt-furni-label-settings .volt-furni-label-settings__save.fnd-button.fnd-button-green:hover { border-image-source: url('../../assets/images/wired/label/button-ready-hover.png'); }
+.volt-furni-label-settings .volt-furni-label-settings__save.fnd-button.fnd-button-green:active { border-image-source: url('../../assets/images/wired/label/button-ready-pressed.png'); }
 .volt-furni-label-settings .fnd-button canvas { mix-blend-mode: multiply; }
+/* Style 5 uses the black button layout: white button_shiny_bold, drawn here on black and screened onto the green. */
+.volt-furni-label-settings .volt-furni-label-settings__save canvas { mix-blend-mode: screen; }

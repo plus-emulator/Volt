@@ -43,6 +43,8 @@ export interface WiredBaseViewProps {
     /** Source-type controls placed beside the AIR summary header. */
     headerControls?: ReactNode;
     footerCollapsible?: boolean;
+    /** AIR advancedAlwaysVisible: the footer is the expanded AdvancedSettingsWrapperPreset (advancedBackgroundColor) with no toggle. */
+    advancedAlwaysVisible?: boolean;
     selectionPreview?: ReactNode;
     /** False keeps furni picking on but leaves its section out, for views that show it elsewhere. */
     showSelection?: boolean;
@@ -67,6 +69,7 @@ export const WiredBaseView: FC<PropsWithChildren<WiredBaseViewProps>> = (props) 
         footer = null,
         headerControls = null,
         footerCollapsible = true,
+        advancedAlwaysVisible = false,
         selectionPreview = null,
         showSelection = true,
         nativeLayout = false,
@@ -254,7 +257,13 @@ export const WiredBaseView: FC<PropsWithChildren<WiredBaseViewProps>> = (props) 
             {showSelection && requiresFurni > WiredFurniType.STUFF_SELECTION_OPTION_NONE && (selectionPreview || <WiredFurniSelectorSection />)}
             {delay}
             {footer &&
-                (footerCollapsible ? (
+                (advancedAlwaysVisible ? (
+                    <div className="volt-wired__native-advanced">
+                        <WiredSurfaceContext.Provider value={WIRED_ADVANCED_SURFACE_COLOR}>
+                            <div className="volt-wired__native-advanced-body">{footer}</div>
+                        </WiredSurfaceContext.Provider>
+                    </div>
+                ) : footerCollapsible ? (
                     <div className="volt-wired__native-advanced">
                         {advancedToggle}
                         {showFooter && (

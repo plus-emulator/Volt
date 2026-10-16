@@ -1,4 +1,4 @@
-import { CSSProperties, KeyboardEvent, PointerEvent, ReactNode, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { CSSProperties, KeyboardEvent, PointerEvent, ReactNode, Ref, useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import illuminaAtlas from '../../assets/mod-tools/skins/habbo-illumina-light-skin.png';
 import illuminaXml from '../../assets/mod-tools/skins/skin-illumina-dropmenu.xml?raw';
@@ -34,6 +34,12 @@ interface HabboDropMenuViewProps<T> {
     className?: string;
     popupClassName?: string;
     style?: CSSProperties;
+    /** Opens the list from outside, like DropdownPreset.requestOpen (MiniIconDropdownPreset opens a hidden dropdown). */
+    menuRef?: Ref<HabboDropMenuHandle>;
+}
+
+export interface HabboDropMenuHandle {
+    open: () => void;
 }
 
 interface PopupBounds {
@@ -77,7 +83,7 @@ const ThumbSkin = ({ pressed, patternId }: { pressed: boolean; patternId: string
 };
 
 /** Native style-0 dropmenu; feature adapters own preference/domain values and saves. */
-export const HabboDropMenuView = <T extends string | number,>({ label, options: allOptions, value, onSelect, disabled = false, caption = '', advancedCaption, skinStyle = 0, className = '', popupClassName = '', style }: HabboDropMenuViewProps<T>): ReactNode => {
+export const HabboDropMenuView = <T extends string | number,>({ label, options: allOptions, value, onSelect, disabled = false, caption = '', advancedCaption, skinStyle = 0, className = '', popupClassName = '', style, menuRef }: HabboDropMenuViewProps<T>): ReactNode => {
     const id = useId();
     const [advancedExpanded, setAdvancedExpanded] = useState(false);
     const expandingRef = useRef(false);
@@ -86,7 +92,7 @@ export const HabboDropMenuView = <T extends string | number,>({ label, options: 
     const options: readonly DropMenuOption<T>[] = advancedCaption && !advancedExpanded && !selectedIsAdvanced && allOptions.some(option => option.advanced)
         ? [...allOptions.filter(option => !option.advanced), { value: allOptions[0].value, label: advancedCaption, expandsAdvanced: true }]
         : allOptions;
-    const itemHeight = skinStyle === 100 ? 19 : skinStyle === 3 ? 20 : VOLTER_ITEM_HEIGHT;
+    const itemHeight = skinStyle === 100 ? 19 : skinStyle === 3 ? 23 : VOLTER_ITEM_HEIGHT;
     const skinClass = skinStyle === 100 ? ' habbo-dropmenu--illumina' : skinStyle === 3 ? ' habbo-dropmenu--ubuntu' : '';
     const triggerRef = useRef<HTMLButtonElement>(null);
     const popupRef = useRef<HTMLDivElement>(null);
@@ -155,6 +161,8 @@ export const HabboDropMenuView = <T extends string | number,>({ label, options: 
         setActiveIndex(Math.max(0, selectedIndex));
         setPopup(measurePopup());
     };
+
+    useImperativeHandle(menuRef, () => ({ open: () => { if (!isOpen) open(); } }));
 
     const select = (index: number, pointer = false) => {
         const option = options[index];
