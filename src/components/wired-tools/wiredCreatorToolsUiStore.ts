@@ -274,13 +274,26 @@ export const useWiredCreatorToolsUiStore = createVoltStore<WiredCreatorToolsUiSt
     setManagedGiveValue: (next) => set({ managedGiveValue: next })
 }));
 
-/** Native editor links use wiredmenu/open; preserve the selected context variable when supplied. */
+/** AIR tab ids (WiredMenuTabConfigs.as:14-24) and the tools tab each one opens; "info" has no tools tab. */
+const WIRED_MENU_TABS: Record<string, WiredToolsTab> = {
+    monitor: 'monitor',
+    variable_overview: 'variables',
+    inspection: 'inspection',
+    chests: 'chests',
+    settings: 'settings'
+};
+
+/**
+ * AIR WiredMenuController.linkReceived (WIN63-202610131318-860371703, wired_menu/WiredMenuController.as:152-195):
+ * wiredmenu/open shows the menu on its current tab, wiredmenu/open/<tab> also selects that tab, and
+ * wiredmenu/open/variable_overview/<name> focuses that variable.
+ */
 export const openWiredMenuLink = (url: string, definitions: Record<VariablesElementType, ReadonlyArray<{ key: string }>>): boolean => {
     const [prefix, action, tab, key] = url.split('/');
-    if (prefix !== 'wiredmenu' || action !== 'open' || (tab && tab !== 'variable_overview')) return false;
+    if (prefix !== 'wiredmenu' || action !== 'open') return false;
     const state = useWiredCreatorToolsUiStore.getState();
-    if (tab === 'variable_overview') {
-        state.setActiveTab('variables');
+    if (tab && WIRED_MENU_TABS[tab]) state.setActiveTab(WIRED_MENU_TABS[tab]);
+    if (tab === 'variable_overview' && key) {
         const type = (['furni', 'user', 'global', 'context'] as VariablesElementType[]).find(type => definitions[type].some(variable => variable.key === key));
         if (type) {
             state.setVariablesType(type);

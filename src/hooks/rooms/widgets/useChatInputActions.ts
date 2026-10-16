@@ -18,7 +18,6 @@ import { useCallback } from 'react';
 import { HasPermission, Permission } from '../../../api/permissions';
 import { CanOpenUserChooser, ChatMessageTypeEnum, GetClubMemberLevel, GetConfigurationValue, LocalizeText, SendMessageComposer } from '../../../api';
 import { useNotification } from '../../notification';
-import { useWiredToolsActions } from '../../wired-tools';
 import { useRoom } from '../useRoom';
 
 /**
@@ -37,7 +36,6 @@ import { useRoom } from '../useRoom';
 export const useChatInputActions = () => {
     const { showVoltAlert = null, showConfirm = null } = useNotification();
     const { roomSession = null } = useRoom();
-    const { openMonitor } = useWiredToolsActions();
 
     const sendChat = useCallback(
         (text: string, chatType: number, recipientName: string = '', styleId: number = 0) => {
@@ -203,8 +201,18 @@ export const useChatInputActions = () => {
                         if ((roomSession?.controllerLevel ?? 0) >= RoomControllerLevel.ROOM_OWNER) CreateLinkEvent('floor-editor/show');
 
                         return null;
+                    // AIR ChatInputWidgetHandler.as:490-501 (WIN63-202610131318-860371703).
+                    case ':wf':
                     case ':wired':
-                        openMonitor();
+                        CreateLinkEvent('wiredmenu/open');
+                        return null;
+                    case ':var':
+                    case ':variables':
+                        CreateLinkEvent('wiredmenu/open/variable_overview');
+                        return null;
+                    case ':inspect':
+                    case ':inspection':
+                        CreateLinkEvent('wiredmenu/open/inspection');
                         return null;
                     case ':togglefps': {
                         if (GetTicker().maxFPS > 0) GetTicker().maxFPS = 0;
@@ -255,7 +263,7 @@ export const useChatInputActions = () => {
 
             return null;
         },
-        [roomSession, showConfirm, showVoltAlert, openMonitor]
+        [roomSession, showConfirm, showVoltAlert]
     );
 
     return { sendChat };
