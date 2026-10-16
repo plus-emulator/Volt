@@ -164,7 +164,7 @@ export const WiredArrayInspectorView = (props: WiredArrayInspectorViewProps) => 
                 <div className="rounded border border-[#c8c2b2] bg-white p-3 flex items-center justify-between gap-3">
                     <div className="grow flex flex-col">
                         <Text>
-                            <b>{localizeWithFallback('wiredmenu.variable_management.variable_name', 'Variable name')}:</b> {variableName}
+                            <b>{localizeWithFallback('wiredmenu.variable_management.variable_name', 'Variable name:')}</b> {variableName}
                         </Text>
                         {!!data && <Text>{summary}</Text>}
                     </div>

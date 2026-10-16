@@ -3494,7 +3494,7 @@ export const WiredCreatorToolsView: FC<{}> = () => {
                             <Text>
                                 {selectedMonitorErrorInfo.errorId === undefined
                                     ? selectedMonitorErrorInfo.description
-                                    : localizeWithFallback(`wiredmenu.error_info.${selectedMonitorErrorInfo.errorId}`, selectedMonitorErrorInfo.description)}
+                                    : localizeWithFallback(`wiredmenu.error_info.${selectedMonitorErrorInfo.errorId}`, selectedMonitorErrorInfo.description).replace(/\\n/g, '\n')}
                             </Text>
                         </div>
                     </div>

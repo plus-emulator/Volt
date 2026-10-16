@@ -67,7 +67,7 @@ export const VariablesExplorerHoldersView: FC<VariablesExplorerHoldersViewProps>
                 },
                 {
                     id: 'sort',
-                    label: localizeWithFallback('wiredmenu.variable_management.sort_by', 'Sort by'),
+                    label: localizeWithFallback('wiredmenu.variable_management.sort_by', 'Sort by:'),
                     value: sortId,
                     options: EXPLORER_SORT_OPTIONS.map((option) => ({ value: option.id, label: option.label })),
                     onChange: (value) => changeFilters(targetKind, value)

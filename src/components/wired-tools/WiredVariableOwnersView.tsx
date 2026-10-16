@@ -152,7 +152,7 @@ export const WiredVariableOwnersView = (props: WiredVariableOwnersViewProps) => 
 
     const userTypeFilter = {
         id: 'usertype',
-        label: localizeWithFallback('wiredmenu.variable_management.usertype', 'User type'),
+        label: localizeWithFallback('wiredmenu.variable_management.usertype', 'User type:'),
         value: String(userType),
         options: [
             { value: String(USER_FILTER_ALL), label: localizeWithFallback('wiredmenu.variable_management.usertype.all', 'All') },
@@ -168,7 +168,7 @@ export const WiredVariableOwnersView = (props: WiredVariableOwnersViewProps) => 
 
     const sortFilter = {
         id: 'sort',
-        label: localizeWithFallback('wiredmenu.variable_management.sort_by', 'Sort by'),
+        label: localizeWithFallback('wiredmenu.variable_management.sort_by', 'Sort by:'),
         value: String(sortType),
         options: [
             { value: String(SORT_NONE), label: localizeWithFallback('wiredmenu.variable_management.sort_by.none', 'Default order') },
