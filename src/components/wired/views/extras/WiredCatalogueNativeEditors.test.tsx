@@ -21,7 +21,7 @@ vi.mock('./WiredExtraBaseView',()=>({WiredExtraBaseView:(props:any)=><Base {...p
 vi.mock('../triggers/WiredTriggerBaseView',()=>({WiredTriggerBaseView:(props:any)=><Base {...props}/>}));
 vi.mock('../actions/WiredActionBaseView',()=>({WiredActionBaseView:(props:any)=><Base {...props}/>}));
 vi.mock('../conditions/WiredConditionBaseView',()=>({WiredConditionBaseView:(props:any)=><Base {...props}/>}));
-vi.mock('../WiredSourcesSelector', () => ({ WiredSourcesSelector: ()=>null, WiredHolderSourceSection: ({ scope }: any) => <span>{`holder ${scope}`}</span>, WiredMergedSourceSection: ({ scope, bare, disabled, furniSlot = 0, userSlot = 0, furniSource, userSource, onChangeFurni, onChangeUsers }: any) => { const content = scope === 'global' || scope === 'context' ? <span>{`holder ${scope}`}</span> : <input aria-label={`Merged ${scope === 'furni' ? 'furni' : 'user'} ${scope === 'furni' ? furniSlot : userSlot}${bare ? ' bare' : ''}`} value={scope === 'furni' ? furniSource : userSource} onChange={event => (scope === 'furni' ? onChangeFurni : onChangeUsers)(Number(event.target.value))} />; return disabled ? <fieldset disabled>{content}</fieldset> : content; } }));
+vi.mock('../WiredSourcesSelector', () => ({ WiredSourcesSelector: ()=>null, nativeSourceOptions: (values: number[] = [], kind: string) => values.map(value => ({ value, label: `wiredfurni.params.sources.${kind}.${value}` })), WiredSourceRowFence: ({ children }: PropsWithChildren) => <>{children}</>, WiredSourceRow: ({ label }: { label: string }) => <span>{label}</span>, WiredHolderSourceSection: ({ scope }: any) => <span>{`holder ${scope}`}</span>, WiredMergedSourceSection: ({ scope, bare, disabled, furniSlot = 0, userSlot = 0, furniSource, userSource, onChangeFurni, onChangeUsers }: any) => { const content = scope === 'global' || scope === 'context' ? <span>{`holder ${scope}`}</span> : <input aria-label={`Merged ${scope === 'furni' ? 'furni' : 'user'} ${scope === 'furni' ? furniSlot : userSlot}${bare ? ' bare' : ''}`} value={scope === 'furni' ? furniSource : userSource} onChange={event => (scope === 'furni' ? onChangeFurni : onChangeUsers)(Number(event.target.value))} />; return disabled ? <fieldset disabled>{content}</fieldset> : content; } }));
 vi.mock('../WiredVariablePicker',()=>({WiredVariablePicker:()=>null}));
 vi.mock('../WiredVariablePickerData',()=>({buildWiredVariablePickerEntries:()=>[],flattenWiredVariablePickerEntries:()=>[],createFallbackVariableEntry:()=>null}));
 vi.mock('../WiredDropdown',()=>({WiredDropdown:({options,value,onChange,caption}:any)=><select aria-label={caption} value={value} onChange={event=>onChange(Number(event.target.value))}>{options.map((option:any)=><option key={option.id} value={option.id}>{option.label}</option>)}</select>}));
@@ -82,10 +82,16 @@ describe('AIR catalogue native editor controls',()=>{
         fireEvent.click(screen.getByText('Save'));expect(state.setIntParams).toHaveBeenLastCalledWith([]);
     });
     it('shows only one endpoints section without generic pick instructions',()=>{
-        render(<WiredTriggerReceiveLinkMessageView/>);
-        expect(screen.getAllByText('wiredfurni.params.link.endpoints')).toHaveLength(1);
-        expect(screen.queryByText('wiredfurni.pickfurnis.desc')).toBeNull();
-        fireEvent.click(screen.getByText('Save'));expect(state.setStringParam).toHaveBeenLastCalledWith('');
+        // The endpoints row is the advanced source row of the server-listed furni selection 0 (AIR ReceiveLinkMessage.as:34-41,
+        // UserDefinedRoomEventsCtrl.as:520-619), so the fixture carries the editor's InputSourcesConf.
+        const original=state.trigger;
+        state.trigger={...original,advanced:true,maximumItemSelectionCount:20,inputSources:{furniAllowed:[[0,100,200,201]],usersAllowed:[],furniDefaults:[100],userDefaults:[]}} as typeof original;
+        try{
+            render(<WiredTriggerReceiveLinkMessageView/>);
+            expect(screen.getAllByText('wiredfurni.params.link.endpoints')).toHaveLength(1);
+            expect(screen.queryByText('wiredfurni.pickfurnis.desc')).toBeNull();
+            fireEvent.click(screen.getByText('Save'));expect(state.setStringParam).toHaveBeenLastCalledWith('');
+        }finally{state.trigger=original;}
     });
     it('uses native toggle radios while preserving toggle mode and source',()=>{
         const {container}=render(<WiredActionToggleFurniStateView/>);

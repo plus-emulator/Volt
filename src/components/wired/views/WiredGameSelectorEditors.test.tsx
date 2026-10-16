@@ -132,8 +132,10 @@ describe('Remaining simple selector editors',()=>{
         const {unmount}=render(<WiredSelectorUsersByTypeView/>);
         fireEvent.click(screen.getByRole('radio',{name:'wiredfurni.params.usertype.4'}));fireEvent.click(screen.getByText('Save'));expect(state.setIntParams).toHaveBeenLastCalledWith([4]);
         unmount();render(<WiredSelectorFurniByTypeView/>);
+        state.setFurniSources.mockClear();
         fireEvent.click(screen.getByRole('checkbox',{name:'wiredfurni.params.state_match'}));fireEvent.click(screen.getByText('Save'));
-        expect(state.setIntParams).toHaveBeenLastCalledWith([0]);expect(state.setFurniSources).toHaveBeenLastCalledWith([100]);
+        // The furni source is the advanced row's choice from the server list (AIR class_3961, createAdvancedSections), not a fixed 100.
+        expect(state.setIntParams).toHaveBeenLastCalledWith([0]);expect(state.setFurniSources).not.toHaveBeenCalled();
     });
     it.each([WiredSelectorFurniPicksView,WiredSelectorFurniSignalView,WiredSelectorUsersSignalView])('uses native category options without introducing owned parameters',View=>{
         render(<View/>);expect(screen.getByTestId('editor').getAttribute('data-width')).toBe('undefined');expect(screen.getByTestId('editor').getAttribute('data-native')).toBe('true');

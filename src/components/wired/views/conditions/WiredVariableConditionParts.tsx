@@ -1,4 +1,5 @@
-import { ConditionDefinition, IWiredVariableData } from '@volt/renderer';
+import type { ConditionDefinition } from '@volt/renderer';
+import { IWiredVariableData } from '@volt/renderer';
 import { IWiredVariablePickerEntry } from '../WiredVariablePickerData';
 import { WiredSourceTypeSelector } from '../WiredSourceTypeSelector';
 import { WiredSection } from '../WiredSection';
@@ -46,7 +47,7 @@ export const VariableQuantifierRadios: FC<{ name: string; value: number; onChang
 {
     // AIR getQuantifierKey (UserDefinedRoomEventsCtrl.as:512-518): the negative card's invert flag selects the ".neg." labels.
     const { trigger = null } = useWired();
-    const key = `wiredfurni.params.quantifier.variables${trigger instanceof ConditionDefinition && trigger.inverse ? '.neg' : ''}`;
+    const key = `wiredfurni.params.quantifier.variables${trigger && 'inverse' in trigger && (trigger as ConditionDefinition).inverse ? '.neg' : ''}`;
 
     return <VariableQuantifierRadiosView name={name} value={value} onChange={onChange} labelKey={key} />;
 };

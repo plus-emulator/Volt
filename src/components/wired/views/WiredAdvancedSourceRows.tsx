@@ -1,4 +1,4 @@
-import { ConditionDefinition, Triggerable } from '@volt/renderer';
+import type { ConditionDefinition, Triggerable } from '@volt/renderer';
 import { FC } from 'react';
 import { useWired } from '../../../hooks';
 import { WiredFurniSelectionSourceRow } from './WiredFurniSelectionSourceRow';
@@ -20,7 +20,10 @@ const QUANTIFIER_KINDS: Record<number, 'furni' | 'users'> = { 1: 'furni', 2: 'us
 const listed = (trigger: Triggerable | null, row: WiredAdvancedSourceRow) =>
     (row.kind === 'furni' ? trigger?.inputSources?.furniAllowed : trigger?.inputSources?.usersAllowed)?.[row.slot] !== undefined;
 
-const quantifierKindOf = (trigger: Triggerable | null) => trigger instanceof ConditionDefinition ? QUANTIFIER_KINDS[trigger.quantifierType] : undefined;
+// Only condition definitions carry the quantifier type byte (ConditionDefinition.readFooter).
+const asCondition = (trigger: Triggerable | null) => trigger && 'quantifierType' in trigger ? trigger as ConditionDefinition : null;
+
+const quantifierKindOf = (trigger: Triggerable | null) => QUANTIFIER_KINDS[asCondition(trigger)?.quantifierType ?? 0];
 
 /** AIR builds the section only when the server lists one of its selections or a quantifier type (L530). */
 export const hasWiredAdvancedSources = (trigger: Triggerable | null, rows: WiredAdvancedSourceRow[]) =>
@@ -45,7 +48,7 @@ const withSource = (sources: number[], defaults: number[] | undefined, slot: num
 export const WiredAdvancedSourceRows: FC<{ rows: WiredAdvancedSourceRow[] }> = ({ rows }) =>
 {
     const { trigger = null, furniSources = [], setFurniSources = null, userSources = [], setUserSources = null, quantifier = 0, setQuantifier = null, furniIds = [] } = useWired();
-    const condition = trigger instanceof ConditionDefinition ? trigger : null;
+    const condition = asCondition(trigger);
     const quantifierKind = quantifierKindOf(trigger);
     const furniDefaults = trigger?.inputSources?.furniDefaults;
     const userDefaults = trigger?.inputSources?.userDefaults;

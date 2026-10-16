@@ -1,4 +1,4 @@
-import { ConditionDefinition, Triggerable } from '@volt/renderer';
+import type { ConditionDefinition, Triggerable } from '@volt/renderer';
 
 /**
  * Merged selections ([furni index, user index]) that an inline value-or-variable section claims, per card kind and native code.
@@ -39,5 +39,7 @@ export const isUsingAdvancedSettings = (trigger: Triggerable | null, wiredType: 
     if (differs(trigger.furniSources ?? [], trigger.inputSources.furniDefaults ?? [], furniSkip)) return true;
     if (differs(trigger.userSources ?? [], trigger.inputSources.userDefaults ?? [], userSkip)) return true;
 
-    return trigger instanceof ConditionDefinition && !!trigger.quantifierType && trigger.quantifier !== 0;
+    const condition = 'quantifierType' in trigger ? trigger as ConditionDefinition : null;
+
+    return !!condition?.quantifierType && condition.quantifier !== 0;
 };

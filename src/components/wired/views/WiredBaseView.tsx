@@ -1,7 +1,6 @@
 import { CreateLinkEvent, GetRoomEngine, GetSessionDataManager } from '@volt/renderer';
 import { CSSProperties, FC, PropsWithChildren, ReactNode, useEffect, useRef, useState } from 'react';
 import {
-    isUsingAdvancedSettings,
     isWiredVolterStyle,
     LocalizeText,
     localizeWithFallback,
@@ -12,6 +11,7 @@ import {
     wiredStyleWidth,
     wiredWidthMultiplier
 } from '../../../api';
+import { isUsingAdvancedSettings } from '../../../api/wired/WiredAdvancedSettings';
 import volterAtlas from '../../../assets/images/wired/volter_shell_atlas.png';
 import { VoltCardContentView, VoltCardView, Text } from '../../../common';
 import { useWired, useWiredTools } from '../../../hooks';
