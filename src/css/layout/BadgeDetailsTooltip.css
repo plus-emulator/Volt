@@ -24,10 +24,14 @@
 .volt-badge-details__rarity {
     position: relative;
     isolation: isolate;
-    width: 92px;
+    box-sizing: border-box;
     height: 17px;
-    overflow: hidden;
     padding: 2px 6px 2px 5px;
+}
+
+.volt-badge-details__rarity-label {
+    display: block;
+    width: max-content;
 }
 
 .volt-badge-details .volt-badge-details__rarity-skin {
