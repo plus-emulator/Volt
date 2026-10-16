@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { LayoutRoomPreviewerView } from './LayoutRoomPreviewerView';
+import { LayoutRoomPreviewerView, resolvePreviewBackdropColor } from './LayoutRoomPreviewerView';
 
 const previewMocks = vi.hoisted(() => ({
     add: vi.fn(),
@@ -107,6 +107,44 @@ describe('LayoutRoomPreviewerView presentation canvas', () => {
         expect(roomPreviewer.modifyRoomCanvas).toHaveBeenCalledOnce();
         expect(roomPreviewer.modifyRoomCanvas).toHaveBeenCalledWith(680, 240);
         expect(firstTexture.destroy).toHaveBeenCalledWith(true);
+    });
+});
+
+describe('LayoutRoomPreviewerView backdrop', () => {
+    it('clears the render target with the panel colour behind it so additive layers blend like AIR', () => {
+        const roomPreviewer = createRoomPreviewer();
+        const container = document.createElement('div');
+
+        container.style.backgroundColor = 'rgb(236, 234, 224)';
+        Object.defineProperty(container, 'clientWidth', { configurable: true, get: () => 200 });
+        document.body.appendChild(container);
+
+        render(<LayoutRoomPreviewerView height={120} roomPreviewer={roomPreviewer} />, { container });
+
+        expect(previewMocks.render).toHaveBeenLastCalledWith(expect.objectContaining({
+            clearColor: [236 / 255, 234 / 255, 224 / 255, 1]
+        }));
+    });
+
+    it('stays transparent over a backdrop image or translucent colour', () => {
+        const parent = document.createElement('div');
+        const child = document.createElement('div');
+
+        parent.appendChild(child);
+        document.body.appendChild(parent);
+        parent.style.backgroundColor = 'rgb(0, 0, 0)';
+        child.style.backgroundImage = 'url(stage.png)';
+
+        expect(resolvePreviewBackdropColor(child)).toBeNull();
+
+        child.style.backgroundImage = '';
+        child.style.backgroundColor = 'rgba(255, 255, 255, 0.5)';
+
+        expect(resolvePreviewBackdropColor(child)).toBeNull();
+
+        child.style.backgroundColor = '';
+
+        expect(resolvePreviewBackdropColor(child)).toEqual([0, 0, 0, 1]);
     });
 });
 
