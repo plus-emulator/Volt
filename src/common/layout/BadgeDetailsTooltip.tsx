@@ -32,7 +32,10 @@ const TAG_SKIN = parseNativeSkin(colorlessBorderXml);
 /** AIR badge_details XML and InfoStandUserView.populateBadgeDetails / showBadgeInfo. */
 export const BadgeDetailsTooltip: FC<BadgeDetailsTooltipProps> = ({ anchor, name, description, rarity }) => {
     const tooltipRef = useRef<HTMLDivElement>(null);
+    const rarityLabelRef = useRef<HTMLSpanElement>(null);
     const [position, setPosition] = useState<{ left: number; top: number }>(null);
+    // The label auto-sizes and reflects its width change to rarity_tag (reflect_horizontal_resize_to_parent): 92 - 81 = 11 pixels around it.
+    const [tagWidth, setTagWidth] = useState(92);
     const rarityKey = rarity?.rarity === 'uncommon' && !GetConfigurationValue<boolean>('badge_rarity.uncommon', false) ? 'common' : rarity?.rarity;
     const tagColor = TAG_COLORS[rarityKey] ?? TAG_COLORS.common;
 
@@ -70,6 +73,24 @@ export const BadgeDetailsTooltip: FC<BadgeDetailsTooltipProps> = ({ anchor, name
         };
     }, [anchor]);
 
+    useLayoutEffect(() => {
+        const label = rarityLabelRef.current;
+
+        if (!label) return;
+
+        const measure = () => {
+            const width = label.offsetWidth;
+
+            if (width > 0) setTagWidth(width + 11);
+        };
+        const observer = new ResizeObserver(measure);
+
+        observer.observe(label);
+        measure();
+
+        return () => observer.disconnect();
+    }, [rarity]);
+
     return createPortal(
         <div ref={tooltipRef} role="tooltip" className="volt-badge-details" style={{ ...position, visibility: position ? 'visible' : 'hidden' }}>
             <NativeText text={name} textStyle="bold" background={0xffffff} maxWidth={250} overrides={TEXT_OVERRIDES} nativeResolution />
@@ -82,19 +103,21 @@ export const BadgeDetailsTooltip: FC<BadgeDetailsTooltipProps> = ({ anchor, name
                         skin={TAG_SKIN}
                         layout="border_colorless"
                         atlas={blueAtlas}
-                        width={92}
+                        width={tagWidth}
                         height={17}
                         color={tagColor}
                         className="volt-badge-details__rarity-skin"
                     />
-                    <NativeText
-                        text={LocalizeText('badge.rarity.badge', ['rarity'], [LocalizeText(`badge.rarity.${rarityKey}`)])}
-                        textStyle="bold"
-                        background={tagColor}
-                        style={{ maxWidth: 81, height: 13, overflow: 'hidden', whiteSpace: 'nowrap' }}
-                        overrides={{ ...TEXT_OVERRIDES, color: 0xffffff }}
-                        nativeResolution
-                    />
+                    <span ref={rarityLabelRef} className="volt-badge-details__rarity-label">
+                        <NativeText
+                            text={LocalizeText('badge.rarity.badge', ['rarity'], [LocalizeText(`badge.rarity.${rarityKey}`)])}
+                            textStyle="bold"
+                            background={tagColor}
+                            style={{ height: 13, whiteSpace: 'nowrap' }}
+                            overrides={{ ...TEXT_OVERRIDES, color: 0xffffff }}
+                            nativeResolution
+                        />
+                    </span>
                 </div>
             )}
             {rarity?.ownerCount > 0 && rarity.ownerCount < 1000 && (
