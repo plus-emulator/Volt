@@ -52,7 +52,7 @@ export const WiredExtraFilterByVariableView: FC<{ target: 'user' | 'furni' }> = 
     return <WiredExtraBaseView nativeLayout hasSpecialInput requiresFurni={picks ? WiredFurniType.STUFF_SELECTION_OPTION_BY_ID : WiredFurniType.STUFF_SELECTION_OPTION_NONE}
         save={save} validate={() => valid && !!variableToken && (option !== 1 || !!referenceToken)}>
         <WiredSection title={LocalizeText('wiredfurni.params.variables.variable_selection')}>
-            <WiredVariablePicker entries={entries} recentScope={`variable-extra-${target}`} selectedToken={variableToken} onSelect={entry => setVariableToken(entry.token)} />
+            <WiredVariablePicker entries={entries} recentScope={`variable-extra-${target}`} selectedToken={variableToken} onSelect={entry => setVariableToken(entry.token)} onClear={() => setVariableToken('')} />
         </WiredSection>
         <WiredSection title={LocalizeText('wiredfurni.params.variables.sort_by')}>
             <WiredDropdown caption={LocalizeText('wiredfurni.params.variables.sort_by.caption')} value={sortBy}

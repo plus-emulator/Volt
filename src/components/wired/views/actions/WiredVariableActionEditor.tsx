@@ -94,7 +94,7 @@ export const WiredVariableActionEditor: FC<{ kind: 'give' | 'remove' | 'change' 
         footer={sourceControl(0, target, kind === 'remove' ? 'wiredfurni.params.sources.merged.title.variables' : 'wiredfurni.params.sources.merged.title.variables_destination')}>
         <FurniPickSlotButtons slots={[...new Set(pickSlots)].map(slot => ({ slot: slot as 0 | 1, count: slot === 0 ? furniIds.length : secondaryFurniIds.length }))} />
         <WiredSection title={LocalizeText('wiredfurni.params.variables.variable_selection')} headerOption={<WiredSourceTypeSelector types={kind === 'change' ? ['furni', 'user', 'global', 'context'] : ['furni', 'user', 'context']} value={target} onChange={next => { setTarget(next); setVariable(''); }} />}>
-            <WiredVariablePicker entries={entries} recentScope="variable-effects" selectedToken={variable} onSelect={entry => setVariable(entry.token)} />
+            <WiredVariablePicker entries={entries} recentScope="variable-effects" selectedToken={variable} onSelect={entry => setVariable(entry.token)} onClear={() => setVariable('')} />
             {kind === 'give' && <WiredCheckboxOption label={LocalizeText('wiredfurni.params.variables.value_settings.override_existing')} checked={overrideExisting} onChange={setOverrideExisting} />}
         </WiredSection>
         {kind === 'change' && <WiredSection title={LocalizeText('wiredfurni.params.variables.operation')}><WiredDropdown options={WIRED_VARIABLE_OPERATIONS.map(id => ({ id, label: localizeWiredVariableOperation(id), advanced: id >= 40 }))} advancedCaption={LocalizeText('wiredfurni.params.variables.operation.advanced')} caption={LocalizeText('wiredfurni.params.variables.operation.tooltip')} value={operation} onChange={setOperation} /></WiredSection>}

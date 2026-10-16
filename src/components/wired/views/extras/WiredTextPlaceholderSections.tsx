@@ -7,7 +7,13 @@ import { WIRED_ADVANCED_SURFACE_COLOR, WiredSurfaceContext, WiredText } from '..
 import { WiredTextInput } from '../WiredTextInput';
 
 export const typedPlaceholderName = (value: string) => value.replace(/[^a-zA-Z0-9_ ]/g, '').replace(/ /g, '_').toLowerCase().slice(0, 32);
-export const flatPlaceholderVariableName = (name: string) => typedPlaceholderName(name.replace('@', '').replace('~', '').replace(/\./g, '_'));
+/**
+ * AIR Util.flatVariableName put through PlaceholderNameSection.placeholderName (WIN63-202610131318-860371703,
+ * roomevents/Util.as:142-145; sections/applications/PlaceholderNameSection.as:102-123): the first '@' and '~' go,
+ * dots become '_', then spaces become '_' and the name is lower-cased. The field's character restriction and
+ * 32-character limit only apply to typing, so a suggested name is not cut.
+ */
+export const flatPlaceholderVariableName = (name: string) => name.replace('@', '').replace('~', '').replace(/\./g, '_').split(' ').join('_').toLowerCase();
 
 /** AIR PlaceholderNameSection: 32-character field and selectable, two-line HTML preview at fontSize*3. */
 export const WiredPlaceholderNameSection: FC<{ name: string; onChange: (value: string) => void; capturer?: boolean }> = ({ name, onChange, capturer = false }) => {

@@ -106,7 +106,7 @@ export const WiredSelectorScanChestFurniByType: FC<{}> = () => {
                     entries={entries}
                     recentScope="scan-chest-variable"
                     selectedToken={variableToken}
-                    onSelect={(entry) => setVariableToken(entry.token)}
+                    onSelect={(entry) => setVariableToken(entry.token)} onClear={() => setVariableToken('')}
                 />
             </WiredSection>
             <WiredCollapsibleSection title={localizeWithFallback('wiredfurni.params.chest_item_type_scanner', 'Scanning options:')}>

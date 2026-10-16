@@ -47,6 +47,14 @@ describe('AIR text placeholder/capture editors', () => {
         fireEvent.change(screen.getByLabelText('Variable'), { target: { value: 'custom:value' } }); save(); expect(state.setIntParams).toHaveBeenLastCalledWith([0, -10, 1]); expect(state.setStringParam).toHaveBeenLastCalledWith('names');
         fireEvent.change(screen.getByLabelText('Scope'), { target: { value: 'user' } }); expect(screen.getAllByRole('textbox')[1]).toHaveValue(' | ');
     });
+    it('restores each variable target its own last choice, like AIR NewVariablePicker.variableTarget', () => {
+        state.trigger.stringData = ''; render(<WiredExtraTextOutputVariableView />);
+        expect(screen.getByLabelText('Variable')).toHaveValue('custom:value'); expect(screen.getAllByRole('textbox')[0]).toHaveValue('score_value');
+        fireEvent.change(screen.getByLabelText('Scope'), { target: { value: 'global' } });
+        expect(screen.getAllByRole('textbox')[0]).toHaveValue(''); save(); expect(state.setVariableIds).not.toHaveBeenLastCalledWith(['value']);
+        fireEvent.change(screen.getByLabelText('Scope'), { target: { value: 'user' } });
+        expect(screen.getByLabelText('Variable')).toHaveValue('custom:value'); expect(screen.getAllByRole('textbox')[0]).toHaveValue('score_value');
+    });
     it('uses the native global name preview and 100-character value field without changing the wire form', () => {
         state.trigger.intData = [0, 0, 0]; state.trigger.stringData = 'global_name\tvalue'; render(<WiredExtraGlobalPlaceholderNativeView />);
         const [name, value] = screen.getAllByRole('textbox'); expect(name).toHaveAttribute('maxLength', '32'); expect(value).toHaveAttribute('maxLength', '100');

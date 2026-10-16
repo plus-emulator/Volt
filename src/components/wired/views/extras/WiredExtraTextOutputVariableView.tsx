@@ -1,4 +1,4 @@
-import { FC, useEffect, useMemo, useState } from 'react';
+import { FC, useEffect, useMemo, useRef, useState } from 'react';
 import { LocalizeText, WiredFurniType } from '../../../../api';
 import { useWired } from '../../../../hooks';
 import { WiredFurniSelectionSourceRow } from '../WiredFurniSelectionSourceRow';
@@ -123,6 +123,9 @@ export const WiredExtraTextOutputVariableView: FC<{}> = () => {
     const [delimiter, setDelimiter] = useState(DEFAULT_DELIMITER);
     const [userSource, setUserSource] = useState(0);
     const [furniSource, setFurniSource] = useState(0);
+    // NewVariablePicker.var_1589: the last selection per variable target, restored when the target comes back
+    // (AIR WIN63-202610131318-860371703, newvariablepicker/NewVariablePicker.as:195-220, 276-283).
+    const selectionByTarget = useRef(new Map<VariableTargetType, string>());
 
     const targetDefinitions = useMemo(
         () => getTargetDefinitions(targetType, userVariableDefinitions, furniVariableDefinitions, roomVariableDefinitions, contextVariableDefinitions),
@@ -162,7 +165,11 @@ export const WiredExtraTextOutputVariableView: FC<{}> = () => {
         // owned: [placeholder (1 multiple), target, display (1 textual)].
         setPlaceholderType(trigger.intData.length > 0 && trigger.intData[0] === 1 ? TYPE_MULTIPLE : TYPE_SINGLE);
         setTargetType(normalizeTargetType(trigger.intData.length > 1 ? trigger.intData[1] : TARGET_USER));
-        setVariableToken(tokenOfVariableSlot(trigger.variableIds[0]));
+        const storedTarget = normalizeTargetType(trigger.intData.length > 1 ? trigger.intData[1] : TARGET_USER);
+        const storedToken = tokenOfVariableSlot(trigger.variableIds[0]);
+
+        selectionByTarget.current = new Map([[storedTarget, storedToken]]);
+        setVariableToken(storedToken);
         setDisplayType(trigger.intData.length > 2 && trigger.intData[2] === 1 ? DISPLAY_TEXTUAL : DISPLAY_NUMERIC);
         setUserSource(normalizeNativeSource(trigger.userSources.length > 0 ? trigger.userSources[0] : userDefault, userAllowed, userDefault));
         setFurniSource(normalizeNativeSource(trigger.furniSources.length > 0 ? trigger.furniSources[0] : furniDefault, furniAllowed, furniDefault));
@@ -241,11 +248,27 @@ export const WiredExtraTextOutputVariableView: FC<{}> = () => {
         );
     }, [furniSource, targetType, userSource]);
 
+    /** VariablePlaceholderAddon.onChangeVariable (addons/VariablePlaceholderAddon.as:110-123): the name follows the variable while it is empty or still the previous variable's name. */
+    const changeVariable = (token: string, definitions: IVariableDefinition[]) => {
+        const next = token ? definitions.find((definition) => definition.variableId === getNativeVariableId(token)) : null;
+
+        if (!placeholderName || (selectedCustomDefinition && placeholderName === flatPlaceholderVariableName(selectedCustomDefinition.name))) {
+            setPlaceholderName(next ? flatPlaceholderVariableName(next.name) : '');
+        }
+
+        setVariableToken(token);
+    };
+
     const handleTargetChange = (nextTargetType: VariableTargetType) => {
         if (nextTargetType === targetType) return;
 
+        // NewVariablePicker.variableTarget setter: keep this target's choice and restore the next target's one (or none).
+        selectionByTarget.current.set(targetType, variableToken);
         setTargetType(nextTargetType);
-        setVariableToken('');
+        changeVariable(
+            selectionByTarget.current.get(nextTargetType) ?? '',
+            getTargetDefinitions(nextTargetType, userVariableDefinitions, furniVariableDefinitions, roomVariableDefinitions, contextVariableDefinitions)
+        );
     };
 
     useEffect(() => {
@@ -255,15 +278,18 @@ export const WiredExtraTextOutputVariableView: FC<{}> = () => {
         if (selectedCustomDefinition && !placeholderName) setPlaceholderName(flatPlaceholderVariableName(selectedCustomDefinition.name));
     }, [selectedCustomDefinition]);
     const selectVariable = (entry: { token: string }) => {
-        const next = targetDefinitions.find(definition => definition.variableId === getNativeVariableId(entry.token));
-        if (!placeholderName || (selectedCustomDefinition && placeholderName === flatPlaceholderVariableName(selectedCustomDefinition.name))) setPlaceholderName(next ? flatPlaceholderVariableName(next.name) : '');
-        setVariableToken(entry.token);
+        selectionByTarget.current.set(targetType, entry.token);
+        changeVariable(entry.token, targetDefinitions);
+    };
+    const clearVariable = () => {
+        selectionByTarget.current.set(targetType, '');
+        changeVariable('', targetDefinitions);
     };
 
     return <WiredExtraBaseView hasSpecialInput nativeLayout requiresFurni={picksFurni ? WiredFurniType.STUFF_SELECTION_OPTION_BY_ID : WiredFurniType.STUFF_SELECTION_OPTION_NONE} showSelection={false} save={save} validate={validate}>
         <WiredPlaceholderNameSection name={placeholderName} onChange={setPlaceholderName} />
         <WiredSection title={LocalizeText('wiredfurni.params.variables.variable_selection')} headerOptionsRight={<WiredSourceTypeSelector types={['furni', 'user', 'global', 'context']} value={targetType} onChange={handleTargetChange} />}>
-            <WiredVariablePicker entries={resolvedVariableEntries} recentScope="variable-text-output" selectedToken={variableToken} onSelect={selectVariable} />
+            <WiredVariablePicker entries={resolvedVariableEntries} recentScope="variable-text-output" selectedToken={variableToken} onSelect={selectVariable} onClear={clearVariable} />
         </WiredSection>
         <WiredVariablePlaceholderModeSection textual={displayType === DISPLAY_TEXTUAL} canText={canUseTextDisplay} onChange={value => setDisplayType(value ? DISPLAY_TEXTUAL : DISPLAY_NUMERIC)} />
         <WiredPlaceholderTypeSection name="variable-output-multiple" multiple={placeholderType === TYPE_MULTIPLE} onChange={value => setPlaceholderType(value ? TYPE_MULTIPLE : TYPE_SINGLE)} delimiter={delimiter} onDelimiter={setDelimiter} multipleDisabled={targetType === 'global' || targetType === 'context'} />

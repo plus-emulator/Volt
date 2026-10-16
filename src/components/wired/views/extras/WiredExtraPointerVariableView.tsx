@@ -135,7 +135,7 @@ export const WiredExtraPointerVariableView: FC<{}> = () => {
                     entries={resolvedAccessorEntries}
                     recentScope="variable-pointer"
                     selectedToken={accessorToken}
-                    onSelect={(entry) => setAccessorToken(entry.token)}
+                    onSelect={(entry) => setAccessorToken(entry.token)} onClear={() => setAccessorToken('')}
                 />
             </WiredSection>
         </WiredExtraBaseView>

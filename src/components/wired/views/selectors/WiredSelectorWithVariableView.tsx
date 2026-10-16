@@ -227,7 +227,7 @@ export const WiredSelectorWithVariableView: FC<WiredSelectorWithVariableViewProp
         <WiredSelectorBaseView nativeLayout hasSpecialInput requiresFurni={requiresFurni} save={save} validate={validate} hideDelay>
             {referenceSelectionEnabled && <FurniPickSlotButtons slots={[referenceFurniSource === SOURCE_SECONDARY_SELECTED ? { slot: 1, count: secondaryFurniIds.length } : { slot: 0, count: furniIds.length }]} />}
             <WiredSection title={LocalizeText('wiredfurni.params.variables.variable_selection')}>
-                <WiredVariablePicker entries={resolvedMainEntries} recentScope={`variable-selectors-${selectorTarget}`} selectedToken={variableToken} onSelect={entry => setVariableToken(entry.token)} />
+                <WiredVariablePicker entries={resolvedMainEntries} recentScope={`variable-selectors-${selectorTarget}`} selectedToken={variableToken} onSelect={entry => setVariableToken(entry.token)} onClear={() => setVariableToken('')} />
             </WiredSection>
             <WiredSection title={LocalizeText('wiredfurni.params.choose_type')}>
                 <WiredCheckboxOption label={LocalizeText('wiredfurni.params.variables.value_settings.select_by_value')} checked={selectByValue} disabled={!canSelectByValue} onChange={setSelectByValue} />

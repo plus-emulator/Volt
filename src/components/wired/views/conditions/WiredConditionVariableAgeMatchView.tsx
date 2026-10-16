@@ -118,7 +118,7 @@ export const WiredConditionVariableAgeMatchView: FC<{}> = () => {
                     furniSource={furniSource} userSource={userSource} onChangeFurni={value => { setFurniSource(value); if ([100, 101].includes(value)) setActivePickSlot(value === 101 ? 1 : 0); }} onChangeUsers={setUserSource} />
             </>}>
             <WiredSection title={LocalizeText('wiredfurni.params.variables.variable_selection')} headerOptionsRight={<VariableScopeButtons scopes={SCOPES} value={scope} onChange={handleScopeChange} />}>
-                <WiredVariablePicker entries={entries} recentScope="variable-conditions" selectedToken={variableToken} onSelect={entry => setVariableToken(entry.token)} />
+                <WiredVariablePicker entries={entries} recentScope="variable-conditions" selectedToken={variableToken} onSelect={entry => setVariableToken(entry.token)} onClear={() => setVariableToken('')} />
             </WiredSection>
             <WiredSection title={LocalizeText('wiredfurni.params.variables.compare_value')}>
                 <WiredRadioGroup name="variable-age-clock" columns={2} value={compareValue} onChange={setCompareValue} options={[0, 1].map(id => ({ id, label: LocalizeText(`wiredfurni.params.variables.compare_value.${id}`), disabled: id === 0 ? creationDisabled : updateDisabled }))} />
