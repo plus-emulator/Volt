@@ -582,6 +582,15 @@
     border-image-repeat: stretch;
 }
 
+/* A temporary (Wired) copy: info_border 0x142B44 and spacers 0x2F4C6B (InfoStandFurniView.as:602-616). */
+.volt-furni-infostand--temporary::before {
+    border-image-source: url("../../assets/images/habbo-skin/slices/border-colorless-142b44.png");
+}
+
+.volt-furni-infostand--temporary .volt-furni-infostand__rule {
+    background: #2f4c6b;
+}
+
 /* furni_view infostand_element_list: x=10 y=10 w=170, itemlist spacing 5, 1px #333333 spacers;
    controller: border.height = list.height + 20, name_text.height = textHeight + 5. */
 .volt-furni-infostand__list {
@@ -663,6 +672,14 @@
     position: absolute;
     top: 2px;
     left: 0;
+}
+
+/* temp_icon x=0 y=0: ${image.library.url}catalogue/icon_80.png at its own size (fit_size_to_contents). */
+.volt-furni-infostand__temp-icon {
+    position: absolute;
+    top: 0;
+    left: 0;
+    image-rendering: var(--volt-pixel-art, pixelated);
 }
 
 .volt-furni-infostand__owner-name {

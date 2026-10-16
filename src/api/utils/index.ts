@@ -4,6 +4,7 @@ export * from './ConvertSeconds';
 export * from './CopyToClipboard';
 export * from './FixedSizeStack';
 export * from './FriendlyTime';
+export * from './FurniIdBand';
 export * from './GetLocalStorage';
 export * from './IsTouchDevice';
 export * from './isSafeExternalUrl';

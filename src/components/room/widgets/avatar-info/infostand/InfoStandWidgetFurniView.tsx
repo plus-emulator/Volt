@@ -179,7 +179,8 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
     const [songCreator, setSongCreator] = useState<string>('');
     const [dropdownOpen, setDropdownOpen] = useState(sessionStorage.getItem('dropdownOpen') === 'true');
     const [furniLocationZ, setFurniLocationZ] = useState<number>(null);
-    const showOwnerProfileIcon = useMemo(() => !!avatarInfo && avatarInfo.ownerId > 0, [avatarInfo]);
+    // A Wired copy hides its owner: "Temporary Furni" with the Wired icon and no profile link (AIR InfoStandFurniView.as:395-408, 630-633).
+    const showOwnerProfileIcon = useMemo(() => !!avatarInfo && !avatarInfo.isTemporary && avatarInfo.ownerId > 0, [avatarInfo]);
 
     const sendUpdate = useCallback(
         (deltaX: number, deltaY: number, newZ: number = 0, deltaDirection: number = 0) => {
@@ -635,7 +636,13 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
 
     return (
         <Column alignItems="end" className="volt-furni-infostand-stack">
-            <Column className={'volt-furni-infostand relative z-30 min-w-[190px] max-w-[190px] pointer-events-auto' + (isCrackable ? ' volt-furni-infostand--crackable' : '')}>
+            <Column
+                className={
+                    'volt-furni-infostand relative z-30 min-w-[190px] max-w-[190px] pointer-events-auto' +
+                    (isCrackable ? ' volt-furni-infostand--crackable' : '') +
+                    (avatarInfo.isTemporary ? ' volt-furni-infostand--temporary' : '')
+                }
+            >
                 <button type="button" className="volt-furni-infostand__close" aria-label={localizeWithFallback('generic.close', 'Close')} onClick={onClose} />
                 <div className="volt-furni-infostand__list">
                     <div className="volt-furni-infostand__name">{avatarInfo.name}</div>
@@ -685,10 +692,20 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
                             <div className="volt-furni-infostand__rule" />
                         </>
                     )}
-                    {avatarInfo.ownerId !== 0 && (
+                    {(avatarInfo.isTemporary || avatarInfo.ownerId !== 0) && (
                         <div className="volt-furni-infostand__owner">
                             {showOwnerProfileIcon && <UserProfileIconView className="volt-furni-infostand__owner-icon" userId={avatarInfo.ownerId} />}
-                            <span className="volt-furni-infostand__owner-name">{avatarInfo.ownerName}</span>
+                            {avatarInfo.isTemporary && (
+                                <img
+                                    alt=""
+                                    className="volt-furni-infostand__temp-icon"
+                                    draggable={false}
+                                    src={GetConfigurationValue<string>('catalog.asset.icon.url').replace('%name%', '80')}
+                                />
+                            )}
+                            <span className="volt-furni-infostand__owner-name">
+                                {avatarInfo.isTemporary ? LocalizeText('temp.catalog.title') : avatarInfo.ownerName}
+                            </span>
                         </div>
                     )}
                     {(isJukeBox || isSongDisk) && (

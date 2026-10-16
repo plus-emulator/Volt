@@ -699,6 +699,8 @@
   "wiredfurni.error.link.not_owner": "Only the link owner can open the network configuration window.",
   "wiredfurni.error.require_link_furni": "Select at least one WIRED Link.",
   "wiredfurni.error.set_furni_highlight.normal_furni": "Steady Color Tint only works on BC or temporary furniture. Normal furniture cannot use this setting.",
+  "wiredfurni.error.temp_furni_not_allowed": "Can not select temporary furni in Wired.",
+  "temp.catalog.title": "Temporary Furni",
   "wiredfurni.error.set_furni_highlight.pulse_only": "Brighten only supports the Pulsating animation.",
   "wiredfurni.error.set_furni_transparency.normal_furni": "Furniture can only be fully visible or fully invisible.",
   "wiredfurni.error.variable_leaderboard.room_limit": "A room can contain at most 4 published variable leaderboards.",

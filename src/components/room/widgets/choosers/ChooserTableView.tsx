@@ -1,6 +1,7 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useRef } from 'react';
 import type { RoomObjectItem } from '../../../../api/room/widgets/RoomObjectItem';
+import { IsBuildersClubFurniId, IsTemporaryFurniId } from '../../../../api/utils/FurniIdBand';
 import { localizeWithFallback } from '../../../../api/utils/localizeWithFallback';
 import { ClassicScrollAreaView } from '../../../../common/scroll-area/ClassicScrollAreaView';
 
@@ -33,7 +34,9 @@ export const ChooserTableView = ({ items, columns, type, selectedKey, checkedKey
                 const item = items[virtualRow.index];
                 const key = chooserItemKey(item);
                 const selected = checkedKeys ? checkedKeys.includes(key) : selectedKey === key;
-                const values = type === 'users' ? [item.name, userTypeLabel(item.type)] : [item.name, item.ownerName, String(item.id)];
+                // FurniChooserTableObject.as:36-39: Builders Club and temporary furni show "-" as the owner.
+                const owner = IsBuildersClubFurniId(item.id) || IsTemporaryFurniId(item.id) ? '-' : item.ownerName;
+                const values = type === 'users' ? [item.name, userTypeLabel(item.type)] : [item.name, owner, String(item.id)];
                 return <div role="row" aria-rowindex={virtualRow.index + 2} aria-selected={selected} key={key}
                     className={`air-chooser__row${selected ? ' is-selected' : ''}`} style={{ top: virtualRow.start, backgroundColor: virtualRow.index % 2 ? '#f9f9f9' : '#eaeaea' }}>
                     {values.map((value, index) => <div role="cell" key={index} title={value}>

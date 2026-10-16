@@ -1,6 +1,6 @@
 import { GetRoomEngine, GetSessionDataManager, IRoomObject, RoomObjectCategory, RoomObjectVariable } from '@volt/renderer';
 import { useState } from 'react';
-import { GetRoomSession, LocalizeText, RoomObjectItem } from '../../../api';
+import { GetRoomSession, IsBuildersClubFurniId, IsTemporaryFurniId, LocalizeText, RoomObjectItem } from '../../../api';
 import { useFurniAddedEvent, useFurniRemovedEvent } from '../engine';
 import { useRoom } from '../useRoom';
 
@@ -10,6 +10,14 @@ const isPetOrBot = (roomObjectType: string): boolean =>
     roomObjectType === 'pet' ||
     roomObjectType === 'bot' ||
     roomObjectType.includes('rentableBot');
+
+// AIR ChooserItem.owner (ChooserItem.as:51-62): a Wired copy is listed as "Temp (Wired)", a Builders Club item as "Builders Club".
+const chooserOwnerName = (roomObject: IRoomObject, ownerId: number): string =>
+    IsBuildersClubFurniId(roomObject.id)
+        ? 'Builders Club'
+        : IsTemporaryFurniId(roomObject.id)
+          ? 'Temp (Wired)'
+          : roomObject.model.getValue<string>(RoomObjectVariable.FURNITURE_OWNER_NAME) || `User_${ownerId}`;
 
 const buildWallItem = (roomObject: IRoomObject): RoomObjectItem | null => {
     if (roomObject.id < 0 || isPetOrBot(roomObject.type)) return null;
@@ -27,7 +35,7 @@ const buildWallItem = (roomObject: IRoomObject): RoomObjectItem | null => {
     }
 
     const ownerId = roomObject.model.getValue<number>(RoomObjectVariable.FURNITURE_OWNER_ID) || 0;
-    const ownerName = roomObject.model.getValue<string>(RoomObjectVariable.FURNITURE_OWNER_NAME) || `User_${ownerId}`;
+    const ownerName = chooserOwnerName(roomObject, ownerId);
 
     return new RoomObjectItem(roomObject.id, RoomObjectCategory.WALL, name, ownerId, ownerName, 'furniture');
 };
@@ -44,7 +52,7 @@ const buildFloorItem = (roomObject: IRoomObject): RoomObjectItem | null => {
     if (furniData && furniData.name.length) name = furniData.name;
 
     const ownerId = roomObject.model.getValue<number>(RoomObjectVariable.FURNITURE_OWNER_ID) || 0;
-    const ownerName = roomObject.model.getValue<string>(RoomObjectVariable.FURNITURE_OWNER_NAME) || `User_${ownerId}`;
+    const ownerName = chooserOwnerName(roomObject, ownerId);
 
     return new RoomObjectItem(roomObject.id, RoomObjectCategory.FLOOR, name, ownerId, ownerName, 'furniture');
 };
