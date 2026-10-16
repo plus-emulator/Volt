@@ -25,7 +25,7 @@ import {
     SendMessageComposer
 } from '../../../../../api';
 import { HelpNameChangeEvent } from '../../../../../events';
-import { useRoom, useWiredTools } from '../../../../../hooks';
+import { useAvatarEditor, useRoom, useWiredTools } from '../../../../../hooks';
 import { ContextMenuHeaderView } from '../../context-menu/ContextMenuHeaderView';
 import { ContextMenuListItemView } from '../../context-menu/ContextMenuListItemView';
 import { ContextMenuView } from '../../context-menu/ContextMenuView';
@@ -69,6 +69,8 @@ const AIR_SIGNS: AirSign[] = [
     { id: 16, icon: 'red' }
 ];
 
+const SWIM_EFFECTS = [29, 30, 185];
+
 export const AvatarInfoWidgetOwnAvatarView: FC<AvatarInfoWidgetOwnAvatarViewProps> = (props) =>
 {
     const { avatarInfo = null, isDancing = false, setIsDecorating = null, onClose = null } = props;
@@ -77,9 +79,12 @@ export const AvatarInfoWidgetOwnAvatarView: FC<AvatarInfoWidgetOwnAvatarViewProp
     const ownPosture = GetOwnPosture();
     const ownRoomObject = GetOwnRoomObject();
     const activeEffectId = ownRoomObject?.model.getValue<number>(RoomObjectVariable.FIGURE_EFFECT) ?? 0;
-    const hasActiveEffect = activeEffectId > 0;
+    const { effects: inventoryEffects = [] } = useAvatarEditor();
+    // AvatarInfoWidget.hasEffectOn: only an effect from the effects inventory counts, so riding or swimming does not.
+    const hasActiveEffect = (activeEffectId > 0) && inventoryEffects.some(effect => effect.type === activeEffectId);
     const isRidingHorse = IsRidingHorse();
-    const isSwimming = ownPosture === AvatarAction.POSTURE_SWIM;
+    // AvatarInfoWidget.isSwimming reads the swim effects, not a posture.
+    const isSwimming = SWIM_EFFECTS.includes(activeEffectId);
     const [mode, setMode] = useState(isDancing && hasClub && !hasActiveEffect ? MODE_CLUB_DANCES : MODE_NORMAL);
     const { roomSession = null } = useRoom();
     const { openInspectionForUser, showInspectButton } = useWiredTools();
