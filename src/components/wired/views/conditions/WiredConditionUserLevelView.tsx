@@ -61,7 +61,7 @@ export const WiredConditionUserLevelView: FC<{}> = () => {
                     entries={variableEntries}
                     recentScope="user-level"
                     selectedToken={variableToken}
-                    onSelect={(entry) => setVariableToken(entry.token)}
+                    onSelect={(entry) => setVariableToken(entry.token)} onClear={() => setVariableToken('')}
                 />
 
                 <div className="flex flex-col gap-1">

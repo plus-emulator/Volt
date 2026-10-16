@@ -432,218 +432,6 @@
         min-height: 23px;
     }
 
-    .volt-wired__variable-picker {
-        position: relative;
-        width: 100%;
-    }
-
-    .volt-wired__variable-picker-trigger {
-        display: flex;
-        align-items: center;
-        width: 100%;
-        min-height: 23px;
-        padding: 0 22px 0 8px;
-        border: 1px solid #8e8e8e;
-        border-radius: 4px;
-        background: linear-gradient(180deg, #ffffff 0%, #ededed 100%);
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
-        font-size: 11px;
-        text-align: left;
-        position: relative;
-    }
-
-    .volt-wired__variable-picker-trigger::after {
-        content: '';
-        position: absolute;
-        top: 50%;
-        right: 8px;
-        width: 0;
-        height: 0;
-        margin-top: -2px;
-        border-left: 4px solid transparent;
-        border-right: 4px solid transparent;
-        border-top: 5px solid #555;
-    }
-
-    .volt-wired__variable-picker-placeholder {
-        color: #7a7a7a;
-    }
-
-    .volt-wired__variable-picker-panel {
-        position: absolute;
-        top: calc(100% + 2px);
-        left: 0;
-        z-index: 30;
-        width: 202px;
-        padding: 4px;
-        border: 1px solid #8e8e8e;
-        border-radius: 4px;
-        background: #f5f5f5;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-        overflow: visible;
-    }
-
-    .volt-wired__variable-picker-panel.is-portal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        z-index: 5001;
-        margin: 0;
-        pointer-events: auto;
-    }
-
-    .volt-wired__variable-picker-toolbar {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        padding-bottom: 4px;
-        border-bottom: 1px solid #d0d0d0;
-    }
-
-    .volt-wired__variable-picker-mode {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 20px;
-        height: 20px;
-        padding: 0;
-        border: 1px solid transparent;
-        border-radius: 3px;
-        background: transparent;
-    }
-
-    .volt-wired__variable-picker-mode.is-active {
-        border-color: #8e8e8e;
-        background: linear-gradient(180deg, #f3cc58 0%, #d2a93a 100%);
-    }
-
-    .volt-wired__variable-picker-mode img {
-        width: auto;
-        height: auto;
-        max-width: 13px;
-        max-height: 13px;
-        image-rendering: var(--volt-pixel-art, pixelated);
-    }
-
-    .volt-wired__variable-picker-search {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        min-height: 24px;
-        padding: 0 4px;
-        margin-top: 4px;
-        border: 1px solid #c4c4c4;
-        border-radius: 3px;
-        background: #fff;
-    }
-
-    .volt-wired__variable-picker-search-icon {
-        width: auto;
-        height: auto;
-        max-width: 10px;
-        max-height: 10px;
-        opacity: 0.75;
-        image-rendering: var(--volt-pixel-art, pixelated);
-    }
-
-    .volt-wired__variable-picker-search-input {
-        flex: 1 1 auto;
-        min-width: 0;
-        border: 0;
-        background: transparent;
-        font-size: 11px;
-        line-height: 1;
-        outline: none;
-    }
-
-    .volt-wired__variable-picker-clear {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 14px;
-        height: 14px;
-        padding: 0;
-        border: 0;
-        background: transparent;
-    }
-
-    .volt-wired__variable-picker-clear img {
-        width: auto;
-        height: auto;
-        max-width: 10px;
-        max-height: 10px;
-        image-rendering: var(--volt-pixel-art, pixelated);
-    }
-
-    .volt-wired__variable-picker-list,
-    .volt-wired__variable-picker-submenu {
-        display: flex;
-        flex-direction: column;
-        max-height: 140px;
-        margin-top: 4px;
-        overflow-y: auto;
-        border: 1px solid #c8c8c8;
-        border-radius: 3px;
-        background: #fff;
-    }
-
-    .volt-wired__variable-picker-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 6px;
-        min-height: 20px;
-        padding: 0 6px;
-        border: 0;
-        background: transparent;
-        font-size: 11px;
-        text-align: left;
-    }
-
-    .volt-wired__variable-picker-row:nth-child(even) {
-        background: #f3f3f3;
-    }
-
-    .volt-wired__variable-picker-row:hover {
-        background: #dfe8f6;
-    }
-
-    .volt-wired__variable-picker-row.is-selected {
-        background: #d7dfea;
-    }
-
-    .volt-wired__variable-picker-row.is-disabled {
-        color: #7b7b7b;
-    }
-
-    .volt-wired__variable-picker-row-label {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    .volt-wired__variable-picker-row-arrow {
-        flex: 0 0 auto;
-        font-size: 9px;
-    }
-
-    .volt-wired__variable-picker-empty {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 86px;
-        color: #8a8a8a;
-    }
-
-    .volt-wired__variable-picker-submenu {
-        position: fixed;
-        width: 120px;
-        margin-top: 0;
-        z-index: 5000;
-        pointer-events: auto;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.18);
-    }
-
     .volt-wired__give-var-checkbox {
         display: flex;
         align-items: center;
@@ -1006,6 +794,196 @@
     border: 0 !important;
     border-radius: 0 !important;
     box-shadow: none !important;
+}
+
+/*
+ * AIR variable picker (WIN63-202610131318-860371703, uibuilder/presets/newvariablepicker). Colours, tab widths, the
+ * 300px list cap and the 9px scrollbar come from the classes. The search_tree_dropdown layout is not indexed, so the
+ * frame, field, font and spacing are measured from the live AIR client at 1x (hhus, 2026-10-16).
+ */
+.volt-wired__vpicker {
+    position: relative;
+    width: 100%;
+}
+
+.volt-wired__vpicker-collapsed {
+    height: 21px;
+}
+
+.volt-wired__vpicker-input-region {
+    position: relative;
+    box-sizing: border-box;
+    cursor: text;
+    background: #fff;
+}
+
+/* Collapsed: a 21px white field, 1px #848484 rounded frame and a 10x5 drop-down triangle 8px from the right. */
+.volt-wired__vpicker-collapsed .volt-wired__vpicker-input-region {
+    height: 21px;
+    border: 1px solid #848484;
+    border-radius: 4px;
+}
+
+.volt-wired__vpicker-collapsed .volt-wired__vpicker-input-region::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    right: 7px;
+    border-top: 5px solid #555;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    pointer-events: none;
+}
+
+/* Expanded: a plain 20px field under the tabs, a #ddd line and 4px of white before the list. */
+.volt-wired__vpicker-search .volt-wired__vpicker-input-region {
+    height: 21px;
+    border-bottom: 1px solid #ddd;
+}
+
+.volt-wired .volt-wired__vpicker-input-region .volt-wired__vpicker-input,
+.volt-wired__vpicker-input-region .volt-wired__vpicker-input {
+    position: absolute;
+    left: 8px;
+    top: 0;
+    width: calc(100% - 30px);
+    height: 19px;
+    min-height: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #555 !important;
+    font: 9px/19px Volter, sans-serif !important;
+    outline: 0;
+}
+
+.volt-wired__vpicker-input::placeholder {
+    color: #808080;
+    opacity: 1;
+}
+
+.volt-wired__vpicker-cancel {
+    position: absolute;
+    top: 2px;
+    right: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    height: 15px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+}
+
+.volt-wired__vpicker-cancel img {
+    image-rendering: pixelated;
+}
+
+.volt-wired__vpicker-expanded {
+    position: fixed;
+    box-sizing: border-box;
+    padding-bottom: 1px;
+    pointer-events: auto;
+    border: 1px solid #848484;
+    border-radius: 3px;
+    background: #fff;
+    color: #555;
+    font: 9px Volter, sans-serif;
+    overflow: visible;
+}
+
+.volt-wired__vpicker-tabs {
+    display: flex;
+}
+
+.volt-wired__vpicker-tab {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    box-sizing: content-box;
+    height: 18px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    cursor: pointer;
+}
+
+.volt-wired__vpicker-tabs .volt-wired__vpicker-tab:first-child {
+    border-top-left-radius: 2px;
+}
+
+.volt-wired__vpicker-tab img {
+    image-rendering: pixelated;
+    pointer-events: none;
+}
+
+.volt-wired__vpicker-content {
+    position: relative;
+    margin-top: 4px;
+}
+
+.volt-wired__vpicker-list {
+    box-sizing: border-box;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+
+.volt-wired__vpicker-list::-webkit-scrollbar {
+    width: 9px;
+}
+
+.volt-wired__vpicker-list.is-sublist {
+    z-index: 1;
+    padding: 2px 0 2px;
+    pointer-events: auto;
+    border: 1px solid #000;
+    border-radius: 3px;
+    background: #fff;
+    box-shadow: inset -1px -1px 0 #ccc;
+    color: #555;
+    font: 9px Volter, sans-serif;
+}
+
+.volt-wired__vpicker-node {
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    padding: 0 10px 0 9px;
+    cursor: default;
+    white-space: nowrap;
+    line-height: 20px;
+}
+
+.volt-wired__vpicker-node.is-selectable {
+    cursor: pointer;
+}
+
+.volt-wired__vpicker-node-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: clip;
+}
+
+/* right_triangle_icon (VariableNodeView.as:339-342), only on nodes with children: 5x10, #767676 on live AIR. */
+.volt-wired__vpicker-node-arrow {
+    flex: 0 0 auto;
+    width: 0;
+    height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 5px solid #767676;
+}
+
+.volt-wired__vpicker-empty {
+    padding: 4px 9px 5px;
+    color: #555;
 }
 
 /* Wired's frame margins override the WindowManager's generic frame defaults. */

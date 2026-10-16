@@ -21,6 +21,7 @@ import { WiredSection, WiredSplitter } from './WiredSection';
 import { WiredShellButton, WiredShellHeaderView } from './WiredShellHeaderView';
 import { WIRED_ADVANCED_SURFACE_COLOR, WiredSurfaceContext, WiredText } from './WiredText';
 import { WiredVolterBorderView, WiredVolterFrameView } from './WiredVolterFrameView';
+import { finalizeWiredVariablePickers } from './WiredVariablePickerHistory';
 
 // The official frame is centred while it is still its 108px minimum height and then grows downwards.
 const WIRED_OPEN_HEIGHT = 108;
@@ -121,6 +122,8 @@ export const WiredBaseView: FC<PropsWithChildren<WiredBaseViewProps>> = (props) 
     completeSave.current = (keepOpen) => {
         if (!roomSettings.canModify || (validate && !validate())) return;
         if (save) save();
+        // AIR VariablePickerPreset.finalizeSelection: a saved selection enters the picker history (NewVariablePicker.as:329-336).
+        finalizeWiredVariablePickers();
         setKeepOpenOnSave(keepOpen);
         setNeedsSave(true);
     };

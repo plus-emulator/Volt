@@ -24,6 +24,9 @@ export interface IWiredNativeVariableDefinition {
     canCreateAndDelete?: boolean;
     canReadCreationTime?: boolean;
     canReadLastUpdateTime?: boolean;
+    /** AIR WiredVariable.variableType and isInvisible, read by the variable picker's tabs and visibility rule. */
+    variableType?: number;
+    isInvisible?: boolean;
 }
 
 /** A picker token for a catalog variable, or empty when there is no id. */
@@ -59,11 +62,14 @@ export const nativeVariableDefinitions = (
             hasValue: variable.hasValue,
             isReadOnly: !variable.canWriteValue,
             requiresExecutionContext: variable.requiresExecutionContext,
-            isTextConnected: !!variable.textConnector?.length,
+            // AIR WiredVariable.hasTextConnector is `textConnector != null` (package_223/WiredVariable.as:156-159): an empty connector counts.
+            isTextConnected: variable.textConnector != null,
             textConnector: variable.textConnector ?? [],
             canCreateAndDelete: variable.canCreateAndDelete,
             canReadCreationTime: variable.canReadCreationTime,
-            canReadLastUpdateTime: variable.canReadLastUpdateTime
+            canReadLastUpdateTime: variable.canReadLastUpdateTime,
+            variableType: variable.variableType,
+            isInvisible: variable.isInvisible
         });
     }
 

@@ -97,7 +97,7 @@ export const WiredConditionHasVariableView: FC<WiredConditionHasVariableViewProp
             }
         >
             <WiredSection title={LocalizeText('wiredfurni.params.variables.variable_selection')} headerOptionsRight={<VariableScopeButtons scopes={SCOPES} value={scope} onChange={handleScopeChange} />}>
-                <WiredVariablePicker entries={entries} recentScope="variable-conditions" selectedToken={variableToken} onSelect={entry => setVariableToken(entry.token)} />
+                <WiredVariablePicker entries={entries} recentScope="variable-conditions" selectedToken={variableToken} onSelect={entry => setVariableToken(entry.token)} onClear={() => setVariableToken('')} />
             </WiredSection>
         </WiredConditionBaseView>
     );

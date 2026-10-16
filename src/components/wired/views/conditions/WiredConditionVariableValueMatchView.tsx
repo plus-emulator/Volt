@@ -136,7 +136,7 @@ export const WiredConditionVariableValueMatchView: FC<{}> = () => {
                     furniSource={furniSource} userSource={userSource} onChangeFurni={value => { setFurniSource(value); if ([100, 101].includes(value)) setActivePickSlot(value === 101 ? 1 : 0); }} onChangeUsers={setUserSource} />
             </>}>
             <WiredSection title={LocalizeText('wiredfurni.params.variables.variable_selection')} headerOptionsRight={<VariableScopeButtons scopes={SCOPES} value={scope} onChange={handleScopeChange} />}>
-                <WiredVariablePicker entries={entries} recentScope="variable-conditions" selectedToken={variableToken} onSelect={entry => setVariableToken(entry.token)} />
+                <WiredVariablePicker entries={entries} recentScope="variable-conditions" selectedToken={variableToken} onSelect={entry => setVariableToken(entry.token)} onClear={() => setVariableToken('')} />
             </WiredSection>
             <WiredSection title={LocalizeText('wiredfurni.params.comparison_selection')}>
                 <WiredRadioGroup name="variable-value-comparison" columns={6} value={comparison} onChange={setComparison} options={[2, 5, 1, 3, 0, 4].map(id => ({ id, label: ['<', '=', '>', '≤', '≠', '≥'][id] }))} />
