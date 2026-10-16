@@ -46,8 +46,8 @@ import { WiredSection } from '../WiredSection';
 import { WiredText } from '../WiredText';
 import { WiredDropdown } from '../WiredDropdown';
 import { useWired } from '../../../../hooks';
-import { WiredFurniSelectorView } from '../WiredFurniSelectorView';
-import { nativeSourceOptions, WiredMergedSourceSection, WiredSourceOption } from '../WiredSourcesSelector';
+import { WiredFurniSelectionSourceRow } from '../WiredFurniSelectionSourceRow';
+import { nativeSourceOptions, WiredMergedSourceSection, WiredSourcesSelector } from '../WiredSourcesSelector';
 import { getWiredValueTargetCode, normalizeWiredValueTarget, WiredActionValueOrVariableSection } from '../actions/WiredActionValueOrVariableSection';
 import { WIRED_VARIABLE_ABSENT, tokenOfVariableSlot, variableSlotOf } from '../../../../api';
 import { WiredExtraBaseView } from './WiredExtraBaseView';
@@ -111,13 +111,6 @@ const NumberField: FC<{ disabled?: boolean; label: string; value: number; onChan
     </label>
 );
 
-const SourceSelect: FC<{ label: string; options: WiredSourceOption[]; value: number; disabled?: boolean; onChange: (value: number) => void }> = ({ label, options, value, disabled = false, onChange }) => (
-    <label className="flex items-center justify-between gap-2">
-        <Text small>{label}</Text>
-        <WiredDropdown caption={label} disabled={disabled} value={value} onChange={onChange} options={options.map((option) => ({ id: option.value, label: LocalizeText(option.label) }))} />
-    </label>
-);
-
 interface ValueOrVariableProps {
     min: number;
     max: number;
@@ -172,7 +165,7 @@ const ValueOrVariable: FC<ValueOrVariableProps> = (props) => {
 };
 
 export const WiredExtraProjectileView: FC<{}> = () => {
-    const { trigger = null, setIntParams = null, setStringParam = null, setVariableIds = null, setUserSources = null, setFurniSources = null } = useWired();
+    const { trigger = null, setIntParams = null, setStringParam = null, setVariableIds = null, setUserSources = null, setFurniSources = null, furniIds = [] } = useWired();
     const [timeValid, setTimeValid] = useState(true);
     const [distanceValid, setDistanceValid] = useState(true);
     const [params, setParams] = useState<number[]>(defaultProjectileParams);
@@ -180,7 +173,8 @@ export const WiredExtraProjectileView: FC<{}> = () => {
     const [timeToken, setTimeToken] = useState('');
     const [distanceToken, setDistanceToken] = useState('');
     const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>(INITIALLY_OPEN);
-    const userSources = nativeSourceOptions(trigger?.inputSources?.usersAllowed[1], 'users');
+    // "The projectile:" is furni selection 0 (class_3959.as:243); the server's default for it is the stack's moved furni.
+    const [projectileSource, setProjectileSource] = useState(901);
 
     useEffect(() => {
         if (!trigger) return;
@@ -195,6 +189,7 @@ export const WiredExtraProjectileView: FC<{}> = () => {
         nextParams[PROJECTILE_PARAM_DISTANCE_USER_SOURCE] = trigger.userSources[2] ?? 0;
         nextParams[PROJECTILE_PARAM_TIME_FURNI_SOURCE] = trigger.furniSources[1] ?? trigger.inputSources?.furniDefaults[1] ?? 0;
         nextParams[PROJECTILE_PARAM_DISTANCE_FURNI_SOURCE] = trigger.furniSources[2] ?? 0;
+        setProjectileSource(trigger.furniSources[0] ?? trigger.inputSources?.furniDefaults[0] ?? 901);
         setParams(nextParams);
         setCurved(nextParams[PROJECTILE_PARAM_CURVE_STRENGTH] !== 0);
         setTimeToken(tokenOfVariableSlot(trigger.variableIds[0]));
@@ -220,14 +215,42 @@ export const WiredExtraProjectileView: FC<{}> = () => {
         savedParams[PROJECTILE_PARAM_CURVE_STRENGTH] = curved ? params[PROJECTILE_PARAM_CURVE_STRENGTH] : 0;
         setIntParams(savedParams);
         setUserSources([params[PROJECTILE_PARAM_TIME_USER_SOURCE], params[PROJECTILE_PARAM_SHOOTER_SOURCE], params[PROJECTILE_PARAM_DISTANCE_USER_SOURCE]]);
-        setFurniSources([100, params[PROJECTILE_PARAM_TIME_FURNI_SOURCE], params[PROJECTILE_PARAM_DISTANCE_FURNI_SOURCE]]);
+        setFurniSources([projectileSource, params[PROJECTILE_PARAM_TIME_FURNI_SOURCE], params[PROJECTILE_PARAM_DISTANCE_FURNI_SOURCE]]);
         setStringParam('');
         setVariableIds([timeFromVariable ? variableSlotOf(timeToken) : WIRED_VARIABLE_ABSENT, distanceFromVariable ? variableSlotOf(distanceToken) : WIRED_VARIABLE_ABSENT]);
     };
 
+    // AIR's advanced settings (UserDefinedRoomEventsCtrl.createAdvancedSections): the unmerged furni selection 0 "The projectile:" and
+    // user selection 1 "The shooter:"; the shooter row is greyed unless the projectile rotates and changes the shooter's direction
+    // (class_3959.as:262-275). forceHidePickFurniInstructions drops the picks section and puts the pick count in the label instead.
+    const advanced = (
+        <>
+            <WiredFurniSelectionSourceRow
+                title="wiredfurni.params.sources.furni.title.projectile"
+                options={nativeSourceOptions(trigger?.inputSources?.furniAllowed[0] ?? [0, 100, 200, 201, 901], 'furni')}
+                value={projectileSource}
+                onChange={setProjectileSource}
+                selectionKind="primary"
+                selectionActive={true}
+                selectionCount={furniIds.length}
+                selectionLimit={trigger?.maximumItemSelectionCount ?? 0}
+                selectionEnabledValues={[100]}
+                showSelectionToggle={false}
+            />
+            <WiredSourcesSelector
+                showUsers={true}
+                userSlot={1}
+                usersTitle="wiredfurni.params.sources.users.title.shooter"
+                userSource={params[PROJECTILE_PARAM_SHOOTER_SOURCE]}
+                rowDisabled={!rotates || !changesShooter}
+                onChangeUsers={(value) => setParam(PROJECTILE_PARAM_SHOOTER_SOURCE, value)}
+            />
+        </>
+    );
+
     return (
         <WiredExtraBaseView
-            footer={<WiredFurniSelectorView />}
+            footer={advanced}
             hasSpecialInput={true}
             nativeLayout={true}
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID}
@@ -269,15 +292,6 @@ export const WiredExtraProjectileView: FC<{}> = () => {
                             label={text('bunny_hop', 'Do a little hop when shooting sideways')}
                             onChange={(checked) => setFlag(PROJECTILE_PARAM_BUNNY_HOP, checked)}
                         />
-                        {changesShooter && (
-                            <SourceSelect
-                                label={text('shooter.source', 'Shooter:')}
-                                disabled={!rotates}
-                                options={userSources}
-                                value={params[PROJECTILE_PARAM_SHOOTER_SOURCE]}
-                                onChange={(value) => setParam(PROJECTILE_PARAM_SHOOTER_SOURCE, value)}
-                            />
-                        )}
                     </div>
                 </ProjectileSection>
 

@@ -1,7 +1,7 @@
 import { FC } from 'react';
 import { LocalizeText, WiredFurniType } from '../../../../api';
 import { useWired } from '../../../../hooks';
-import { WiredFurniSelectorSection } from '../WiredFurniSelectorView';
+import { WiredAdvancedSourceRows } from '../WiredAdvancedSourceRows';
 import { WiredSection } from '../WiredSection';
 import { WiredText } from '../WiredText';
 import { WiredTriggerBaseView } from './WiredTriggerBaseView';
@@ -9,6 +9,7 @@ import { WiredTriggerBaseView } from './WiredTriggerBaseView';
 /**
  * AIR ReceiveLinkMessage (`wf_trg_receive_message`, trigger 29, build WIN63-202610131318-860371703): no parameters.
  * The WIRED Links it listens to are the furni picked in the room; the received message goes to $(trigger_text).
+ * The WIRED Links source is the always-open advanced section with no picks section (ReceiveLinkMessage.as:34-41).
  */
 export const WiredTriggerReceiveLinkMessageView: FC<{}> = () => {
     const { setIntParams = null, setStringParam = null } = useWired();
@@ -17,8 +18,9 @@ export const WiredTriggerReceiveLinkMessageView: FC<{}> = () => {
         <WiredTriggerBaseView
             hasSpecialInput={true}
             nativeLayout={true}
-            footerCollapsible={false}
-            selectionPreview={<WiredFurniSelectorSection title={LocalizeText('wiredfurni.params.link.endpoints')} hideInstructions />}
+            advancedAlwaysVisible
+            showSelection={false}
+            footer={<WiredAdvancedSourceRows rows={[{ kind: 'furni', slot: 0, title: 'wiredfurni.params.link.endpoints', pickCount: true }]} />}
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID}
             save={() => {
                 setIntParams([]);

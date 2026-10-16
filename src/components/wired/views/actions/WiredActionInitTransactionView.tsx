@@ -110,6 +110,8 @@ export const WiredActionInitTransactionView: FC<{}> = () => {
                     <WiredSourcesSelector showFurni={true} furniSlot={0} furniSource={chestSource} furniTitle="wiredfurni.params.sources.furni.title.chests" onChangeFurni={(source) => pick(source, setChestSource)} />
                     <WiredSourcesSelector showFurni={true} furniSlot={1} furniSource={contractSource} furniTitle="wiredfurni.params.sources.furni.title.contracts" onChangeFurni={(source) => pick(source, setContractSource)} />
                     <FurniPickSlotButtons slots={lists.map((slot) => ({ slot: slot as 0 | 1, count: slot === 0 ? furniIds.length : secondaryFurniIds.length }))} />
+                    {/* User selection 0 follows the furni selections in AIR's advanced section (class_4180, createAdvancedInputSources). */}
+                    <WiredSourcesSelector showUsers={true} userSlot={0} userSource={defaultUserSource} onChangeUsers={setDefaultUserSource} />
                 </>
             }
         >

@@ -44,7 +44,7 @@ export const WiredActionBotFollowAvatarView: FC<{}> = (props) => {
             save={save}
             footer={
                 <>
-                    <WiredSourcesSelector showUsers={true} userSlot={1} userSource={userSource} onChangeUsers={setUserSource} />
+                    {/* AIR lists user selection 0 (the bots, class_4030.as:11-18) before user selection 1. */}
                     <WiredSourcesSelector
                         showUsers={true}
                         userSlot={0}
@@ -52,6 +52,7 @@ export const WiredActionBotFollowAvatarView: FC<{}> = (props) => {
                         usersTitle="wiredfurni.params.sources.users.title.bots"
                         onChangeUsers={(value) => setBotSource(normalizeBotSource(value, botAllowed, botDefault, botName.length > 0))}
                     />
+                    <WiredSourcesSelector showUsers={true} userSlot={1} userSource={userSource} onChangeUsers={setUserSource} />
                 </>
             }
         >

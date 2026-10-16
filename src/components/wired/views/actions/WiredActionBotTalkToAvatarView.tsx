@@ -53,8 +53,7 @@ export const WiredActionBotTalkToAvatarView: FC<{}> = (props) => {
             save={save}
             footer={
                 <div className="flex flex-col gap-2">
-                    <WiredSourcesSelector showUsers={true} userSlot={1} userSource={userSource} onChangeUsers={setUserSource} />
-                    <hr className="m-0 bg-dark" />
+                    {/* AIR lists user selection 0 (the bots, class_4030.as:11-18) before user selection 1. */}
                     <WiredSourcesSelector
                         showUsers={true}
                         userSlot={0}
@@ -62,6 +61,8 @@ export const WiredActionBotTalkToAvatarView: FC<{}> = (props) => {
                         usersTitle="wiredfurni.params.sources.users.title.bots"
                         onChangeUsers={(value) => setBotSource(normalizeBotSource(value, botAllowed, botDefault, botName.length > 0))}
                     />
+                    <hr className="m-0 bg-dark" />
+                    <WiredSourcesSelector showUsers={true} userSlot={1} userSource={userSource} onChangeUsers={setUserSource} />
                 </div>
             }
         >

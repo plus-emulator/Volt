@@ -37,8 +37,9 @@ export const WiredActionTeleportView: FC<{}> = () => {
             footer={
                 <WiredSourcesSelector
                     showFurni={true}
-                    furniTitle={isUserToFurni ? 'wiredfurni.params.sources.furni.title.mv.1' : undefined}
-                    usersTitle={isUserToFurni ? 'wiredfurni.params.sources.furni.title.mv_user2' : undefined}
+                    // class_3932 (user to furni) and class_3993 (furni to user) name their rows; teleport_to keeps the defaults.
+                    furniTitle={isUserToFurni ? 'wiredfurni.params.sources.furni.title.mv.1' : trigger?.code === 35 ? 'wiredfurni.params.sources.furni.title.mv.0' : undefined}
+                    usersTitle={isUserToFurni ? 'wiredfurni.params.sources.furni.title.mv_user2' : trigger?.code === 35 ? 'wiredfurni.params.sources.furni.title.mv_user' : undefined}
                     showUsers={true}
                     furniSource={furniSource}
                     userSource={userSource}

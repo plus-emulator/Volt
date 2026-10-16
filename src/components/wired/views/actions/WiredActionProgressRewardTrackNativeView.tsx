@@ -5,6 +5,7 @@ import { WiredCheckboxOption } from '../WiredOptions';
 import { WiredSection } from '../WiredSection';
 import { WiredTextInput } from '../WiredTextInput';
 import { WiredMergedSourceSection } from '../WiredSourcesSelector';
+import { WiredAdvancedSourceRows } from '../WiredAdvancedSourceRows';
 import { WiredActionBaseView } from './WiredActionBaseView';
 import {
     getWiredValueTargetCode,
@@ -27,7 +28,7 @@ const ID_MAX_LENGTH = 100;
 const cleanId = (value: string) => value.replace(/[^a-zA-Z0-9_]/g, '').slice(0, ID_MAX_LENGTH);
 
 export const WiredActionProgressRewardTrackNativeView: FC<{}> = () => {
-    const { trigger = null, setIntParams = null, setStringParam = null, setVariableIds = null, setFurniSources = null, setUserSources = null } = useWired();
+    const { trigger = null, setIntParams = null, setStringParam = null, setVariableIds = null, setFurniSources = null, setUserSources = null, furniSources = [], userSources = [] } = useWired();
     const [track, setTrack] = useState('');
     const [task, setTask] = useState('');
     const [addToExisting, setAddToExisting] = useState(false);
@@ -63,8 +64,8 @@ export const WiredActionProgressRewardTrackNativeView: FC<{}> = () => {
         setVariableIds([option === 1 ? variableSlotOf(variableToken) : WIRED_VARIABLE_ABSENT]);
         // Untouched source tails stay as loaded (useWired keeps the trigger's arrays); an edited holder writes only its own slot.
         if (sourcesEdited) {
-            const furni = [...(trigger?.furniSources ?? [])];
-            const users = [...(trigger?.userSources ?? [])];
+            const furni = [...furniSources];
+            const users = [...userSources];
             furni[0] = mergedFurniSource;
             users[0] = users[0] ?? 0;
             users[1] = mergedUserSource;
@@ -74,7 +75,8 @@ export const WiredActionProgressRewardTrackNativeView: FC<{}> = () => {
     };
 
     return (
-        <WiredActionBaseView hasSpecialInput={true} nativeLayout={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save}>
+        <WiredActionBaseView hasSpecialInput={true} nativeLayout={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save}
+            advancedAlwaysVisible footer={<WiredAdvancedSourceRows rows={[{ kind: 'users', slot: 0 }]} />}>
             <WiredSection title={localizeWithFallback('wiredfurni.params.reward_track.progress.ids', 'Reward track task:')}>
                 <div className="flex flex-col gap-1">
                     <WiredTextInput

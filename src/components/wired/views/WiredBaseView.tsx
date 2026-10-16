@@ -11,6 +11,7 @@ import {
     wiredStyleWidth,
     wiredWidthMultiplier
 } from '../../../api';
+import { isUsingAdvancedSettings } from '../../../api/wired/WiredAdvancedSettings';
 import volterAtlas from '../../../assets/images/wired/volter_shell_atlas.png';
 import { VoltCardContentView, VoltCardView, Text } from '../../../common';
 import { useWired, useWiredTools } from '../../../hooks';
@@ -198,7 +199,8 @@ export const WiredBaseView: FC<PropsWithChildren<WiredBaseViewProps>> = (props) 
     useEffect(() => {
         if (!trigger) return;
 
-        setShowFooter(false);
+        // AIR opens the advanced section expanded when it holds a non-default choice (UserDefinedRoomEventsCtrl.as:703).
+        setShowFooter(isUsingAdvancedSettings(trigger, wiredType));
 
         WiredSelectionVisualizer.clearAllSelectionShaders();
 
@@ -206,7 +208,7 @@ export const WiredBaseView: FC<PropsWithChildren<WiredBaseViewProps>> = (props) 
             setIntParams(trigger.intData);
             setStringParam(trigger.stringData);
         }
-    }, [trigger, hasSpecialInput, setIntParams, setStringParam]);
+    }, [trigger, wiredType, hasSpecialInput, setIntParams, setStringParam]);
 
     useEffect(() => {
         if (!trigger) return;

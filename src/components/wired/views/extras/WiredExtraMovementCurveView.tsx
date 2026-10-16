@@ -44,7 +44,9 @@ export const WiredExtraMovementCurveView: FC<{}> = () => {
     const [userSource, setUserSource] = useState(SOURCE_TRIGGER);
     const [furniSource, setFurniSource] = useState(SOURCE_TRIGGER);
 
-    const userSources = sortWiredSourceOptions(useAvailableUserSources(trigger, USER_SOURCES), 'users');
+    const nativeUserSources = trigger?.inputSources?.usersAllowed[0]?.length ? nativeSourceOptions(trigger.inputSources.usersAllowed[0], 'users') : null;
+    const availableUserSources = useAvailableUserSources(trigger, nativeUserSources ?? USER_SOURCES, undefined, !nativeUserSources);
+    const userSources = nativeUserSources ? availableUserSources : sortWiredSourceOptions(availableUserSources, 'users');
 
     const picksFurni = fromVariable && target === 'furni' && (furniSource === SOURCE_SELECTED || furniSource === SOURCE_SECONDARY_SELECTED);
     const sourceOptions = target === 'furni' ? nativeSourceOptions(trigger?.inputSources?.furniAllowed[0], 'furni') : target === 'global' ? GLOBAL_SOURCES : target === 'context' ? CONTEXT_SOURCES : userSources;

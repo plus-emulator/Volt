@@ -1,3 +1,4 @@
+import type { ConditionDefinition } from '@volt/renderer';
 import { IWiredVariableData } from '@volt/renderer';
 import { IWiredVariablePickerEntry } from '../WiredVariablePickerData';
 import { WiredSourceTypeSelector } from '../WiredSourceTypeSelector';
@@ -42,13 +43,22 @@ export const VariableScopeButtons: FC<{ scopes: WiredNativeVariableScope[]; valu
 );
 
 /** Quantifier radios of the variable conditions: all or any of the holders. */
-export const VariableQuantifierRadios: FC<{ name: string; value: number; onChange: (value: number) => void }> = ({ name, value, onChange }) => useWiredNative() ? <WiredSection title={LocalizeText('wiredfurni.params.quantifier_selection')}><WiredRadioGroup name={name} value={value} onChange={onChange} options={[0, 1].map(id => ({ id, label: LocalizeText(`wiredfurni.params.quantifier.variables.${id}`) }))} /></WiredSection> : (
+export const VariableQuantifierRadios: FC<{ name: string; value: number; onChange: (value: number) => void }> = ({ name, value, onChange }) =>
+{
+    // AIR getQuantifierKey (UserDefinedRoomEventsCtrl.as:512-518): the negative card's invert flag selects the ".neg." labels.
+    const { trigger = null } = useWired();
+    const key = `wiredfurni.params.quantifier.variables${trigger && 'inverse' in trigger && (trigger as ConditionDefinition).inverse ? '.neg' : ''}`;
+
+    return <VariableQuantifierRadiosView name={name} value={value} onChange={onChange} labelKey={key} />;
+};
+
+const VariableQuantifierRadiosView: FC<{ name: string; value: number; labelKey: string; onChange: (value: number) => void }> = ({ name, value, labelKey, onChange }) => useWiredNative() ? <WiredSection title={LocalizeText('wiredfurni.params.quantifier_selection')}><WiredRadioGroup name={name} value={value} onChange={onChange} options={[0, 1].map(id => ({ id, label: LocalizeText(`${labelKey}.${id}`) }))} /></WiredSection> : (
     <div className="flex flex-col gap-1">
         <Text bold>{LocalizeText('wiredfurni.params.quantifier_selection')}</Text>
         {[0, 1].map((option) => (
             <label key={option} className="flex items-center gap-1">
                 <input checked={value === option} className="form-check-input" name={name} type="radio" onChange={() => onChange(option)} />
-                <Text>{LocalizeText(`wiredfurni.params.quantifier.variables.${option}`)}</Text>
+                <Text>{LocalizeText(`${labelKey}.${option}`)}</Text>
             </label>
         ))}
     </div>

@@ -19,7 +19,7 @@ export const WiredActionSetAltitudeView: FC<{}> = () => {
 
         const nextOperator = trigger.intData[1] ?? 2;
         setOperator(nextOperator >= 0 && nextOperator <= 2 ? nextOperator : 2);
-        setFurniSource(trigger.furniSources[0]);
+        setFurniSource(trigger.furniSources[0] ?? trigger.inputSources?.furniDefaults[0] ?? 100);
         setAltitude(Math.min(8000, Math.max(0, trigger.intData[0] ?? 0)));
     }, [trigger]);
 

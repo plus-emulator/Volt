@@ -101,7 +101,6 @@ export const WiredActionPlaceFurniView: FC<{}> = () => {
             save={save}
             validate={validate}
             selectionPreview={<></>}
-            footerCollapsible={false}
             footer={
                 <>
                     <WiredSourcesSelector showFurni={true} furniTitle="wiredfurni.params.sources.furni.title.place_furni" furniSource={furni[0]} onChangeFurni={(source) => setF(0, source)} />

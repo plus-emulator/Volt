@@ -4,6 +4,7 @@ import { useWired } from '../../../../hooks';
 import { WiredNumberInput } from '../WiredNumberInput';
 import { WiredRadioGroup } from '../WiredOptions';
 import { WiredSection } from '../WiredSection';
+import { WiredAdvancedSourceRows } from '../WiredAdvancedSourceRows';
 import { WiredActionBaseView } from './WiredActionBaseView';
 
 /**
@@ -36,7 +37,8 @@ export const WiredActionGiveEffectView: FC<{}> = () => {
     };
 
     return (
-        <WiredActionBaseView hasSpecialInput={true} nativeLayout={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save}>
+        <WiredActionBaseView hasSpecialInput={true} nativeLayout={true} requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save}
+            footer={<WiredAdvancedSourceRows rows={[{ kind: 'users', slot: 0 }]} />}>
             <WiredSection title={localizeWithFallback('wiredfurni.params.give_effect.id', 'Effect ID:')}>
                 <WiredNumberInput min={0} max={ID_MAX} value={effectId} onChange={setEffectId} />
             </WiredSection>
