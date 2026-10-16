@@ -4,6 +4,7 @@ import {
     GetSoundManager, GetTicker, PrepareRenderer, VoltLogger
 } from '@volt/renderer';
 import { loadMarketplaceTexts } from '../api/catalog/loadMarketplaceTexts';
+import { loadWiredTexts } from '../api/wired/loadWiredTexts';
 
 let runtime: ReturnType<typeof prepareHotelRuntime> | undefined;
 
@@ -37,7 +38,7 @@ const prepareHotelRuntime = async (width: number, height: number) => {
         .filter((value): value is string => typeof value === 'string' && !!value)
         .map(value => config.interpolate(value));
 
-    const localization = phase('localization', () => GetLocalizationManager().init().then(loadMarketplaceTexts));
+    const localization = phase('localization', () => GetLocalizationManager().init().then(loadMarketplaceTexts).then(loadWiredTexts));
     // Furnidata supplies localization overrides, so apply it after base texts.
     const session = phase('session-data', () => GetSessionDataManager().init(localization));
     const avatars = phase('avatars', () => GetAvatarRenderManager().init());

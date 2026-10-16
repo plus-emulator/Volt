@@ -23,6 +23,7 @@ vi.mock('@volt/renderer', () => ({
     GetSoundManager: () => ({ init: async () => {} })
 }));
 vi.mock('../api/catalog/loadMarketplaceTexts', () => ({ loadMarketplaceTexts: async () => {} }));
+vi.mock('../api/wired/loadWiredTexts', () => ({ loadWiredTexts: async () => {} }));
 
 describe('hotel boot dependencies', () => {
     beforeEach(() => { vi.resetModules(); vi.resetAllMocks(); });
