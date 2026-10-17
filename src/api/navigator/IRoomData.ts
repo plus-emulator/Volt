@@ -26,4 +26,6 @@ export interface IRoomData {
     floorThickness: number;
     chatSettings: IRoomChatSettings;
     moderationSettings: IRoomModerationSettings;
+    // RoomSettingsData hiddenByBc: Builders Club furni without a membership hide the room.
+    hiddenByBc?: boolean;
 }

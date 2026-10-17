@@ -1,6 +1,6 @@
-import { RoomDataParser } from '@volt/renderer';
+import { GetSessionDataManager, RoomDataParser } from '@volt/renderer';
 import { FC, useEffect, useState } from 'react';
-import { IRoomData, LocalizeText, localizeWithFallback } from '../../../../api';
+import { CreateLinkEvent, IRoomData, LocalizeText, localizeWithFallback } from '../../../../api';
 import { NavigatorRoomSettingsAtView } from './NavigatorRoomSettingsAtView';
 import { RoomSettingsFieldError, RoomSettingsFieldErrorView } from './RoomSettingsFieldErrorView';
 
@@ -45,6 +45,9 @@ export const NavigatorRoomSettingsAccessTabView: FC<NavigatorRoomSettingsTabView
 
     const showPassword = isTryingPassword || roomData.lockState === RoomDataParser.PASSWORD_STATE;
     const petsY = 260 + (hasGroup ? 30 : 0);
+    // doormode_override_info (AIR WIN63-202610151745-318700621 navigator/roomsettings/RoomSettingsCtrl.as:726): a room hidden by
+    // Builders Club furni overrides its door mode; staff (security 4) see the normal settings.
+    const lockedByBuildersClub = !!roomData.hiddenByBc && !GetSessionDataManager().hasSecurity(4);
 
     return (
         <div className="ros-tab" style={{ height: petsY + 82 }}>
@@ -122,6 +125,21 @@ export const NavigatorRoomSettingsAccessTabView: FC<NavigatorRoomSettingsTabView
             )}
             {showPassword && fieldError?.field === 'password' && <RoomSettingsFieldErrorView h={15} message={fieldError.message} overlayNode={overlayNode} w={193} x={42} y={203} />}
             {showPassword && fieldError?.field === 'confirm' && <RoomSettingsFieldErrorView h={15} message={fieldError.message} overlayNode={overlayNode} w={193} x={42} y={236} />}
+            {lockedByBuildersClub && (
+                <NavigatorRoomSettingsAtView className="ros-bc-locked" h={166} w={308} x={0} y={88}>
+                    <NavigatorRoomSettingsAtView className="ros-text ros-head" h={19} w={295} x={5} y={10}>
+                        {LocalizeText('notification.builders_club.room_locked.title')}
+                    </NavigatorRoomSettingsAtView>
+                    <NavigatorRoomSettingsAtView className="ros-text ros-multi" h={79} w={298} x={5} y={42}>
+                        {LocalizeText('notification.builders_club.room_locked.message')}
+                    </NavigatorRoomSettingsAtView>
+                    <NavigatorRoomSettingsAtView h={30} w={287} x={11} y={122}>
+                        <button type="button" className="ros-button" onClick={() => CreateLinkEvent('habbopages/builders-club/faq')}>
+                            <span className="ros-button-label">{LocalizeText('notification.builders_club.room_locked.linkTitle')}</span>
+                        </button>
+                    </NavigatorRoomSettingsAtView>
+                </NavigatorRoomSettingsAtView>
+            )}
             {hasGroup && (
                 <NavigatorRoomSettingsAtView className="ros-text ros-multi" h={30} w={277} x={0} y={260}>
                     {LocalizeText('navigator.roomsettings.roomaccess.guild.disclaimer')}
