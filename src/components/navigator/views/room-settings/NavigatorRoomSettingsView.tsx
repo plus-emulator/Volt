@@ -321,7 +321,6 @@ export const NavigatorRoomSettingsView: FC<{}> = (props) => {
                 newValue.password,
                 Math.max(1, Math.min(200, Number(newValue.userCount) || 1)),
                 newValue.categoryId,
-                newValue.tags.length,
                 newValue.tags,
                 newValue.tradeState,
                 newValue.allowPets,
@@ -333,18 +332,13 @@ export const NavigatorRoomSettingsView: FC<{}> = (props) => {
                 newValue.moderationSettings.allowMute,
                 newValue.moderationSettings.allowKick,
                 newValue.moderationSettings.allowBan,
-                newValue.chatSettings.mode,
-                newValue.chatSettings.weight,
-                newValue.chatSettings.speed,
-                Math.max(1, Math.min(99, Number(newValue.chatSettings.distance) || 1)),
                 newValue.chatSettings.protection,
-                newValue.allowUnderpass,
-                newValue.muteAllPets,
                 newValue.leaveOnDoorTileEnabled,
                 newValue.idleSleepEnabled,
                 newValue.idleSleepTimeoutSeconds,
                 newValue.idleAutokickEnabled,
-                newValue.idleAutokickTimeoutSeconds
+                newValue.idleAutokickTimeoutSeconds,
+                newValue.muteAllPets
             )
         );
     };
