@@ -1,5 +1,5 @@
 import { GroupInformationEvent, GroupSettingsEvent, HabboGroupDeactivatedMessageEvent } from '@volt/renderer';
-import { FC, useState } from 'react';
+import { FC, useRef, useState } from 'react';
 import { GroupBadgePart, IGroupData, LocalizeText } from '../../../api';
 import { useMessageEvent } from '../../../hooks';
 import { GroupManagementWindow } from './GroupManagementWindow';
@@ -23,6 +23,8 @@ export const GroupManagerView: FC<{}> = (props) => {
     const [currentTab, setCurrentTab] = useState<number>(1);
     const [closeAction, setCloseAction] = useState<{ action: () => boolean }>(null);
     const [groupData, setGroupData] = useState<IGroupData>(null);
+    // Habbo's guild edit info carries no forum flag, so remember it from the group information.
+    const groupForumsRef = useRef(new Map<number, boolean>());
 
     const onClose = () => {
         if (closeAction?.action && !closeAction.action()) return;
@@ -40,6 +42,8 @@ export const GroupManagerView: FC<{}> = (props) => {
 
     useMessageEvent<GroupInformationEvent>(GroupInformationEvent, (event) => {
         const parser = event.getParser();
+
+        groupForumsRef.current.set(parser.id, parser.hasForum);
 
         if (!groupData || groupData.groupId !== parser.id) return;
 
@@ -75,7 +79,7 @@ export const GroupManagerView: FC<{}> = (props) => {
             groupHomeroomId: parser.roomId,
             groupState: parser.state,
             groupCanMembersDecorate: parser.canMembersDecorate,
-            groupHasForum: parser.hasForum,
+            groupHasForum: groupForumsRef.current.get(parser.id) ?? false,
             groupMembersCount: parser.membersCount,
             groupColors: [parser.colorA, parser.colorB],
             groupBadgeParts
