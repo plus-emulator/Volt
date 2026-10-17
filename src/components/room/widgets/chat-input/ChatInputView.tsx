@@ -34,7 +34,7 @@ export const ChatInputView: FC<{}> = (props) => {
     const chatModeIdWhisper = useMemo(() => LocalizeText('widgets.chatinput.mode.whisper'), []);
     const chatModeIdShout = useMemo(() => LocalizeText('widgets.chatinput.mode.shout'), []);
     const chatModeIdSpeak = useMemo(() => LocalizeText('widgets.chatinput.mode.speak'), []);
-    const maxChatLength = useMemo(() => GetConfigurationValue<number>('chat.input.maxlength', 100), []);
+    const maxChatLength = useMemo(() => GetConfigurationValue<number>('chat.input.maxlength', 200), []);
 
     const anotherInputHasFocus = useCallback(() => {
         const activeElement = document.activeElement;
