@@ -44,6 +44,19 @@ export const measureBubbleVisualOffsets = (element: HTMLElement): BubbleVisualOf
     return { top: Math.max(0, top), bottom: Math.max(0, bottom) };
 };
 
+// Reads a mounted bubble's size and painted overflow into the message.
+export const measureChatBubble = (chat: { elementRef: HTMLDivElement; width: number; height: number; visualOffsetTop: number; visualOffsetBottom: number }, element: HTMLElement = chat.elementRef): void => {
+    if (!element) return;
+
+    const { offsetWidth: width, offsetHeight: height } = element;
+    const visualOffsets = measureBubbleVisualOffsets(element);
+
+    chat.width = width;
+    chat.height = height;
+    chat.visualOffsetTop = visualOffsets.top;
+    chat.visualOffsetBottom = visualOffsets.bottom;
+};
+
 export const getBubbleStackOverflowBottom = (visualOffsetBottom: number, overlap: number): number => {
     const paintedBelow = Number.isFinite(visualOffsetBottom) ? Math.max(0, visualOffsetBottom) : 0;
     const allowance = Number.isFinite(overlap) ? Math.max(0, overlap) : DEFAULT_BUBBLE_STACK_OVERLAP;
