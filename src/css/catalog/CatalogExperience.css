@@ -294,6 +294,13 @@
     height: 150px;
 }
 
+/* The room preview renders 150px high, so it must not be stretched to the default 240px offer preview. */
+.volt-catalog-default-layout.is-recolorable .volt-catalog-offer-preview > .shadow-room-previewer {
+    height: 150px !important;
+    min-height: 150px !important;
+    max-height: 150px !important;
+}
+
 .volt-catalog-default-layout.is-recolorable.has-colour-grid .volt-catalog-grid-shell {
     top: 155px;
     bottom: auto;
