@@ -1,6 +1,6 @@
-import { GetRoomEngine, RoomEngineTriggerWidgetEvent } from '@volt/renderer';
+import { GetRoomEngine, RoomControllerLevel, RoomEngineTriggerWidgetEvent } from '@volt/renderer';
 import { useState } from 'react';
-import { IsOwnerOfFurniture } from '../../../../api';
+import { GetRoomSession, HasPermission, Permission } from '../../../../api';
 import { useVoltEvent } from '../../../events';
 import { useFurniRemovedEvent } from '../../engine';
 
@@ -15,8 +15,13 @@ const useFurnitureFootballGateWidgetState = () => {
 
     useVoltEvent<RoomEngineTriggerWidgetEvent>(RoomEngineTriggerWidgetEvent.REQUEST_CLOTHING_CHANGE, (event) => {
         const roomObject = GetRoomEngine().getRoomObject(event.roomId, event.objectId, event.category);
+        const roomSession = GetRoomSession();
 
-        if (!roomObject || !IsOwnerOfFurniture(roomObject)) return;
+        // AIR WIN63-202610151745-318700621 FurnitureClothingChangeWidgetHandler.as:85: room owner, any-room controller or room rights.
+        const canEdit =
+            roomSession?.isRoomOwner || HasPermission(Permission.RoomOwnerAny) || (roomSession?.controllerLevel ?? 0) >= RoomControllerLevel.GUEST;
+
+        if (!roomObject || !canEdit) return;
 
         setObjectId(event.objectId);
         setCategory(event.category);
