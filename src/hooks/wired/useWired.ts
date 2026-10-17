@@ -461,8 +461,10 @@ const useWiredState = () => {
         const parser = event.getParser();
 
         if (parser.info && parser.info.length) {
+            const parameters = parser.parameters ?? [];
             const message = /^[a-z0-9_.]+$/i.test(parser.info)
-                ? localizeWithFallback(parser.info, WIRED_ERROR_FALLBACKS[parser.info] ?? parser.info)
+                ? localizeWithFallback(parser.info, WIRED_ERROR_FALLBACKS[parser.info] ?? parser.info,
+                    parameters.map(parameter => parameter.key), parameters.map(parameter => parameter.value))
                 : parser.info;
 
             simpleAlert(message, null, null, null, LocalizeText('wiredfurni.title'));
