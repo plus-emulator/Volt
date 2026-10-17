@@ -65,7 +65,7 @@ const DEFAULT_USER_DATA: Readonly<IUserDataSnapshot> = Object.freeze({
     rankBadge: ''
 }) as Readonly<IUserDataSnapshot>;
 
-const EMPTY_IGNORED_LIST: ReadonlyArray<string> = Object.freeze<string[]>([]) as ReadonlyArray<string>;
+const EMPTY_IGNORED_LIST: ReadonlyArray<number> = Object.freeze<number[]>([]) as ReadonlyArray<number>;
 const EMPTY_BLOCKED_LIST: ReadonlyArray<number> = Object.freeze<number[]>([]) as ReadonlyArray<number>;
 const EMPTY_GROUP_BADGES: ReadonlyMap<number, string> = new Map();
 const EMPTY_USER_LIST: ReadonlyArray<IRoomUserData> = Object.freeze<IRoomUserData[]>([]) as ReadonlyArray<IRoomUserData>;
@@ -107,7 +107,7 @@ export const useActiveRoomSessionSnapshot = (): Readonly<IRoomSessionSnapshot> |
         return manager.getActiveRoomSessionSnapshot();
     });
 
-export const useIgnoredUsersSnapshot = (): ReadonlyArray<string> =>
+export const useIgnoredUsersSnapshot = (): ReadonlyArray<number> =>
     useExternalSnapshot(subscribeTo(VoltEventType.IGNORED_USERS_UPDATED), () => {
         const inner = GetSessionDataManager()?.ignoredUsersManager;
 
@@ -141,10 +141,10 @@ export const useIsUserBlocked = (userId: number): boolean => {
  * Re-renders only when the array reference flips (i.e. someone is added
  * or removed) — not on unrelated session updates.
  */
-export const useIsUserIgnored = (name: string): boolean => {
+export const useIsUserIgnored = (userId: number): boolean => {
     const list = useIgnoredUsersSnapshot();
 
-    return useMemo(() => list.includes(name), [list, name]);
+    return useMemo(() => list.includes(userId), [list, userId]);
 };
 
 /**
