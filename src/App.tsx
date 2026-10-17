@@ -22,6 +22,7 @@ import { ReconnectView } from './components/reconnect/ReconnectView';
 import { clearRoomToolsHistory } from './components/room/widgets/room-tools/roomToolsHistoryStore';
 import { ClearStoredChatHistory, getConnectionFailureAction, shouldClearLoginAfterDisconnect, useConnectionState, useDevicePixelRatio, useMessageEvent, useVoltEvent } from './hooks';
 import { listenForWiredLabels } from './hooks/rooms/widgets/useWiredLabelsState';
+import { clearBuildersClubStatus, listenForBuildersClubStatus } from './state/buildersClubStore';
 import { clearPerkAllowances, listenForPerkAllowances } from './state/perkAllowancesStore';
 import { SharedHookRegistry } from './state/useSharedHook';
 
@@ -71,6 +72,7 @@ export const App: FC<{}> = (props) => {
     const clearStoredCredentials = useCallback(() => {
         ClearStoredChatHistory();
         clearPerkAllowances();
+        clearBuildersClubStatus();
         clearRoomToolsHistory();
         try {
             delete (window as any).VoltConfig?.['sso.ticket'];
@@ -172,6 +174,7 @@ export const App: FC<{}> = (props) => {
                 // below still register their handlers first.
                 if (!communicationInitRef.current) {
                     listenForPerkAllowances();
+                    listenForBuildersClubStatus();
                     listenForWiredLabels();
                     communicationInitRef.current = takeEarlyCommunicationInit() ?? GetCommunication().init();
                     communicationInitRef.current.catch(() => {});

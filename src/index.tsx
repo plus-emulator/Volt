@@ -24,6 +24,7 @@ import './css/catalog/CatalogView.css';
 import './css/catalog/CatalogLayouts.css';
 import './css/catalog/CatalogExperience.css';
 import './css/catalog/CatalogVipBuyView.css';
+import './css/catalog/CatalogBuildersClubView.css';
 import './css/floorplan-editor/FloorplanEditorView.css';
 
 import './css/chat/Chats.css';
