@@ -21,7 +21,7 @@ export class CatalogNode implements ICatalogNode {
         this._parent = parent;
         this._localization = node.localization;
         this._pageId = node.pageId;
-        this._parentId = node.parentId;
+        this._parentId = parent?.pageId ?? -1;
         this._pageName = node.pageName;
         this._iconId = node.icon;
         this._children = [];
