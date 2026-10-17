@@ -120,7 +120,7 @@ export const buildPurchasableOffer = (offer: ParserOffer, lookups: OfferLookups 
         products,
         offer.bundlePurchaseAllowed,
         '',
-        true // Habbo's offer carries no availability flag; the server refuses disabled offers.
+        true // Habbo's offer carries no availability flag; the server does not send disabled offers.
     );
 };
 
