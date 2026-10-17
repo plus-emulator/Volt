@@ -8,10 +8,12 @@ import { CatalogNavigationSetView } from './CatalogNavigationSetView';
 
 export interface CatalogNavigationViewProps {
     node: ICatalogNode;
+    /** The Builders Club list: orange selection and sub-item colours (builders_club_*_template). */
+    isBuilder?: boolean;
 }
 
 export const CatalogNavigationView: FC<CatalogNavigationViewProps> = (props) => {
-    const { node = null } = props;
+    const { node = null, isBuilder = false } = props;
     const { searchResult = null } = useCatalogData();
     const { activateNode = null } = useCatalogActions();
 
@@ -21,7 +23,7 @@ export const CatalogNavigationView: FC<CatalogNavigationViewProps> = (props) => 
         <ClassicScrollAreaView
             aria-label="Catalog categories"
             className="volt-catalog-navigation-scroll-area"
-            contentClassName="volt-catalog-navigation-list is-normal"
+            contentClassName={`volt-catalog-navigation-list ${isBuilder ? 'is-builders-club' : 'is-normal'}`}
             role="tree"
         >
             {searchResult &&

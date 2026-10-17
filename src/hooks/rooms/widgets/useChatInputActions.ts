@@ -180,6 +180,22 @@ export const useChatInputActions = () => {
                         }
 
                         return null;
+                    // AIR ChatInputWidgetHandler.as:325 and SessionDataManager.pickAllBuilderFurniture (WIN63-202610151745-318700621).
+                    case ':pickallbc':
+                        if (roomSession?.isRoomOwner || HasPermission(Permission.RoomOwnerAny) || (roomSession?.controllerLevel ?? 0) >= RoomControllerLevel.GUEST) {
+                            showConfirm(
+                                LocalizeText('room.confirm.pick_all_bc'),
+                                () => {
+                                    GetSessionDataManager().sendSpecialCommandMessage(':pickallbc');
+                                },
+                                null,
+                                null,
+                                null,
+                                LocalizeText('generic.alert.title')
+                            );
+                        }
+
+                        return null;
                     case ':ejectall':
                         if (
                             roomSession?.isRoomOwner ||
@@ -206,6 +222,7 @@ export const useChatInputActions = () => {
 
                         return null;
                     case ':floor':
+                    case ':bcfloor':
                         if ((roomSession?.controllerLevel ?? 0) >= RoomControllerLevel.ROOM_OWNER) CreateLinkEvent('floor-editor/show');
 
                         return null;

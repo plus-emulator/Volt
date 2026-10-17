@@ -156,7 +156,7 @@ export const CatalogOfferTileView: FC<CatalogOfferTileViewProps> = (props) => {
                         <i aria-hidden="true" className="volt-icon icon-catalogue-hc_small" />
                     </span>
                 )}
-                {showPrices && prices.length > 0 && (
+                {showPrices && !offer.page?.isBuilderPage && prices.length > 0 && (
                     <span className={`volt-catalog-grid-price ${prices.length > 1 ? 'is-multi-price' : 'is-single-price'}`}>
                         {prices.map((price, index) => (
                             <span key={`${price.type}-${index}`} className="volt-catalog-grid-price-entry">

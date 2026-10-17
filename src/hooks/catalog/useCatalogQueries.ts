@@ -169,7 +169,9 @@ export const selectCatalogPage = (parser: ParserPage, lookups: OfferLookups = de
         parser.layoutCode,
         new PageLocalization(parser.localization.images.concat(), parser.localization.texts.concat()),
         offers,
-        parser.acceptSeasonCurrencyAsCredits
+        parser.acceptSeasonCurrencyAsCredits,
+        -1,
+        normalizeCatalogType(parser.catalogType)
     ) as ICatalogPage;
 
     return { page, frontPageItems: parser.frontPageItems ?? [], offerId: parser.offerId, productlessOffers };
@@ -254,7 +256,8 @@ export const cloneCachedCatalogPages = (): void => {
             data.page.localization,
             offers,
             data.page.acceptSeasonCurrencyAsCredits,
-            data.page.mode
+            data.page.mode,
+            data.page.catalogType
         ) as ICatalogPage;
 
         return { ...data, page };

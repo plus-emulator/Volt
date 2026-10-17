@@ -18,7 +18,8 @@ export const CatalogProductDetailsView: FC<{ offer: IPurchasableOffer }> = ({ of
     const productMetadata =
         offerMetadata.find((entry) => entry.itemBaseId === product?.furnitureData?.id) ??
         offerMetadata.find((entry) => entry.productClassId === product?.productClassId);
-    const hasMetadata = isFurniture && !!productMetadata;
+    // ProductViewCatalogWidget.updateAvailabilityIndicators: no trade or recycle markers on Builders Club pages.
+    const hasMetadata = !offer?.page?.isBuilderPage && isFurniture && !!productMetadata;
     const tradeable = hasMetadata && productMetadata.tradeable;
     const recyclable = hasMetadata && productMetadata.recyclable;
     const showNoTrade = hasMetadata && !tradeable;

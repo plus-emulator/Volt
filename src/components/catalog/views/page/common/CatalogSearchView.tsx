@@ -2,6 +2,7 @@ import { GetSessionDataManager } from '@volt/renderer';
 import { ChangeEvent, FC, KeyboardEvent, useCallback, useEffect, useRef, useState } from 'react';
 import {
     CatalogPage,
+    CatalogType,
     FilterCatalogNode,
     FurnitureOffer,
     ICatalogNode,
@@ -13,6 +14,7 @@ import {
     SearchResult
 } from '../../../../../api';
 import { useCatalogData, useCatalogUiState } from '../../../../../hooks';
+import { readCatalogIndex } from '../../../../../hooks/catalog/useCatalogQueries';
 import {
     CATALOG_SEARCH_DEBOUNCE_MS,
     findCatalogFurnitureMatches,
@@ -40,7 +42,12 @@ export const CatalogSearchView: FC<{}> = () => {
 
             const offers: IPurchasableOffer[] = [];
 
+            const index = readCatalogIndex(currentType);
+
             for (const furniture of foundFurniture) {
+                // The Builders Club catalogue only finds furni that one of its own pages sells (AIR HabboCatalog.as:1926).
+                if (currentType === CatalogType.BUILDER && !index?.offersToNodes.get(furniture.purchaseOfferId)?.length) continue;
+
                 offers.push(new FurnitureOffer(furniture));
             }
 
@@ -62,7 +69,8 @@ export const CatalogSearchView: FC<{}> = () => {
                     new PageLocalization([], [LocalizeText('catalog.search.results', ['count', 'needle'], [String(offers.length), search])]),
                     offers,
                     false,
-                    1
+                    1,
+                    currentType
                 )
             );
         },

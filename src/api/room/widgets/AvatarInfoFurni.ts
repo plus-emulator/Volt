@@ -19,6 +19,8 @@ export class AvatarInfoFurni implements IAvatarInfo {
     public extraParam: string = '';
     public isOwner: boolean = false;
     public isTemporary: boolean = false;
+    /** Borrowed from the Builders Club warehouse: the id is in AIR's Builders Club band. */
+    public isBuildersClub: boolean = false;
     public stuffData: IObjectData = null;
     public groupId: number = 0;
     public ownerId: number = 0;

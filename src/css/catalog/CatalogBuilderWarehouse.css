@@ -1,0 +1,194 @@
+/* The Builders Club warehouse: AIR HabboCatalog.refreshCatalogWindowChrome (WIN63-202610151745-318700621) colours the
+   catalogue frame 0xffb63c and the header 0x4e4844 / 0x2d2724, and catalog_ubuntu lists the tree without tabs. */
+.volt-catalog-window.is-builder.volt-card-shell.volt-card-frame-3 {
+    --volt-card-frame-3: url("../../assets/images/habbo-skin/slices/frame-ubuntu-3-builder.png");
+    /* builders_club_topitem_template / builders_club_subitem_template */
+    --catalog-standard-select: #ff8d00;
+    --catalog-standard-select-outer: #ffb53c;
+}
+
+.volt-catalog-standard-header.is-builder {
+    border-color: #4e4844;
+    background: #2d2724;
+}
+
+/* builder.mode.header: title at (80, 11) 24px, membership at (80, 41) and limit at (80, 56). */
+.volt-catalog-standard-header.is-builder .volt-catalog-builder-header-title {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    height: 30px;
+    font-family: UbuntuRegular, Ubuntu, sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 30px;
+    white-space: nowrap;
+}
+
+.volt-catalog-standard-header.is-builder .volt-catalog-builder-header-line {
+    position: absolute;
+    left: 2px;
+    width: 475px;
+    height: 19px;
+    font-family: UbuntuRegular, Ubuntu, sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 15px;
+    text-shadow: none;
+    white-space: nowrap;
+}
+
+.volt-catalog-standard-header.is-builder .volt-catalog-builder-header-line.is-membership {
+    top: 32px;
+}
+
+.volt-catalog-standard-header.is-builder .volt-catalog-builder-header-line.is-limit {
+    top: 47px;
+}
+
+.volt-catalog-standard-header.is-builder .volt-catalog-builder-header-value {
+    color: #ff8d00;
+    font-weight: 700;
+}
+
+.volt-catalog-navigation-list.is-builders-club .volt-catalog-navigation-item.is-active .volt-catalog-navigation-label {
+    text-shadow: 0 -1px 0 #cf7200;
+}
+
+.volt-catalog-navigation-list.is-builders-club .volt-catalog-navigation-node.is-child .volt-catalog-navigation-item {
+    color: #b77734;
+}
+
+/* The selected grid item takes the window colour. */
+.volt-catalog-window.is-builder .volt-catalog-grid-density-standard .layout-grid-item.is-active::before {
+    border-color: #ffb43b;
+    box-shadow: inset 0 0 0 1px #ffb43b;
+}
+
+/* builderWidget: 360x60 at the bottom of the page. */
+.volt-catalog-purchase-row.is-builder {
+    height: 60px;
+    overflow: visible;
+}
+
+.volt-catalog-builder-widget {
+    position: relative;
+    width: 360px;
+    height: 60px;
+}
+
+.volt-catalog-builder-widget-hint {
+    position: absolute;
+    top: 3px;
+    left: 5px;
+    color: #000;
+    font-family: UbuntuRegular, Ubuntu, sans-serif;
+    font-size: 11px;
+    line-height: 15px;
+    white-space: nowrap;
+}
+
+/* error_container: a 0xf2d193 border style 2 box with the status icon and a red bold message over the hint. */
+.volt-catalog-builder-widget-error {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    width: 360px;
+    height: 25px;
+}
+
+.volt-catalog-builder-widget-error::before {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 0;
+    width: 360px;
+    height: 22px;
+    box-sizing: border-box;
+    border: 5px solid transparent;
+    border-image: url("../../assets/images/habbo-skin/slices/border-2-f2d193.png") 5 fill / 5px stretch;
+}
+
+.volt-catalog-builder-widget-error-icon {
+    position: absolute;
+    top: 0;
+    left: 4px;
+    width: 25px;
+    height: 25px;
+    image-rendering: pixelated;
+}
+
+.volt-catalog-builder-widget-error-message {
+    position: absolute;
+    top: 5px;
+    left: 38px;
+    color: #de0e0a;
+    font-family: UbuntuRegular, Ubuntu, sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 15px;
+    white-space: nowrap;
+}
+
+/* place_one / place_many: button_thick style 5 (habbo_skin_button_shiny_thick), 130x30, tinted 0xdda100 and 0x0a9bc5. */
+.volt-catalog-builder-button {
+    position: absolute;
+    top: 30px;
+    width: 130px;
+    height: 30px;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 5px solid transparent;
+    border-image: var(--builder-button-default) 5 fill / 5px stretch;
+    border-radius: 0;
+    background: transparent;
+    color: #fff;
+    cursor: pointer;
+    image-rendering: pixelated;
+}
+
+.volt-catalog-builder-button:hover:not(:disabled) {
+    border-image-source: var(--builder-button-hover);
+}
+
+.volt-catalog-builder-button:active:not(:disabled) {
+    border-image-source: var(--builder-button-pressed);
+}
+
+.volt-catalog-builder-button:disabled {
+    border-image-source: var(--builder-button-disabled);
+    cursor: default;
+}
+
+.volt-catalog-builder-button > span {
+    position: absolute;
+    inset: 0 5px 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font: 700 12px/1.121 Ubuntu, sans-serif;
+    white-space: nowrap;
+}
+
+.volt-catalog-builder-button.is-place-one {
+    left: 30px;
+    --builder-button-default: url("../../assets/images/catalog/air/builder/button-shiny-thick-dda100-default.png");
+    --builder-button-hover: url("../../assets/images/catalog/air/builder/button-shiny-thick-dda100-hover.png");
+    --builder-button-pressed: url("../../assets/images/catalog/air/builder/button-shiny-thick-dda100-pressed.png");
+    --builder-button-disabled: url("../../assets/images/catalog/air/builder/button-shiny-thick-dda100-disabled.png");
+}
+
+.volt-catalog-builder-button.is-place-many {
+    left: 201px;
+    --builder-button-default: url("../../assets/images/catalog/air/builder/button-shiny-thick-0a9bc5-default.png");
+    --builder-button-hover: url("../../assets/images/catalog/air/builder/button-shiny-thick-0a9bc5-hover.png");
+    --builder-button-pressed: url("../../assets/images/catalog/air/builder/button-shiny-thick-0a9bc5-pressed.png");
+    --builder-button-disabled: url("../../assets/images/catalog/air/builder/button-shiny-thick-0a9bc5-disabled.png");
+}
+
+/* InfoStandFurniView owner_region: a Builders Club furni links to the warehouse. */
+.volt-furni-infostand__owner.is-builders-club {
+    cursor: pointer;
+}

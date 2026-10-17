@@ -2,6 +2,7 @@ import { CreateLinkEvent, PurchaseFromCatalogComposer } from '@volt/renderer';
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     CatalogPurchaseState,
+    CatalogType,
     DispatchUiEvent,
     GetClubMemberLevel,
     GetConfigurationValue,
@@ -34,6 +35,7 @@ import {
     useUiEvent
 } from '../../../../../hooks';
 import { CatalogPurchaseConfirmView } from '../../CatalogPurchaseConfirmView';
+import { CatalogBuilderWidgetView } from './CatalogBuilderWidgetView';
 import { CatalogClubUpgradeButton } from './CatalogClubUpgradeButton';
 import { canPurchaseCatalogOffer } from './catalogPurchase.helpers';
 
@@ -56,6 +58,7 @@ export const CatalogPurchaseWidgetView: FC<CatalogPurchaseWidgetViewProps> = (pr
     const { data: bundleDiscountRuleset = null } = useCatalogBundleDiscountRuleset();
     const { currentOffer = null, currentPage = null } = useCatalogData();
     const {
+        currentType = CatalogType.NORMAL,
         giftReceiver = null,
         purchaseOptions = null,
         setPurchaseOptions = null
@@ -289,6 +292,9 @@ export const CatalogPurchaseWidgetView: FC<CatalogPurchaseWidgetViewProps> = (pr
             if (timeout) clearTimeout(timeout);
         };
     }, [purchaseState]);
+
+    // PurchaseCatalogWidget hides itself on Builders Club pages; BuilderCatalogWidget takes its place.
+    if (currentType === CatalogType.BUILDER) return <CatalogBuilderWidgetView />;
 
     if (!currentOffer) return null;
 

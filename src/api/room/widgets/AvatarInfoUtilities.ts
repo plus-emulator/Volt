@@ -19,7 +19,7 @@ import {
 } from '@volt/renderer';
 import { HasPermission, Permission } from '../../permissions';
 import { GetRoomSession, IsOwnerOfFurniture } from '../../volt';
-import { IsTemporaryFurniId, LocalizeText } from '../../utils';
+import { IsBuildersClubFurniId, IsTemporaryFurniId, LocalizeText } from '../../utils';
 import { AvatarInfoFurni } from './AvatarInfoFurni';
 import { AvatarInfoName } from './AvatarInfoName';
 import { AvatarInfoPet } from './AvatarInfoPet';
@@ -92,6 +92,7 @@ export class AvatarInfoUtilities {
         furniInfo.id = objectId;
         furniInfo.category = category;
         furniInfo.isTemporary = IsTemporaryFurniId(objectId);
+        furniInfo.isBuildersClub = IsBuildersClubFurniId(objectId);
 
         const model = roomObject.model;
 

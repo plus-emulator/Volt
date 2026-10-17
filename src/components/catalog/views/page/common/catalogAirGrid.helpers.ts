@@ -18,7 +18,9 @@ export interface CatalogAirGridLayout {
     height: number;
 }
 
-export const isAirBaseCatalogOffer = (offer: IPurchasableOffer) => offer.priceInCredits <= 0 && offer.priceInActivityPoints <= 0;
+// ItemGridCatalogWidget.createGridItem: the Builders Club grid always uses the plain 36x36 item, without prices.
+export const isAirBaseCatalogOffer = (offer: IPurchasableOffer) =>
+    !!offer.page?.isBuilderPage || (offer.priceInCredits <= 0 && offer.priceInActivityPoints <= 0);
 
 export const getAirCatalogOfferDimensions = (offer: IPurchasableOffer) =>
     isAirBaseCatalogOffer(offer) ? { width: 36, height: 36 } : { width: 53, height: 74 };

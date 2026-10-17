@@ -1,9 +1,10 @@
 import { FC, ReactNode } from 'react';
-import { GetConfigurationValue, IPurchasableOffer, LocalizeText, ProductTypeEnum, SanitizeHtml } from '../../../../../api';
+import { CatalogType, GetConfigurationValue, IPurchasableOffer, LocalizeText, ProductTypeEnum, SanitizeHtml } from '../../../../../api';
 import { Text } from '../../../../../common';
-import { getCatalogGridMetrics, useCatalogData, useCatalogDisplayPreferences } from '../../../../../hooks';
+import { getCatalogGridMetrics, useCatalogData, useCatalogDisplayPreferences, useCatalogUiState } from '../../../../../hooks';
 import { CatalogHeaderView } from '../../catalog-header/CatalogHeaderView';
 import { CatalogAddOnBadgeWidgetView } from '../widgets/CatalogAddOnBadgeWidgetView';
+import { CatalogBuilderWidgetView } from '../widgets/CatalogBuilderWidgetView';
 import { CatalogItemGridWidgetView } from '../widgets/CatalogItemGridWidgetView';
 import { CatalogLimitedItemWidgetView } from '../widgets/CatalogLimitedItemWidgetView';
 import { CatalogPreviewControls } from '../widgets/CatalogPreviewControls';
@@ -28,12 +29,16 @@ interface CatalogLayoutDefaultViewProps extends CatalogLayoutProps {
 export const CatalogLayoutDefaultView: FC<CatalogLayoutDefaultViewProps> = (props) => {
     const { page = null, gridOffers, isGridOfferActive, colourGrid = null, layoutClassName = '', previewHeight = 240 } = props;
     const { currentOffer = null, currentPage = null, roomPreviewer = null } = useCatalogData();
+    const { currentType = CatalogType.NORMAL } = useCatalogUiState();
+    const isBuilder = currentType === CatalogType.BUILDER;
     const { density = 'standard', showTilePrices = true } = useCatalogDisplayPreferences();
     const gridMetrics = getCatalogGridMetrics(density);
 
     const teaserText = page?.localization.getText(0) ?? '';
     const hasTeaserText = !!teaserText.replace(/<[^>]*>/g, '').trim();
+    // SpinnerCatalogWidget and TotalPriceWidget hide themselves on Builders Club pages.
     const showBundlePurchase =
+        !isBuilder &&
         !!currentOffer?.bundlePurchaseAllowed &&
         GetConfigurationValue<boolean>('catalog.multiple.purchase.enabled', true);
     const isBundleOffer = currentOffer?.pricingModel === 'pricing_model_bundle';
@@ -100,8 +105,10 @@ export const CatalogLayoutDefaultView: FC<CatalogLayoutDefaultViewProps> = (prop
                 </div>
             )}
 
-            <div className="volt-catalog-purchase-row flex items-start justify-end">
-                {currentOffer ? (
+            <div className={`volt-catalog-purchase-row flex items-start justify-end ${isBuilder ? 'is-builder' : ''}`}>
+                {isBuilder ? (
+                    <CatalogBuilderWidgetView />
+                ) : currentOffer ? (
                     <div className="volt-catalog-offer-actions flex gap-1.5">
                         <CatalogPurchaseWidgetView />
                     </div>
