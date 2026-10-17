@@ -145,7 +145,7 @@ export const AvatarInfoWidgetOwnAvatarView: FC<AvatarInfoWidgetOwnAvatarViewProp
                         roomSession.sendExpressionMessage(AvatarExpressionEnum.BLOW.ordinal);
                         break;
                     case 'expression_67':
-                        roomSession.sendExpressionMessage(67);
+                        roomSession.sendExpressionMessage(AvatarExpressionEnum.EXPRESSION_67.ordinal);
                         break;
                     case 'laugh':
                         roomSession.sendExpressionMessage(AvatarExpressionEnum.LAUGH.ordinal);
