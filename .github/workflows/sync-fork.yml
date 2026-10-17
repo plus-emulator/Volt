@@ -62,10 +62,6 @@ jobs:
               if git merge "upstream/$local_branch" --no-edit; then
                   echo "Merge ok per $local_branch. Invio gli aggiornamenti..."
                   git push origin "$local_branch"
-                  # Pushes made with GITHUB_TOKEN do not trigger push workflows.
-                  if [ "$local_branch" = main ]; then
-                      gh workflow run build-release.yml --ref main -f commit="$(git rev-parse HEAD)"
-                  fi
               else
                   echo "Conflitto di merge su $local_branch! Il tuo lavoro è al sicuro: salto il push e annullo il merge."
                   git merge --abort

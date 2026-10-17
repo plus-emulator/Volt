@@ -2,9 +2,8 @@ name: Build & Publish Client Release
 
 # Every push to main publishes the built client. The hotel installers download
 # volt-client.zip from the latest release, so servers never build it.
+# Releases are cut by hand once a batch of changes is ready (Actions > Release > Run workflow).
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
     inputs:
       commit:
