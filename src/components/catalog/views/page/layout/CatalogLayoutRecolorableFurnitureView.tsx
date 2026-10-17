@@ -3,7 +3,6 @@ import { CSSProperties, FC, useEffect, useMemo, useState } from 'react';
 import { ApplyRecolorableColorToPage, CreateRecolorableStuffData, GetRecolorableColorParam, LocalizeText } from '../../../../../api';
 import { ClassicScrollAreaView } from '../../../../../common';
 import { useCatalogActions, useCatalogData, useCatalogUiState } from '../../../../../hooks';
-import { useCatalogStore } from '../../../../../hooks/catalog/catalogStore';
 import { CatalogLayoutProps } from './CatalogLayout.types';
 import { CatalogLayoutDefaultView } from './CatalogLayoutDefaultView';
 
@@ -37,10 +36,6 @@ export const CatalogLayoutRecolorableFurnitureView: FC<CatalogLayoutProps> = (pr
     useEffect(() =>
     {
         if (!page?.offers.length || !selectCatalogOffer) return;
-
-        const offer = useCatalogStore.getState().currentOffer;
-
-        if (offer && page.offers.includes(offer)) return;
 
         selectCatalogOffer(page.offers[0]);
     }, [page, selectCatalogOffer]);

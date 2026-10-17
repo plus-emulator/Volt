@@ -28,10 +28,8 @@ import { FC, useEffect, useRef } from 'react';
 import {
     CatalogPage,
     CatalogType,
-    CreateRecolorableStuffData,
     DispatchUiEvent,
     ICatalogNode,
-    IsRecolorableFurniturePage,
     LocalizeText,
     NotificationAlertType,
     PageLocalization,
@@ -447,9 +445,7 @@ export const useCatalogEffects = (): void => {
                             new Vector3d(event.x, event.y, event.z),
                             new Vector3d(event.direction),
                             0,
-                            IsRecolorableFurniturePage(purchasableOffer.page) && product.extraParam
-                                ? CreateRecolorableStuffData(product.extraParam)
-                                : new LegacyDataType()
+                            new LegacyDataType()
                         );
                         break;
                     case RoomObjectCategory.WALL: {
