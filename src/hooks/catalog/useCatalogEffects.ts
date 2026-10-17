@@ -1,4 +1,6 @@
 import {
+    BuildersClubPlacementWarningMessageEvent,
+    BuildersClubPlacementWarningMessageParser,
     BuildersClubPlaceRoomItemMessageComposer,
     BuildersClubPlaceWallItemMessageComposer,
     CatalogPublishedMessageEvent,
@@ -109,7 +111,7 @@ const refreshImportedFurnidata = (mergedRef: { current: boolean }, force: boolea
 export const useCatalogEffects = (): void => {
     const queryClient = useQueryClient();
     const connectionState = useConnectionState();
-    const { simpleAlert = null } = useNotification();
+    const { simpleAlert = null, showConfirm = null } = useNotification();
     const [catalogSkipPurchaseConfirmation] = useCatalogSkipPurchaseConfirmation();
     const [catalogPlaceMultipleObjects, setCatalogPlaceMultipleObjectsPreference] = useCatalogPlaceMultipleItems();
     const importedFurnidataMerged = useRef(false);
@@ -383,6 +385,21 @@ export const useCatalogEffects = (): void => {
 
         invalidateCatalogIndex(useCatalogStore.getState().currentType);
         invalidateCatalogPages();
+    });
+
+    // AIR room/class_2005.onBCPlacementWarning (WIN63-202610151745-318700621, class_2005.as:366-397): a Builders Club placement that
+    // would hide the room is asked about first; OK sends it again with its confirmed flag.
+    useMessageEvent<BuildersClubPlacementWarningMessageEvent>(BuildersClubPlacementWarningMessageEvent, (event) => {
+        const parser = event.getParser();
+
+        if (!parser) return;
+
+        const composer =
+            parser.typeCode === BuildersClubPlacementWarningMessageParser.FLOOR
+                ? new BuildersClubPlaceRoomItemMessageComposer(parser.pageId, parser.offerId, parser.extraParam, parser.x, parser.y, parser.direction, true)
+                : new BuildersClubPlaceWallItemMessageComposer(parser.pageId, parser.offerId, parser.extraParam, parser.wallLocation, true);
+
+        showConfirm?.(LocalizeText('room.confirm.hide_room'), () => SendMessageComposer(composer), null, null, null, LocalizeText('generic.alert.title'));
     });
 
     useMessageEvent<UserPermissionsEvent>(UserPermissionsEvent, () =>

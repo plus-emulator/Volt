@@ -92,7 +92,8 @@ export const NavigatorRoomSettingsView: FC<{}> = (props) => {
                     allowMute: data.roomModerationSettings.allowMute,
                     allowKick: data.roomModerationSettings.allowKick,
                     allowBan: data.roomModerationSettings.allowBan
-                }
+                },
+                hiddenByBc: data.hiddenByBc
             }
         });
 

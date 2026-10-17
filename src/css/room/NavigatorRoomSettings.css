@@ -727,3 +727,12 @@
     width: 19px;
     height: 94px;
 }
+
+/* doormode_override_info: a 308x166 border over the door mode while Builders Club furni hide the room. */
+.volt-room-settings .ros-bc-locked {
+    z-index: 2;
+    box-sizing: border-box;
+    border: 0 solid transparent;
+    border-image: var(--habbo-skin-border-white) 6 fill / 6px stretch;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}

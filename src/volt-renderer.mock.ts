@@ -546,6 +546,11 @@ export class RoomOccupiedTilesMessageEvent extends StubClass {}
 export class PerkAllowancesMessageEvent extends StubClass {}
 export class BuildersClubSubscriptionStatusMessageEvent extends StubClass {}
 export class BuildersClubFurniCountMessageEvent extends StubClass {}
+export class BuildersClubPlacementWarningMessageEvent extends StubClass {}
+export class BuildersClubPlacementWarningMessageParser extends StubClass {
+    static FLOOR = 0;
+    static WALL = 1;
+}
 export const RoomEngineEvent = makeEnumProxy('RoomEngineEvent');
 export const RoomSessionEvent = makeEnumProxy('RoomSessionEvent');
 
