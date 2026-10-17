@@ -10,6 +10,7 @@ import {
     FigureSetIdsMessageEvent,
     GetAvatarRenderManager,
     GetHotLooksComposer,
+    GetRoomEngine,
     GetWardrobeMessageComposer,
     HotLooksEvent,
     IHotLookInfo,
@@ -17,6 +18,8 @@ import {
     IFigurePartSet,
     IPalette,
     IPartColor,
+    RoomObjectCategory,
+    RoomObjectVariable,
     RoomUnitEffectEvent,
     SetType,
     UserWardrobePageEvent
@@ -47,14 +50,28 @@ const NO_GENDER_EFFECTS: Record<string, number> = {};
 const DEFAULT_MALE_FIGURE = 'hr-100.hd-180-7.ch-215-66.lg-270-79.sh-305-62.ha-1002-70.wa-2007';
 const DEFAULT_FEMALE_FIGURE = 'hr-515-33.hd-600-1.ch-635-70.lg-716-66-62.sh-735-68';
 
-const FOOTBALL_GATE_PART_IDS: { [setType: string]: number[] } = {
-    [AvatarFigurePartType.CHEST]: [3111, 3110, 3109, 3030, 3114, 266, 265, 262, 3113, 3112, 691, 690, 667],
-    [AvatarFigurePartType.CHEST_PRINT]: [3128, 3127, 3126, 3125, 3124, 3123, 3122, 3121, 3120, 3119],
-    [AvatarFigurePartType.LEGS]: [3116, 281, 275, 715, 700, 696, 3006],
-    [AvatarFigurePartType.SHOES]: [3115, 3068, 906]
+// AIR WIN63-202610151745-318700621 FurnitureClothingChangeWidgetHandler.as:100-115: the gate's stored look for the chosen gender,
+// or these looks when the gate has none, opened in the normal editor limited to the torso and legs tabs.
+const DEFAULT_MALE_FOOTBALL_GATE: string = 'hd-99999-99999.lg-270-62';
+const DEFAULT_FEMALE_FOOTBALL_GATE: string = 'hd-99999-99999.ch-630-62.lg-695-62';
+const TORSO_SET_TYPES: string[] = [
+    AvatarFigurePartType.CHEST,
+    AvatarFigurePartType.CHEST_PRINT,
+    AvatarFigurePartType.COAT_CHEST,
+    AvatarFigurePartType.CHEST_ACCESSORY
+];
+const LEGS_SET_TYPES: string[] = [AvatarFigurePartType.LEGS, AvatarFigurePartType.SHOES, AvatarFigurePartType.WAIST_ACCESSORY];
+
+const getFootballGateLook = (objectId: number, gender: string): string => {
+    const roomObject = GetRoomEngine().getRoomObject(GetRoomEngine().activeRoomId, objectId, RoomObjectCategory.FLOOR);
+    const look = roomObject?.model.getValue<string>(
+        gender === AvatarFigurePartType.FEMALE ? RoomObjectVariable.FURNITURE_CLOTHING_GIRL : RoomObjectVariable.FURNITURE_CLOTHING_BOY
+    );
+
+    if (look) return look;
+
+    return gender === AvatarFigurePartType.FEMALE ? DEFAULT_FEMALE_FOOTBALL_GATE : DEFAULT_MALE_FOOTBALL_GATE;
 };
-const DEFAULT_MALE_FOOTBALL_GATE: string = 'ch-3109-92-1408.lg-3116-82-1408.sh-3115-1408-1408';
-const DEFAULT_FEMALE_FOOTBALL_GATE: string = 'ch-3112-1408-1408.lg-3116-71-1408.sh-3115-1408-1408';
 
 export interface IClothingChangeData {
     objectId: number;
@@ -455,7 +472,7 @@ const useAvatarEditorState = () => {
         const buildModeDefault = 'default';
         const buildModeNft = 'nft';
 
-        const buildCategory = (setType: string, buildMode: string = buildModeDefault, allowedPartIds: number[] = null) => {
+        const buildCategory = (setType: string, buildMode: string = buildModeDefault) => {
             const partItems: IAvatarEditorCategoryPartItem[] = [];
             const colorItems: IPartColor[][] = [];
 
@@ -489,18 +506,6 @@ const useAvatarEditorState = () => {
 
                 if (!partSet || !partSet.isSelectable || (partSet.gender !== gender && partSet.gender !== AvatarFigurePartType.UNISEX)) continue;
 
-                if (allowedPartIds) {
-                    if (allowedPartIds.indexOf(partSet.id) === -1) continue;
-
-                    let maxPaletteCount = 0;
-
-                    for (const part of partSet.parts) maxPaletteCount = Math.max(maxPaletteCount, part.colorLayerIndex);
-
-                    partItems.push({ id: partSet.id, partSet, usesColor, maxPaletteCount, isSellableNotOwned: false });
-
-                    continue;
-                }
-
                 const isNftPartSet = IsNftAvatarPartSet(partSet, nftFigureSetIds, (candidate) =>
                     GetAvatarRenderManager().downloadManager.isNftPartSet(candidate)
                 );
@@ -531,12 +536,8 @@ const useAvatarEditorState = () => {
         };
 
         if (clothingChangeData) {
-            newAvatarModels[AvatarEditorFigureCategory.TORSO] = [AvatarFigurePartType.CHEST, AvatarFigurePartType.CHEST_PRINT]
-                .map((setType) => buildCategory(setType, buildModeDefault, FOOTBALL_GATE_PART_IDS[setType]))
-                .filter(Boolean);
-            newAvatarModels[AvatarEditorFigureCategory.LEGS] = [AvatarFigurePartType.LEGS, AvatarFigurePartType.SHOES]
-                .map((setType) => buildCategory(setType, buildModeDefault, FOOTBALL_GATE_PART_IDS[setType]))
-                .filter(Boolean);
+            newAvatarModels[AvatarEditorFigureCategory.TORSO] = TORSO_SET_TYPES.map((setType) => buildCategory(setType, buildModeDefault)).filter(Boolean);
+            newAvatarModels[AvatarEditorFigureCategory.LEGS] = LEGS_SET_TYPES.map((setType) => buildCategory(setType, buildModeDefault)).filter(Boolean);
 
             setAvatarModels(newAvatarModels);
             setActiveModelKey(AvatarEditorFigureCategory.TORSO);
@@ -552,15 +553,8 @@ const useAvatarEditorState = () => {
             AvatarFigurePartType.EYE_ACCESSORY,
             AvatarFigurePartType.FACE_ACCESSORY
         ].map((setType) => buildCategory(setType, buildModeDefault));
-        newAvatarModels[AvatarEditorFigureCategory.TORSO] = [
-            AvatarFigurePartType.CHEST,
-            AvatarFigurePartType.CHEST_PRINT,
-            AvatarFigurePartType.COAT_CHEST,
-            AvatarFigurePartType.CHEST_ACCESSORY
-        ].map((setType) => buildCategory(setType, buildModeDefault));
-        newAvatarModels[AvatarEditorFigureCategory.LEGS] = [AvatarFigurePartType.LEGS, AvatarFigurePartType.SHOES, AvatarFigurePartType.WAIST_ACCESSORY].map(
-            (setType) => buildCategory(setType, buildModeDefault)
-        );
+        newAvatarModels[AvatarEditorFigureCategory.TORSO] = TORSO_SET_TYPES.map((setType) => buildCategory(setType, buildModeDefault));
+        newAvatarModels[AvatarEditorFigureCategory.LEGS] = LEGS_SET_TYPES.map((setType) => buildCategory(setType, buildModeDefault));
         newAvatarModels[AvatarEditorFigureCategory.HOTLOOKS] = [];
         if (GetConfigurationValue<boolean>('effects.in.avatar.editor', true)) newAvatarModels[AvatarEditorFigureCategory.EFFECTS] = [];
         if (GetConfigurationValue<boolean>('clothing.misc.tab.enabled', false))
@@ -598,10 +592,7 @@ const useAvatarEditorState = () => {
         if (clothingChangeData) {
             if (!isVisible) return;
 
-            loadAvatarData(
-                clothingChangeData.gender === AvatarFigurePartType.MALE ? DEFAULT_MALE_FOOTBALL_GATE : DEFAULT_FEMALE_FOOTBALL_GATE,
-                clothingChangeData.gender
-            );
+            loadAvatarData(getFootballGateLook(clothingChangeData.objectId, clothingChangeData.gender), clothingChangeData.gender);
 
             return;
         }
