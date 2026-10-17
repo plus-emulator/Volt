@@ -1284,6 +1284,8 @@
     }
 
     .volt-recolor__scope {
+        /* The dropmenu's own position: relative would otherwise push it below the window. */
+        position: absolute;
         top: 510px;
         left: 14px;
         width: 294px;
