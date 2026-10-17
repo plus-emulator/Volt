@@ -244,7 +244,6 @@ export const InventoryView: FC<{}> = () => {
     useEffect(() => {
         const previewer = new RoomPreviewer(GetRoomEngine(), ++RoomPreviewer.PREVIEW_COUNTER);
         previewer.backgroundColor = null;
-        previewer.centerWallItems = true;
         setRoomPreviewer(previewer);
         return () => {
             previewer.dispose();
