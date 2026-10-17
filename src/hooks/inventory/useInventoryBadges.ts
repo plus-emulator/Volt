@@ -1,5 +1,13 @@
-import { BadgeReceivedEvent, BadgesEvent, RequestBadgesComposer, SetActivatedBadgesComposer } from '@volt/renderer';
-import { useEffect, useState } from 'react';
+import {
+    BadgeReceivedEvent,
+    BadgesEvent,
+    GetSessionDataManager,
+    type IBadgeDetail,
+    RequestBadgesComposer,
+    SetActivatedBadgesComposer,
+    UserCurrentBadgesEvent
+} from '@volt/renderer';
+import { useEffect, useRef, useState } from 'react';
 import { registerSharedHook, useSharedHook } from '@/state/useSharedHook';
 import { GetConfigurationValue, SendMessageComposer, UnseenItemCategory } from '../../api';
 import { useMessageEvent } from '../events';
@@ -14,6 +22,7 @@ const useInventoryBadgesState = () => {
     const [selectedBadgeCode, setSelectedBadgeCode] = useState<string>(null);
     const { isVisible = false, activate = null, deactivate = null } = useSharedVisibility();
     const { isUnseen = null, resetCategory = null } = useInventoryUnseenTracker();
+    const badgeFragments = useRef<(IBadgeDetail[] | null)[] | null>(null);
 
     const maxBadgeCount = GetConfigurationValue<number>('user.badges.max.slots', 5);
     const isWearingBadge = (badgeCode: string) => activeBadgeCodes.some((code) => code === badgeCode);
@@ -62,32 +71,43 @@ const useInventoryBadgesState = () => {
         return badgeIds.get(badgeCode) ?? 0;
     };
 
+    // The badge list can arrive in fragments; it is applied once every fragment is in.
     useMessageEvent<BadgesEvent>(BadgesEvent, (event) => {
         const parser = event.getParser();
-        const allBadgeCodes = parser.getAllBadgeCodes();
+        const totalFragments = Math.max(1, parser.totalFragments);
+        let badges = parser.getBadgeDetails();
 
-        setBadgeIds(() => {
-            const newValue = new Map<string, number>();
+        if (totalFragments > 1) {
+            if (!badgeFragments.current || badgeFragments.current.length !== totalFragments) badgeFragments.current = Array(totalFragments).fill(null);
 
-            allBadgeCodes.forEach((code) => {
-                const badgeId = parser.getBadgeId(code);
+            badgeFragments.current[parser.fragmentNo] = badges;
 
-                newValue.set(code, badgeId);
-            });
+            if (badgeFragments.current.some((fragment) => !fragment)) return;
 
-            return newValue;
-        });
+            badges = badgeFragments.current.flat();
+        }
 
-        // The emulator answers SetActivatedBadges (UserWearBadgeEvent) with a
-        // UserBadgesComposer room broadcast, NOT a BadgesEvent — so there is no
-        // echo to suppress and the old pendingUpdatesRef counter only ever
-        // leaked (incremented on every edit, never decremented), which then
-        // silently dropped legitimate later BadgesEvent updates. The server is
-        // authoritative here (edits are already persisted), so always apply it.
-        const serverBadges = parser.getActiveBadgeCodes();
-        setActiveBadgeCodes(toFixedSlots(serverBadges));
+        badgeFragments.current = null;
 
-        setBadgeCodes(allBadgeCodes);
+        setBadgeIds(new Map(badges.map((badge) => [badge.badgeCode, badge.badgeId])));
+        setBadgeCodes(badges.map((badge) => badge.badgeCode));
+    });
+
+    // Worn badges come from the user's own UserCurrentBadges, not from the badge list.
+    useMessageEvent<UserCurrentBadgesEvent>(UserCurrentBadgesEvent, (event) => {
+        const parser = event.getParser();
+
+        if (parser.userId !== GetSessionDataManager().userId) return;
+
+        const slots: (string | null)[] = Array(maxBadgeCount).fill(null);
+
+        for (const badge of parser.badgeDetails) {
+            const index = badge.slotId - 1;
+
+            if (index >= 0 && index < maxBadgeCount) slots[index] = badge.badgeCode;
+        }
+
+        setActiveBadgeCodes(toFixedSlots(slots));
     });
 
     useMessageEvent<BadgeReceivedEvent>(BadgeReceivedEvent, (event) => {

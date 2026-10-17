@@ -219,7 +219,7 @@ export class AvatarInfoUtilities {
                 userInfo.canBeBanned = this.canBeBanned(userInfo);
             }
 
-            userInfo.isIgnored = GetSessionDataManager().isUserIgnored(userData.name);
+            userInfo.isIgnored = GetSessionDataManager().isUserIgnored(userData.webID);
             userInfo.respectLeft = GetSessionDataManager().respectsLeft;
 
             const isShuttingDown = GetSessionDataManager().isSystemShutdown;

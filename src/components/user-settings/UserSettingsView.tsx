@@ -100,9 +100,9 @@ export const UserSettingsView: FC<{}> = () => {
         settingsEvent.cameraFollow = parser.cameraFollow;
         settingsEvent.flags = parser.flags;
         settingsEvent.chatType = parser.chatType;
-        settingsEvent.onlineStatusVisible = parser.onlineStatusVisible;
-        settingsEvent.friendsCanFollow = parser.friendsCanFollow;
-        settingsEvent.friendRequestsAllowed = parser.friendRequestsAllowed;
+        settingsEvent.wiredMenuButton = parser.wiredMenuButton;
+        settingsEvent.wiredInspectButton = parser.wiredInspectButton;
+        settingsEvent.playTestMode = parser.playTestMode;
         settingsEvent.profileVisible = parser.profileVisible;
 
         setUserSettings(settingsEvent);

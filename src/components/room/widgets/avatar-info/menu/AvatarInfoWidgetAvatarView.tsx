@@ -56,7 +56,7 @@ export const AvatarInfoWidgetAvatarView: FC<AvatarInfoWidgetAvatarViewProps> = (
     // changes while the popup is open. Direct snapshot hook call
     // scope here) so useSyncExternalStore installs against the real
     // React dispatcher.
-    const isIgnored = useIsUserIgnored(avatarInfo.name);
+    const isIgnored = useIsUserIgnored(avatarInfo.webID);
     // Reactive controller level: starts from the cached value at popup
     // open time, then updates from FlatControllerAdded/Removed events
     // and from optimistic clicks so the Give/Remove Rights buttons flip
@@ -161,10 +161,10 @@ export const AvatarInfoWidgetAvatarView: FC<AvatarInfoWidgetAvatarViewProps> = (
                     break;
                 }
                 case 'ignore':
-                    GetSessionDataManager().ignoreUser(avatarInfo.name);
+                    GetSessionDataManager().ignoreUser(avatarInfo.webID);
                     break;
                 case 'unignore':
-                    GetSessionDataManager().unignoreUser(avatarInfo.name);
+                    GetSessionDataManager().unignoreUser(avatarInfo.webID);
                     break;
                 case 'kick':
                     roomSession.sendKickMessage(avatarInfo.webID);

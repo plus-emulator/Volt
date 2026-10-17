@@ -434,9 +434,7 @@ const useNotificationStore = () => {
 
         const badgeName = LocalizeBadgeName(parser.badgeCode);
         const badgeImage = GetSessionDataManager().getBadgeUrl(parser.badgeCode);
-        const senderName = parser.senderName || '';
-
-        showSingleBubble(badgeName, NotificationBubbleType.BADGE_RECEIVED, badgeImage, parser.badgeCode, senderName);
+        showSingleBubble(badgeName, NotificationBubbleType.BADGE_RECEIVED, badgeImage, parser.badgeCode);
     });
 
     useMessageEvent<ClubGiftNotificationEvent>(ClubGiftNotificationEvent, (event) => {
