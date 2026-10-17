@@ -14,6 +14,7 @@
     "chat.viewer.height.percentage": 0.25,
     "widget.dimmer.colorwheel": false,
     "avatar.wardrobe.max.slots": 10,
+    "avatar.expression.67.enabled": true,
     "user.badges.max.slots": 5,
     "user.tags.enabled": false,
     "camera.publish.disabled": false,
