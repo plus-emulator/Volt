@@ -1180,3 +1180,124 @@
         height: auto;
     }
 }
+
+/* furniture_recolor_xml: 388x551 style 3 frame; elements placed from the layout with its (14,38) content origin. */
+.volt-recolor {
+    width: 388px;
+    height: 551px;
+    color: #000;
+    font-family: Ubuntu, sans-serif;
+    font-size: 11px;
+    line-height: 17px;
+
+    > * {
+        position: absolute;
+    }
+
+    > .volt-card-header-shell {
+        position: absolute !important;
+    }
+
+    .volt-recolor__caption {
+        left: 14px;
+        width: 360px;
+        height: 17px;
+    }
+
+    .volt-recolor__caption--preview {
+        top: 38px;
+        width: 110px;
+    }
+
+    .volt-recolor__caption--palette {
+        top: 198px;
+    }
+
+    .volt-recolor__caption--room {
+        top: 380px;
+    }
+
+    .volt-recolor__caption--scope {
+        top: 489px;
+    }
+
+    .volt-recolor__preview {
+        top: 59px;
+        box-sizing: border-box;
+        width: 108px;
+        height: 124px;
+        padding: 1px;
+        border: 1px solid #b4b4ae;
+        border-radius: 5px;
+        background: #fff;
+    }
+
+    .volt-recolor__preview--original {
+        left: 51px;
+    }
+
+    .volt-recolor__preview--new {
+        left: 229px;
+    }
+
+    .volt-recolor__preview-image {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+
+        img {
+            max-width: 100%;
+            max-height: 100%;
+            image-rendering: var(--volt-pixel-art, pixelated);
+        }
+    }
+
+    .volt-recolor__arrow {
+        top: 98px;
+        left: 171px;
+        width: 46px;
+        height: 46px;
+        background: url('@/assets/images/room-widgets/recolor-widget/green-arrow-horizontal.png') no-repeat;
+    }
+
+    .volt-recolor__grid {
+        left: 14px;
+        box-sizing: border-box;
+        width: 360px;
+        padding: 3px;
+        border: 1px solid #b4b4ae;
+        border-radius: 5px;
+        background: #f7f7f2;
+    }
+
+    .volt-recolor__grid--palette {
+        top: 220px;
+        height: 148px;
+    }
+
+    .volt-recolor__grid--room {
+        top: 401px;
+        height: 76px;
+    }
+
+    .volt-recolor__scope {
+        top: 510px;
+        left: 14px;
+        width: 294px;
+        height: 25px;
+    }
+
+    .volt-recolor__apply {
+        top: 507px;
+        left: 318px;
+        width: 56px;
+        height: 30px;
+    }
+
+    .volt-card-title {
+        transform: translateY(2px);
+    }
+}

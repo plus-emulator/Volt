@@ -1037,5 +1037,17 @@
   "wiredfurni.params.remote_selection.type.info": "Select the behavior when multiple Wired stacks are selected",
   "wiredfurni.params.remote_selection.filter": "Filter the stacks",
   "wiredfurni.params.remote_selection.filter.0": "Use all selected Wired stacks",
-  "wiredfurni.params.remote_selection.filter.1": "Pick random amount:"
+  "wiredfurni.params.remote_selection.filter.1": "Pick random amount:",
+  "catalog.recolorable.palette": "Palette",
+  "furniture.recolor.apply": "Apply",
+  "furniture.recolor.palette": "Palette",
+  "furniture.recolor.preview": "Preview",
+  "furniture.recolor.room_colors": "Colors in this room",
+  "furniture.recolor.scope.0": "Only this furniture",
+  "furniture.recolor.scope.1": "Furniture with the same color",
+  "furniture.recolor.scope.2": "Furniture of the same type",
+  "furniture.recolor.scope.3": "Furniture of the same type & color",
+  "furniture.recolor.scope": "Apply to:",
+  "furniture.recolor.title": "Recolor furniture",
+  "infostand.button.recolor": "Recolor"
 }

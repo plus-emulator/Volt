@@ -19,6 +19,7 @@ export type CatalogLayoutRenderer =
     | 'roomBundle'
     | 'recycler'
     | 'recyclerPrizes'
+    | 'recolorableFurniture'
     | 'singleBundle'
     | 'soundMachine'
     | 'spaces'
@@ -68,6 +69,7 @@ export const CATALOG_LAYOUT_REGISTRY = [
     { runtimeCodes: ['sold_ltd_items'], renderer: 'soldLimited', availability: 'ready' },
     { runtimeCodes: ['plasto'], renderer: 'default', availability: 'ready' },
     { runtimeCodes: ['default_3x3_color_grouping'], renderer: 'colorGrouping', availability: 'ready' },
+    { runtimeCodes: ['recolorable_furniture'], renderer: 'recolorableFurniture', availability: 'ready' },
     { runtimeCodes: ['recent_purchases'], renderer: 'default', availability: 'ready' },
     { runtimeCodes: ['room_bundle'], renderer: 'roomBundle', availability: 'ready' },
     { runtimeCodes: ['petcustomization'], renderer: 'petCustomization', availability: 'ready' },

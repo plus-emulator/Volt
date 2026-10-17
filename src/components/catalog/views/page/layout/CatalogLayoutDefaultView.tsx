@@ -20,10 +20,13 @@ interface CatalogLayoutDefaultViewProps extends CatalogLayoutProps {
     gridOffers?: IPurchasableOffer[];
     isGridOfferActive?: (offer: IPurchasableOffer) => boolean;
     colourGrid?: ReactNode;
+    /** Extra layout class, e.g. `is-recolorable` for the `recolorable_furniture` geometry. */
+    layoutClassName?: string;
+    previewHeight?: number;
 }
 
 export const CatalogLayoutDefaultView: FC<CatalogLayoutDefaultViewProps> = (props) => {
-    const { page = null, gridOffers, isGridOfferActive, colourGrid = null } = props;
+    const { page = null, gridOffers, isGridOfferActive, colourGrid = null, layoutClassName = '', previewHeight = 240 } = props;
     const { currentOffer = null, currentPage = null, roomPreviewer = null } = useCatalogData();
     const { density = 'standard', showTilePrices = true } = useCatalogDisplayPreferences();
     const gridMetrics = getCatalogGridMetrics(density);
@@ -36,7 +39,7 @@ export const CatalogLayoutDefaultView: FC<CatalogLayoutDefaultViewProps> = (prop
     const isBundleOffer = currentOffer?.pricingModel === 'pricing_model_bundle';
 
     return (
-        <div className={`volt-catalog-default-layout flex flex-col h-full gap-2 ${colourGrid ? 'has-colour-grid' : ''}`}>
+        <div className={`volt-catalog-default-layout flex flex-col h-full gap-2 ${colourGrid ? 'has-colour-grid' : ''} ${layoutClassName}`}>
             <div className="volt-catalog-product-view">
                 {currentOffer && (
                     <div className="volt-catalog-offer-panel flex gap-0">
@@ -53,7 +56,7 @@ export const CatalogLayoutDefaultView: FC<CatalogLayoutDefaultViewProps> = (prop
                             {currentOffer.product.productType !== ProductTypeEnum.BADGE && (
                                 <>
                                     {!isBundleOffer && <CatalogPreviewControls productType={currentOffer.product.productType} roomPreviewer={roomPreviewer} />}
-                                    <CatalogViewProductWidgetView height={240} />
+                                    <CatalogViewProductWidgetView height={previewHeight} />
                                     <CatalogAddOnBadgeWidgetView className="bg-muted rounded bottom-1 right-1 absolute" />
                                 </>
                             )}

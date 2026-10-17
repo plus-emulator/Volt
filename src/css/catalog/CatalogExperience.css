@@ -286,6 +286,42 @@
     outline-offset: 1px;
 }
 
+/*
+ * AIR layout_recolorable_furniture: productViewWidget 360x150, itemGridWidget 360x116 at y155 and
+ * recolorableFurnitureWidget at y275 (caption, then the bordered palette grid) above the purchase row.
+ */
+.volt-catalog-default-layout.is-recolorable .volt-catalog-product-view {
+    height: 150px;
+}
+
+.volt-catalog-default-layout.is-recolorable.has-colour-grid .volt-catalog-grid-shell {
+    top: 155px;
+    bottom: auto;
+    height: 116px;
+}
+
+.volt-catalog-recolorable-palette {
+    position: absolute;
+    left: 0;
+    top: 275px;
+    bottom: 60px;
+    width: 360px;
+}
+
+.volt-catalog-recolorable-palette-caption {
+    display: block;
+    height: 17px;
+    color: var(--catalog-standard-text, #000);
+    font-size: 11px;
+    line-height: 17px;
+}
+
+.volt-catalog-recolorable-palette .volt-catalog-colour-grid-shell {
+    top: 22px;
+    bottom: 0;
+    height: auto;
+}
+
 .volt-catalog-loading-state {
     position: absolute;
     inset: 31px 0 0;
