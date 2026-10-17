@@ -88,7 +88,7 @@
     "catalog.asset.icon.url": "${catalog.asset.url}/icon_%name%.png",
     "catalog.tab.icons": false,
     "catalog.headers": false,
-    "chat.input.maxlength": 100,
+    "chat.input.maxlength": 200,
     "zoom.enabled": false,
     "chat.styles": [
         {
