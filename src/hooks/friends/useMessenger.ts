@@ -12,6 +12,7 @@ import {
     MessengerMessageFailedEvent,
     MessengerMessageType,
     NewConsoleMessageEvent,
+    NewConsoleMessageParser,
     RoomInviteErrorEvent,
     RoomInviteEvent,
     SendMessageComposer as SendMessageComposerPacket,
@@ -229,17 +230,17 @@ const useMessengerState = () => {
 
     useMessageEvent<NewConsoleMessageEvent>(NewConsoleMessageEvent, (event) => {
         const parser = event.getParser();
-        const thread = getMessageThread(parser.senderId);
+        const thread = getMessageThread(parser.chatId);
 
         if (!thread) return;
 
-        if (parser.extraData === 'offline-sent') {
-            sendMessage(thread, null, LocalizeText('messenger.notification.persisted_message_sent'), 0, null, MessengerThreadChat.STATUS_NOTIFICATION);
-            return;
-        }
+        // Group chats carry a negative chat id; the real sender travels in senderId/senderName/senderFigure.
+        const isGroupChat = parser.chatId < 0;
+        const groupChatData = isGroupChat ? `${ parser.senderName }/${ parser.senderFigure }/${ parser.senderId }` : null;
+        const isHabbicon = parser.messageType === NewConsoleMessageParser.CONTENT_HABBICON;
 
-        sendMessage(thread, parser.senderId, parser.messageText, parser.secondsSinceSent, parser.extraData);
-        if (thread.threadId === activeThreadIdRef.current && parser.senderId > 0) SendMessageComposer(new MarkConsoleReadComposer(parser.senderId));
+        sendMessage(thread, isGroupChat ? parser.chatId : parser.senderId, isHabbicon ? String(parser.habbiconId) : parser.messageText, parser.secondsSinceSent, groupChatData, isHabbicon ? MessengerMessageType.Habbicon : MessengerThreadChat.CHAT);
+        if (thread.threadId === activeThreadIdRef.current && parser.chatId > 0) SendMessageComposer(new MarkConsoleReadComposer(parser.chatId));
     });
 
     useMessageEvent<FriendListUpdateEvent>(FriendListUpdateEvent, (event) => {

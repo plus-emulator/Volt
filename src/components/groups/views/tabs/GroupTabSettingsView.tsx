@@ -66,7 +66,10 @@ export const GroupTabSettingsView: FC<GroupTabSettingsViewProps> = (props) => {
             return true;
         }
 
-        SendMessageComposer(new GroupSavePreferencesComposer(groupData.groupId, groupState, groupDecorate ? 0 : 1, groupForum));
+        // Habbo sends no forum flag; only append it when the forum toggle changed.
+        const forumChanged = groupForum !== (groupData.groupHasForum ?? false);
+
+        SendMessageComposer(new GroupSavePreferencesComposer(groupData.groupId, groupState, groupDecorate ? 0 : 1, forumChanged ? groupForum : undefined));
         setGroupData(prevValue => ({ ...prevValue, groupState, groupCanMembersDecorate: groupDecorate, groupHasForum: groupForum }));
 
         return true;

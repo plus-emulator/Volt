@@ -1,3 +1,4 @@
+import { ISanctionStatusType } from '@volt/renderer';
 import { FC } from 'react';
 import { FaArrowCircleRight } from 'react-icons/fa';
 import { CreateLinkEvent, LocalizeText } from '../../../api';
@@ -7,71 +8,54 @@ import { useHelp } from '../../../hooks';
 export const SanctionSatusView: FC<{}> = (props) => {
     const { sanctionInfo = null, setSanctionInfo = null } = useHelp();
 
-    const sanctionLocalization = (param: string, sanctionName: string, length?: number) => {
-        let localizationName = `help.sanction.${param}`;
+    // Mirrors AIR WIN63-202610151745-318700621 com/sulake/habbo/help/SanctionInfo.as buildSanctionDescriptions.
+    const nextSanctionDescription = (sanction: ISanctionStatusType) => {
+        if (!sanction || !sanction.name?.length) return '';
 
-        switch (sanctionName) {
+        switch (sanction.name) {
             case 'ALERT':
-                localizationName = localizationName + '.alert';
-                break;
+                return LocalizeText('help.sanction.next.alert');
             case 'MUTE':
-                localizationName = localizationName + '.mute';
-                break;
+                return LocalizeText('help.sanction.next.mute', ['hours'], [sanction.lengthHours.toString()]);
             case 'BAN_PERMANENT':
-                localizationName = localizationName + '.permban';
-                break;
+                return LocalizeText('help.sanction.next.permban');
             default:
-                localizationName = localizationName + '.ban';
-                if (length > 24) {
-                    localizationName = localizationName + '.days';
-                    return LocalizeText(localizationName, ['days'], [(length / 24).toString()]);
-                }
-        }
+                if (sanction.lengthHours > 24) return LocalizeText('help.sanction.next.ban.days', ['days'], [Math.trunc(sanction.lengthHours / 24).toString()]);
 
-        return LocalizeText(localizationName, ['hours'], [length.toString()]);
+                return LocalizeText('help.sanction.next.ban', ['hours'], [sanction.lengthHours.toString()]);
+        }
     };
 
     if (!sanctionInfo) return null;
+
+    const sanctions = (sanctionInfo.sanctions ?? []).filter((entry) => entry?.reason?.length);
 
     return (
         <VoltCardView className="volt-help min-w-0 w-[min(420px,calc(100vw-16px))] max-w-[calc(100vw-16px)] max-h-[calc(100vh-16px)]" theme="primary-slim">
             <VoltCardHeaderView headerText={LocalizeText('help.sanction.info.title')} onCloseClick={() => setSanctionInfo(null)} />
             <VoltCardContentView className="text-black">
                 <div className="flex min-h-[170px] flex-col">
-                    <div className="flex flex-col gap-1">
-                        {sanctionInfo.sanctionReason === 'cfh.reason.EMPTY' ? (
-                            <div className="font-bold">{LocalizeText('help.sanction.current.none')}</div>
-                        ) : (
-                            <>
-                                {(sanctionInfo.probationHoursLeft > 0 || sanctionInfo.isSanctionActive) && (
-                                    <div className="font-bold">{LocalizeText('help.sanction.probation.reminder')}</div>
-                                )}
-                                <div className={`font-bold ${sanctionInfo.isSanctionNew ? 'text-danger' : ''}`}>
-                                    {LocalizeText('help.sanction.last.sanction')}{' '}
-                                    {sanctionLocalization('current', sanctionInfo.sanctionName, sanctionInfo.sanctionLengthHours)}
+                    <div className="flex flex-col gap-3">
+                        {!sanctions.length && <div>{LocalizeText('settings.help.sanction_information.description')}</div>}
+                        {sanctions.map((entry, index) => {
+                            const hasProbation = entry.probationHoursLeft > 0;
+                            const nextName = entry.nextSanction?.name ?? '';
+                            const showGradual = entry.isGradual && (hasProbation || nextName.length > 0);
+
+                            return (
+                                <div key={index} className="flex flex-col gap-1">
+                                    {index > 0 && <hr className="my-1" />}
+                                    <div>{entry.reason}</div>
+                                    {showGradual && <div className="pt-2 font-bold">{LocalizeText('help.sanction.probation.reminder')}</div>}
+                                    {showGradual && hasProbation && (
+                                        <div>
+                                            {LocalizeText('help.sanction.probation.days.left')} {Math.ceil(entry.probationHoursLeft / 24)}
+                                        </div>
+                                    )}
+                                    {showGradual && nextName.length > 0 && <div className="pt-2">{nextSanctionDescription(entry.nextSanction)}</div>}
                                 </div>
-                                <div>
-                                    {LocalizeText('generic.start.time')} {sanctionInfo.sanctionCreationTime}
-                                </div>
-                                <div>
-                                    {LocalizeText('generic.reason')} {sanctionInfo.sanctionReason}
-                                </div>
-                                <div>
-                                    {LocalizeText('help.sanction.probation.days.left')} {Math.trunc(sanctionInfo.probationHoursLeft / 24) + 1}
-                                </div>
-                            </>
-                        )}
-                        {sanctionInfo.hasCustomMute && !sanctionInfo.isSanctionActive && (
-                            <div className="font-bold">{LocalizeText('help.sanction.custom.mute')}</div>
-                        )}
-                        {sanctionInfo.tradeLockExpiryTime && sanctionInfo.tradeLockExpiryTime.length > 0 && (
-                            <div className="font-bold">
-                                {LocalizeText('trade.locked.until')} {sanctionInfo.tradeLockExpiryTime}
-                            </div>
-                        )}
-                        {sanctionInfo.sanctionReason !== 'cfh.reason.EMPTY' && (
-                            <div>{sanctionLocalization('next', sanctionInfo.nextSanctionName, sanctionInfo.nextSanctionLengthHours)}</div>
-                        )}
+                            );
+                        })}
                     </div>
                     <div className="mt-auto flex items-end justify-between gap-3 pt-3">
                         <button type="button" className="help-link" onClick={() => CreateLinkEvent('habbopages/help')}>
