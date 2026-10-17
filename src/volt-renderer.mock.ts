@@ -355,7 +355,7 @@ export class WiredRewardResultMessageEvent extends MessageEvent {
     static readonly PRODUCT_DONATED_CODE = 7;
     static readonly BADGE_DONATED_CODE = 8;
 }
-// Wired transaction notifications (AIR build 202610121709 ids 1360 / 503 / 125).
+// Wired transaction notifications (ids come from the renderer's IncomingHeader).
 export class WiredTransactionFailEvent extends MessageEvent {}
 export class WiredTradeErrorEvent extends MessageEvent {}
 export class WiredTransactionSuccessEvent extends MessageEvent {}
