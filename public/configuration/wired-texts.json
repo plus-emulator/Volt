@@ -1049,5 +1049,11 @@
   "furniture.recolor.scope.3": "Furniture of the same type & color",
   "furniture.recolor.scope": "Apply to:",
   "furniture.recolor.title": "Recolor furniture",
-  "infostand.button.recolor": "Recolor"
+  "infostand.button.recolor": "Recolor",
+  "room.confirm.hide_room": "You are using the Free Trial of Builders Club. Placing this furniture will hide the room from the navigator, are you sure you want to continue?",
+  "room.confirm.pick_all_bc": "You're about to remove all of your Builders Club items from this room. Are you sure?",
+  "notification.builders_club.room_locked.title": "This room has been locked!",
+  "notification.builders_club.room_locked.message": "You can't have visitors to your room on a free trial subscription. Subscribe to a Builders Club membership to let your friends in! Happy Building! :)",
+  "notification.builders_club.room_locked.linkTitle": "Builders Club FAQ",
+  "notification.builders_club.room_locked.linkUrl": "event:habbopages/builders-club/faq"
 }
