@@ -184,7 +184,12 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
     const [dropdownOpen, setDropdownOpen] = useState(sessionStorage.getItem('dropdownOpen') === 'true');
     const [furniLocationZ, setFurniLocationZ] = useState<number>(null);
     // A Wired copy hides its owner: "Temporary Furni" with the Wired icon and no profile link (AIR InfoStandFurniView.as:395-408, 630-633).
-    const showOwnerProfileIcon = useMemo(() => !!avatarInfo && !avatarInfo.isTemporary && avatarInfo.ownerId > 0, [avatarInfo]);
+    // A Builders Club furni names the warehouse instead (InfoStandFurniView.as:381-392): the bcw icon, builder.catalog.title, and a
+    // click opens the warehouse.
+    const showOwnerProfileIcon = useMemo(
+        () => !!avatarInfo && !avatarInfo.isTemporary && !avatarInfo.isBuildersClub && avatarInfo.ownerId > 0,
+        [avatarInfo]
+    );
 
     const sendUpdate = useCallback(
         (deltaX: number, deltaY: number, newZ: number = 0, deltaDirection: number = 0) => {
@@ -710,19 +715,33 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
                             <div className="volt-furni-infostand__rule" />
                         </>
                     )}
-                    {(avatarInfo.isTemporary || avatarInfo.ownerId !== 0) && (
-                        <div className="volt-furni-infostand__owner">
+                    {(avatarInfo.isTemporary || avatarInfo.isBuildersClub || avatarInfo.ownerId !== 0) && (
+                        <div
+                            className={`volt-furni-infostand__owner ${avatarInfo.isBuildersClub ? 'is-builders-club' : ''}`}
+                            onClick={
+                                avatarInfo.isBuildersClub
+                                    ? () =>
+                                          CreateLinkEvent(
+                                              avatarInfo.purchaseOfferId >= 0 ? `catalog/warehouse/offerId/${avatarInfo.purchaseOfferId}` : 'catalog/warehouse'
+                                          )
+                                    : undefined
+                            }
+                        >
                             {showOwnerProfileIcon && <UserProfileIconView className="volt-furni-infostand__owner-icon" userId={avatarInfo.ownerId} />}
-                            {avatarInfo.isTemporary && (
+                            {(avatarInfo.isTemporary || avatarInfo.isBuildersClub) && (
                                 <img
                                     alt=""
                                     className="volt-furni-infostand__temp-icon"
                                     draggable={false}
-                                    src={GetConfigurationValue<string>('catalog.asset.icon.url').replace('%name%', '80')}
+                                    src={GetConfigurationValue<string>('catalog.asset.icon.url').replace('%name%', avatarInfo.isBuildersClub ? '193' : '80')}
                                 />
                             )}
                             <span className="volt-furni-infostand__owner-name">
-                                {avatarInfo.isTemporary ? LocalizeText('temp.catalog.title') : avatarInfo.ownerName}
+                                {avatarInfo.isBuildersClub
+                                    ? LocalizeText('builder.catalog.title')
+                                    : avatarInfo.isTemporary
+                                      ? LocalizeText('temp.catalog.title')
+                                      : avatarInfo.ownerName}
                             </span>
                         </div>
                     )}

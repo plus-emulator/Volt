@@ -102,6 +102,7 @@ export const CatalogSpinnerWidgetView: FC<{}> = () => {
 
     if (
         !currentOffer?.bundlePurchaseAllowed ||
+        currentOffer.page?.isBuilderPage ||
         !GetConfigurationValue<boolean>('catalog.multiple.purchase.enabled', true)
     )
         return null;

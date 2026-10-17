@@ -32,6 +32,16 @@ export const useBuildersClubStore = createVoltStore<BuildersClubState>()(() => i
 
 export const clearBuildersClubStatus = () => useBuildersClubStore.setState(initialState());
 
+const elapsedSeconds = (receivedAt: number, now: number) => (receivedAt > 0 ? (now - receivedAt) / 1000 : 0);
+
+/** AIR HabboCatalog.builderSecondsLeft: the membership seconds counted down since the status arrived. */
+export const getBuildersClubSecondsLeft = (state: BuildersClubState = useBuildersClubStore.getState(), now: number = performance.now()) =>
+    state.secondsLeft - elapsedSeconds(state.receivedAt, now);
+
+/** AIR HabboCatalog.builderSecondsLeftWithGrace. */
+export const getBuildersClubSecondsLeftWithGrace = (state: BuildersClubState = useBuildersClubStore.getState(), now: number = performance.now()) =>
+    state.secondsLeftWithGrace - elapsedSeconds(state.receivedAt, now);
+
 let listeningCommunication: ReturnType<typeof GetCommunication> | null = null;
 let statusEvent: BuildersClubSubscriptionStatusMessageEvent | null = null;
 let furniCountEvent: BuildersClubFurniCountMessageEvent | null = null;

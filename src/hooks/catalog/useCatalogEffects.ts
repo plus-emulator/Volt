@@ -1,4 +1,6 @@
 import {
+    BuildersClubPlaceRoomItemMessageComposer,
+    BuildersClubPlaceWallItemMessageComposer,
     CatalogPublishedMessageEvent,
     FurnitureListAddOrUpdateEvent,
     FurnitureListEvent,
@@ -48,7 +50,7 @@ import {
 import { useConnectionState, useMessageEvent, useVoltEvent, useUiEvent } from '../events';
 import { useNotification } from '../notification';
 import { useCatalogStore } from './catalogStore';
-import { getNodesByOfferIdFromMap, restoreCatalogActivePath, RoomObjectCategory } from './useCatalog.helpers';
+import { getNodesByOfferIdFromMap, isNonTabbedCatalog, restoreCatalogActivePath, RoomObjectCategory } from './useCatalog.helpers';
 import {
     claimPlacedOfferPurchase,
     markPlacedPurchaseBought,
@@ -233,11 +235,13 @@ export const useCatalogEffects = (): void => {
         else
         {
             const target = restoredNodes.at(-1);
+            // Without tabs the top-level node is an open list item, not the tab.
+            const nonTabbed = isNonTabbedCatalog(useCatalogStore.getState().currentType);
 
             useCatalogStore.setState({
-                currentTab: restoredNodes[0],
+                currentTab: nonTabbed ? data.rootNode : restoredNodes[0],
                 activeNodes: restoredNodes,
-                openNodes: [...restoredNodes.slice(1, -1), ...(target.isBranch && restoredNodes.length > 1 ? [target] : [])]
+                openNodes: [...restoredNodes.slice(nonTabbed ? 0 : 1, -1), ...(target.isBranch && (nonTabbed || restoredNodes.length > 1) ? [target] : [])]
             });
         }
     }, [indexQuery.data]);
@@ -352,7 +356,8 @@ export const useCatalogEffects = (): void => {
                 referencePage?.localization || new PageLocalization([], []),
                 [],
                 referencePage?.acceptSeasonCurrencyAsCredits || false,
-                referencePage?.mode ?? CatalogPage.MODE_NORMAL
+                referencePage?.mode ?? CatalogPage.MODE_NORMAL,
+                state.currentType
             );
         } else {
             offer.page = referencePage;
@@ -383,6 +388,7 @@ export const useCatalogEffects = (): void => {
     useMessageEvent<UserPermissionsEvent>(UserPermissionsEvent, () =>
     {
         invalidateCatalogIndex(CatalogType.NORMAL);
+        invalidateCatalogIndex(CatalogType.BUILDER);
         invalidateCatalogPages();
     });
 
@@ -426,6 +432,35 @@ export const useCatalogEffects = (): void => {
 
         if (!placed) {
             state.resetObjectMover();
+
+            return;
+        }
+
+        // AIR HabboCatalog.onObjectPlacedInRoom, BUILDERS_CLUB (HabboCatalog.as:3121-3146): the server places the furni itself.
+        if (state.currentType === CatalogType.BUILDER) {
+            let pageId = purchasableOffer.page?.pageId ?? -1;
+
+            // Search results have no page; the first Builders Club page that sells the offer names it.
+            if (pageId < 0) pageId = state.getNodesByOfferId(purchasableOffer.offerId, true)?.[0]?.pageId ?? -1;
+
+            switch (event.category) {
+                case RoomObjectCategory.FLOOR:
+                    SendMessageComposer(
+                        new BuildersClubPlaceRoomItemMessageComposer(pageId, purchasableOffer.offerId, product.extraParam, event.x, event.y, event.direction)
+                    );
+                    break;
+                case RoomObjectCategory.WALL:
+                    SendMessageComposer(new BuildersClubPlaceWallItemMessageComposer(pageId, purchasableOffer.offerId, product.extraParam, event.wallLocation));
+                    break;
+            }
+
+            if (state.builderPlaceMultiple && state.isDraggable(purchasableOffer)) {
+                state.requestOfferToMover(purchasableOffer, true);
+
+                return;
+            }
+
+            useCatalogStore.setState({ objectMoverRequested: false, purchasableOffer: null, builderPlaceMultiple: false, isVisible: true });
 
             return;
         }

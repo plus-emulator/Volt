@@ -1,7 +1,9 @@
-import { CreateLinkEvent, FrontPageItem, GetRoomEngine, RoomObjectPlacementSource, RoomObjectVariable, RoomPreviewer } from '@volt/renderer';
+import { CreateLinkEvent, FrontPageItem, GetRoomEngine, RoomObjectPlacementSource, RoomObjectType, RoomObjectVariable, RoomPreviewer } from '@volt/renderer';
 import {
+    BuilderFurniPlaceableStatus,
     CatalogType,
     CreateRecolorableStuffData,
+    GetConfigurationValue,
     GetRoomSession,
     ICatalogNode,
     ICatalogPage,
@@ -13,12 +15,14 @@ import {
     ProductTypeEnum,
     SearchResult
 } from '../../api';
+import { getBuildersClubSecondsLeft, useBuildersClubStore } from '../../state/buildersClubStore';
 import { createVoltStore } from '../../state/createVoltStore';
 import {
     findNodeById,
     findNodeByName,
     getCatalogNodePath,
     getNodesByOfferIdFromMap,
+    isNonTabbedCatalog,
     normalizeCatalogType,
     replaceCatalogPageOffers,
     RoomControllerLevel,
@@ -57,6 +61,8 @@ export interface CatalogUiState {
     roomPreviewer: RoomPreviewer | null;
     objectMoverRequested: boolean;
     purchasableOffer: IPurchasableOffer | null;
+    /** AIR HabboCatalog var_5235: a Builders Club offer goes back to the mover after each placement ("Place multiple"). */
+    builderPlaceMultiple: boolean;
     placedObjectPurchaseData: PlacedObjectPurchaseData | null;
     placedObjectPurchaseSent: boolean;
     placedObjectPurchaseBought: boolean;
@@ -88,8 +94,9 @@ export interface CatalogActions {
     setCatalogPlaceMultipleObjects: (flag: boolean) => void;
     bumpLocalizationVersion: () => void;
     setRoomPreviewer: (previewer: RoomPreviewer | null) => void;
+    getBuilderFurniPlaceableStatus: (offer: IPurchasableOffer | null) => number;
     isDraggable: (offer: IPurchasableOffer) => boolean;
-    requestOfferToMover: (offer: IPurchasableOffer) => void;
+    requestOfferToMover: (offer: IPurchasableOffer, placeMultiple?: boolean) => void;
     cancelObjectMover: () => void;
     resetObjectMover: (flag?: boolean) => void;
     setPlacedObjectPurchaseData: (data: PlacedObjectPurchaseData | null) => void;
@@ -127,6 +134,7 @@ export const INITIAL_CATALOG_UI_STATE: CatalogUiState = {
     roomPreviewer: null,
     objectMoverRequested: false,
     purchasableOffer: null,
+    builderPlaceMultiple: false,
     placedObjectPurchaseData: null,
     placedObjectPurchaseSent: false,
     placedObjectPurchaseBought: false
@@ -139,6 +147,14 @@ const openedPage = (pageId: number, offerId: number) => ({
     pageOverride: null,
     currentOffer: null
 });
+
+const getCatalogRoot = (node: ICatalogNode): ICatalogNode => {
+    let root = node;
+
+    while (root.parent) root = root.parent;
+
+    return root;
+};
 
 /** AIR CatalogNavigator.getPathToNodeWithLayout: the first visible descendant that is a page, through folders. */
 const getPathToNodeWithLayout = (node: ICatalogNode): ICatalogNode[] => {
@@ -209,7 +225,9 @@ export const useCatalogStore = createVoltStore<CatalogStoreState>((set, get) => 
     activateNode: (targetNode, offerId = -1) => {
         if (!targetNode?.parent) return;
 
-        if (!targetNode.parent.parent) {
+        const nonTabbed = isNonTabbedCatalog(get().currentType);
+
+        if (!targetNode.parent.parent && !nonTabbed) {
             get().showTab(targetNode);
 
             return;
@@ -219,12 +237,13 @@ export const useCatalogStore = createVoltStore<CatalogStoreState>((set, get) => 
 
         const { activeNodes, openNodes } = get();
         const path = getCatalogNodePath(targetNode);
-        const nextOpen = path.slice(1, -1);
+        // Without tabs the list shows the whole tree, so the top-level node is a list item that opens like any other.
+        const nextOpen = nonTabbed ? path.slice(0, -1) : path.slice(1, -1);
         const closing = activeNodes.includes(targetNode) && openNodes.includes(targetNode);
 
         if (targetNode.isBranch && !closing) nextOpen.push(targetNode);
 
-        set({ currentTab: path[0], activeNodes: path, openNodes: nextOpen, navigationHidden: false });
+        set({ currentTab: nonTabbed ? getCatalogRoot(targetNode) : path[0], activeNodes: path, openNodes: nextOpen, navigationHidden: false });
 
         if (targetNode.pageId > -1) set(openedPage(targetNode.pageId, offerId));
     },
@@ -256,7 +275,7 @@ export const useCatalogStore = createVoltStore<CatalogStoreState>((set, get) => 
 
         const tab = getCatalogNodePath(node)[0];
 
-        if (node !== tab) {
+        if (node !== tab || isNonTabbedCatalog(get().currentType)) {
             set({ currentTab: tab, activeNodes: [], openNodes: [] });
             get().activateNode(node, offerId);
 
@@ -351,6 +370,15 @@ export const useCatalogStore = createVoltStore<CatalogStoreState>((set, get) => 
 
         if (pageId > -1 || pageOverride) return;
 
+        // AIR CatalogNavigator.loadFrontPage without tabs: the first visible node of the tree.
+        if (isNonTabbedCatalog(currentType)) {
+            const first = index.rootNode.children.find((child) => child?.isVisible);
+
+            if (first) get().activateNode(first);
+
+            return;
+        }
+
         if (index.rootNode.isBranch) {
             for (const child of index.rootNode.children) {
                 if (child && child.isVisible) {
@@ -426,17 +454,59 @@ export const useCatalogStore = createVoltStore<CatalogStoreState>((set, get) => 
         })),
     setRoomPreviewer: (roomPreviewer) => set({ roomPreviewer }),
 
+    // AIR HabboCatalog.getBuilderFurniPlaceableStatusForOffer / getBuilderFurniPlaceableStatus (HabboCatalog.as:2842-2889).
+    getBuilderFurniPlaceableStatus: (offer) => {
+        if (!offer) return BuilderFurniPlaceableStatus.MISSING_OFFER;
+
+        const { furniCount, furniLimit } = useBuildersClubStore.getState();
+
+        if (furniCount < 0 || furniCount >= furniLimit) return BuilderFurniPlaceableStatus.FURNI_LIMIT_REACHED;
+
+        const roomSession = GetRoomSession();
+
+        if (!roomSession) return BuilderFurniPlaceableStatus.NOT_IN_ROOM;
+
+        if (!roomSession.isRoomOwner && roomSession.isGuildRoom && !GetConfigurationValue<boolean>('builders.club.furniture.placement.group.room.enabled', true))
+            return BuilderFurniPlaceableStatus.GUILD_ROOM;
+
+        // BuilderCatalogWidget.onYouAreOwner lifts status 4 for the owner before the controller level arrives.
+        if (roomSession.controllerLevel < RoomControllerLevel.GUILD_ADMIN && !roomSession.isRoomOwner) return BuilderFurniPlaceableStatus.NOT_ROOM_OWNER_OR_GROUP_ADMIN;
+
+        // Without a membership (the trial) nobody but the placer and moderators may be in the room.
+        if (getBuildersClubSecondsLeft() <= 0) {
+            const userDataManager = roomSession.userDataManager;
+
+            for (const roomObject of GetRoomEngine().getRoomObjects(roomSession.roomId, RoomObjectCategory.UNIT) ?? []) {
+                const userData = userDataManager?.getUserDataByIndex(roomObject.id);
+
+                if (userData && userData.type === RoomObjectType.USER && userData.roomIndex !== roomSession.ownRoomIndex && !userData.isModerator)
+                    return BuilderFurniPlaceableStatus.VISITORS_IN_ROOM;
+            }
+        }
+
+        return BuilderFurniPlaceableStatus.OKAY;
+    },
+
+    // AIR HabboCatalog.isDraggable (HabboCatalog.as:2838).
     isDraggable: (offer) => {
         const roomSession = GetRoomSession();
         const { currentType } = get();
 
+        if (!offer?.product) return false;
+
+        const mayPlace =
+            currentType === CatalogType.BUILDER
+                ? get().getBuilderFurniPlaceableStatus(offer) === BuilderFurniPlaceableStatus.OKAY
+                : currentType === CatalogType.NORMAL &&
+                  !!roomSession &&
+                  (roomSession.isRoomOwner || (roomSession.isGuildRoom && roomSession.controllerLevel >= RoomControllerLevel.GUILD_MEMBER));
+
         return (
             DRAG_AND_DROP_ENABLED &&
-            roomSession &&
-            offer.page &&
+            !!roomSession &&
+            !!offer.page &&
             offer.page.layoutCode !== 'sold_ltd_items' &&
-            currentType === CatalogType.NORMAL &&
-            (roomSession.isRoomOwner || (roomSession.isGuildRoom && roomSession.controllerLevel >= RoomControllerLevel.GUILD_MEMBER)) &&
+            mayPlace &&
             offer.pricingModel !== Offer.PRICING_MODEL_BUNDLE &&
             offer.pricingModel !== Offer.PRICING_MODEL_MULTI &&
             offer.product.productType !== ProductTypeEnum.EFFECT &&
@@ -444,7 +514,8 @@ export const useCatalogStore = createVoltStore<CatalogStoreState>((set, get) => 
         );
     },
 
-    requestOfferToMover: (offer) => {
+    // AIR HabboCatalog.requestSelectedItemToMover (HabboCatalog.as:2920); placeMultiple is the Builders Club "Place multiple".
+    requestOfferToMover: (offer, placeMultiple = false) => {
         if (!get().isDraggable(offer)) return;
 
         const product = offer.product;
@@ -466,7 +537,7 @@ export const useCatalogStore = createVoltStore<CatalogStoreState>((set, get) => 
         const stuffData = IsRecolorableFurniturePage(offer.page) && product.extraParam ? CreateRecolorableStuffData(product.extraParam) : null;
 
         if (GetRoomEngine().processRoomObjectPlacement(RoomObjectPlacementSource.CATALOG, -offer.offerId, category, product.productClassId, product.extraParam, stuffData)) {
-            set({ purchasableOffer: offer, objectMoverRequested: true, isVisible: false });
+            set({ purchasableOffer: offer, objectMoverRequested: true, isVisible: false, builderPlaceMultiple: placeMultiple });
         }
     },
 

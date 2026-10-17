@@ -8,4 +8,6 @@ export interface ICatalogPage {
     readonly offers: IPurchasableOffer[];
     readonly acceptSeasonCurrencyAsCredits: boolean;
     readonly mode: number;
+    readonly catalogType?: string;
+    readonly isBuilderPage?: boolean;
 }

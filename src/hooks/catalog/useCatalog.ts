@@ -99,6 +99,7 @@ export const useCatalogActions = () =>
             getNodeById: state.getNodeById,
             getNodeByName: state.getNodeByName,
             getNodesByOfferId: state.getNodesByOfferId,
+            getBuilderFurniPlaceableStatus: state.getBuilderFurniPlaceableStatus,
             resetPlacedOfferData: state.resetPlacedOfferData,
             retryCurrentPage: state.retryCurrentPage,
             refreshIndex: state.refreshIndex,

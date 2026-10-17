@@ -7,6 +7,7 @@ import { useCatalogPageQuery } from '../../hooks/catalog/useCatalogQueries';
 import { getCatalogHeaderDescription } from './catalogLocalization.helpers';
 import { parseCatalogTabLabel } from './catalogTabLabel';
 import { CatalogLoadingStateView } from './views/CatalogLoadingStateView';
+import { CatalogBuilderHeaderView } from './views/catalog-header/CatalogBuilderHeaderView';
 import { CatalogIconView } from './views/catalog-icon/CatalogIconView';
 import { CatalogGiftView } from './views/gift/CatalogGiftView';
 import { CatalogPlacedOfferConfirmView } from './views/CatalogPlacedOfferConfirmView';
@@ -16,6 +17,25 @@ import { CatalogSearchView } from './views/page/common/CatalogSearchView';
 import { GetCatalogLayout } from './views/page/layout/GetCatalogLayout';
 import { catalogPageHidesLeftPane } from './views/page/layout/catalogLayoutRegistry';
 import { MarketplacePostOfferView } from './views/page/layout/marketplace/MarketplacePostOfferView';
+
+// The Builders Club page icon (LocalizationCatalogWidget: builder pages show icon_193 in the header).
+const BUILDER_HEADER_ICON = 193;
+
+/** AIR HabboCatalog.toggleCatalog: the Builders Club catalogue is only there while builders.club.enabled is on. */
+const isBuildersClubEnabled = () => GetConfigurationValue<boolean>('builders.club.enabled', true);
+
+const getCatalogTypeFromLink = (type?: string) => {
+    switch ((type || '').toLowerCase()) {
+        case 'bc':
+        case 'builder':
+        case 'buildersclub':
+        case 'builders_club':
+        case 'warehouse':
+            return isBuildersClubEnabled() ? CatalogType.BUILDER : CatalogType.NORMAL;
+        default:
+            return CatalogType.NORMAL;
+    }
+};
 
 const CatalogViewInner: FC<{}> = () => {
     const { rootNode = null, currentPage = null, searchResult = null, isBusy = false, catalogLoadError = null } = useCatalogData();
@@ -30,6 +50,7 @@ const CatalogViewInner: FC<{}> = () => {
         currentType = null
     } = useCatalogUiState();
     const loadedPage = useCatalogPageQuery(currentType || CatalogType.NORMAL, openPageId, isVisible).data?.page ?? null;
+    const isBuilder = currentType === CatalogType.BUILDER;
     const {
         openPageById = null,
         openPageByName = null,
@@ -67,7 +88,7 @@ const CatalogViewInner: FC<{}> = () => {
                 switch (parts[1]) {
                     case 'show':
                         if (parts.length > 2) {
-                            openCatalogByType(CatalogType.NORMAL);
+                            openCatalogByType(getCatalogTypeFromLink(parts[2]));
 
                             return;
                         }
@@ -79,14 +100,35 @@ const CatalogViewInner: FC<{}> = () => {
                         return;
                     case 'toggle':
                         if (parts.length > 2) {
-                            toggleCatalogByType(CatalogType.NORMAL);
+                            toggleCatalogByType(getCatalogTypeFromLink(parts[2]));
 
                             return;
                         }
 
                         setIsVisible((prevValue) => !prevValue);
                         return;
+                    // HabboCatalog.linkReceived: catalog/warehouse opens the Builders Club catalogue, at a page when one is named.
+                    case 'warehouse':
+                        openCatalogByType(getCatalogTypeFromLink('warehouse'));
+
+                        if (parts.length === 4 && parts[2] === 'offerId') {
+                            openPageByOfferId(parseInt(parts[3]));
+
+                            return;
+                        }
+
+                        if (parts.length > 2 && parts[2]) {
+                            const pageId = Number(parts[2]);
+
+                            if (Number.isInteger(pageId) && pageId > 0) openPageById(pageId);
+                            else openPageByName(parts[2]);
+                        }
+
+                        return;
                     case 'open':
+                        // catalog/open names a page of the normal catalogue.
+                        if (parts.length > 2) openCatalogByType(CatalogType.NORMAL);
+
                         if (parts.length > 2) {
                             if (parts.length === 4) {
                                 switch (parts[2]) {
@@ -119,14 +161,16 @@ const CatalogViewInner: FC<{}> = () => {
         <>
             {isVisible && (
                 <VoltCardView
-                    classNames={['volt-catalog-window']}
+                    classNames={['volt-catalog-window', ...(isBuilder ? ['is-builder'] : [])]}
                     frameStyle={3}
                     isResizable
                     resizeAxis="vertical"
                     uniqueKey="catalog"
                 >
                     <VoltCardHeaderView
-                        headerText={isBusy ? LocalizeText('generic.loading') || 'Loading...' : LocalizeText('catalog.title')}
+                        headerText={
+                            isBusy ? LocalizeText('generic.loading') || 'Loading...' : LocalizeText(isBuilder ? 'builder.catalog.title' : 'catalog.title')
+                        }
                         onCloseClick={() => setIsVisible(false)}
                     />
                     <div className="volt-catalog-mobile-header">
@@ -143,57 +187,66 @@ const CatalogViewInner: FC<{}> = () => {
                             ))}
                         </div>
                     </div>
-                    <VoltCardTabsView classNames={['volt-catalog-tabs-shell']} justifyContent="start">
-                        {rootNode &&
-                            rootNode.children.length > 0 &&
-                            rootNode.children.map((child) => {
-                                if (!child.isVisible) return null;
-                                return (
-                                    <VoltCardTabsItemView
-                                        key={child.id}
-                                        isActive={child === currentTab}
-                                        title={child.localization}
-                                        onClick={() => {
-                                            if (searchResult) setSearchResult(null);
+                    {/* HabboCatalog.useNonTabbedCatalog: the Builders Club catalogue (catalog_ubuntu) has no tabs. */}
+                    {!isBuilder && (
+                        <VoltCardTabsView classNames={['volt-catalog-tabs-shell']} justifyContent="start">
+                            {rootNode &&
+                                rootNode.children.length > 0 &&
+                                rootNode.children.map((child) => {
+                                    if (!child.isVisible) return null;
+                                    return (
+                                        <VoltCardTabsItemView
+                                            key={child.id}
+                                            isActive={child === currentTab}
+                                            title={child.localization}
+                                            onClick={() => {
+                                                if (searchResult) setSearchResult(null);
 
-                                            showTab(child);
-                                        }}
-                                    >
-                                        <div className="flex items-center gap-1">
-                                            <span className="volt-catalog-tab-label">{getSwfTabLabel(child.localization)}</span>
-                                        </div>
-                                    </VoltCardTabsItemView>
-                                );
-                            })}
-                    </VoltCardTabsView>
-                    <div className="volt-catalog-standard-header">
+                                                showTab(child);
+                                            }}
+                                        >
+                                            <div className="flex items-center gap-1">
+                                                <span className="volt-catalog-tab-label">{getSwfTabLabel(child.localization)}</span>
+                                            </div>
+                                        </VoltCardTabsItemView>
+                                    );
+                                })}
+                        </VoltCardTabsView>
+                    )}
+                    <div className={`volt-catalog-standard-header ${isBuilder ? 'is-builder' : ''}`}>
                         <div
                             className="volt-catalog-standard-header-bg"
                             style={currentPage?.localization?.getImage(0) ? { backgroundImage: `url(${currentPage.localization.getImage(0)})` } : undefined}
                         />
                         <div className="volt-catalog-standard-header-icon">
-                            <CatalogIconView icon={activeCatalogNode?.iconId ?? rootNode?.iconId ?? 1} />
+                            <CatalogIconView icon={isBuilder ? BUILDER_HEADER_ICON : (activeCatalogNode?.iconId ?? rootNode?.iconId ?? 1)} />
                         </div>
                         <div className="volt-catalog-standard-header-copy">
-                            <div className="volt-catalog-standard-header-title">
-                                {searchResult
-                                    ? LocalizeText('catalog.search.header')
-                                    : getSwfTabLabel(activeCatalogNode?.localization ?? LocalizeText('catalog.title'))}
-                            </div>
-                            <div
-                                className="volt-catalog-standard-header-description"
-                                dangerouslySetInnerHTML={{
-                                    __html: SanitizeHtml(
-                                        searchResult
-                                            ? LocalizeText(
-                                                  'catalog.search.results',
-                                                  ['count', 'needle'],
-                                                  [String(searchResult.offers.length), searchResult.searchValue]
-                                              )
-                                            : getCatalogHeaderDescription(currentPage?.layoutCode, currentPage?.localization)
-                                    )
-                                }}
-                            />
+                            {isBuilder ? (
+                                <CatalogBuilderHeaderView />
+                            ) : (
+                                <>
+                                    <div className="volt-catalog-standard-header-title">
+                                        {searchResult
+                                            ? LocalizeText('catalog.search.header')
+                                            : getSwfTabLabel(activeCatalogNode?.localization ?? LocalizeText('catalog.title'))}
+                                    </div>
+                                    <div
+                                        className="volt-catalog-standard-header-description"
+                                        dangerouslySetInnerHTML={{
+                                            __html: SanitizeHtml(
+                                                searchResult
+                                                    ? LocalizeText(
+                                                          'catalog.search.results',
+                                                          ['count', 'needle'],
+                                                          [String(searchResult.offers.length), searchResult.searchValue]
+                                                      )
+                                                    : getCatalogHeaderDescription(currentPage?.layoutCode, currentPage?.localization)
+                                            )
+                                        }}
+                                    />
+                                </>
+                            )}
                         </div>
                     </div>
                     <VoltCardContentView classNames={['volt-catalog-content-shell']}>
@@ -204,7 +257,9 @@ const CatalogViewInner: FC<{}> = () => {
                                         <CatalogSearchView />
                                     </div>
                                     <div className="volt-catalog-navigation-shell">
-                                        {currentTab && <CatalogNavigationView node={currentTab} />}
+                                        {isBuilder
+                                            ? rootNode && <CatalogNavigationView isBuilder node={rootNode} />
+                                            : currentTab && <CatalogNavigationView node={currentTab} />}
                                     </div>
                                 </div>
                             )}

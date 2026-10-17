@@ -1,7 +1,10 @@
 import { NodeData, RoomControllerLevel, RoomObjectCategory } from '@volt/renderer';
 import { CatalogNode, CatalogPage, CatalogType, ICatalogNode, ICatalogPage, IPurchasableOffer } from '../../api';
 
-export const normalizeCatalogType = (_type?: string): string => CatalogType.NORMAL;
+export const normalizeCatalogType = (type?: string): string => (type === CatalogType.BUILDER ? CatalogType.BUILDER : CatalogType.NORMAL);
+
+/** AIR HabboCatalog.useNonTabbedCatalog: the Builders Club catalogue lists its whole tree without tabs. */
+export const isNonTabbedCatalog = (type: string): boolean => type === CatalogType.BUILDER;
 
 /** Nodes from the top-level tab down to the target; the index root is left out. */
 export const getCatalogNodePath = (target: ICatalogNode): ICatalogNode[] => {
@@ -93,7 +96,7 @@ export const buildCatalogNodeTree = (root: NodeData): { rootNode: ICatalogNode; 
 };
 
 export const replaceCatalogPageOffers = (page: ICatalogPage, offers: IPurchasableOffer[]): CatalogPage => {
-    return new CatalogPage(page.pageId, page.layoutCode, page.localization, offers, page.acceptSeasonCurrencyAsCredits, page.mode);
+    return new CatalogPage(page.pageId, page.layoutCode, page.localization, offers, page.acceptSeasonCurrencyAsCredits, page.mode, page.catalogType);
 };
 
 export { RoomControllerLevel, RoomObjectCategory };
