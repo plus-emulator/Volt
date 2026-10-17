@@ -34,10 +34,24 @@ export interface CatalogIndexData {
     offersToNodes: Map<number, ICatalogNode[]>;
 }
 
+/**
+ * An offer the server sends without products. Grids cannot show these, so they stay off page.offers.
+ * The Builders Club layouts sell them (membership days and furni limit addons carry no products).
+ */
+export interface CatalogProductlessOffer {
+    offerId: number;
+    localizationId: string;
+    priceCredits: number;
+    priceActivityPoints: number;
+    priceActivityPointsType: number;
+    clubLevel: number;
+}
+
 export interface CatalogPageData {
     page: ICatalogPage;
     frontPageItems: FrontPageItem[];
     offerId: number;
+    productlessOffers: CatalogProductlessOffer[];
 }
 
 export interface OfferLookups {
@@ -128,11 +142,26 @@ export const selectCatalogIndex = (parser: { root: NodeData }): CatalogIndexData
 
 export const selectCatalogPage = (parser: ParserPage, lookups: OfferLookups = defaultLookups): CatalogPageData => {
     const offers: IPurchasableOffer[] = [];
+    const productlessOffers: CatalogProductlessOffer[] = [];
 
     for (const parserOffer of parser.offers) {
         const offer = buildPurchasableOffer(parserOffer, lookups);
 
-        if (offer) offers.push(offer);
+        if (offer) {
+            offers.push(offer);
+            continue;
+        }
+
+        if (!parserOffer.products?.length) {
+            productlessOffers.push({
+                offerId: parserOffer.offerId,
+                localizationId: parserOffer.localizationId,
+                priceCredits: parserOffer.priceCredits,
+                priceActivityPoints: parserOffer.priceActivityPoints,
+                priceActivityPointsType: parserOffer.priceActivityPointsType,
+                clubLevel: parserOffer.clubLevel
+            });
+        }
     }
 
     const page = new CatalogPage(
@@ -143,7 +172,7 @@ export const selectCatalogPage = (parser: ParserPage, lookups: OfferLookups = de
         parser.acceptSeasonCurrencyAsCredits
     ) as ICatalogPage;
 
-    return { page, frontPageItems: parser.frontPageItems ?? [], offerId: parser.offerId };
+    return { page, frontPageItems: parser.frontPageItems ?? [], offerId: parser.offerId, productlessOffers };
 };
 
 const indexQueryConfig = (type: string) => ({

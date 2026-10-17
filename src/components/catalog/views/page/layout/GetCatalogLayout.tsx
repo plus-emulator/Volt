@@ -2,6 +2,8 @@ import { FC } from 'react';
 import { ICatalogPage } from '../../../../../api';
 import { CatalogLayoutProps } from './CatalogLayout.types';
 import { CatalogLayoutBadgeDisplayView } from './CatalogLayoutBadgeDisplayView';
+import { CatalogLayoutBuildersClubFrontpageView } from './CatalogLayoutBuildersClubFrontpageView';
+import { CatalogLayoutBuildersClubOffersView } from './CatalogLayoutBuildersClubOffersView';
 import { CatalogLayoutColorGroupingView } from './CatalogLayoutColorGroupingView';
 import { CatalogLayoutDefaultView } from './CatalogLayoutDefaultView';
 import { CatalogLayouGuildCustomFurniView } from './CatalogLayoutGuildCustomFurniView';
@@ -33,6 +35,8 @@ import { CatalogLayoutVipGiftsView } from './vip-gifts/CatalogLayoutVipGiftsView
 
 const layoutRenderers: Record<CatalogLayoutRenderer, FC<CatalogLayoutProps>> = {
     badgeDisplay: CatalogLayoutBadgeDisplayView,
+    buildersClubFrontpage: CatalogLayoutBuildersClubFrontpageView,
+    buildersClubOffers: CatalogLayoutBuildersClubOffersView,
     clubGifts: CatalogLayoutVipGiftsView,
     colorGrouping: CatalogLayoutColorGroupingView,
     default: CatalogLayoutDefaultView,

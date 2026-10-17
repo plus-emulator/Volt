@@ -1,0 +1,181 @@
+/* Builders Club catalogue pages: layout_builders_club_frontpage, layout_builders_club_loyalty and layout_builders_club_addons
+   (AIR WIN63-202610151745-318700621). The AIR layouts are 360x508; Volt pages are 460px tall, so the list is shorter. */
+.volt-builders-club-layout {
+    background: transparent;
+}
+
+/* ctlg_description: html at 15,28 (276x80) on the list pages, 15,10 (330x380) on the front page. */
+.volt-builders-club-description {
+    position: absolute;
+    top: 28px;
+    left: 15px;
+    z-index: 1;
+    width: 234px;
+    height: 80px;
+    overflow: hidden;
+    line-height: 15px;
+    overflow-wrap: break-word;
+}
+
+.volt-builders-club-description.is-frontpage {
+    top: 10px;
+    width: 330px;
+    height: 330px;
+    overflow-y: auto;
+}
+
+.volt-builders-club-art {
+    position: absolute;
+    z-index: 0;
+    pointer-events: none;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-builders-club-art.is-top {
+    top: 21px;
+    left: 249px;
+}
+
+.volt-builders-club-art.is-bottom {
+    top: 316px;
+    left: 290px;
+}
+
+/* builderLoyaltyWidget / builderAddonsWidget at 14,108; rows 269x77 with 12px spacing. */
+.volt-builders-club-offers {
+    position: absolute;
+    top: 108px;
+    left: 14px;
+    z-index: 1;
+    display: flex;
+    width: 287px;
+    height: 290px;
+    flex-direction: column;
+    gap: 12px;
+    overflow: hidden auto;
+}
+
+.volt-club-offer.is-wide.volt-builders-club-offer {
+    width: 269px;
+    height: 77px;
+    margin-left: 1px;
+}
+
+.volt-club-offer.is-wide.volt-builders-club-offer::before {
+    width: 269px;
+    height: 77px;
+    border-image-source: url("../../assets/images/catalog/air/hc/habbo-border-colorless-dfdfdf-13.png");
+}
+
+.volt-club-offer.is-wide.volt-builders-club-offer::after {
+    display: none;
+}
+
+.volt-club-offer.is-wide.volt-builders-club-offer .volt-club-offer-header,
+.volt-club-offer.is-wide.volt-builders-club-offer .volt-club-offer-header::before {
+    width: 260px;
+}
+
+.volt-club-offer.is-wide.volt-builders-club-offer .volt-club-offer-header::before {
+    border-image-source: url("../../assets/images/catalog/air/hc/habbo-border-colorless-969696-13.png");
+}
+
+.volt-builders-club-offer-icon {
+    position: absolute;
+    top: 5px;
+    left: 8px;
+    width: 15px;
+    height: 15px;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-club-offer.is-wide.volt-builders-club-offer .volt-club-offer-header strong {
+    left: 33px;
+    width: 222px;
+}
+
+.volt-club-offer.is-wide.volt-builders-club-offer .volt-club-offer-prices {
+    top: 45px;
+    left: 9px;
+    width: 110px;
+}
+
+/* item_buy: button_thick 142x35, colour 0x0a9bc5. */
+.volt-builders-club-layout .volt-club-offer-action.is-buy,
+.volt-builders-club-subscribe {
+    width: 142px;
+    min-width: 142px;
+    height: 35px;
+    min-height: 35px;
+    border-image-source: url("../../assets/images/habbo-skin/slices/button-shiny-thick-default-0bb3e3-h35.png") !important;
+}
+
+.volt-club-offer.is-wide.volt-builders-club-offer .volt-club-offer-action.is-buy {
+    top: 37px;
+    left: 123px;
+}
+
+.volt-builders-club-layout .volt-club-offer-action.is-buy:hover:not(:disabled),
+.volt-builders-club-subscribe:hover {
+    border-image-source: url("../../assets/images/habbo-skin/slices/button-shiny-thick-hover-0bb3e3-h35.png") !important;
+}
+
+.volt-builders-club-layout .volt-club-offer-action.is-buy:active:not(:disabled),
+.volt-builders-club-subscribe:active {
+    border-image-source: url("../../assets/images/habbo-skin/slices/button-shiny-thick-pressed-0bb3e3-h35.png") !important;
+}
+
+.volt-builders-club-layout .volt-club-offer-action.is-buy:disabled {
+    border-image-source: url("../../assets/images/habbo-skin/slices/button-shiny-thick-disabled-0bb3e3-h35.png") !important;
+    cursor: default;
+}
+
+/* trial_warning: u_bold, 0xcc0000, under the list. */
+.volt-builders-club-trial-warning {
+    position: absolute;
+    top: 402px;
+    left: 14px;
+    z-index: 1;
+    width: 287px;
+    height: 17px;
+    color: #c00;
+    font-weight: 700;
+    line-height: 17px;
+}
+
+.volt-builders-club-status {
+    position: absolute;
+    top: 420px;
+    left: 14px;
+    z-index: 1;
+    display: flex;
+    width: 332px;
+    flex-direction: column;
+    line-height: 13px;
+}
+
+.volt-builders-club-subscription {
+    position: absolute;
+    inset: 350px 0 0;
+}
+
+.volt-builders-club-subscription .volt-builders-club-status {
+    top: 0;
+    left: 15px;
+}
+
+/* subscribe_button_big: 180x50 at 90,40 of builderSubscriptionWidget. */
+.volt-builders-club-subscribe.volt-club-offer-action {
+    top: 52px;
+    left: 90px;
+    width: 180px;
+    min-width: 180px;
+}
+
+/* Builders Club purchase confirmation: the offer icon replaces the club emblem. */
+.volt-club-purchase-confirm-icon.is-image {
+    width: auto;
+    height: auto;
+    background: none;
+    object-fit: none;
+}

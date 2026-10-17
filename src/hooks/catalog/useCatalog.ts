@@ -1,7 +1,9 @@
 import { useShallow } from 'zustand/react/shallow';
 import { ICatalogNode } from '../../api';
 import { useCatalogStore } from './catalogStore';
-import { useCatalogIndexQuery, useCatalogPageQuery } from './useCatalogQueries';
+import { CatalogProductlessOffer, useCatalogIndexQuery, useCatalogPageQuery } from './useCatalogQueries';
+
+const NO_PRODUCTLESS_OFFERS: CatalogProductlessOffer[] = [];
 
 export { CatalogEffectsHost } from './useCatalogEffects';
 
@@ -28,6 +30,8 @@ export const useCatalogData = () => {
     const pageQuery = useCatalogPageQuery(ui.currentType, ui.pageId, ui.isVisible);
 
     const currentPage = ui.pageOverride ?? pageQuery.data?.page ?? null;
+    // Product-less offers belong to the fetched page; an override page (search result, deep link) has none.
+    const productlessOffers = (!ui.pageOverride && pageQuery.data?.productlessOffers) || NO_PRODUCTLESS_OFFERS;
     const isBusy = pageQuery.isFetching && (pageQuery.isPlaceholderData || !pageQuery.data);
     const catalogLoadError: 'timeout' | null = pageQuery.isError && !pageQuery.isFetching ? 'timeout' : null;
 
@@ -37,6 +41,7 @@ export const useCatalogData = () => {
         rootNode: indexQuery.data?.rootNode ?? null,
         offersToNodes: indexQuery.data?.offersToNodes ?? null,
         currentPage,
+        productlessOffers,
         currentOffer: ui.currentOffer,
         frontPageItems: ui.frontPageItems,
         searchResult: ui.searchResult,

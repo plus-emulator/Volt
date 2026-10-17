@@ -1,5 +1,7 @@
 export type CatalogLayoutRenderer =
     | 'badgeDisplay'
+    | 'buildersClubFrontpage'
+    | 'buildersClubOffers'
     | 'clubGifts'
     | 'colorGrouping'
     | 'default'
@@ -64,6 +66,8 @@ export const CATALOG_LAYOUT_REGISTRY = [
     { runtimeCodes: ['info_pets'], renderer: 'info', availability: 'ready' },
     { runtimeCodes: ['loyalty_vip_buy'], renderer: 'vipBuy', availability: 'ready' },
     { runtimeCodes: ['badge_display'], renderer: 'badgeDisplay', availability: 'ready' },
+    { runtimeCodes: ['builders_club_frontpage'], renderer: 'buildersClubFrontpage', availability: 'ready' },
+    { runtimeCodes: ['builders_club_loyalty', 'builders_club_addons'], renderer: 'buildersClubOffers', availability: 'ready' },
     { runtimeCodes: ['bots'], renderer: 'default', availability: 'ready' },
     { runtimeCodes: ['single_bundle'], renderer: 'singleBundle', availability: 'ready' },
     { runtimeCodes: ['sold_ltd_items'], renderer: 'soldLimited', availability: 'ready' },

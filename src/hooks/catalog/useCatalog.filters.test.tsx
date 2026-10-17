@@ -29,6 +29,7 @@ describe('useCatalog filter contract', () => {
             'frontPageItems',
             'isBusy',
             'offersToNodes',
+            'productlessOffers',
             'roomPreviewer',
             'rootNode',
             'searchResult'

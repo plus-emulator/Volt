@@ -5,10 +5,17 @@ import { LayoutCurrencyIcon, VoltCardContentView, VoltCardHeaderView, VoltCardVi
 import { useMeasuredFloorHeight } from '../../../../../hooks/catalog/useMeasuredFloorHeight';
 import { CatalogClubPriceFieldView } from './CatalogClubPriceFieldView';
 
+// Club offers and the product-less Builders Club offers share the price fields the dialog shows.
+export type CatalogClubConfirmOffer = Pick<ClubOfferData, 'offerId' | 'priceCredits' | 'priceActivityPoints' | 'priceActivityPointsType'>;
+
 interface CatalogClubPurchaseConfirmViewProps {
-    offer: ClubOfferData;
+    offer: CatalogClubConfirmOffer;
     productText: string;
-    validUntilText: string;
+    validUntilText?: string;
+    // The Builders Club pages use the normal purchase confirmation captions and their own icon.
+    titleText?: string;
+    confirmText?: string;
+    iconUrl?: string;
     onCancel: () => void;
     onConfirm: () => void;
 }
@@ -22,7 +29,7 @@ const DISCLAIMER_DEFAULT_HEIGHT = 17;
 const DISCLAIMER_MIN_HEIGHT = 17;
 
 export const CatalogClubPurchaseConfirmView: FC<CatalogClubPurchaseConfirmViewProps> = (props) => {
-    const { offer, productText, validUntilText, onCancel, onConfirm } = props;
+    const { offer, productText, validUntilText = '', titleText, confirmText, iconUrl, onCancel, onConfirm } = props;
     const disclaimerEnabled = useMemo(() => GetConfigurationValue<boolean>('disclaimer.credit_spending.enabled', false), []);
     const [disclaimerAccepted, setDisclaimerAccepted] = useState(!disclaimerEnabled);
     const showCredits = offer.priceCredits > 0 || offer.priceActivityPoints <= 0;
@@ -51,7 +58,7 @@ export const CatalogClubPurchaseConfirmView: FC<CatalogClubPurchaseConfirmViewPr
 
     useEffect(() => setDisclaimerAccepted(!disclaimerEnabled), [disclaimerEnabled, offer.offerId]);
 
-    const title = LocalizeText('catalog.club.buy.confirm');
+    const title = titleText ?? LocalizeText('catalog.club.buy.confirm');
 
     return (
         <VoltCardView
@@ -69,7 +76,11 @@ export const CatalogClubPurchaseConfirmView: FC<CatalogClubPurchaseConfirmViewPr
             <VoltCardHeaderView headerText={title} onCloseClick={onCancel} />
             <VoltCardContentView classNames={['volt-club-purchase-confirm-content']} overflow="hidden">
                 <div className="volt-club-purchase-confirm-product">
-                    <span aria-hidden="true" className="volt-club-purchase-confirm-icon" />
+                    {iconUrl ? (
+                        <img alt="" aria-hidden="true" className="volt-club-purchase-confirm-icon is-image" draggable={false} src={iconUrl} />
+                    ) : (
+                        <span aria-hidden="true" className="volt-club-purchase-confirm-icon" />
+                    )}
                     <div className="volt-club-purchase-confirm-copy">
                         <strong className="volt-club-purchase-confirm-title">
                             <span ref={titleTextRef} className="volt-club-purchase-confirm-title-text">
@@ -109,7 +120,7 @@ export const CatalogClubPurchaseConfirmView: FC<CatalogClubPurchaseConfirmViewPr
                         {LocalizeText('cancel')}
                     </button>
                     <button className="volt-club-purchase-confirm-submit" disabled={!disclaimerAccepted} type="button" onClick={onConfirm}>
-                        {LocalizeText('catalog.club.buy.subscribe')}
+                        {confirmText ?? LocalizeText('catalog.club.buy.subscribe')}
                     </button>
                 </div>
             </VoltCardContentView>
