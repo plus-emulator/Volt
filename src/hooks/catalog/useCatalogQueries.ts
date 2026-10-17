@@ -66,8 +66,6 @@ export interface ParserOffer {
     clubLevel: number;
     products: ParserProduct[];
     bundlePurchaseAllowed: boolean;
-    itemIds: string;
-    haveOffer: boolean;
 }
 
 interface ParserPage {
@@ -121,8 +119,8 @@ export const buildPurchasableOffer = (offer: ParserOffer, lookups: OfferLookups 
         offer.clubLevel,
         products,
         offer.bundlePurchaseAllowed,
-        offer.itemIds,
-        offer.haveOffer
+        '',
+        true // Habbo's offer carries no availability flag; the server refuses disabled offers.
     );
 };
 
