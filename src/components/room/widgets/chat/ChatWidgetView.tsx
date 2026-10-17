@@ -5,6 +5,7 @@ import { useSessionInfo } from '../../../../hooks/session/useSessionInfo';
 import { CHAT_FONT_SCALES } from '../chat-input/chatTextSize';
 import { ChatWidgetMessageView } from './ChatWidgetMessageView';
 import { ChatWidgetWindowView } from './ChatWidgetWindowView';
+import { measureChatBubble } from './chatBubbleMetrics';
 import { getChatViewerHeight } from './freeFlowChatLayout';
 import { NativeChatScroller } from './nativeChatScroller';
 
@@ -16,13 +17,16 @@ export const ChatWidgetView: FC<{}> = (props) => {
     const elementRef = useRef<HTMLDivElement>(null);
     const chatMessagesRef = useRef(chatMessages);
     const [scroller] = useState(() => new NativeChatScroller());
+    // Bubbles that mounted or resized since the last frame, with their creation mode.
+    const pendingRef = useRef(new Map<ChatBubbleMessage, number>());
+    const settingsRef = useRef({ mode: chatSettings.mode, speed: getScrollSpeed, fontScale });
 
     chatMessagesRef.current = chatMessages;
+    settingsRef.current = { mode: chatSettings.mode, speed: getScrollSpeed, fontScale };
 
     const makeRoom = useCallback((chat: ChatBubbleMessage, creationMode: number) => {
-        scroller.configure(chatSettings.mode, getScrollSpeed, fontScale);
-        scroller.register(chat, creationMode);
-    }, [scroller, chatSettings.mode, getScrollSpeed, fontScale]);
+        pendingRef.current.set(chat, creationMode);
+    }, []);
 
     useEffect(() => {
         scroller.configure(chatSettings.mode, getScrollSpeed, fontScale);
@@ -49,7 +53,20 @@ export const ChatWidgetView: FC<{}> = (props) => {
     useEffect(() => {
         let frame = 0;
         let previous = Date.now();
+        const placePending = () => {
+            const pending = pendingRef.current;
+            if (!pending.size) return;
+            const entries = [...pending];
+            pending.clear();
+            // Every read first, then every write: one layout for all of this frame's new bubbles,
+            // instead of one forced layout per bubble between the previous bubble's writes.
+            for (const [chat] of entries) measureChatBubble(chat);
+            const settings = settingsRef.current;
+            scroller.configure(settings.mode, settings.speed, settings.fontScale);
+            for (const [chat, creationMode] of entries) if (chat.elementRef) scroller.register(chat, creationMode);
+        };
         const update = () => {
+            placePending();
             const now = Date.now();
             // v75 normal core passes one wall-clock delta per ticker frame, without replaying missed frames.
             const removed = scroller.advance(now - previous, chatMessagesRef.current);
@@ -63,6 +80,7 @@ export const ChatWidgetView: FC<{}> = (props) => {
         frame = window.requestAnimationFrame(update);
         return () => {
             window.cancelAnimationFrame(frame);
+            pendingRef.current.clear();
             scroller.clear();
         };
     }, [scroller, setChatMessages]);
@@ -80,6 +98,7 @@ export const ChatWidgetView: FC<{}> = (props) => {
                         chat={chat}
                         mode={chatSettings.mode}
                         makeRoom={makeRoom}
+                        measuredByMakeRoom
                     />
                 ))}
             {chatWindowEnabled && <ChatWidgetWindowView />}

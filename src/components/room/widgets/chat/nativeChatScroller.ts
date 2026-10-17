@@ -135,12 +135,15 @@ interface Collider {
     startY: number;
     moveStarted: number;
     created: number;
+    index: number;
 }
 
 // Ports v75 v2/qm/O5/w2. Collider type and visual clamp are captured at creation;
 // the active mode selects the simulation branch without rebuilding older colliders.
 export class NativeChatScroller {
     private bubbles: Collider[] = [];
+    // Scratch list for simulate(): the bubbles sorted by y.
+    private byY: Collider[] = [];
     private clock = 0;
     private lastScroll = 0;
     private lastCleanup = 0;
@@ -205,7 +208,7 @@ export class NativeChatScroller {
             chat, body, overlap, offset, narrow, line, spacer: false,
             extended: line || narrow ? { x: body.x + offset, y: body.y, width: narrow ? 240 : width + 5000, height: height / 2 } : null,
             timestamp: getNativeChatCreation(chat)?.timestamp ?? Date.now(), dx: 0, dy: 0, clipped: false, pendingImmediate: false, writtenLeft: chat.left, writtenTop: chat.top,
-            visualX: body.x - overlap.x, visualY: body.y - overlap.y, targetX: body.x - overlap.x, targetY: body.y - overlap.y, startX: body.x - overlap.x, startY: body.y - overlap.y, moveStarted: this.clock, created: this.clock
+            visualX: body.x - overlap.x, visualY: body.y - overlap.y, targetX: body.x - overlap.x, targetY: body.y - overlap.y, startX: body.x - overlap.x, startY: body.y - overlap.y, moveStarted: this.clock, created: this.clock, index: 0
         };
         let initialX = body.x - 2 * overlap.x;
         if (!line) {
@@ -251,15 +254,30 @@ export class NativeChatScroller {
         return intersects(a.body, b.body) || (a.extended ? intersects(a.extended, b.extended ?? b.body) : b.extended ? intersects(a.body, b.extended) : false);
     }
     private simulate() {
+        const bubbles = this.bubbles;
+        const count = bubbles.length;
+        const byY = this.byY;
+        for (let index = 0; index < count; index++) bubbles[index].index = index;
         for (let iteration = 0; iteration < 20; iteration++) {
-            for (const bubble of this.bubbles) { bubble.dx = 0; bubble.dy = 0; }
+            for (const bubble of bubbles) { bubble.dx = 0; bubble.dy = 0; }
             let collided = false;
-            // Native contacts discard reverse pairs; i<j preserves its accepted row-major order.
-            // Collider rectangles remain unchanged until the apply phase below.
-            for (let firstIndex = 0; firstIndex < this.bubbles.length; firstIndex++) {
-                const first = this.bubbles[firstIndex];
-                for (let secondIndex = firstIndex + 1; secondIndex < this.bubbles.length; secondIndex++) {
-                    const second = this.bubbles[secondIndex];
+            // Every rectangle of a bubble starts at its body's y and is no taller than the bubble's
+            // extent, so only bubbles whose y ranges overlap can touch. Sorting by y skips every other
+            // pair (a crowd's chat kept up to 250 bubbles here, tested pairwise up to 20 times a frame).
+            byY.length = 0;
+            for (const bubble of bubbles) byY.push(bubble);
+            byY.sort((a, b) => a.body.y - b.body.y);
+            for (let upperIndex = 0; upperIndex < count; upperIndex++) {
+                const upper = byY[upperIndex];
+                const reach = upper.body.y + Math.max(upper.body.height, upper.extended ? upper.extended.height : 0);
+                for (let lowerIndex = upperIndex + 1; lowerIndex < count; lowerIndex++) {
+                    const lower = byY[lowerIndex];
+                    if (lower.body.y >= reach) break;
+                    // Native contacts discard reverse pairs and accept row-major order: the earlier
+                    // bubble is `first`, which decides the ties below. Forces only add up, so the
+                    // order pairs are visited in does not matter.
+                    const first = upper.index < lower.index ? upper : lower;
+                    const second = first === upper ? lower : upper;
                     if (!this.collision(first, second)) continue;
                     collided = true;
                     const top = first.body.y < second.body.y ? first : second;
@@ -286,8 +304,9 @@ export class NativeChatScroller {
                 }
             }
             if (!collided) break;
-            for (const bubble of this.bubbles) { this.moveX(bubble, bubble.dx); this.moveY(bubble, Math.max(bubble.dy, -8)); }
+            for (const bubble of bubbles) { this.moveX(bubble, bubble.dx); this.moveY(bubble, Math.max(bubble.dy, -8)); }
         }
+        byY.length = 0;
     }
 
     advance(elapsed: number, chats: readonly ChatBubbleMessage[]): number[] {
@@ -327,7 +346,7 @@ export class NativeChatScroller {
             }
             if (this.line) {
                 const body = { x: -10, y: this.height, width: 20, height: 19 };
-                this.bubbles.push({ chat: null, body, extended: { x: -2510, y: this.height, width: 5020, height: 19 }, overlap: { x: 0, y: 0, width: 0, height: 0 }, offset: -2500, narrow: false, line: true, spacer: true, timestamp: Date.now(), dx: 0, dy: 0, clipped: false, pendingImmediate: false, writtenLeft: 0, writtenTop: 0, visualX: 0, visualY: 0, targetX: 0, targetY: 0, startX: 0, startY: 0, moveStarted: this.clock, created: this.clock });
+                this.bubbles.push({ chat: null, body, extended: { x: -2510, y: this.height, width: 5020, height: 19 }, overlap: { x: 0, y: 0, width: 0, height: 0 }, offset: -2500, narrow: false, line: true, spacer: true, timestamp: Date.now(), dx: 0, dy: 0, clipped: false, pendingImmediate: false, writtenLeft: 0, writtenTop: 0, visualX: 0, visualY: 0, targetX: 0, targetY: 0, startX: 0, startY: 0, moveStarted: this.clock, created: this.clock, index: 0 });
             }
             this.simulate();
             this.lastScroll = this.clock;
