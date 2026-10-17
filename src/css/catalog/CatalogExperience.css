@@ -253,6 +253,11 @@
     gap: 2px;
 }
 
+/* AIR re-flows the palette beside the scrollbar: 12 columns without it, 11 while it shows. */
+.volt-classic-scroll-area:has(> .volt-classic-scrollbar[data-visible="true"]) .volt-catalog-colour-grid {
+    width: calc(100% - 17px);
+}
+
 /* ctlg_clr_27x22_1 frame, ctlg_clr_27x22_2 tinted by the colour (ColorTransform), ctlg_clr_27x22_3 when chosen. */
 .volt-catalog-colour-swatch {
     position: relative;

@@ -1031,11 +1031,6 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
                         {localizeWithFallback('infostand.button.label_settings', 'Settings')}
                     </Button>
                 )}
-                {canRecolor && (
-                    <Button variant="dark" size={null} className="habbo-btn-black" onClick={() => processButtonAction('recolor')}>
-                        {LocalizeText('infostand.button.recolor')}
-                    </Button>
-                )}
                 {canMove && (
                     <Button variant="dark" size={null} className="habbo-btn-black" onClick={(event) => processButtonAction('move')}>
                         {LocalizeText('infostand.button.move')}
@@ -1056,6 +1051,12 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
                 {canUse && (
                     <Button variant="dark" size={null} className="habbo-btn-black" onClick={(event) => processButtonAction('use')}>
                         {LocalizeText('infostand.button.use')}
+                    </Button>
+                )}
+                {/* AIR InfoStandFurniView.as:673-678: Recolor follows Use. */}
+                {canRecolor && (
+                    <Button variant="dark" size={null} className="habbo-btn-black" onClick={() => processButtonAction('recolor')}>
+                        {LocalizeText('infostand.button.recolor')}
                     </Button>
                 )}
                 {canRemoveBackground && (
