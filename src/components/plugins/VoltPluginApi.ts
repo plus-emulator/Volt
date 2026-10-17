@@ -98,7 +98,7 @@ const pluginApi: IVoltPluginApi = {
     sendChat(text: string, styleId: number = 0) {
         const session = GetRoomSession();
         if (!session) return;
-        session.sendChatMessage(text, styleId, '');
+        session.sendChatMessage(text, styleId);
     },
 
     sendStackHeight(objectId: number, height: number) {
