@@ -77,6 +77,9 @@ const preloadAppBundle = () =>
             order: 'post',
             handler(html, ctx)
             {
+                // Only the client page boots the app; the camera page must not download it.
+                if(!ctx.path?.endsWith('/index.html')) return html;
+
                 const bundle = ctx.bundle;
                 const app = bundle && Object.values(bundle).find(chunk => (chunk.type === 'chunk') && chunk.facadeModuleId?.replace(/\\/g, '/').endsWith('/src/index.tsx'));
 
@@ -320,6 +323,12 @@ export default defineConfig({
         rollupOptions: {
             checks: {
                 pluginTimings: false
+            },
+            // camera.html is the page PlusEMU's trusted camera service renders photos with, so it ships with the
+            // same renderer as the client. A single bundle has one entry only and leaves it out.
+            input: voltSingleBundle ? resolve(import.meta.dirname, 'index.html') : {
+                index: resolve(import.meta.dirname, 'index.html'),
+                camera: resolve(import.meta.dirname, 'camera.html')
             },
             output: voltSingleBundle ? {
                 assetFileNames: 'src/assets/[name]-[hash].[ext]',
