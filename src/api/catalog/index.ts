@@ -24,4 +24,5 @@ export * from './PageLocalization';
 export * from './PlacedObjectPurchaseData';
 export * from './Product';
 export * from './ProductTypeEnum';
+export * from './RecolorableFurniture';
 export * from './SearchResult';

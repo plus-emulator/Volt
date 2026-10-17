@@ -1,11 +1,13 @@
 import { CreateLinkEvent, FrontPageItem, GetRoomEngine, RoomObjectPlacementSource, RoomObjectVariable, RoomPreviewer } from '@volt/renderer';
 import {
     CatalogType,
+    CreateRecolorableStuffData,
     GetRoomSession,
     ICatalogNode,
     ICatalogPage,
     IPurchasableOffer,
     IPurchaseOptions,
+    IsRecolorableFurniturePage,
     Offer,
     PlacedObjectPurchaseData,
     ProductTypeEnum,
@@ -460,7 +462,10 @@ export const useCatalogStore = createVoltStore<CatalogStoreState>((set, get) => 
                 break;
         }
 
-        if (GetRoomEngine().processRoomObjectPlacement(RoomObjectPlacementSource.CATALOG, -offer.offerId, category, product.productClassId, product.extraParam)) {
+        // HabboCatalog.requestSelectedItemToMover (AIR HabboCatalog.as:2935): recolorable pages place with MapData {state, r, g, b}.
+        const stuffData = IsRecolorableFurniturePage(offer.page) && product.extraParam ? CreateRecolorableStuffData(product.extraParam) : null;
+
+        if (GetRoomEngine().processRoomObjectPlacement(RoomObjectPlacementSource.CATALOG, -offer.offerId, category, product.productClassId, product.extraParam, stuffData)) {
             set({ purchasableOffer: offer, objectMoverRequested: true, isVisible: false });
         }
     },

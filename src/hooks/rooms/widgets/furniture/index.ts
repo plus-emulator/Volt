@@ -13,6 +13,7 @@ export * from './useFurnitureInternalLinkWidget';
 export * from './useFurnitureMannequinWidget';
 export * from './useFurniturePlaylistEditorWidget';
 export * from './useFurniturePresentWidget';
+export * from './useFurnitureRecolorWidget';
 export * from './useFurnitureRoomLinkWidget';
 export * from './useFurnitureSpamWallPostItWidget';
 export * from './useFurnitureStackHeightWidget';

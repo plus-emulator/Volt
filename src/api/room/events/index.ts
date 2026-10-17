@@ -1,3 +1,4 @@
+export * from './RoomWidgetFurnitureRecolorEvent';
 export * from './RoomWidgetPollUpdateEvent';
 export * from './RoomWidgetUpdateBackgroundColorPreviewEvent';
 export * from './RoomWidgetUpdateChatInputContentEvent';

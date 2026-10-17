@@ -24,11 +24,13 @@ import { GrFormNextLink, GrRotateLeft, GrRotateRight } from 'react-icons/gr';
 import {
     AvatarInfoFurni,
     GetConfigurationValue,
+    DispatchUiEvent,
     GetGroupInformation,
     IPhotoData,
     isSafeExternalUrl,
     LocalizeText,
     localizeWithFallback,
+    RoomWidgetFurnitureRecolorEvent,
     SendMessageComposer
 } from '../../../../../api';
 import {
@@ -127,7 +129,8 @@ function getValidRoomObjectDirection(roomObject: any, isPositive: boolean) {
 export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (props) => {
     const { avatarInfo = null, onClose = null } = props;
     const { roomSession = null } = useRoom();
-    const { openInspectionForFurni, showInspectButton, roomSettings } = useWiredTools();
+    const { openInspectionForFurni, showInspectButton, roomSettings, accountPreferences } = useWiredTools();
+    const playTestMode = !!accountPreferences?.playTestMode;
     const hasWiredLabel = useWiredLabelsStore((state) => !!avatarInfo && state.labels[avatarInfo.id] !== undefined);
     const openWiredLabelSettings = useWiredLabelsStore((state) => state.openSettings);
 
@@ -153,6 +156,7 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
     const [canUse, setCanUse] = useState(false);
     const { pickupRoomObject } = useFurniPickupGuard();
     const [canRemoveBackground, setCanRemoveBackground] = useState(false);
+    const [canRecolor, setCanRecolor] = useState(false);
     const [furniKeys, setFurniKeys] = useState<string[]>([]);
     const [furniValues, setFurniValues] = useState<string[]>([]);
     const [customKeys, setCustomKeys] = useState<string[]>([]);
@@ -319,6 +323,15 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
             canSeeFurniId = true;
         }
 
+        // AIR InfoStandFurniView.as:643: floor furni with a recolorable colour, outside play test, for rights holders.
+        const recolorableColor = roomObjForLocation?.model?.getValue<number>(RoomObjectVariable.FURNITURE_RECOLORABLE_COLOR);
+        const recolorAllowed =
+            !avatarInfo.isWallItem &&
+            !playTestMode &&
+            typeof recolorableColor === 'number' &&
+            !isNaN(recolorableColor) &&
+            (avatarInfo.roomControllerLevel >= RoomControllerLevel.GUEST || avatarInfo.isRoomOwner || avatarInfo.isAnyRoomController);
+
         if (
             avatarInfo.usagePolicy === RoomWidgetFurniInfoUsagePolicyEnum.EVERYBODY ||
             (avatarInfo.usagePolicy === RoomWidgetFurniInfoUsagePolicyEnum.CONTROLLER && isValidController) ||
@@ -406,6 +419,7 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
         setCanRotate(canRotate);
         setCanUse(canUse);
         setCanRemoveBackground(removeBackgroundAllowed);
+        setCanRecolor(recolorAllowed);
         setFurniKeys(furniKeyss);
         setFurniValues(furniValuess);
         setCustomKeys(customKeyss);
@@ -427,7 +441,7 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
         setIsBranded(!!avatarInfo.extraParam && avatarInfo.extraParam.indexOf(RoomWidgetEnumItemExtradataParameter.BRANDING_OPTIONS) === 0);
 
         if (avatarInfo.groupId) SendMessageComposer(new GroupInformationComposer(avatarInfo.groupId, false));
-    }, [roomSession, avatarInfo]);
+    }, [roomSession, avatarInfo, playTestMode]);
 
     // InfoStandWidgetHandler.onGroupDetails: any details of the furni's group fill its badge and name, also the ones a click on them asked for.
     useMessageEvent<GroupInformationEvent>(GroupInformationEvent, (event) => {
@@ -595,6 +609,10 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
                     break;
                 case 'remove_background':
                     SendMessageComposer(new RoomRemoveBackgroundComposer());
+                    break;
+                case 'recolor':
+                    // AIR InfoStandFurniView.as:480 RWFAM_RECOLOR -> InfoStandWidget.openRecolor (InfoStandWidget.as:133).
+                    DispatchUiEvent(new RoomWidgetFurnitureRecolorEvent(RoomWidgetFurnitureRecolorEvent.OPEN, avatarInfo.id, avatarInfo.category));
                     break;
                 case 'save_branding_configuration': {
                     const mapData = new Map<string, string>();
@@ -1011,6 +1029,11 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
                 {hasWiredLabel && !avatarInfo.isWallItem && roomSettings.canModify && (
                     <Button variant="dark" size={null} className="habbo-btn-black" onClick={() => openWiredLabelSettings(avatarInfo.id)}>
                         {localizeWithFallback('infostand.button.label_settings', 'Settings')}
+                    </Button>
+                )}
+                {canRecolor && (
+                    <Button variant="dark" size={null} className="habbo-btn-black" onClick={() => processButtonAction('recolor')}>
+                        {LocalizeText('infostand.button.recolor')}
                     </Button>
                 )}
                 {canMove && (
