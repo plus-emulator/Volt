@@ -1,6 +1,6 @@
 import { ContextMenuEnum, CustomUserNotificationMessageEvent, GetSessionDataManager, RoomObjectCategory } from '@volt/renderer';
 import { CSSProperties, FC } from 'react';
-import { GetGroupInformation, LocalizeText } from '../../../../../api';
+import { CatalogPageName, GetGroupInformation, LocalizeText } from '../../../../../api';
 import {
     EFFECTBOX_OPEN,
     GROUP_FURNITURE,
@@ -57,7 +57,7 @@ export const FurnitureContextMenuView: FC<{}> = (props) => {
                 simpleAlert(
                     LocalizeText('viphopper.viprequired.bodytext'),
                     null,
-                    'catalog/open/habbo_club',
+                    'catalog/open/' + CatalogPageName.HC_MEMBERSHIP,
                     LocalizeText('viprequired.buy.vip'),
                     LocalizeText('viprequired.header'),
                     null
@@ -67,7 +67,7 @@ export const FurnitureContextMenuView: FC<{}> = (props) => {
                 simpleAlert(
                     LocalizeText('gate.viprequired.bodytext'),
                     null,
-                    'catalog/open/habbo_club',
+                    'catalog/open/' + CatalogPageName.HC_MEMBERSHIP,
                     LocalizeText('viprequired.buy.vip'),
                     LocalizeText('gate.viprequired.title'),
                     null
