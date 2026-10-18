@@ -17,7 +17,7 @@ import {
 import { Column, DraggableWindow } from '../../../common';
 import { useCamera, useNotification } from '../../../hooks';
 import { getNextEmptyCameraSlot, willFillLastCameraSlot } from '../CameraAirUtilities';
-import { CameraCenteredText } from './CameraNativeText';
+import { CameraCenteredText, CameraNativeText } from './CameraNativeText';
 
 export interface CameraWidgetCaptureViewProps {
     onClose: () => void;
@@ -301,13 +301,12 @@ export const CameraWidgetCaptureView: FC<CameraWidgetCaptureViewProps> = (props)
                                 type="button"
                                 onClick={onEdit}
                             >
-                                <CameraCenteredText
+                                <CameraNativeText
                                     background={0x000000}
                                     color={0xffffff}
                                     style={{ mixBlendMode: 'screen' }}
                                     text={LocalizeText('camera.editor.button.text')}
                                     textStyle="button_shiny_bold"
-                                    width={38}
                                 />
                             </button>
                         </div>
