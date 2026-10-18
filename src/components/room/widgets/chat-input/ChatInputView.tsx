@@ -5,7 +5,7 @@ import { Text } from '../../../../common';
 import { useChatHelpButton, useChatInputWidget, useClientAccessLists, useRoom, useSessionInfo, useUiEvent, useUserDataSnapshot } from '../../../../hooks';
 import { ChatInputHabbiconSelectorView } from './ChatInputHabbiconSelectorView';
 import { ChatInputStyleSelectorView } from './ChatInputStyleSelectorView';
-import { ChatStyleDefinition, getSelectableChatStyleIds } from './chatStyles';
+import { ChatStyleDefinition, getChatStyleLibrary, getSelectableChatStyleIds } from './chatStyles';
 
 export const ChatInputView: FC<{}> = (props) => {
     const [chatValue, setChatValue] = useState<string>('');
@@ -23,7 +23,7 @@ export const ChatInputView: FC<{}> = (props) => {
     const { chatStyleIds } = useClientAccessLists();
     const { clubLevel = 0, isAmbassador = false, securityLevel = 0 } = useUserDataSnapshot();
     const selectableChatStyleIds = useMemo(() => getSelectableChatStyleIds(
-        GetConfigurationValue<ChatStyleDefinition[]>('chat.styles', []),
+        getChatStyleLibrary(GetConfigurationValue<ChatStyleDefinition[]>('chat.styles', [])),
         chatStyleIds,
         GetConfigurationValue<string>('disabled.custom.chat.styles', ''),
         { hasClub: clubLevel > 0, isAmbassador, hasSecurity: securityLevel >= 4 }
