@@ -1,4 +1,4 @@
-import { FC, KeyboardEvent, useCallback, useEffect, useRef } from 'react';
+import { CSSProperties, FC, KeyboardEvent, useCallback, useEffect, useRef } from 'react';
 import { FaCaretDown, FaCaretUp } from 'react-icons/fa';
 import { ICatalogNode } from '../../../../api';
 import { useCatalogNodeState } from '../../../../hooks';
@@ -10,10 +10,12 @@ export interface CatalogNavigationItemViewProps {
     node: ICatalogNode;
     runtime: CatalogNavigationRuntime;
     child?: boolean;
+    /** Set while searching: the row is drawn at this depth and lists no children. */
+    searchDepth?: number;
 }
 
 export const CatalogNavigationItemView: FC<CatalogNavigationItemViewProps> = (props) => {
-    const { node = null, runtime, child = false } = props;
+    const { node = null, runtime, child = false, searchDepth = null } = props;
     const { activateNode } = runtime;
     const { isActive, isOpen } = useCatalogNodeState(node);
     const itemRef = useRef<HTMLDivElement>(null);
@@ -37,8 +39,14 @@ export const CatalogNavigationItemView: FC<CatalogNavigationItemViewProps> = (pr
         [activateNode, node]
     );
 
+    // CatalogNodeRenderable.createWindow: below depth 3 the icon and title move 6px right per level.
+    const depthIndent = Math.max(0, (searchDepth ?? node.depth) - 3) * 6;
+
     return (
-        <div className={`volt-catalog-navigation-node ${child ? 'is-child' : ''}`}>
+        <div
+            className={`volt-catalog-navigation-node ${child ? 'is-child' : ''}`}
+            style={depthIndent ? ({ '--volt-catalog-navigation-indent': `${depthIndent}px` } as CSSProperties) : undefined}
+        >
             <div
                 ref={itemRef}
                 className={`volt-catalog-navigation-item ${isActive ? 'is-active' : ''} ${node.isBranch ? 'is-branch' : 'is-leaf'} ${isOpen ? 'is-open' : ''}`}
@@ -58,7 +66,7 @@ export const CatalogNavigationItemView: FC<CatalogNavigationItemViewProps> = (pr
                     <span className="volt-catalog-navigation-caret text-[9px] text-muted shrink-0">{isOpen ? <FaCaretUp /> : <FaCaretDown />}</span>
                 )}
             </div>
-            {isOpen && node.isBranch && <CatalogNavigationSetView child={true} node={node} runtime={runtime} />}
+            {searchDepth === null && isOpen && node.isBranch && <CatalogNavigationSetView child={true} node={node} runtime={runtime} />}
         </div>
     );
 };

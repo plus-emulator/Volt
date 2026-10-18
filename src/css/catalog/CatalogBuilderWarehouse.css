@@ -200,20 +200,21 @@
     background: linear-gradient(180deg, #ffb53c 0 2px, #ff8d00 2px 18px, #ffb53c 18px 20px, #b4b4ae 20px);
 }
 
-.volt-catalog-navigation-list.is-builders-club .volt-catalog-navigation-item:is(:hover, .is-active) .volt-catalog-navigation-label {
-    color: #fff;
-    text-shadow: 0 -1px 0 #cf7200;
-}
-
 /* builders_club_subitem_template: icon at (15, 0), title at (42, 1), italic 0xb77734. */
 .volt-catalog-navigation-list.is-builders-club .volt-catalog-navigation-node.is-child .volt-catalog-navigation-item {
     gap: 9px;
-    padding-left: 15px;
+    padding-left: calc(15px + var(--volt-catalog-navigation-indent, 0px));
     color: #b77734;
 }
 
 .volt-catalog-navigation-list.is-builders-club .volt-catalog-navigation-node.is-child .volt-catalog-navigation-label {
     color: #b77734;
+}
+
+/* After the sub-item colour: selected and hovered items of every depth turn white. */
+.volt-catalog-navigation-list.is-builders-club .volt-catalog-navigation-item:is(:hover, .is-active) .volt-catalog-navigation-label {
+    color: #fff;
+    text-shadow: 0 -1px 0 #cf7200;
 }
 
 /* drop_button: icon style 5 (triangle right) while closed, 7 (triangle down) while open, tinted 0x999999, at (145, 6). */

@@ -1,72 +1,66 @@
-import { GetSessionDataManager } from '@volt/renderer';
+import { GetSessionDataManager, IFurnitureData } from '@volt/renderer';
 import { ChangeEvent, FC, KeyboardEvent, useCallback, useEffect, useRef, useState } from 'react';
 import {
     CatalogPage,
-    CatalogType,
-    FilterCatalogNode,
     FurnitureOffer,
-    ICatalogNode,
-    ICatalogPage,
+    GetProductDataForLocalization,
     IPurchasableOffer,
     LocalizeText,
     localizeWithFallback,
     PageLocalization,
     SearchResult
 } from '../../../../../api';
-import { useCatalogData, useCatalogUiState } from '../../../../../hooks';
+import { useCatalogActions, useCatalogData, useCatalogUiState } from '../../../../../hooks';
+import { useCatalogStore } from '../../../../../hooks/catalog/catalogStore';
+import { getNodesByOfferIdFromMap } from '../../../../../hooks/catalog/useCatalog.helpers';
 import { readCatalogIndex } from '../../../../../hooks/catalog/useCatalogQueries';
 import {
     CATALOG_SEARCH_DEBOUNCE_MS,
-    findCatalogFurnitureMatches,
+    filterCatalogSearchNodes,
+    findCatalogSearchMatches,
     isCatalogSearchEnterKey,
-    normalizeCatalogSearchText,
     shouldRunCatalogSearch
 } from './catalogSearch.helpers';
+
+/** HabboCatalog.ensureSearchEntries: a furni is found by its name and by its product data name. */
+const getSearchTerms = (furniture: IFurnitureData): string[] => [
+    furniture.name,
+    (GetProductDataForLocalization(furniture.fullName) ?? GetProductDataForLocalization(furniture.className))?.name
+];
 
 export const CatalogSearchView: FC<{}> = () => {
     const [searchValue, setSearchValue] = useState('');
     const searchTimeout = useRef<ReturnType<typeof setTimeout>>(null);
     const { rootNode = null } = useCatalogData();
     const inputRef = useRef<HTMLInputElement>(null);
-    const { currentType = null, setSearchResult = null, setCurrentPage = null } = useCatalogUiState();
+    const { currentType = null, previousPageId = -1, setSearchResult = null, setCurrentPage = null } = useCatalogUiState();
+    const { openPageById = null } = useCatalogActions();
 
+    // HabboCatalog.performSearch (HabboCatalog.as:1901-1968): the results page, and the navigator filtered to the pages
+    // that sell a match or whose name holds the text.
     const runSearch = useCallback(
         (search: string) => {
-            if (!rootNode || !shouldRunCatalogSearch(search)) return;
+            if (!rootNode || !search.length) return;
 
             const furnitureDatas = GetSessionDataManager().getAllFurnitureData();
 
             if (!furnitureDatas || !furnitureDatas.length) return;
 
-            const { furniture: foundFurniture, furniLines: foundFurniLines } = findCatalogFurnitureMatches(furnitureDatas, search, currentType);
-
-            const offers: IPurchasableOffer[] = [];
-
             const index = readCatalogIndex(currentType);
+            const nodesByOfferId = (offerId: number) => getNodesByOfferIdFromMap(offerId, index?.offersToNodes, true);
+            const matches = findCatalogSearchMatches(furnitureDatas, search, currentType, nodesByOfferId, getSearchTerms);
+            const offers: IPurchasableOffer[] = matches.offers.map((match) => new FurnitureOffer(match.furniture, match.offerId, match.isRent));
 
-            for (const furniture of foundFurniture) {
-                // The Builders Club catalogue only finds furni that one of its own pages sells (AIR HabboCatalog.as:1926).
-                if (currentType === CatalogType.BUILDER && !index?.offersToNodes.get(furniture.purchaseOfferId)?.length) continue;
-
-                offers.push(new FurnitureOffer(furniture));
-            }
-
-            let nodes: ICatalogNode[] = [];
-
-            FilterCatalogNode(search, foundFurniLines, rootNode, nodes);
-
-            setSearchResult(
-                new SearchResult(
-                    search,
-                    offers,
-                    nodes.filter((node) => node.isVisible)
-                )
-            );
+            useCatalogStore.setState({ activeNodes: [], openNodes: [] });
+            setSearchResult(new SearchResult(search, offers, filterCatalogSearchNodes(search, matches.furniLines, matches.pageIds, rootNode)));
             setCurrentPage(
                 new CatalogPage(
                     -1,
                     'default_3x3',
-                    new PageLocalization([], [LocalizeText('catalog.search.results', ['count', 'needle'], [String(offers.length), search])]),
+                    new PageLocalization(
+                        ['catalog_header_roombuilder', 'credits_v3_teaser'],
+                        [LocalizeText('catalog.search.results', ['count', 'needle'], [String(offers.length), search])]
+                    ),
                     offers,
                     false,
                     1,
@@ -77,31 +71,35 @@ export const CatalogSearchView: FC<{}> = () => {
         [currentType, rootNode, setCurrentPage, setSearchResult]
     );
 
+    // HabboCatalog.onClearSearch: an empty field goes back to the page that was open before the search.
+    const endSearch = useCallback(() => {
+        setSearchResult(null);
+        setCurrentPage(null);
+
+        if (previousPageId > 0) openPageById(previousPageId);
+    }, [openPageById, previousPageId, setCurrentPage, setSearchResult]);
+
     const scheduleSearch = useCallback(
         (value: string, immediate = false) => {
             if (searchTimeout.current) clearTimeout(searchTimeout.current);
 
-            const search = normalizeCatalogSearchText(value);
-
-            // An empty field restores the page underneath the result override. One or two characters keep the last results.
-            if (!search) {
-                setSearchResult(null);
-                setCurrentPage(null);
+            if (!value.length) {
+                endSearch();
 
                 return;
             }
-
-            if (!shouldRunCatalogSearch(search)) return;
 
             if (immediate) {
-                runSearch(search);
+                runSearch(value);
 
                 return;
             }
 
-            searchTimeout.current = setTimeout(() => runSearch(search), CATALOG_SEARCH_DEBOUNCE_MS);
+            if (!shouldRunCatalogSearch(value)) return;
+
+            searchTimeout.current = setTimeout(() => runSearch(value), CATALOG_SEARCH_DEBOUNCE_MS);
         },
-        [runSearch, setCurrentPage, setSearchResult]
+        [endSearch, runSearch]
     );
 
     const onSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -122,8 +120,7 @@ export const CatalogSearchView: FC<{}> = () => {
         if (searchTimeout.current) clearTimeout(searchTimeout.current);
 
         setSearchValue('');
-        setSearchResult(null);
-        setCurrentPage(null);
+        endSearch();
         inputRef.current?.focus();
     };
 

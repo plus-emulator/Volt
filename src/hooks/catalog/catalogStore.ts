@@ -371,7 +371,8 @@ export const useCatalogStore = createVoltStore<CatalogStoreState>((set, get) => 
         }
     },
 
-    setCurrentPage: (page) => set({ pageOverride: page }),
+    // A page override (the search results) is a new page: AIR CatalogViewer.showSearchResults builds a fresh product view.
+    setCurrentPage: (page) => set({ pageOverride: page, currentOffer: null }),
 
     setCurrentOffer: (offer) => set({ currentOffer: offer, purchaseOptions: offer ? { ...DEFAULT_PURCHASE_OPTIONS } : get().purchaseOptions }),
 

@@ -727,7 +727,8 @@
     min-height: 12px;
     border: 0;
     border-radius: 0;
-    background: url('../../assets/images/scrollbar/thumb_middle.png') repeat-y center;
+    /* The grip pattern starts under the 4px top cap, as AIR draws it. */
+    background: url('../../assets/images/scrollbar/thumb_middle.png') repeat-y center 4px;
     cursor: grab;
     image-rendering: var(--volt-pixel-art, pixelated);
     touch-action: none;
@@ -745,13 +746,16 @@
     image-rendering: var(--volt-pixel-art, pixelated);
 }
 
+/* The caps at their own height: 4px on top, 5px at the bottom. */
 .volt-classic-scrollbar-thumb::before {
     top: 0;
+    height: 4px;
     background-image: url('../../assets/images/scrollbar/thumb_top.png');
 }
 
 .volt-classic-scrollbar-thumb::after {
     bottom: 0;
+    height: 5px;
     background-image: url('../../assets/images/scrollbar/thumb_bottom.png');
 }
 

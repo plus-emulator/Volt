@@ -26,11 +26,11 @@ export const CatalogNavigationView: FC<CatalogNavigationViewProps> = (props) => 
             contentClassName={`volt-catalog-navigation-list ${isBuilder ? 'is-builders-club' : 'is-normal'}`}
             role="tree"
         >
+            {/* CatalogNavigator.addSearchNodesToList: the filtered rows, sub-item templates from depth 3. */}
             {searchResult &&
-                searchResult.filteredNodes.length > 0 &&
-                searchResult.filteredNodes.map((n) => {
-                    return <CatalogNavigationItemView key={n.id} node={n} runtime={runtime} />;
-                })}
+                searchResult.filteredNodes.map(({ node: n, depth }) => (
+                    <CatalogNavigationItemView key={n.id} child={depth > 2} node={n} runtime={runtime} searchDepth={depth} />
+                ))}
             {!searchResult && <CatalogNavigationSetView node={node} runtime={runtime} />}
         </ClassicScrollAreaView>
     );

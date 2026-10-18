@@ -404,7 +404,7 @@
 }
 
 .volt-catalog-navigation-node.is-child .volt-catalog-navigation-item {
-    padding-left: 18px;
+    padding-left: calc(18px + var(--volt-catalog-navigation-indent, 0px));
     color: #52819a;
     font-style: italic;
 }
