@@ -66,7 +66,7 @@ const setPurchaseOptions = vi.fn((updater: (value: any) => any) => {
     purchaseOptions = updater(purchaseOptions);
 });
 
-const withGroups = (groups: any[]) => vi.mocked(useUserGroups).mockReturnValue({ data: groups });
+const withGroups = (groups: any[]) => vi.mocked(useUserGroups).mockReturnValue({ data: groups, refresh: vi.fn() });
 
 afterEach(cleanup);
 
