@@ -275,53 +275,6 @@
     padding-left: 0;
 }
 
-.volt-avatar-editor-subcategories.is-paged {
-    width: 276px;
-}
-
-.volt-avatar-editor-nft-category-scroll {
-    appearance: none;
-    position: absolute;
-    top: 129px;
-    z-index: 3;
-    width: 17px;
-    height: 17px;
-    margin: 0;
-    padding: 0;
-    cursor: pointer;
-    border: 0;
-    background-color: transparent;
-    background-repeat: no-repeat;
-    background-position: center;
-    image-rendering: var(--volt-pixel-art, pixelated);
-}
-
-.volt-avatar-editor-nft-category-scroll.is-left {
-    left: 299px;
-    background-image: url('@/assets/images/scrollbar/left.png');
-}
-
-.volt-avatar-editor-nft-category-scroll.is-left:hover {
-    background-image: url('@/assets/images/scrollbar/left_hover.png');
-}
-
-.volt-avatar-editor-nft-category-scroll.is-left:active {
-    background-image: url('@/assets/images/scrollbar/left_active.png');
-}
-
-.volt-avatar-editor-nft-category-scroll.is-right {
-    left: 316px;
-    background-image: url('@/assets/images/scrollbar/right.png');
-}
-
-.volt-avatar-editor-nft-category-scroll.is-right:hover {
-    background-image: url('@/assets/images/scrollbar/right_hover.png');
-}
-
-.volt-avatar-editor-nft-category-scroll.is-right:active {
-    background-image: url('@/assets/images/scrollbar/right_active.png');
-}
-
 .volt-avatar-editor .category-item {
     appearance: none;
     display: flex;
@@ -546,68 +499,6 @@
     right: 1px;
     bottom: 1px;
     z-index: 3;
-}
-
-.volt-avatar-editor-empty-state {
-    position: absolute;
-    left: 21px;
-    top: 168px;
-    display: flex;
-    width: 330px;
-    height: 200px;
-    align-items: center;
-    justify-content: center;
-    color: #83827e;
-    font-size: 11px;
-    text-align: center;
-}
-
-.volt-avatar-editor-pet-equipped {
-    display: flex;
-    width: 250px;
-    min-width: 0;
-    height: 35px;
-    align-items: center;
-    gap: 3px;
-    overflow: hidden;
-    color: #555;
-    font-size: 10px;
-}
-
-.volt-avatar-editor-pet-equipped > img,
-.volt-avatar-editor-pet-equipped > .avatar-editor-icon {
-    width: 35px;
-    min-width: 35px;
-    height: 35px;
-    object-fit: contain;
-}
-
-.volt-avatar-editor-pet-equipped > span {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.volt-avatar-editor-pet-remove {
-    appearance: none;
-    display: flex;
-    width: 35px;
-    min-width: 35px;
-    height: 35px;
-    align-items: center;
-    justify-content: center;
-    margin: 0;
-    padding: 0;
-    cursor: pointer;
-    border: 0;
-    background: transparent;
-}
-
-.volt-avatar-editor-pet-remove .avatar-editor-icon {
-    width: 29px;
-    min-width: 29px;
-    height: 29px;
 }
 
 .volt-avatar-editor-palettes {
@@ -1172,4 +1063,40 @@
     box-shadow: none !important;
     transform: scale(2);
     transform-origin: top left;
+}
+
+/* AvatarEditorContent nfts_content: the hot looks geometry with a scrollable grid (spacing 4). */
+.volt-avatar-editor-nfts-grid {
+    position: absolute;
+    left: 27px;
+    top: 185px;
+    width: 299px;
+    height: 220px;
+}
+
+.volt-avatar-editor-nfts-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 35px);
+    grid-auto-rows: 60px;
+    align-content: start;
+    gap: 4px;
+}
+
+.volt-avatar-editor-nft.is-tinted {
+    background-blend-mode: multiply;
+}
+
+/* collectible_avatar_info: 122x20 at (356, 345) of the editor content, #454545, bold 10px centred. */
+.volt-avatar-editor-nft-info {
+    position: absolute;
+    left: 357px;
+    top: 415px;
+    z-index: 2;
+    display: flex;
+    width: 122px;
+    height: 20px;
+    justify-content: center;
+    padding-top: 3px;
+    box-sizing: border-box;
+    background: #454545;
 }

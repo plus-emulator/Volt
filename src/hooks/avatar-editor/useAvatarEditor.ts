@@ -11,17 +11,24 @@ import {
     GetAvatarRenderManager,
     GetHotLooksComposer,
     GetRoomEngine,
+    GetSelectedNftWardrobeOutfitMessageComposer,
+    GetUserNftWardrobeMessageComposer,
     GetWardrobeMessageComposer,
     HotLooksEvent,
     IHotLookInfo,
     IAvatarFigureContainer,
     IFigurePartSet,
+    INftWardrobeItem,
     IPalette,
     IPartColor,
     RoomObjectCategory,
     RoomObjectVariable,
     RoomUnitEffectEvent,
+    SaveUserNftWardrobeMessageComposer,
+    SelectedNftWardrobeOutfitMessageEvent,
     SetType,
+    UserFigureComposer,
+    UserNftWardrobeMessageEvent,
     UserWardrobePageEvent
 } from '@volt/renderer';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -35,7 +42,6 @@ import {
     GetRoomSession,
     IAvatarEditorCategory,
     IAvatarEditorCategoryPartItem,
-    IsNftAvatarPartSet,
     Randomizer,
     SendMessageComposer
 } from '../../api';
@@ -47,6 +53,7 @@ import { useAvatarEditorEffects } from './useAvatarEditorEffects';
 const MAX_PALETTES: number = 2;
 const NO_HOT_LOOKS: IHotLookInfo[] = [];
 const NO_GENDER_EFFECTS: Record<string, number> = {};
+const NO_NFT_AVATARS: INftWardrobeItem[] = [];
 const DEFAULT_MALE_FIGURE = 'hr-100.hd-180-7.ch-215-66.lg-270-79.sh-305-62.ha-1002-70.wa-2007';
 const DEFAULT_FEMALE_FIGURE = 'hr-515-33.hd-600-1.ch-635-70.lg-716-66-62.sh-735-68';
 
@@ -83,10 +90,8 @@ const useAvatarEditorState = () => {
     const [clothingChangeData, setClothingChangeData] = useState<IClothingChangeData>(null);
     const [avatarModels, setAvatarModels] = useState<{ [index: string]: IAvatarEditorCategory[] }>({});
     const [activeModelKey, setActiveModelKey] = useState<string>('');
-    const [maxPaletteCount, setMaxPaletteCount] = useState<number>(1);
     const [figureSetIds, setFigureSetIds] = useState<number[]>([]);
     const [boundFurnitureNames, setBoundFurnitureNames] = useState<string[]>([]);
-    const [figureSetNames, setFigureSetNames] = useState<Record<number, string>>({});
     const [savedFigures, setSavedFigures] = useState<[IAvatarFigureContainer, string][]>(null);
     // Hot looks, staged effects and the preview direction belong to the signed-in user they were made for; another user starts from nothing.
     const [hotLooksState, setHotLooksState] = useState<{ userId: number; looks: IHotLookInfo[] }>({ userId: 0, looks: [] });
@@ -131,13 +136,121 @@ const useAvatarEditorState = () => {
     const genderFigures = useRef<{ userId: number; figures: Record<string, string> }>({ userId: 0, figures: {} });
     const { selectedColors, gender, loadAvatarData, selectPart, selectColor, getFigureString, getFigureStringWithFace, selectedParts } =
         useFigureData();
+    // Avatar collectibles, per signed-in user (AIR HabboAvatarEditor.as:179-187 and 856-910, nft/NftAvatarsModel.as):
+    // - the collectibles the server listed (NftAvatarsModel._nftAvatars);
+    // - the worn collectible and the look shown outside the collectibles tab (HabboAvatarEditor var_2324 / var_4122 / var_5641);
+    // - the collectible picked in the editor and the look it replaced (HabboAvatarEditor _setNftOutfit / var_5154 / var_4808).
+    const [nftAvatarsState, setNftAvatarsState] = useState<{ userId: number; avatars: INftWardrobeItem[] }>({ userId: 0, avatars: [] });
+    const nftAvatars = nftAvatarsState.userId === userData.userId ? nftAvatarsState.avatars : NO_NFT_AVATARS;
+    const nftRequestedFor = useRef(0);
+    const wornNft = useRef<{ userId: number; tokenId: string; figure: string; gender: string }>(null);
+    const stagedNft = useRef<{ userId: number; outfit: INftWardrobeItem; figure: string; gender: string }>(null);
+    // NftAvatarsModel._selectedNftOutfit (the highlighted grid item) and whether NftWardrobeParamView shows its name.
+    const [selectedNftState, setSelectedNftState] = useState<{ userId: number; id: string; infoVisible: boolean }>(null);
+    const selectedNft = selectedNftState?.userId === userData.userId ? selectedNftState : null;
+    const activeModelKeyRef = useRef('');
+    activeModelKeyRef.current = activeModelKey;
+    const hasWornNft = () => !!userData.userId && wornNft.current?.userId === userData.userId && wornNft.current.tokenId !== null;
+    const stagedNftOutfit = () => (userData.userId && stagedNft.current?.userId === userData.userId ? stagedNft.current : null);
+    const loadEditorFigure = (figure: string, figureGender: string) =>
+        loadAvatarData(figure, figureGender?.toUpperCase() === AvatarFigurePartType.FEMALE ? AvatarFigurePartType.FEMALE : AvatarFigurePartType.MALE);
+    // HabboAvatarEditor.setNftOutfit keeps the look the collectible replaces.
+    const stageNftOutfit = (outfit: INftWardrobeItem) =>
+    {
+        stagedNft.current = { userId: userData.userId, outfit, figure: getFigureString, gender };
+    };
+    const loadNftFigure = () =>
+    {
+        const staged = stagedNftOutfit();
+
+        if (staged)
+        {
+            loadEditorFigure(staged.outfit.figureString, staged.outfit.gender);
+
+            return;
+        }
+
+        if (!hasWornNft()) return;
+
+        const outfit = nftAvatars.find((avatar) => avatar.tokenId === wornNft.current.tokenId);
+
+        if (!outfit) return;
+
+        stageNftOutfit(outfit);
+        loadEditorFigure(outfit.figureString, outfit.gender);
+    };
+    const loadRollbackFigure = () =>
+    {
+        const staged = stagedNftOutfit();
+
+        if (staged) loadEditorFigure(staged.figure, staged.gender);
+    };
+    const loadFallbackFigure = () =>
+    {
+        if (wornNft.current?.userId === userData.userId && wornNft.current.figure) loadEditorFigure(wornNft.current.figure, wornNft.current.gender);
+    };
+
     // Showing the Effects tab creates the native EffectsModel view (it then stays for that editor).
-    const selectModelKey = useCallback((key: string) =>
+    // AvatarEditorView.windowEventProc (WE_SELECTED): leaving or entering the collectibles tab swaps between the collectible and the normal look.
+    const selectModelKey = (key: string) =>
     {
         if (key === AvatarEditorFigureCategory.EFFECTS) effectsViewCreated.current = true;
 
+        if (key === activeModelKeyRef.current) return;
+
+        const isNft = key === AvatarEditorFigureCategory.NFT;
+        const wearsNft = hasWornNft();
+        let fallback = false;
+        let rollback = false;
+        let nft = false;
+
+        if (key !== AvatarEditorFigureCategory.EFFECTS && key !== AvatarEditorFigureCategory.HOTLOOKS)
+        {
+            if (wearsNft && isNft) nft = true;
+            else if (wearsNft) fallback = true;
+            else if (stagedNftOutfit() && !isNft) rollback = true;
+        }
+
+        if (wearsNft && key === AvatarEditorFigureCategory.EFFECTS) nft = true;
+
+        activeModelKeyRef.current = key;
         setActiveModelKey(key);
-    }, []);
+        // AvatarEditorView.setViewToCategory hides the collectible name on every tab change.
+        setSelectedNftState((current) => (current?.infoVisible ? { ...current, infoVisible: false } : current));
+
+        if (fallback) loadFallbackFigure();
+        else if (rollback) loadRollbackFigure();
+        else if (nft) loadNftFigure();
+    };
+
+    // NftAvatarsModel.selectNftAvatar: a collectible without a look is ignored.
+    const selectNftAvatar = (outfit: INftWardrobeItem) =>
+    {
+        if (!outfit || outfit.figureString === '') return;
+
+        stageNftOutfit(outfit);
+        loadEditorFigure(outfit.figureString, outfit.gender);
+        setSelectedNftState({ userId: userData.userId, id: outfit.id, infoVisible: true });
+    };
+
+    // HabboAvatarEditor.saveCurrentSelection: a picked collectible is worn by its id, anything else saves the figure.
+    const saveEditorFigure = () =>
+    {
+        const staged = stagedNftOutfit();
+
+        if (staged)
+        {
+            SendMessageComposer(new SaveUserNftWardrobeMessageComposer(staged.outfit.id));
+            SendMessageComposer(new GetSelectedNftWardrobeOutfitMessageComposer());
+            stagedNft.current = null;
+        }
+        else
+        {
+            SendMessageComposer(new UserFigureComposer(gender, getFigureString));
+        }
+
+        if (hasWornNft()) wornNft.current = { ...wornNft.current, tokenId: null };
+    };
     // A closed editor shows the worn effect for the current gender again: an effect picked but not saved is dropped.
     const setIsVisible = useCallback((value: boolean) =>
     {
@@ -239,12 +352,7 @@ const useAvatarEditorState = () => {
 
             if (partItem.isSellableNotOwned) return;
 
-            setMaxPaletteCount(partItem.maxPaletteCount || 1);
-
             selectPart(setType, partId);
-
-            if (setType === AvatarFigurePartType.PET) selectPart(AvatarFigurePartType.MISC, -1);
-            else if (setType === AvatarFigurePartType.MISC) selectPart(AvatarFigurePartType.PET, -1);
         },
         [activeModel, selectPart]
     );
@@ -378,24 +486,11 @@ const useAvatarEditorState = () => {
         [figureSetIds, gender, loadAvatarData, selectedColors, selectedParts]
     );
 
-    const nftFigureSetIds = useMemo(() => {
-        const nftSetIds = new Set<number>();
-
-        for (const [setId, furnitureName] of Object.entries(figureSetNames)) {
-            if (!furnitureName?.toLowerCase().includes('nft')) continue;
-
-            nftSetIds.add(Number(setId));
-        }
-
-        return nftSetIds;
-    }, [figureSetNames]);
-
     useMessageEvent<FigureSetIdsMessageEvent>(FigureSetIdsMessageEvent, (event) => {
         const parser = event.getParser();
 
         setFigureSetIds(parser.figureSetIds);
         setBoundFurnitureNames(parser.boundsFurnitureNames);
-        setFigureSetNames(parser.figureSetNameMap);
     });
 
     useMessageEvent<UserWardrobePageEvent>(UserWardrobePageEvent, (event) => {
@@ -449,6 +544,36 @@ const useAvatarEditorState = () => {
         followServerEffect(parser.effectId);
     });
 
+    // NftAvatarsModel.onUserNftWardrobeMessage adds every listed collectible.
+    useMessageEvent<UserNftWardrobeMessageEvent>(UserNftWardrobeMessageEvent, (event) =>
+    {
+        const listed = event.getParser().nftAvatars;
+
+        setNftAvatarsState((current) => ({ userId: userData.userId, avatars: [...(current.userId === userData.userId ? current.avatars : []), ...listed] }));
+    });
+
+    // HabboAvatarEditor.onUserNftWardrobeMessage: outside the collectibles tab a worn collectible shows the fallback look.
+    useMessageEvent<SelectedNftWardrobeOutfitMessageEvent>(SelectedNftWardrobeOutfitMessageEvent, (event) =>
+    {
+        const parser = event.getParser();
+
+        if (!userData.userId) return;
+
+        wornNft.current = { userId: userData.userId, tokenId: parser.currentTokenId, figure: parser.fallbackFigureString, gender: parser.fallbackFigureGender };
+
+        if (hasWornNft() && activeModelKeyRef.current !== AvatarEditorFigureCategory.NFT) loadFallbackFigure();
+    });
+
+    // HabboAvatarEditor.init asks for the worn collectible, then NftAvatarsModel asks for the list, once per editor.
+    useEffect(() =>
+    {
+        if (!isVisible || !userData.userId || nftRequestedFor.current === userData.userId) return;
+
+        nftRequestedFor.current = userData.userId;
+        SendMessageComposer(new GetSelectedNftWardrobeOutfitMessageComposer());
+        SendMessageComposer(new GetUserNftWardrobeMessageComposer());
+    }, [isVisible, userData.userId]);
+
     useMessageEvent<HotLooksEvent>(HotLooksEvent, (event) => setHotLooksState({ userId: userData.userId, looks: event.getParser().hotLooks }));
 
     useEffect(() =>
@@ -465,14 +590,26 @@ const useAvatarEditorState = () => {
         SendMessageComposer(new GetHotLooksComposer(20));
     }, [isVisible, userData.userId]);
 
+    // The editor opens on its default tab (HabboAvatarEditor.selectDefaultCategory); a later rebuild (gender, owned sets) keeps the open tab,
+    // as HabboAvatarEditor.loadAvatarInEditor only resets the categories in place.
+    const openedModelsFor = useRef<IClothingChangeData | false>(false);
+
     useEffect(() => {
-        if (!isVisible) return;
+        if (!isVisible) {
+            openedModelsFor.current = false;
+
+            return;
+        }
+
+        const keepActiveModel = (models: { [index: string]: IAvatarEditorCategory[] }, defaultKey: string) => {
+            const keep = openedModelsFor.current !== false && openedModelsFor.current === clothingChangeData && !!models[activeModelKeyRef.current];
+
+            openedModelsFor.current = clothingChangeData;
+            setActiveModelKey(keep ? activeModelKeyRef.current : defaultKey);
+        };
 
         const newAvatarModels: { [index: string]: IAvatarEditorCategory[] } = {};
-        const buildModeDefault = 'default';
-        const buildModeNft = 'nft';
-
-        const buildCategory = (setType: string, buildMode: string = buildModeDefault) => {
+        const buildCategory = (setType: string) => {
             const partItems: IAvatarEditorCategoryPartItem[] = [];
             const colorItems: IPartColor[][] = [];
 
@@ -506,18 +643,12 @@ const useAvatarEditorState = () => {
 
                 if (!partSet || !partSet.isSelectable || (partSet.gender !== gender && partSet.gender !== AvatarFigurePartType.UNISEX)) continue;
 
-                const isNftPartSet = IsNftAvatarPartSet(partSet, nftFigureSetIds, (candidate) =>
-                    GetAvatarRenderManager().downloadManager.isNftPartSet(candidate)
-                );
-
-                if (buildMode === buildModeDefault && isNftPartSet) continue;
-                if (buildMode === buildModeNft && !isNftPartSet) continue;
-
                 const isSellableNotOwned = partSet.isSellable && figureSetIds.indexOf(partSet.id) === -1;
 
                 const showUnownedSellables = GetConfigurationValue<boolean>('avatareditor.show.unowned.sellables', false);
 
-                if (isSellableNotOwned && !showUnownedSellables && buildMode !== buildModeNft && setType !== AvatarFigurePartType.PET) continue;
+                // HabboAvatarEditor.generateDataContent: a sellable set is only listed once it is in the inventory.
+                if (isSellableNotOwned && !showUnownedSellables) continue;
 
                 let maxPaletteCount = 0;
 
@@ -536,53 +667,42 @@ const useAvatarEditorState = () => {
         };
 
         if (clothingChangeData) {
-            newAvatarModels[AvatarEditorFigureCategory.TORSO] = TORSO_SET_TYPES.map((setType) => buildCategory(setType, buildModeDefault)).filter(Boolean);
-            newAvatarModels[AvatarEditorFigureCategory.LEGS] = LEGS_SET_TYPES.map((setType) => buildCategory(setType, buildModeDefault)).filter(Boolean);
+            newAvatarModels[AvatarEditorFigureCategory.TORSO] = TORSO_SET_TYPES.map((setType) => buildCategory(setType)).filter(Boolean);
+            newAvatarModels[AvatarEditorFigureCategory.LEGS] = LEGS_SET_TYPES.map((setType) => buildCategory(setType)).filter(Boolean);
 
             setAvatarModels(newAvatarModels);
-            setActiveModelKey(AvatarEditorFigureCategory.TORSO);
+            keepActiveModel(newAvatarModels, AvatarEditorFigureCategory.TORSO);
 
             return;
         }
 
-        newAvatarModels[AvatarEditorFigureCategory.GENERIC] = [AvatarFigurePartType.HEAD].map((setType) => buildCategory(setType, buildModeDefault));
+        newAvatarModels[AvatarEditorFigureCategory.GENERIC] = [AvatarFigurePartType.HEAD].map((setType) => buildCategory(setType));
         newAvatarModels[AvatarEditorFigureCategory.HEAD] = [
             AvatarFigurePartType.HAIR,
             AvatarFigurePartType.HEAD_ACCESSORY,
             AvatarFigurePartType.HEAD_ACCESSORY_EXTRA,
             AvatarFigurePartType.EYE_ACCESSORY,
             AvatarFigurePartType.FACE_ACCESSORY
-        ].map((setType) => buildCategory(setType, buildModeDefault));
-        newAvatarModels[AvatarEditorFigureCategory.TORSO] = TORSO_SET_TYPES.map((setType) => buildCategory(setType, buildModeDefault));
-        newAvatarModels[AvatarEditorFigureCategory.LEGS] = LEGS_SET_TYPES.map((setType) => buildCategory(setType, buildModeDefault));
+        ].map((setType) => buildCategory(setType));
+        newAvatarModels[AvatarEditorFigureCategory.TORSO] = TORSO_SET_TYPES.map((setType) => buildCategory(setType));
+        newAvatarModels[AvatarEditorFigureCategory.LEGS] = LEGS_SET_TYPES.map((setType) => buildCategory(setType));
         newAvatarModels[AvatarEditorFigureCategory.HOTLOOKS] = [];
         if (GetConfigurationValue<boolean>('effects.in.avatar.editor', true)) newAvatarModels[AvatarEditorFigureCategory.EFFECTS] = [];
-        if (GetConfigurationValue<boolean>('clothing.misc.tab.enabled', false))
+        // AIR AvatarEditorView.as:76 shows the misc tab when clothing.misc.tab.enabled is set, as Habbo's external variables do.
+        // MiscModel.init: pets ("pt") and misc ("mc"), each kept as an empty category when the figure data has no such set type.
+        if (GetConfigurationValue<boolean>('clothing.misc.tab.enabled', true))
         {
-            newAvatarModels[AvatarEditorFigureCategory.MISC] = [AvatarFigurePartType.MISC].map((setType) => buildCategory(setType)).filter(Boolean);
+            newAvatarModels[AvatarEditorFigureCategory.MISC] = [AvatarFigurePartType.PET, AvatarFigurePartType.MISC].map(
+                (setType) => buildCategory(setType) ?? { setType, partItems: [], colorItems: [[], []] }
+            );
         }
-        newAvatarModels[AvatarEditorFigureCategory.NFT] = [
-            AvatarFigurePartType.HEAD,
-            AvatarFigurePartType.HAIR,
-            AvatarFigurePartType.HEAD_ACCESSORY,
-            AvatarFigurePartType.HEAD_ACCESSORY_EXTRA,
-            AvatarFigurePartType.EYE_ACCESSORY,
-            AvatarFigurePartType.FACE_ACCESSORY,
-            AvatarFigurePartType.CHEST,
-            AvatarFigurePartType.CHEST_PRINT,
-            AvatarFigurePartType.COAT_CHEST,
-            AvatarFigurePartType.CHEST_ACCESSORY,
-            AvatarFigurePartType.LEGS,
-            AvatarFigurePartType.SHOES,
-            AvatarFigurePartType.WAIST_ACCESSORY
-        ]
-            .map((setType) => buildCategory(setType, buildModeNft))
-            .filter(Boolean);
+        // NftAvatarsModel lists collectible avatars, not figure parts.
+        newAvatarModels[AvatarEditorFigureCategory.NFT] = [];
         newAvatarModels[AvatarEditorFigureCategory.WARDROBE] = [];
 
         setAvatarModels(newAvatarModels);
-        setActiveModelKey(AvatarEditorFigureCategory.GENERIC);
-    }, [isVisible, gender, figureSetIds, nftFigureSetIds, clothingChangeData]);
+        keepActiveModel(newAvatarModels, AvatarEditorFigureCategory.GENERIC);
+    }, [isVisible, gender, figureSetIds, clothingChangeData]);
 
     useEffect(() => {
         genderFigures.current = { userId: 0, figures: {} };
@@ -626,7 +746,6 @@ const useAvatarEditorState = () => {
         avatarModels,
         activeModelKey,
         setActiveModelKey: selectModelKey,
-        maxPaletteCount,
         selectedColorParts,
         selectEditorColor,
         selectEditorPart,
@@ -645,6 +764,10 @@ const useAvatarEditorState = () => {
         selectedEffect,
         selectEditorEffect,
         saveEditorEffect,
+        saveEditorFigure,
+        nftAvatars,
+        selectedNft,
+        selectNftAvatar,
         previewDirection,
         setPreviewDirection,
         getFirstSelectableColor

@@ -16,8 +16,8 @@ export const AvatarEditorModelView: FC<{
     const container = useRef<HTMLDivElement>(null);
     const [activeSetType, setActiveSetType] = useState<string>(() => categories[0]?.setType ?? '');
     const {
-        maxPaletteCount = 1,
         gender = null,
+        selectedParts = null,
         setGender = null,
         selectedColorParts = null,
         getFirstSelectableColor = null,
@@ -35,6 +35,20 @@ export const AvatarEditorModelView: FC<{
     }, [categories, resolvedSetType]);
 
     useAvatarEditorGridWheel(container, !!activeCategory);
+
+    // AIR WIN63-202610151745-318700621 common/AvatarEditorGridView.as:144 showPalettes: one palette per colour layer of the worn part, none without one.
+    const paletteCount = useMemo(() => {
+        const partId = selectedParts?.[resolvedSetType];
+
+        if (partId === undefined || partId === null || partId < 0) return 0;
+
+        const partItem = activeCategory?.partItems.find((item) => !item.isClear && !item.isGetMore && item.id === partId);
+
+        if (partItem) return partItem.maxPaletteCount ?? 0;
+
+        // CategoryBaseModel.updateSelection: a worn part outside the grid shows as many palettes as it has colours.
+        return selectedColorParts?.[resolvedSetType]?.length ?? 0;
+    }, [activeCategory, resolvedSetType, selectedColorParts, selectedParts]);
 
     const selectSet = useCallback(
         (setType: string) => {
@@ -92,13 +106,13 @@ export const AvatarEditorModelView: FC<{
                 <AvatarEditorFigureSetView category={activeCategory} columnCount={6} />
             </div>
 
-            <div className={`volt-avatar-editor-palettes${maxPaletteCount === 2 ? ' dual-palette' : ''}`}>
-                {maxPaletteCount >= 1 && (
+            <div className={`volt-avatar-editor-palettes${paletteCount >= 2 ? ' dual-palette' : ''}`}>
+                {paletteCount >= 1 && (
                     <div className="avatar-editor-palette-set-view">
-                        <AvatarEditorPaletteSetView category={activeCategory} columnCount={maxPaletteCount === 2 ? 9 : 20} paletteIndex={0} />
+                        <AvatarEditorPaletteSetView category={activeCategory} columnCount={paletteCount >= 2 ? 9 : 20} paletteIndex={0} />
                     </div>
                 )}
-                {maxPaletteCount === 2 && (
+                {paletteCount >= 2 && (
                     <div className="avatar-editor-palette-set-view">
                         <AvatarEditorPaletteSetView category={activeCategory} columnCount={9} paletteIndex={1} />
                     </div>

@@ -5,8 +5,7 @@ import {
     GetSessionDataManager,
     ILinkEventTracker,
     RemoveLinkEventTracker,
-    SetClothingChangeDataMessageComposer,
-    UserFigureComposer
+    SetClothingChangeDataMessageComposer
 } from '@volt/renderer';
 import { FC, useEffect, useRef, useState } from 'react';
 import { LocalizeText, SendMessageComposer } from '../../api';
@@ -72,6 +71,7 @@ export const AvatarEditorView: FC<{}> = (props) => {
         setActiveModelKey,
         gender,
         saveEditorEffect,
+        saveEditorFigure,
         getFigureString = null
     } = useAvatarEditor();
 
@@ -103,7 +103,7 @@ export const AvatarEditorView: FC<{}> = (props) => {
         if (clothingChangeData) {
             SendMessageComposer(new SetClothingChangeDataMessageComposer(clothingChangeData.objectId, gender, getFigureString));
         } else {
-            SendMessageComposer(new UserFigureComposer(gender, getFigureString));
+            saveEditorFigure();
             saveEditorEffect();
         }
 
@@ -236,7 +236,7 @@ export const AvatarEditorView: FC<{}> = (props) => {
                         )}
                         {isHotLooksOpen && <AvatarEditorHotLooksView />}
                         {isEffectsOpen && <AvatarEditorEffectsView />}
-                        {isNftOpen && <AvatarEditorNftView categories={avatarModels[activeModelKey]} />}
+                        {isNftOpen && <AvatarEditorNftView />}
                         <AvatarEditorFigurePreviewView />
                         <button type="button" className="volt-avatar-editor-save" disabled={isSaving} onClick={saveAvatar}>
                             <NativeText className="volt-avatar-editor-save-label" text={LocalizeText('avatareditor.save')} textStyle="button_shiny_bold" background={0xffffff} />
