@@ -52,7 +52,7 @@ import {
 import { useConnectionState, useMessageEvent, useVoltEvent, useUiEvent } from '../events';
 import { useNotification } from '../notification';
 import { useCatalogStore } from './catalogStore';
-import { getNodesByOfferIdFromMap, isNonTabbedCatalog, restoreCatalogActivePath, RoomObjectCategory } from './useCatalog.helpers';
+import { getNodesByOfferIdFromMap, restoreCatalogActivePath, RoomObjectCategory } from './useCatalog.helpers';
 import {
     claimPlacedOfferPurchase,
     markPlacedPurchaseBought,
@@ -237,13 +237,11 @@ export const useCatalogEffects = (): void => {
         else
         {
             const target = restoredNodes.at(-1);
-            // Without tabs the top-level node is an open list item, not the tab.
-            const nonTabbed = isNonTabbedCatalog(useCatalogStore.getState().currentType);
 
             useCatalogStore.setState({
-                currentTab: nonTabbed ? data.rootNode : restoredNodes[0],
+                currentTab: restoredNodes[0],
                 activeNodes: restoredNodes,
-                openNodes: [...restoredNodes.slice(nonTabbed ? 0 : 1, -1), ...(target.isBranch && (nonTabbed || restoredNodes.length > 1) ? [target] : [])]
+                openNodes: [...restoredNodes.slice(1, -1), ...(target.isBranch && restoredNodes.length > 1 ? [target] : [])]
             });
         }
     }, [indexQuery.data]);
