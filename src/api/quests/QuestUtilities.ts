@@ -29,11 +29,8 @@ export const getQuestImageName = (campaignCode: string, localizationCode: string
     return `${campaignCode}_${localizationCode}${imageVersion || ''}${prompt}`.toLowerCase();
 };
 
-/** The quests list shows the plain `<campaign>_<code><imageVersion>` bitmap; only the tracker animates the prompt frames. */
-export const getQuestListImageUrl = (quest: QuestMessageData): string =>
-    getQuestingImageUrl(
-        quest.waitPeriodSeconds > 0 ? QUEST_TIMER_IMAGE : `${quest.campaignCode}_${quest.localizationCode}${quest.imageVersion || ''}`.toLowerCase()
-    );
+/** The quests list uses HabboQuestEngine.setupQuestImage too, so prompt quests show their `_a` frame (HabboQuestEngine.as:608). */
+export const getQuestListImageUrl = (quest: QuestMessageData): string => getQuestImageUrl(quest);
 
 /** The tracker's prompt animation cycles `<campaign>_<code><imageVersion>_a` to `_d`. */
 export const getQuestPromptFrameUrl = (quest: QuestMessageData, frame: 'a' | 'b' | 'c' | 'd'): string =>
