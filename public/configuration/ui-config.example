@@ -1016,6 +1016,9 @@
         "notification.npc.gift.received": {
             "display": "BUBBLE",
             "image": "${image.library.url}/album1584/X1517.gif"
+        },
+        "notification.wired.error": {
+            "display": "BUBBLE"
         }
     }
 }

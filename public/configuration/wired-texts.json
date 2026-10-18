@@ -1055,5 +1055,14 @@
   "notification.builders_club.room_locked.title": "This room has been locked!",
   "notification.builders_club.room_locked.message": "You can't have visitors to your room on a free trial subscription. Subscribe to a Builders Club membership to let your friends in! Happy Building! :)",
   "notification.builders_club.room_locked.linkTitle": "Builders Club FAQ",
-  "notification.builders_club.room_locked.linkUrl": "event:habbopages/builders-club/faq"
+  "notification.builders_club.room_locked.linkUrl": "event:habbopages/builders-club/faq",
+  "room.error.wired.delayed_events_cap": "Too many delayed wired effects are active in this room. Frank can't keep track anymore!",
+  "room.error.wired.execution_cap": "Too many wired executions, this wired setup may stop functioning. Frank is panicking!",
+  "room.error.wired.executor_overload": "Wired overload",
+  "room.error.wired.marked_as_heavy": "Frank is watching this room extra closely due to suspicious wired activity",
+  "room.error.wired.placement_failure": "Furni placement failed!",
+  "room.error.wired.too_many_variables": "The limit for variables per furni/user was reached!",
+  "room.error.wired.transaction_failure": "Transaction Failure",
+  "room.error.wired.trigger_text_capture": "WIRED in this room can use the full text of messages that trigger it.",
+  "room.error.wired.whisper_read": "Wired detected your whisper message. You can disable this in \"Other settings\"."
 }
