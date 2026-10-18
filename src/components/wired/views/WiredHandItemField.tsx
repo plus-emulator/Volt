@@ -20,6 +20,8 @@ interface WiredHandItemFieldProps {
     extraItemIds?: number[];
     /** Native section: dropdown and a full-width capture button in a vertical list (class_3968 / class_3977). */
     nativeSection?: boolean;
+    /** DropdownParam caption, shown while nothing is selected. */
+    captionKey?: string;
 }
 
 export const WiredHandItemField: FC<WiredHandItemFieldProps> = (props) => {
@@ -30,7 +32,8 @@ export const WiredHandItemField: FC<WiredHandItemFieldProps> = (props) => {
         labelKey = 'wiredfurni.params.handitem',
         showCopyButton = false,
         extraItemIds = [],
-        nativeSection = false
+        nativeSection = false,
+        captionKey = 'wiredfurni.tooltip.handitem'
     } = props;
 
     const options = useMemo(() => {
@@ -38,7 +41,8 @@ export const WiredHandItemField: FC<WiredHandItemFieldProps> = (props) => {
 
         for (const id of extraItemIds) if (!values.includes(id)) values.push(id);
 
-        if (handItemId > 0 && !values.includes(handItemId)) values.unshift(handItemId);
+        // AIR ensureOptionExists appends a carried code that is not in the list (selectors/class_3966.as:88).
+        if (handItemId > 0 && !values.includes(handItemId)) values.push(handItemId);
 
         return values;
     }, [handItemId, extraItemIds]);
@@ -62,7 +66,7 @@ export const WiredHandItemField: FC<WiredHandItemFieldProps> = (props) => {
     if (nativeSection && isNative)
         return (
             <WiredSection title={LocalizeText(labelKey)}>
-                <WiredDropdown options={[0, ...options].map((id) => ({ id, label: getLabel(id) }))} value={handItemId} onChange={onChange} />
+                <WiredDropdown caption={LocalizeText(captionKey)} options={[0, ...options].map((id) => ({ id, label: getLabel(id) }))} value={handItemId} onChange={onChange} />
                 {showCopyButton && (
                     <WiredShellButton className="volt-wired__wide-button" shellStyle="illumina" onClick={copyOwnHandItem}>
                         {LocalizeText('wiredfurni.params.capture.handitem')}
