@@ -5,7 +5,9 @@ import { LayoutAvatarImageView } from '../../common';
 import { LandingBackdropView } from './LandingBackdropView';
 
 export const HotelView: FC = () => (
-    <div className="volt-hotel-view block fixed w-full h-[calc(100%-55px)] overflow-hidden">
+    // HabboLandingView: the landing window fills the desktop and sits on its bottom edge, behind the translucent toolbar
+    // (WidgetContainerLayout.as:303-323).
+    <div className="volt-hotel-view block fixed w-full h-full overflow-hidden">
         <LandingBackdropView backdrop={getLandingBackdrop()} />
         <LayoutAvatarImageView classNames={['hotelview-avatar']} figure={GetSessionDataManager().figure} gender={GetSessionDataManager().gender} direction={2} />
     </div>
