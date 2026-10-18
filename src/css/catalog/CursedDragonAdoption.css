@@ -1,0 +1,257 @@
+/* cursed_dragon_adoption_xml (AIR WIN63-202610151745-318700621): a 788x626 frame_3 coloured 0x302b39 whose content area has the margins
+   0/33/0/0, so the 788x593 scene covers everything under the title. Positions below are the layout's, relative to that content area. */
+.volt-cursed-dragon-adoption.volt-card-shell.volt-card-frame-3 {
+    width: 788px;
+    height: 626px;
+    min-width: 788px !important;
+    min-height: 626px !important;
+    max-width: 788px !important;
+    max-height: 626px !important;
+    padding: 33px 0 0 !important;
+}
+
+.volt-cursed-dragon-adoption.volt-card-shell.volt-card-frame-3 .volt-card-content-shell.volt-cursed-dragon-content {
+    position: absolute;
+    top: 33px;
+    left: 0;
+    width: 788px;
+    height: 593px;
+    padding: 0 !important;
+    overflow: hidden;
+    background: transparent !important;
+    color: #ffffff;
+    font-family: HabboAirUbuntu, UbuntuRegular, sans-serif;
+    font-size: 12px;
+    image-rendering: pixelated;
+    user-select: none;
+}
+
+.volt-cursed-dragon-content :is(img, div, button) {
+    position: absolute;
+    box-sizing: border-box;
+}
+
+.volt-cursed-dragon-scene {
+    left: 0;
+    top: 0;
+    width: 788px;
+    height: 593px;
+}
+
+/* Text windows keep the TextField's 2px gutter. */
+.volt-cursed-dragon-text {
+    padding: 2px;
+    line-height: 15px;
+    white-space: pre-wrap;
+}
+
+/* style-2 borders (border_colorless) in the layout colour at blend 0.9. */
+.volt-cursed-dragon-border {
+    border: solid transparent;
+    border-width: 6px;
+    border-image-slice: 6 fill;
+    border-image-width: 6px;
+    border-image-repeat: stretch;
+    opacity: 0.9;
+    pointer-events: none;
+}
+
+/* introduction (0,0 788x180) */
+.volt-cursed-dragon-introduction {
+    left: 0;
+    top: 0;
+    width: 788px;
+    height: 180px;
+    overflow: hidden;
+}
+
+.volt-cursed-dragon-introduction::before {
+    content: "";
+    position: absolute;
+    left: 1px;
+    top: 0;
+    width: 786px;
+    height: 180px;
+    /* intro_background 0xda25212e */
+    background: rgba(37, 33, 46, 0.855);
+}
+
+.volt-cursed-dragon-eyebrow {
+    left: 29px;
+    top: 15px;
+    width: 532px;
+    height: 19px;
+    color: #b9a8cd;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.volt-cursed-dragon-title {
+    left: 29px;
+    top: 37px;
+    width: 730px;
+    height: 32px;
+    color: #fff8ff;
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 26px;
+}
+
+.volt-cursed-dragon-body {
+    left: 29px;
+    top: 78px;
+    width: 624px;
+    height: 96px;
+    color: #d1c8d9;
+    /* leading 2 */
+    line-height: 16px;
+}
+
+.volt-cursed-dragon-evil-frank {
+    left: 699px;
+    top: 18px;
+    width: 66px;
+    height: 170px;
+    opacity: 0.7;
+}
+
+.volt-cursed-dragon-intro-line {
+    top: 179px;
+    width: 393px;
+    height: 1px;
+}
+
+.volt-cursed-dragon-intro-line.is-blue {
+    left: 1px;
+    background: #52818b;
+}
+
+.volt-cursed-dragon-intro-line.is-purple {
+    left: 394px;
+    background: #8b6a9c;
+}
+
+/* dragon_scene (0,180 788x413) */
+.volt-cursed-dragon-dragon-scene {
+    left: 0;
+    top: 180px;
+    width: 788px;
+    height: 413px;
+}
+
+.volt-cursed-dragon-choice-hint {
+    left: 119px;
+    top: 18px;
+    width: 550px;
+    height: 17px;
+    color: #e8e1ee;
+    font-weight: 700;
+    text-align: center;
+}
+
+/* blue_package / purple_package: 68x75 bitmaps at zoom 2 inside blue_preview (5,42) and purple_preview (394,42). */
+.volt-cursed-dragon-package {
+    top: 193px;
+    width: 136px;
+    height: 150px;
+}
+
+.volt-cursed-dragon-package.is-blue {
+    left: 132px;
+}
+
+.volt-cursed-dragon-package.is-purple {
+    left: 521px;
+}
+
+.volt-cursed-dragon-live-preview {
+    left: 1px;
+    top: 44px;
+    width: 786px;
+    height: 248px;
+    pointer-events: none;
+}
+
+.volt-cursed-dragon-choice {
+    top: 292px;
+    width: 286px;
+    height: 84px;
+}
+
+.volt-cursed-dragon-choice.is-blue {
+    left: 57px;
+}
+
+.volt-cursed-dragon-choice.is-purple {
+    left: 446px;
+}
+
+.volt-cursed-dragon-choice-line {
+    left: 14px;
+    top: 0;
+    width: 258px;
+    height: 2px;
+}
+
+.volt-cursed-dragon-choice.is-blue .volt-cursed-dragon-choice-line {
+    background: #6acdd2;
+}
+
+.volt-cursed-dragon-choice.is-purple .volt-cursed-dragon-choice-line {
+    background: #ba91db;
+}
+
+.volt-cursed-dragon-choice-name {
+    left: 14px;
+    top: 10px;
+    width: 258px;
+    height: 21px;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 17px;
+    text-align: center;
+}
+
+.volt-cursed-dragon-choice.is-blue .volt-cursed-dragon-choice-name {
+    color: #b9f0ee;
+}
+
+.volt-cursed-dragon-choice.is-purple .volt-cursed-dragon-choice-name {
+    color: #e7c6f9;
+}
+
+/* blue_adopt / purple_adopt: button style 6 (button_shiny in the button colour), 162x32, button_shiny_regular caption in white with the
+   margins 10/5/10/6 of habbo_window_layout_button_shiny_black. */
+.volt-cursed-dragon-content .volt-cursed-dragon-adopt {
+    left: 62px;
+    top: 43px;
+    width: 162px;
+    height: 32px;
+    margin: 0;
+    padding: 0 5px 1px;
+    border: 5px solid transparent;
+    border-image-source: var(--volt-cursed-dragon-button);
+    border-image-slice: 5 fill;
+    border-image-width: 5px;
+    border-image-repeat: stretch;
+    border-radius: 0;
+    background: transparent;
+    color: #ffffff;
+    font: 12px HabboAirUbuntu, UbuntuRegular, sans-serif;
+    line-height: 21px;
+    text-align: center;
+    cursor: pointer;
+}
+
+.volt-cursed-dragon-content .volt-cursed-dragon-adopt:hover:not(:disabled) {
+    border-image-source: var(--volt-cursed-dragon-button-hover);
+}
+
+.volt-cursed-dragon-content .volt-cursed-dragon-adopt:active:not(:disabled) {
+    border-image-source: var(--volt-cursed-dragon-button-pressed);
+}
+
+.volt-cursed-dragon-content .volt-cursed-dragon-adopt:disabled {
+    border-image-source: var(--volt-cursed-dragon-button-disabled);
+    cursor: default;
+}

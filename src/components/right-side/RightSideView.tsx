@@ -2,6 +2,7 @@ import { FC } from 'react';
 import { Column } from '../../common';
 import { OfferView } from '../catalog/views/targeted-offer/OfferView';
 import { GroupRoomInformationView } from '../groups/views/GroupRoomInformationView';
+import { NewFeatureNotificationsView } from '../new-feature/NewFeatureNotificationsView';
 import { NotificationCenterView } from '../notification-center/NotificationCenterView';
 import { PurseView } from '../purse/PurseView';
 import { QuestTrackerView } from '../quests/QuestTrackerView';
@@ -16,6 +17,8 @@ export const RightSideView: FC<{}> = (props) => {
                 <div className="relative left-px w-[230px] shrink-0">
                     <PurseView />
                 </div>
+                {/* AIR attaches the new_feature_<key> bars 2 s after start, below the purse. */}
+                <NewFeatureNotificationsView />
                 <QuestTrackerView />
                 <GroupRoomInformationView />
                 <MysteryBoxExtensionView />

@@ -66,6 +66,8 @@ import './css/voltcard/VoltCardView.css';
 import './css/achievements/AchievementsView.css';
 
 import './css/notification/NotificationCenterView.css';
+import './css/notification/NewFeatureNotification.css';
+import './css/catalog/CursedDragonAdoption.css';
 import './css/notification/HotelAlertToast.css';
 
 import './css/habbopages/HabboPagesViewer.css';
