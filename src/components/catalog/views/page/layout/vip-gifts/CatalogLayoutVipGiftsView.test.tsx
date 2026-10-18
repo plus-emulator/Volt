@@ -92,7 +92,7 @@ describe('club gifts page', () => {
         expect(screen.getByText('catalog.club_gift.past_club.long:12,0')).toBeInTheDocument();
     });
 
-    it('lists each gift with its requirement, description and vip mark, by days required', () => {
+    it('lists each gift with its requirement and vip mark, by days required', () => {
         const { container } = renderView();
         const rows = container.querySelectorAll('.volt-catalog-club-gift');
 
@@ -101,12 +101,11 @@ describe('club gifts page', () => {
         const [clubGift, vipGift] = Array.from(rows) as HTMLElement[];
 
         expect(within(clubGift).getByText('roomItem.name.10')).toBeInTheDocument();
-        expect(within(clubGift).getByText('roomItem.desc.10')).toBeInTheDocument();
+        expect(within(clubGift).queryByText('roomItem.desc.10')).toBeNull();
         expect(within(clubGift).getByText('catalog.club_gift.selectable')).toBeInTheDocument();
         expect(clubGift.querySelector('.volt-club-compact-mark.is-vip')).toBeNull();
 
         expect(within(vipGift).getByText('roomItem.name.20')).toBeInTheDocument();
-        expect(within(vipGift).getByText('roomItem.desc.20')).toBeInTheDocument();
         expect(within(vipGift).getByText('catalog.club_gift.vip_missing.long:18,2')).toBeInTheDocument();
         expect(vipGift.querySelector('.volt-club-compact-mark.is-vip')).not.toBeNull();
     });
