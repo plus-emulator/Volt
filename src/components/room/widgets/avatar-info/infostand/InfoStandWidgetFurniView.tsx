@@ -663,7 +663,8 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
                 className={
                     'volt-furni-infostand relative z-30 min-w-[190px] max-w-[190px] pointer-events-auto' +
                     (isCrackable ? ' volt-furni-infostand--crackable' : '') +
-                    (avatarInfo.isTemporary ? ' volt-furni-infostand--temporary' : '')
+                    (avatarInfo.isTemporary ? ' volt-furni-infostand--temporary' : '') +
+                    (avatarInfo.isBuildersClub ? ' volt-furni-infostand--builders-club' : '')
                 }
             >
                 <button type="button" className="volt-furni-infostand__close" aria-label={localizeWithFallback('generic.close', 'Close')} onClick={onClose} />
