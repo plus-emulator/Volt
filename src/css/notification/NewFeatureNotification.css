@@ -1,0 +1,104 @@
+/* new_feature_notification_promo_xml (AIR WIN63-202610151745-318700621): a 192x34 region with the dynamic style
+   brightness_and_shadow_under_gentle (core/window/dynamicstyle/class_2922.as:91-109) around a style-9 border coloured with
+   notifications.new_feature.color.<key>. The icon (8,7 20x20, centred) and the underlined text (30,7) are tagged #icon. */
+.volt-new-feature-promo {
+    position: relative;
+    box-sizing: border-box;
+    width: 192px;
+    height: 34px;
+    margin-left: auto;
+    margin-right: -1px;
+    color: #ffffff;
+    font-family: HabboAirUbuntu, UbuntuRegular, sans-serif;
+    font-size: 12px;
+    line-height: 15px;
+    cursor: pointer;
+    pointer-events: auto;
+    image-rendering: pixelated;
+    user-select: none;
+}
+
+.volt-new-feature-promo-border {
+    position: absolute;
+    inset: 0;
+    border: solid transparent;
+    border-width: 7px 7px 8px;
+    border-image-source: none;
+    /* habbo_skin_border_9: 7px corners and an 8px bottom row. */
+    border-image-slice: 7 7 8 7 fill;
+    border-image-width: 7px 7px 8px;
+    border-image-repeat: stretch;
+    pointer-events: none;
+}
+
+.volt-new-feature-promo-icon,
+.volt-new-feature-promo-desc {
+    position: absolute;
+    /* #icon default style: etching 0x48000000 one pixel down. */
+    filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.282));
+}
+
+.volt-new-feature-promo-icon {
+    left: 8px;
+    top: 7px;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.volt-new-feature-promo-icon img {
+    display: block;
+}
+
+.volt-new-feature-promo-desc {
+    left: 30px;
+    top: 7px;
+    max-width: 148px;
+    padding: 2px;
+    text-decoration: underline;
+    white-space: normal;
+}
+
+/* NewFeatureNotification.onMouseOver: the text turns 0xbae1f9; #icon hover adds colorTransform 1.1 + 30. */
+.volt-new-feature-promo.is-hovering .volt-new-feature-promo-desc {
+    color: #bae1f9;
+}
+
+.volt-new-feature-promo:hover :is(.volt-new-feature-promo-icon, .volt-new-feature-promo-desc) {
+    filter: url("#volt-new-feature-hover") drop-shadow(0 1px 0 rgba(0, 0, 0, 0.282));
+}
+
+/* #icon pressed: colorTransform 0.8, one pixel down, etching 0x80000000 one pixel up. */
+.volt-new-feature-promo:active :is(.volt-new-feature-promo-icon, .volt-new-feature-promo-desc) {
+    transform: translateY(1px);
+    filter: url("#volt-new-feature-pressed") drop-shadow(0 -1px 0 rgba(0, 0, 0, 0.5));
+}
+
+.volt-new-feature-promo-filters {
+    position: absolute;
+    width: 0;
+    height: 0;
+}
+
+/* cancel_link_region (174,12 10x10): common_close_x at blend 0.55, shown once the link was opened. */
+.volt-new-feature-promo-cancel {
+    position: absolute;
+    left: 174px;
+    top: 12px;
+    width: 10px;
+    height: 10px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+}
+
+.volt-new-feature-promo-cancel img {
+    display: block;
+    width: 9px;
+    height: 9px;
+    opacity: 0.55;
+}

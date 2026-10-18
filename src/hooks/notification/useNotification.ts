@@ -3,6 +3,7 @@ import {
     ActivityPointNotificationMessageEvent,
     BadgeReceivedEvent,
     ChestNotificationEvent,
+    ClaimProductResultMessageEvent,
     ClubGiftNotificationEvent,
     ClubGiftSelectedEvent,
     ConnectionErrorEvent,
@@ -393,6 +394,15 @@ const useNotificationStore = () => {
             ),
             NotificationBubbleType.INFO,
         );
+    });
+
+    // AIR notifications onClaimProductResult (class_1974.as:717-723): claim_product.result.<result> with the claim's name, or its id.
+    useMessageEvent<ClaimProductResultMessageEvent>(ClaimProductResultMessageEvent, (event) => {
+        const parser = event.getParser();
+        const nameKey = `claim_product.name.${ parser.claimId }`;
+        const name = GetLocalizationManager().hasValue(nameKey) ? LocalizeText(nameKey) : parser.claimId;
+
+        showSingleBubble(LocalizeText(`claim_product.result.${ parser.result }`, ['claim_name'], [name]), NotificationBubbleType.INFO);
     });
 
     // WiredTradeError (503): a refused trade action.

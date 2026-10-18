@@ -19,6 +19,7 @@ import { CameraWidgetView } from './camera/CameraWidgetView';
 import { CampaignView } from './campaign/CampaignView';
 import { CatalogView } from './catalog/CatalogView';
 import { ChatHistoryView } from './chat-history/ChatHistoryView';
+import { CursedDragonAdoptionView } from './cursed-dragon-adoption/CursedDragonAdoptionView';
 import { FloorplanEditorView } from './floorplan-editor/FloorplanEditorView';
 import { FriendsView } from './friends/FriendsView';
 import { GameCenterView } from './game-center/GameCenterView';
@@ -152,6 +153,7 @@ export const MainView: FC<{}> = (props) =>
             <VoltbubbleHiddenView />
             <InventoryView />
             <CatalogView />
+            <CursedDragonAdoptionView />
             <FriendsView />
             <RightSideView />
             <UserSettingsView />
