@@ -1,6 +1,6 @@
 import { WiredFurniSelectorSection } from '../WiredFurniSelectorView';
 import { FC, useEffect, useMemo, useState } from 'react';
-import { LocalizeText, tokenOfVariableSlot, variableSlotOf, WIRED_VARIABLE_ABSENT, WiredFurniType } from '../../../../api';
+import { isWiredNullVariableId, LocalizeText, tokenOfVariableSlot, variableSlotOf, WIRED_VARIABLE_ABSENT, WiredFurniType } from '../../../../api';
 import {
     ILinkDataframeSendRow,
     ILinkDataframeSendState,
@@ -103,7 +103,7 @@ const sendRowError = (row: ILinkDataframeSendRow): string | null => {
             : null;
     }
     // An empty text variable is allowed (it sends an empty text); an empty value variable is not.
-    if (row.mode === LINK_SOURCE_VARIABLE_VALUE && row.variableId === WIRED_VARIABLE_ABSENT)
+    if (row.mode === LINK_SOURCE_VARIABLE_VALUE && isWiredNullVariableId(row.variableId))
         return LocalizeText('wiredfurni.params.link.select_source_variable');
 
     return null;

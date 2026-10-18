@@ -1,5 +1,5 @@
 import { FC, useEffect, useMemo, useState } from 'react';
-import { LocalizeText, tokenOfVariableSlot, variableSlotOf, WIRED_VARIABLE_ABSENT, WiredFurniType } from '../../../../api';
+import { isWiredNullVariableId, LocalizeText, tokenOfVariableSlot, variableSlotOf, WIRED_VARIABLE_ABSENT, WiredFurniType } from '../../../../api';
 import {
     ILinkDataframeReceiveRow,
     ILinkDataframeReceiveState,
@@ -77,7 +77,7 @@ const receiveRowError = (row: ILinkDataframeReceiveRow): string | null => {
         return placeholderError ? LocalizeText(placeholderError) : null;
     }
     if (row.kind !== LINK_DESTINATION_VARIABLE) return LocalizeText('wiredfurni.error.link.invalid_dataframe');
-    if (row.variableId === WIRED_VARIABLE_ABSENT) return LocalizeText('wiredfurni.error.link.invalid_capture_variable');
+    if (isWiredNullVariableId(row.variableId)) return LocalizeText('wiredfurni.error.link.invalid_capture_variable');
 
     return null;
 };
