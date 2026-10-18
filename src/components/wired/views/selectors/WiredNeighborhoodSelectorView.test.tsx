@@ -16,8 +16,10 @@ vi.mock('../WiredShellHeaderView', () => ({ WiredShellButton: ({ children, shell
 vi.mock('../WiredSourcesSelector', () => ({ CLICKED_USER_SOURCE_VALUE: 11, nativeSourceOptions: (values: number[] = [], kind: string) => values.map(value => ({ value, label: `${kind}.${value}` })), useAvailableUserSources: (_: unknown, values: unknown[]) => values }));
 vi.mock('./WiredSelectorBaseView', () => ({ WiredSelectorBaseView: ({ children, footer, save, nativeLayout, widthMultiplier }: PropsWithChildren<{ footer: ReactNode; save: () => void; nativeLayout: boolean; widthMultiplier: number }>) => <WiredNativeContext.Provider value={nativeLayout}><div data-testid="editor" data-native={String(nativeLayout)} data-width-multiplier={widthMultiplier}>{children}{footer}<button onClick={save}>Save</button></div></WiredNativeContext.Provider> }));
 import { WiredNeighborhoodSelectorView } from './WiredNeighborhoodSelectorView';
-const tile = (x: number, y: number) => document.querySelector(`[data-tile="${x},${y}"] polygon`)!;
-const paint = (x: number, y: number) => { fireEvent.mouseDown(tile(x, y), { button: 0, buttons: 1 }); fireEvent.mouseUp(window); };
+// The centre of a tile in the AIR FloorDrawingPreset bitmap, measured from the bitmap's horizontal centre.
+const grid = () => document.querySelector('[data-testid="neighborhood-grid"]')!;
+const at = (x: number, y: number) => { const r = Number(grid().getAttribute('data-radius')), a = x + r, b = y + r; return { clientX: 8 * (a - b) + Math.trunc(((2 * r + 1) * 16 + 34) / 2), clientY: 4 * (a + b) + 12 }; };
+const paint = (x: number, y: number) => { fireEvent.mouseDown(grid(), { button: 0, buttons: 1, ...at(x, y) }); fireEvent.mouseUp(window); };
 const save = () => fireEvent.click(screen.getByText('Save'));
 
 describe('AIR neighborhood controls and selection contract', () => {
@@ -59,10 +61,10 @@ describe('AIR neighborhood controls and selection contract', () => {
     });
     it('supports rectangular shift drawing without toggling existing tiles or losing the spiral order', () => {
         render(<WiredNeighborhoodSelectorView />);
-        fireEvent.mouseDown(tile(0, 0), { button: 0, buttons: 1, shiftKey: true });
-        fireEvent.mouseEnter(tile(2, 2), { buttons: 1 });
+        fireEvent.mouseDown(grid(), { button: 0, buttons: 1, shiftKey: true, ...at(0, 0) });
+        fireEvent.mouseMove(grid(), { buttons: 1, ...at(2, 2) });
         expect(document.querySelectorAll('[data-selected="true"]')).toHaveLength(9);
-        fireEvent.mouseEnter(tile(1, 1), { buttons: 1 }); fireEvent.mouseUp(window);
+        fireEvent.mouseMove(grid(), { buttons: 1, ...at(1, 1) }); fireEvent.mouseUp(window);
         expect(document.querySelectorAll('[data-selected="true"]')).toHaveLength(4); save();
         expect(state.setIntParams.mock.lastCall![0][3]).toBe(387); // spiral positions 0,1,7,8
     });
