@@ -1,5 +1,5 @@
 import { FC, useEffect, useState } from 'react';
-import { LocalizeText, tokenOfVariableSlot, variableSlotOf, WiredFurniType } from '../../../../api';
+import { isWiredNullVariableId, LocalizeText, tokenOfVariableSlot, variableSlotOf, WIRED_VARIABLE_ABSENT, WiredFurniType } from '../../../../api';
 import { useWired } from '../../../../hooks';
 import { WiredCollapsibleSection } from '../WiredCollapsibleSection';
 import { WiredNumberInput } from '../WiredNumberInput';
@@ -29,8 +29,8 @@ export const WiredActionPlaceFurniView: FC<{}> = () => {
     const [valueIsVariable, setValueIsVariable] = useState(false);
     const [value, setValue] = useState(0);
     const [valueTarget, setValueTarget] = useState(0);
-    const [spawnVariable, setSpawnVariable] = useState('n');
-    const [valueVariable, setValueVariable] = useState('n');
+    const [spawnVariable, setSpawnVariable] = useState(WIRED_VARIABLE_ABSENT);
+    const [valueVariable, setValueVariable] = useState(WIRED_VARIABLE_ABSENT);
     // The hotel opens this card on the snapshot of the picked furni (110), the triggering furni (0) and the selector (200 / users 0, 200).
     const [furni, setFurni] = useState([110, 0, 200]);
     const [users, setUsers] = useState([0, 200]);
@@ -48,8 +48,8 @@ export const WiredActionPlaceFurniView: FC<{}> = () => {
         setValueIsVariable(p[7] === 1);
         setValue(p[8] ?? 0);
         setValueTarget(p[9] ?? 0);
-        setSpawnVariable(trigger?.variableIds[0] ?? 'n');
-        setValueVariable(trigger?.variableIds[1] ?? 'n');
+        setSpawnVariable(trigger?.variableIds[0] ?? WIRED_VARIABLE_ABSENT);
+        setValueVariable(trigger?.variableIds[1] ?? WIRED_VARIABLE_ABSENT);
         setFurni([0, 1, 2].map((slot) => trigger?.furniSources[slot] ?? [110, 0, 200][slot]));
         setUsers([0, 1].map((slot) => trigger?.userSources[slot] ?? [0, 200][slot]));
     }, [trigger]);
@@ -57,7 +57,7 @@ export const WiredActionPlaceFurniView: FC<{}> = () => {
     const spawnRows = rows.filter((row) => row.variableTarget === 0 && row.variableType === 0 && row.canCreateAndDelete);
     const spawnDefinition = spawnRows.find(row => row.variableId === spawnVariable);
     // Preserve saved references while the catalog loads; a resolved no-value variable disables the initial value.
-    const spawnValueEnabled = spawnWithVariable && spawnVariable !== 'n' && (!spawnDefinition || spawnDefinition.hasValue);
+    const spawnValueEnabled = spawnWithVariable && !isWiredNullVariableId(spawnVariable) && (!spawnDefinition || spawnDefinition.hasValue);
     const spawnEntries = buildWiredVariablePickerEntries('furni', 'give', spawnRows.map(row => ({ variableId: row.variableId, name: row.variableName,
         availability: row.availabilityType, hasValue: row.hasValue, canCreateAndDelete: row.canCreateAndDelete })));
     const spawnToken = tokenOfVariableSlot(spawnVariable);
@@ -91,7 +91,7 @@ export const WiredActionPlaceFurniView: FC<{}> = () => {
         setStringParam('');
         setFurniSources(furni);
         setUserSources(users);
-        setVariableIds([spawnWithVariable ? spawnVariable : 'n', spawnValueEnabled && valueIsVariable ? valueVariable : 'n']);
+        setVariableIds([spawnWithVariable ? spawnVariable : WIRED_VARIABLE_ABSENT, spawnValueEnabled && valueIsVariable ? valueVariable : WIRED_VARIABLE_ABSENT]);
     };
     return (
         <WiredActionBaseView

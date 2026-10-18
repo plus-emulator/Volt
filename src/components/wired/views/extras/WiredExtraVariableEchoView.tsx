@@ -3,7 +3,7 @@ import { LocalizeText, WiredFurniType } from '../../../../api';
 import { useWired } from '../../../../hooks';
 import { WiredVariablePicker } from '../WiredVariablePicker';
 import { buildWiredVariablePickerEntries, createFallbackVariableEntry, flattenWiredVariablePickerEntries } from '../WiredVariablePickerData';
-import { tokenOfVariableSlot, variableSlotOf } from '../../../../api';
+import { isWiredNullVariableId, tokenOfVariableSlot, variableSlotOf } from '../../../../api';
 import { useWiredNativeVariables } from '../../../../hooks';
 import { WiredExtraBaseView } from './WiredExtraBaseView';
 import { WiredVariableNameSection } from './WiredExtraUserVariableView';
@@ -85,12 +85,12 @@ export const WiredExtraVariableEchoView: FC<{}> = () => {
 
         setVariableName(normalizeVariableName(trigger.stringData));
         setSourceTargetType(owner ? owner[0] : 'user');
-        // An unpicked echo stores the absent id "n"; it reads as no selection, never as a variable "#n".
+        // An unpicked echo stores a null id ("0" from a fresh frame, "n" from older saves); it reads as no selection, never as a variable.
         setSourceVariableToken(tokenOfVariableSlot(variableId));
     }, [trigger]);
     useEffect(() => {
         const variableId = trigger?.variableIds[0];
-        if (!variableId || sourceVariableToken !== tokenOfVariableSlot(variableId)) return;
+        if (isWiredNullVariableId(variableId) || sourceVariableToken !== tokenOfVariableSlot(variableId)) return;
         const owner = ([['user', userVariableDefinitions], ['furni', furniVariableDefinitions], ['global', roomVariableDefinitions], ['context', contextVariableDefinitions]] as const).find(([, definitions]) => definitions.some(definition => definition.variableId === variableId));
         if (owner) setSourceTargetType(owner[0]);
     }, [contextVariableDefinitions, furniVariableDefinitions, roomVariableDefinitions, trigger, userVariableDefinitions]);
