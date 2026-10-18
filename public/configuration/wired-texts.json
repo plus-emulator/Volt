@@ -1064,5 +1064,19 @@
   "room.error.wired.too_many_variables": "The limit for variables per furni/user was reached!",
   "room.error.wired.transaction_failure": "Transaction Failure",
   "room.error.wired.trigger_text_capture": "WIRED in this room can use the full text of messages that trigger it.",
-  "room.error.wired.whisper_read": "Wired detected your whisper message. You can disable this in \"Other settings\"."
+  "room.error.wired.whisper_read": "Wired detected your whisper message. You can disable this in \"Other settings\".",
+  "wiredfurni.params.team": "Pick team",
+  "wiredfurni.params.team.1": "Red",
+  "wiredfurni.params.team.2": "Green",
+  "wiredfurni.params.team.3": "Blue",
+  "wiredfurni.params.team.4": "Yellow",
+  "wiredfurni.params.sign_selection": "Sign:",
+  "wiredfurni.params.dance_selection": "Dance:",
+  "wiredfurni.tooltip.action": "Select action",
+  "wiredfurni.tooltip.sign": "Select sign",
+  "wiredfurni.tooltip.dance": "Select dance",
+  "wiredfurni.tooltip.handitem": "Select the hand item",
+  "wiredfurni.tooltip.bot.handitem": "Select the hand item the bot should give",
+  "wiredfurni.params.handitem": "Hand Item",
+  "wiredfurni.tooltip.group": "Select group"
 }
