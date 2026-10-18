@@ -1956,6 +1956,8 @@
     bottom: 0;
     left: 0;
     max-width: none;
+    /* The head is rendered at twice its size; smooth downscaling gives the 1x head, pixelated drops pixels. */
+    image-rendering: auto;
 }
 
 .bubble-container.native-room-bubble .air-chat-bubble .chat-content {
