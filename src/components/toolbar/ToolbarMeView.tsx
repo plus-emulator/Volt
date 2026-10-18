@@ -75,6 +75,13 @@ export const ToolbarMeView: FC<
                 <span>{localizeWithFallback('widget.memenu.forums', 'Forums')}</span>
                 {unreadForumsCount > 0 && <LayoutItemCountView count={unreadForumsCount} />}
             </div>
+            {/* MeMenuNewController (toolbar/memenu/MeMenuNewController.as:29): Collectibles shows only when both hub flags are on. */}
+            {GetConfigurationValue('classic.collectibles.hub.enabled') && GetConfigurationValue('collectibles.hub.enabled') && (
+                <div className="tbme-item" onClick={() => open(() => CreateLinkEvent('collectibles/open'))}>
+                    <span className="volt-icon icon-me-collectibles" />
+                    <span>{localizeWithFallback('memenu.collectibles', 'Collectibles')}</span>
+                </div>
+            )}
             {children}
         </Flex>
     );
