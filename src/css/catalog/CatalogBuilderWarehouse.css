@@ -7,20 +7,64 @@
     --catalog-standard-select-outer: #ffb53c;
 }
 
-.volt-catalog-standard-header.is-builder {
-    border-color: #4e4844;
-    background: #2d2724;
+/* catalog_ubuntu is 570x640 with height_min 540; observed on AIR the frame opens 15px taller than the layout to fit the
+   515px recolorable page. */
+.volt-catalog-window.is-builder.volt-card-shell.volt-card-frame-3 {
+    height: 655px;
+    min-height: 555px !important;
 }
 
-/* builder.mode.header: title at (80, 11) 24px, membership at (80, 41) and limit at (80, 56). */
+/* frame_3 title bar: the caption sits 2px lower and the close button 3px inside the title bar. */
+.volt-catalog-window.volt-card-shell.volt-card-frame-3 > .volt-card-header-shell .volt-card-title {
+    top: 4px !important;
+}
+
+.volt-catalog-window.volt-card-shell.volt-card-frame-3 > .volt-card-header-shell .volt-card-close-button {
+    right: 3px !important;
+}
+
+/* catalog.header.background.border (1, 0, 568x90) runs from edge to edge right under the title bar and covers the frame
+   border. The 2px border is drawn inside, so the header image (blend 0.1) also tints it as in AIR. */
+.volt-catalog-standard-header.is-builder {
+    margin: -3px -2px 0;
+    border: 0;
+    background: #2d2724;
+    box-shadow: inset 0 0 0 2px #4e4844;
+}
+
+.volt-catalog-standard-header.is-builder .volt-catalog-standard-header-bg {
+    inset: 0;
+}
+
+/* catalog.header.icon (24, 30, 40x35): the icon at its own size, zoom 2, centred. */
+.volt-catalog-standard-header.is-builder .volt-catalog-standard-header-icon {
+    left: 24px;
+    top: 30px;
+}
+
+.volt-catalog-standard-header.is-builder .volt-catalog-standard-header-icon img {
+    width: auto !important;
+    height: auto !important;
+    transform: none;
+    zoom: 2;
+}
+
+.volt-catalog-standard-header.is-builder .volt-catalog-standard-header-copy {
+    left: 80px;
+    top: 11px;
+}
+
+/* builder.mode.header: title at (80, 11) 24px, membership at (80, 41) and limit at (80, 56). Flash lays the glyphs out
+   on whole pixels: the letter spacing here (and -0.15px on the bold labels below) keeps the text as wide as in AIR. */
 .volt-catalog-standard-header.is-builder .volt-catalog-builder-header-title {
     position: absolute;
-    top: 2px;
+    top: 1px;
     left: 2px;
     height: 30px;
     font-family: UbuntuRegular, Ubuntu, sans-serif;
     font-size: 24px;
     font-weight: 700;
+    letter-spacing: 0.15px;
     line-height: 30px;
     white-space: nowrap;
 }
@@ -33,13 +77,14 @@
     font-family: UbuntuRegular, Ubuntu, sans-serif;
     font-size: 12px;
     font-weight: 400;
+    letter-spacing: 0.15px;
     line-height: 15px;
     text-shadow: none;
     white-space: nowrap;
 }
 
 .volt-catalog-standard-header.is-builder .volt-catalog-builder-header-line.is-membership {
-    top: 32px;
+    top: 31px;
 }
 
 .volt-catalog-standard-header.is-builder .volt-catalog-builder-header-line.is-limit {
@@ -51,21 +96,169 @@
     font-weight: 700;
 }
 
-.volt-catalog-navigation-list.is-builders-club .volt-catalog-navigation-item.is-active .volt-catalog-navigation-label {
-    text-shadow: 0 -1px 0 #cf7200;
+/* The body is the frame colour; search at (8, 96), navigationContainer at (8, 124) down to 8px above the bottom, and the
+   page 2px inside layoutContainer (200, 96). */
+.volt-catalog-window.is-builder .volt-catalog-content-shell {
+    padding: 6px 4px 7px 5px !important;
+    background: #e9e9e1 !important;
 }
 
+.volt-catalog-window.is-builder .volt-catalog-stage {
+    gap: 10px;
+}
+
+/* search border style 105 (illumina_light_skin_border_input), 184x24; search.helper at (4, 3) blend 0.5. */
+.volt-catalog-window.is-builder .volt-catalog-search-shell {
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+}
+
+.volt-catalog-window.is-builder .volt-catalog-search-shell::before,
+.volt-catalog-window.is-builder .volt-catalog-navigation-shell::before,
+.volt-catalog-window.is-builder :is(.volt-catalog-grid-shell, .volt-catalog-colour-grid-shell)::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.volt-catalog-window.is-builder .volt-catalog-search-shell::before {
+    border: 6px solid transparent;
+    border-image: url("../../assets/images/catalog/air/skin/border-input.png") 6 fill / 6px stretch;
+}
+
+.volt-catalog-window.is-builder .volt-catalog-search {
+    z-index: 1;
+}
+
+/* search.input at (4, 3), 18px high, text 2px inside. */
+.volt-catalog-window.is-builder .volt-catalog-search-shell .volt-catalog-search-input {
+    display: block;
+    margin-top: 3px;
+    padding-left: 6px !important;
+    font-size: 12px !important;
+}
+
+.volt-catalog-window.is-builder .volt-catalog-search-input::placeholder {
+    color: #b2b2b2;
+}
+
+/* clear_search_button (160, 2, 20x20), the icon centred on whole pixels. */
+.volt-catalog-window.is-builder .volt-catalog-search-pen {
+    top: 2px;
+    right: auto;
+    left: 160px;
+    background-position: calc(50% - 0.5px) calc(50% - 0.5px);
+}
+
+/* navigationContainer, itemGridWidget and the palette: border style 6 at blend 0.5 over the body. */
+.volt-catalog-window.is-builder :is(.volt-catalog-navigation-shell, .volt-catalog-grid-shell, .volt-catalog-colour-grid-shell) {
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+}
+
+.volt-catalog-window.is-builder .volt-catalog-navigation-shell {
+    position: relative;
+    padding: 5px 3px;
+}
+
+.volt-catalog-window.is-builder .volt-catalog-navigation-shell::before,
+.volt-catalog-window.is-builder :is(.volt-catalog-grid-shell, .volt-catalog-colour-grid-shell)::before {
+    border: 8px solid transparent;
+    border-image: url("../../assets/images/catalog/air/skin/border-6-blend-50.png") 8 fill / 8px stretch;
+}
+
+.volt-catalog-window.is-builder :is(.volt-catalog-navigation-shell, .volt-catalog-grid-shell, .volt-catalog-colour-grid-shell) > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* builders_club_topitem_template: icon at (0, 1), title at (26, 2) u_bold 0x666666 without etching; the selected and
+   hovered item is white with the 0xcf7200 etching over the highlight (178x20 0xffb53c, 0xff8d00 at y 2, then 0xb4b4ae). */
+.volt-catalog-navigation-list.is-builders-club .volt-catalog-navigation-item {
+    gap: 8px;
+    padding: 0;
+    font-size: 12px;
+    text-shadow: none;
+}
+
+/* A long title runs under drop_button and is cut at the item's edge, without an ellipsis. */
+.volt-catalog-navigation-list.is-builders-club .volt-catalog-navigation-label {
+    color: #666;
+    letter-spacing: -0.15px;
+    text-overflow: clip;
+}
+
+.volt-catalog-navigation-list.is-builders-club .volt-catalog-navigation-item::before {
+    inset: 0 0 0 1px;
+    border: 0;
+    background: linear-gradient(180deg, #ffb53c 0 2px, #ff8d00 2px 18px, #ffb53c 18px 20px, #b4b4ae 20px);
+}
+
+/* builders_club_subitem_template: icon at (15, 0), title at (42, 1), italic 0xb77734. */
 .volt-catalog-navigation-list.is-builders-club .volt-catalog-navigation-node.is-child .volt-catalog-navigation-item {
+    gap: 9px;
+    padding-left: calc(15px + var(--volt-catalog-navigation-indent, 0px));
     color: #b77734;
 }
 
-/* The selected grid item takes the window colour. */
-.volt-catalog-window.is-builder .volt-catalog-grid-density-standard .layout-grid-item.is-active::before {
-    border-color: #ffb43b;
-    box-shadow: inset 0 0 0 1px #ffb43b;
+.volt-catalog-navigation-list.is-builders-club .volt-catalog-navigation-node.is-child .volt-catalog-navigation-label {
+    color: #b77734;
 }
 
-/* builderWidget: 360x60 at the bottom of the page. */
+/* After the sub-item colour: selected and hovered items of every depth turn white. */
+.volt-catalog-navigation-list.is-builders-club .volt-catalog-navigation-item:is(:hover, .is-active) .volt-catalog-navigation-label {
+    color: #fff;
+    text-shadow: 0 -1px 0 #cf7200;
+}
+
+/* drop_button: icon style 5 (triangle right) while closed, 7 (triangle down) while open, tinted 0x999999, at (145, 6). */
+.volt-catalog-navigation-list.is-builders-club .volt-catalog-navigation-caret {
+    top: 6px;
+    right: auto;
+    left: 145px;
+    width: 15px;
+    height: 15px;
+    background-color: #999;
+    mask: url("../../assets/images/catalog/air/skin/icon-triangle-right.png") 0 0 no-repeat;
+}
+
+.volt-catalog-navigation-list.is-builders-club .volt-catalog-navigation-item.is-open .volt-catalog-navigation-caret {
+    mask-image: url("../../assets/images/catalog/air/skin/icon-triangle-down.png");
+}
+
+.volt-catalog-navigation-list.is-builders-club .volt-catalog-navigation-caret > svg {
+    display: none;
+}
+
+/* The selected grid item takes the window colour: a 2px 0xffb43b frame with stepped corners. */
+.volt-catalog-window.is-builder .volt-catalog-grid-density-standard .layout-grid-item.is-active::before {
+    border: 4px solid transparent;
+    border-image: url("../../assets/images/catalog/air/builder/grid-item-selected.png") 4 fill / 4px stretch;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+}
+
+/* itemGridWidget: the grid and its scrollbar 4px inside the border. */
+.volt-catalog-window.is-builder .volt-catalog-grid-shell {
+    padding: 4px;
+}
+
+.volt-catalog-window.is-builder .volt-catalog-preview-details {
+    left: 12px;
+}
+
+.volt-catalog-window.is-builder .volt-catalog-product-details-name {
+    letter-spacing: -0.15px;
+}
+
+/* builderWidget: 360x60 at the bottom of the page; the u_small hint at (5, 3) plus the 2px text gutter. */
 .volt-catalog-purchase-row.is-builder {
     height: 60px;
     overflow: visible;
@@ -80,11 +273,11 @@
 .volt-catalog-builder-widget-hint {
     position: absolute;
     top: 3px;
-    left: 5px;
+    left: 7px;
     color: #000;
     font-family: UbuntuRegular, Ubuntu, sans-serif;
-    font-size: 11px;
-    line-height: 15px;
+    font-size: 10px;
+    line-height: 11px;
     white-space: nowrap;
 }
 
@@ -169,7 +362,13 @@
     align-items: center;
     justify-content: center;
     font: 700 12px/1.121 Ubuntu, sans-serif;
+    letter-spacing: -0.15px;
     white-space: nowrap;
+}
+
+/* White over the card text colour that :is(.content-area, .volt-card-content-shell) span sets. */
+.volt-catalog-builder-widget .volt-catalog-builder-button > span {
+    color: #fff;
 }
 
 .volt-catalog-builder-button.is-place-one {

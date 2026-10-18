@@ -404,7 +404,7 @@
 }
 
 .volt-catalog-navigation-node.is-child .volt-catalog-navigation-item {
-    padding-left: 18px;
+    padding-left: calc(18px + var(--volt-catalog-navigation-indent, 0px));
     color: #52819a;
     font-style: italic;
 }
@@ -1460,6 +1460,8 @@
     max-width: none !important;
     max-height: none !important;
     object-fit: none !important;
+    /* AIR centres the icon on whole pixels and drops the half pixel ((cell - icon) / 2 into an int). */
+    object-position: calc(50% - 0.5px) calc(50% - 0.5px);
     margin: 0;
 }
 

@@ -21,6 +21,9 @@ import { MarketplacePostOfferView } from './views/page/layout/marketplace/Market
 // The Builders Club page icon (LocalizationCatalogWidget: builder pages show icon_193 in the header).
 const BUILDER_HEADER_ICON = 193;
 
+/** catalog_ubuntu catalog.header.image: AIR keeps this default while a Builders Club page sets no header image of its own. */
+const BUILDER_HEADER_IMAGE = 'catalog_header_roombuilder';
+
 /** AIR HabboCatalog.toggleCatalog: the Builders Club catalogue is only there while builders.club.enabled is on. */
 const isBuildersClubEnabled = () => GetConfigurationValue<boolean>('builders.club.enabled', true);
 
@@ -65,6 +68,9 @@ const CatalogViewInner: FC<{}> = () => {
     const displayedCurrencies = GetConfigurationValue<number[]>('system.currency.types', []);
     // The header belongs to the open page: a folder (pageId -1) can be active without opening one.
     const pageId = currentPage?.pageId ?? -1;
+    const headerImage =
+        currentPage?.localization?.getImage(0) ||
+        (isBuilder ? GetConfigurationValue<string>('catalog.asset.image.url', '').replace('%name%', BUILDER_HEADER_IMAGE) : '');
     const activeCatalogNode =
         (pageId > -1 && (activeNodes.findLast((node) => node.pageId === pageId) ?? getNodeById(pageId, rootNode))) || activeNodes.at(-1) || null;
     // Keep technical suffixes and numeric page hints out of the tab captions.
@@ -216,7 +222,7 @@ const CatalogViewInner: FC<{}> = () => {
                     <div className={`volt-catalog-standard-header ${isBuilder ? 'is-builder' : ''}`}>
                         <div
                             className="volt-catalog-standard-header-bg"
-                            style={currentPage?.localization?.getImage(0) ? { backgroundImage: `url(${currentPage.localization.getImage(0)})` } : undefined}
+                            style={headerImage ? { backgroundImage: `url(${headerImage})` } : undefined}
                         />
                         <div className="volt-catalog-standard-header-icon">
                             <CatalogIconView icon={isBuilder ? BUILDER_HEADER_ICON : (activeCatalogNode?.iconId ?? rootNode?.iconId ?? 1)} />
@@ -257,9 +263,7 @@ const CatalogViewInner: FC<{}> = () => {
                                         <CatalogSearchView />
                                     </div>
                                     <div className="volt-catalog-navigation-shell">
-                                        {isBuilder
-                                            ? rootNode && <CatalogNavigationView isBuilder node={rootNode} />
-                                            : currentTab && <CatalogNavigationView node={currentTab} />}
+                                        {currentTab && <CatalogNavigationView isBuilder={isBuilder} node={currentTab} />}
                                     </div>
                                 </div>
                             )}

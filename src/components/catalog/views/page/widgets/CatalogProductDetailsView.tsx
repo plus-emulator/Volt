@@ -12,7 +12,7 @@ export const CatalogProductDetailsView: FC<{ offer: IPurchasableOffer }> = ({ of
 
     const product = offer.product;
     const name = offer.localizationName || product?.productData?.name || '';
-    const description = offer.localizationDescription || product?.productData?.description || '';
+    const description = offer.localizationDescription;
     const isFurniture = product?.productType === ProductTypeEnum.FLOOR || product?.productType === ProductTypeEnum.WALL;
     const offerMetadata = metadata?.filter((entry) => entry.offerId === offer.offerId) ?? [];
     const productMetadata =

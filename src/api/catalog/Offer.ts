@@ -157,18 +157,12 @@ export class Offer implements IPurchasableOffer {
         return LocalizeText(this._localizationId);
     }
 
+    // AIR ProductData keeps no description (session/product/ProductData.as:10-31) and Offer.localizationDescription
+    // returns it, so a catalogue offer shows none; only an offer without product data falls back to its key.
     public get localizationDescription(): string {
         if (this.usesSharedOfferLocalization) return this.sharedOfferLocalization.description;
 
-        const furnitureProduct = this.product;
-
-        if (furnitureProduct?.furnitureData?.description?.length) return furnitureProduct.furnitureData.description;
-
-        const productData = GetProductDataForLocalization(this._localizationId);
-
-        if (productData) return productData.description;
-
-        return LocalizeText(this._localizationId);
+        return '';
     }
 
     public get isLazy(): boolean {
@@ -200,7 +194,7 @@ export class Offer implements IPurchasableOffer {
 
         return {
             name: productData ? productData.name : fallback,
-            description: productData ? productData.description : fallback
+            description: productData ? '' : fallback
         };
     }
 
