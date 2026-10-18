@@ -1,4 +1,5 @@
 import type { ChatBubbleMessage } from '../../../../api';
+import { AIR_CHAT_BUBBLE_STYLES } from './airChatStyles';
 
 interface ChatCreation { mode: number; timestamp: number; }
 const creations = new WeakMap<ChatBubbleMessage, ChatCreation>();
@@ -356,9 +357,11 @@ export class NativeChatScroller {
         }
         if (bubble.chat.left !== left) bubble.chat.left = left;
         if (bubble.chat.top !== y) bubble.chat.top = y;
-        // Default style regpoints use native fallback margins 28/15; other skins retain their CSS.
-        if (bubble.chat.styleId === 0 && bubble.chat.elementRef) {
-            const pointerX = `${Math.max(28, Math.min(bubble.chat.width - 15, bubble.chat.location.x - left))}px`;
+        // PooledChatBubble.repositionPointer: pointerXMargins, or the 28/15 fallback (AIR PooledChatBubble.as:452-459).
+        const airPointer = AIR_CHAT_BUBBLE_STYLES[bubble.chat.styleId]?.pointer;
+        if ((bubble.chat.styleId === 0 || airPointer) && bubble.chat.elementRef) {
+            const [ marginLeft, marginRight ] = airPointer?.margins ?? [ 28, 15 ];
+            const pointerX = `${Math.max(marginLeft, Math.min(bubble.chat.width - marginRight, bubble.chat.location.x - left))}px`;
             const style = bubble.chat.elementRef.style;
             if (style.getPropertyValue('--chat-pointer-x') !== pointerX) style.setProperty('--chat-pointer-x', pointerX);
         }
