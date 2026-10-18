@@ -22,7 +22,6 @@ import {
     findNodeByName,
     getCatalogNodePath,
     getNodesByOfferIdFromMap,
-    isNonTabbedCatalog,
     normalizeCatalogType,
     replaceCatalogPageOffers,
     RoomControllerLevel,
@@ -148,14 +147,6 @@ const openedPage = (pageId: number, offerId: number) => ({
     currentOffer: null
 });
 
-const getCatalogRoot = (node: ICatalogNode): ICatalogNode => {
-    let root = node;
-
-    while (root.parent) root = root.parent;
-
-    return root;
-};
-
 /** AIR CatalogNavigator.getPathToNodeWithLayout: the first visible descendant that is a page, through folders. */
 const getPathToNodeWithLayout = (node: ICatalogNode): ICatalogNode[] => {
     for (const child of node.children) {
@@ -225,9 +216,7 @@ export const useCatalogStore = createVoltStore<CatalogStoreState>((set, get) => 
     activateNode: (targetNode, offerId = -1) => {
         if (!targetNode?.parent) return;
 
-        const nonTabbed = isNonTabbedCatalog(get().currentType);
-
-        if (!targetNode.parent.parent && !nonTabbed) {
+        if (!targetNode.parent.parent) {
             get().showTab(targetNode);
 
             return;
@@ -237,13 +226,12 @@ export const useCatalogStore = createVoltStore<CatalogStoreState>((set, get) => 
 
         const { activeNodes, openNodes } = get();
         const path = getCatalogNodePath(targetNode);
-        // Without tabs the list shows the whole tree, so the top-level node is a list item that opens like any other.
-        const nextOpen = nonTabbed ? path.slice(0, -1) : path.slice(1, -1);
+        const nextOpen = path.slice(1, -1);
         const closing = activeNodes.includes(targetNode) && openNodes.includes(targetNode);
 
         if (targetNode.isBranch && !closing) nextOpen.push(targetNode);
 
-        set({ currentTab: nonTabbed ? getCatalogRoot(targetNode) : path[0], activeNodes: path, openNodes: nextOpen, navigationHidden: false });
+        set({ currentTab: path[0], activeNodes: path, openNodes: nextOpen, navigationHidden: false });
 
         if (targetNode.pageId > -1) set(openedPage(targetNode.pageId, offerId));
     },
@@ -275,7 +263,7 @@ export const useCatalogStore = createVoltStore<CatalogStoreState>((set, get) => 
 
         const tab = getCatalogNodePath(node)[0];
 
-        if (node !== tab || isNonTabbedCatalog(get().currentType)) {
+        if (node !== tab) {
             set({ currentTab: tab, activeNodes: [], openNodes: [] });
             get().activateNode(node, offerId);
 
@@ -370,15 +358,8 @@ export const useCatalogStore = createVoltStore<CatalogStoreState>((set, get) => 
 
         if (pageId > -1 || pageOverride) return;
 
-        // AIR CatalogNavigator.loadFrontPage without tabs: the first visible node of the tree.
-        if (isNonTabbedCatalog(currentType)) {
-            const first = index.rootNode.children.find((child) => child?.isVisible);
-
-            if (first) get().activateNode(first);
-
-            return;
-        }
-
+        // AIR CatalogNavigator.showIndex: the Builders Club catalogue has no tab strip, but it still lists the first node's
+        // children and opens that node's first page, like a tab (CatalogNavigator.as:161-240, WIN63-202610151745-318700621).
         if (index.rootNode.isBranch) {
             for (const child of index.rootNode.children) {
                 if (child && child.isVisible) {
