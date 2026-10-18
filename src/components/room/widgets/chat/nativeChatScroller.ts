@@ -110,6 +110,8 @@ const STYLE_GEOMETRY: Record<number, NativeChatGeometry> = {
     10000: { overlap: { x: 0, y: -2, width: 0, height: 0 }, unlimitedHeight: false },
 };
 export const getNativeChatGeometry = (styleId: number): NativeChatGeometry => STYLE_GEOMETRY[styleId] ?? STYLE_GEOMETRY[0];
+// PooledChatBubble.displayedHeight is the sprite height, which includes the pointer hanging below the bubble.
+const stackHeight = (chat: ChatBubbleMessage) => chat.height + (chat.pointerOverhang || 0);
 const intersects = (a: Rect, b: Rect) => a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 
 interface Collider {
@@ -160,7 +162,7 @@ export class NativeChatScroller {
             for (const bubble of this.bubbles) {
                 if (!bubble.chat) continue;
                 const geometry = getNativeChatGeometry(bubble.chat.styleId);
-                bubble.body.height = (geometry.unlimitedHeight ? bubble.chat.height : Math.min(Math.trunc(108 * fontScale), bubble.chat.height)) - 10 - bubble.overlap.y - bubble.overlap.height;
+                bubble.body.height = (geometry.unlimitedHeight ? stackHeight(bubble.chat) : Math.min(Math.trunc(108 * fontScale), stackHeight(bubble.chat))) - 10 - bubble.overlap.y - bubble.overlap.height;
             }
         }
     }
@@ -180,7 +182,7 @@ export class NativeChatScroller {
         const geometry = getNativeChatGeometry(chat.styleId);
         const overlap = geometry.overlap;
         const width = chat.width - overlap.x - overlap.width;
-        const height = (geometry.unlimitedHeight ? chat.height : Math.min(Math.trunc(108 * this.fontScale), chat.height)) - 10 - overlap.y - overlap.height;
+        const height = (geometry.unlimitedHeight ? stackHeight(chat) : Math.min(Math.trunc(108 * this.fontScale), stackHeight(chat))) - 10 - overlap.y - overlap.height;
         if (existing) {
             // A remeasured bubble keeps its centred reflow without changing collider mode.
             existing.body.x += (existing.body.width - width) / 2;

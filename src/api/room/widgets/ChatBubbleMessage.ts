@@ -8,6 +8,8 @@ export class ChatBubbleMessage {
     public height: number = 0;
     public visualOffsetTop: number = 0;
     public visualOffsetBottom: number = 0;
+    /** Pointer pixels below the bubble that AIR counts in its stacking height (displayedHeight). */
+    public pointerOverhang: number = 0;
     public elementRef: HTMLDivElement = null;
     public skipMovement: boolean = false;
     /** -1 follows the room setting; a wired message may ask for 0 wide, 1 normal or 2 thin. */

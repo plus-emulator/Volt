@@ -74,6 +74,10 @@ export const ChatWidgetMessageView: FC<ChatWidgetMessageViewProps> = ({
     const anonymous = isNativeAnonymousStyle(chat.styleId);
     // Styles drawn from their AIR regpoints (PooledChatBubble.recreate, AIR PooledChatBubble.as:116-283).
     const airStyle = AIR_CHAT_BUBBLE_STYLES[chat.styleId] ?? null;
+
+    // PooledChatBubble adds the pointer to every non-anonymous bubble, so the sprite height the chat flow stacks with
+    // (displayedHeight) includes the part of the pointer below the bubble (PooledChatBubble.as:228-233, 356-359).
+    chat.pointerOverhang = (airStyle?.pointer && !anonymous) ? Math.max(0, airStyle.pointer.size[1] - (airStyle.size[1] - airStyle.pointer.y)) : 0;
     const [lineCount, setLineCount] = useState(1);
     const elementRef = useRef<HTMLDivElement>(null);
     const makeRoomRef = useRef(makeRoom);
