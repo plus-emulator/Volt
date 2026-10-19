@@ -49,6 +49,9 @@ interface ChatWidgetMessageViewProps {
     // makeRoom measures the bubble itself (once per frame for every new bubble), so the bubble
     // does not force a layout of its own when it mounts.
     measuredByMakeRoom?: boolean;
+    // The face and its colour are written onto chat after the bubble mounts. Passing them lets memo see that change.
+    imageUrl?: string;
+    color?: string;
 }
 
 const ChatWidgetMessageViewComponent: FC<ChatWidgetMessageViewProps> = ({

@@ -99,6 +99,8 @@ export const ChatWidgetView: FC<{}> = (props) => {
                         mode={chatSettings.mode}
                         makeRoom={makeRoom}
                         measuredByMakeRoom
+                        imageUrl={chat.imageUrl}
+                        color={chat.color}
                     />
                 ))}
             {chatWindowEnabled && <ChatWidgetWindowView />}
