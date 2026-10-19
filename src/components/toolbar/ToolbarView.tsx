@@ -1,6 +1,6 @@
 import { CreateLinkEvent, Dispose, DropBounce, EaseOut, FindNewFriendsMessageComposer, GetSessionDataManager, JumpBy, Motions, VoltToolbarAnimateIconEvent, PerkEnum, Queue, SessionDataPreferencesEvent, Wait } from '@volt/renderer';
 import { AnimatePresence, motion, Variants } from 'framer-motion';
-import { CSSProperties, FC, useEffect, useMemo, useRef, useState } from 'react';
+import { CSSProperties, FC, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Permission } from '../../api/permissions';
 import { GetConfigurationValue, localizeWithFallback, MessengerIconState, OpenMessengerChat, SendMessageComposer, VisitDesktop } from '../../api';
 import dividerImg from '../../assets/images/toolbar/air/divider.png';
@@ -63,7 +63,12 @@ export const ToolbarView: FC<{ isInRoom: boolean }> = props =>
     const [ staffStackBottom, setStaffStackBottom ] = useState<number | null>(null);
     const useGuideTool = usePerkAllowed(PerkEnum.USE_GUIDE_TOOL);
     const cameraAllowed = usePerkAllowed(PerkEnum.CAMERA);
+    const leftDockRef = useRef<HTMLDivElement>(null);
     const rightDockRef = useRef<HTMLDivElement>(null);
+    const meSlotRef = useRef<HTMLDivElement>(null);
+    const progressionSlotRef = useRef<HTMLDivElement>(null);
+    const meMenuRef = useRef<HTMLDivElement>(null);
+    const progressionMenuRef = useRef<HTMLDivElement>(null);
     const { userFigure = null } = useSessionInfo();
     const { getFullCount = 0 } = useInventoryUnseenTracker();
     const { getTotalUnseen = 0 } = useAchievements();
@@ -185,6 +190,44 @@ export const ToolbarView: FC<{ isInRoom: boolean }> = props =>
         };
     }, [ isInRoom ]);
 
+    useLayoutEffect(() =>
+    {
+        if(touchLayout) return;
+
+        const positionMenus = () =>
+        {
+            for(const [ slot, menu ] of [
+                [ meSlotRef.current, meMenuRef.current ],
+                [ progressionSlotRef.current, progressionMenuRef.current ]
+            ])
+            {
+                if(!slot || !menu) continue;
+
+                const bounds = slot.getBoundingClientRect();
+                const left = bounds.left + bounds.width / 2 - menu.offsetWidth / 2;
+
+                menu.style.left = `${ Math.round(Math.max(3, Math.min(left, window.innerWidth - menu.offsetWidth - 3))) }px`;
+            }
+        };
+
+        positionMenus();
+
+        const observer = new ResizeObserver(positionMenus);
+
+        for(const element of [ leftDockRef.current, meMenuRef.current, progressionMenuRef.current ])
+        {
+            if(element) observer.observe(element);
+        }
+
+        window.addEventListener('resize', positionMenus);
+
+        return () =>
+        {
+            observer.disconnect();
+            window.removeEventListener('resize', positionMenus);
+        };
+    }, [ isMeExpanded, isProgressionExpanded, leftCollapsed, touchLayout ]);
+
 
     useVoltEvent<VoltToolbarAnimateIconEvent>(VoltToolbarAnimateIconEvent.ANIMATE_ICON, event =>
     {
@@ -227,11 +270,11 @@ export const ToolbarView: FC<{ isInRoom: boolean }> = props =>
         <>
 
             <AnimatePresence>
-                {/* AbstractSubMenuController.reposition (toolbar/abstractsubmenu/AbstractSubMenuController.as:113): both
-                    menus sit at x 3, right above the bottom bar. */}
+                {/* Both menus sit right above the bottom bar, centred over their icon and kept 3px inside the screen. */}
                 {!touchLayout && isProgressionExpanded && (
                     <motion.div
                         key="progression-menu"
+                        ref={progressionMenuRef}
                         initial={{ opacity: 0, y: 6, scale: 0.97 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 6, scale: 0.97 }}
@@ -249,6 +292,7 @@ export const ToolbarView: FC<{ isInRoom: boolean }> = props =>
                 {!touchLayout && isMeExpanded && (
                     <motion.div
                         key="me-menu"
+                        ref={meMenuRef}
                         initial={{ opacity: 0, y: 6, scale: 0.97 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 6, scale: 0.97 }}
@@ -283,6 +327,7 @@ export const ToolbarView: FC<{ isInRoom: boolean }> = props =>
             />
 
             <motion.div
+                ref={leftDockRef}
                 initial="visible"
                 animate={visibilityVariant}
                 variants={leftNavVariants}
@@ -313,7 +358,7 @@ export const ToolbarView: FC<{ isInRoom: boolean }> = props =>
                                 <ToolbarItemView icon="rooms" onClick={() => CreateLinkEvent('navigator/toggle')} className="tb-icon" />
                             </motion.div>
                             {isInRoom && (
-                                <motion.div variants={itemVariants} className="relative tb-slot">
+                                <motion.div ref={progressionSlotRef} variants={itemVariants} className="relative tb-slot">
                                     <ToolbarItemView
                                         icon="progression"
                                         onClick={(event) =>
@@ -355,6 +400,7 @@ export const ToolbarView: FC<{ isInRoom: boolean }> = props =>
                         </motion.div>
                     )}
                     <motion.div
+                        ref={meSlotRef}
                         variants={itemVariants}
                         className="relative tb-slot tb-slot-tall tb-slot-memenu"
                         data-toolbar-tooltip={localizeWithFallback('toolbar.icon.label.memenu', 'Me')}
