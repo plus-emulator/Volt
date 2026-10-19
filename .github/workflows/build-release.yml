@@ -59,8 +59,11 @@ jobs:
         working-directory: Volt
         run: corepack yarn vite build
 
+      # The installer's update command checks the download against SHA256SUMS.
       - name: Package dist
-        run: (cd Volt/dist && zip -qr ../../volt-client.zip .)
+        run: |
+          (cd Volt/dist && zip -qr ../../volt-client.zip .)
+          sha256sum volt-client.zip > SHA256SUMS
 
       - name: Publish release
         env:
@@ -70,4 +73,4 @@ jobs:
           version=$(node -p "require('./package.json').version")
           commit=$(git rev-parse HEAD)
           tag="client-v$version-${commit::7}"
-          bash .github/scripts/publish-release.sh "$tag" "Volt client $version (${commit::7})" "$commit" ../volt-client.zip
+          bash .github/scripts/publish-release.sh "$tag" "Volt client $version (${commit::7})" "$commit" ../volt-client.zip ../SHA256SUMS
