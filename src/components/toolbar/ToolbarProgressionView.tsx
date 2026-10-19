@@ -1,18 +1,22 @@
 import { Dispatch, FC, SetStateAction, useEffect, useRef } from 'react';
-import { CreateLinkEvent } from '@volt/renderer';
+import { CreateLinkEvent, RewardTrackData } from '@volt/renderer';
 import { GetConfigurationValue, localizeWithFallback } from '../../api';
 import { Flex, LayoutItemCountView } from '../../common';
 
 interface ToolbarProgressionViewProps {
     achievementCount: number;
     dailyTaskCount: number;
-    rewardTrackCount: number;
+    rewardTracks: RewardTrackData[];
     setExpanded: Dispatch<SetStateAction<boolean>>;
 }
 
-export const ToolbarProgressionView: FC<ToolbarProgressionViewProps> = ({ achievementCount, dailyTaskCount, rewardTrackCount, setExpanded }) =>
+export const ToolbarProgressionView: FC<ToolbarProgressionViewProps> = ({ achievementCount, dailyTaskCount, rewardTracks, setExpanded }) =>
 {
     const elementRef = useRef<HTMLDivElement>(null);
+    const introductionCount = rewardTracks.find((track) => track.id === 'introduction')?.claimablePrizeCount ?? 0;
+    // ProgMenuController.onRewardTracks (toolbar/progmenu/ProgMenuController.as:76): every active track other than
+    // the introduction gets a clone of the introduction item, named by widget.progmenu.rewardtrack.<id>.
+    const extraTracks = rewardTracks.filter((track) => track.id !== 'introduction');
 
     useEffect(() =>
     {
@@ -62,8 +66,15 @@ export const ToolbarProgressionView: FC<ToolbarProgressionViewProps> = ({ achiev
             <div className="tbme-item" onClick={() => open('reward_track/open/introduction')}>
                 <span className="icon-me-rewardtrack" />
                 <span>{localizeWithFallback('widget.progmenu.introduction', 'Introduction')}</span>
-                {rewardTrackCount > 0 && <LayoutItemCountView count={rewardTrackCount} />}
+                {introductionCount > 0 && <LayoutItemCountView count={introductionCount} />}
             </div>
+            {extraTracks.map((track) => (
+                <div key={track.id} className="tbme-item" onClick={() => open(`reward_track/open/${track.id}`)}>
+                    <span className="icon-me-rewardtrack" />
+                    <span>{localizeWithFallback(`widget.progmenu.rewardtrack.${track.id}`, `widget.progmenu.rewardtrack.${track.id}`)}</span>
+                    {track.claimablePrizeCount > 0 && <LayoutItemCountView count={track.claimablePrizeCount} />}
+                </div>
+            ))}
         </Flex>
     );
 };

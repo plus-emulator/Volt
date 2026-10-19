@@ -3,9 +3,6 @@ import { CatalogNode, CatalogPage, CatalogType, ICatalogNode, ICatalogPage, IPur
 
 export const normalizeCatalogType = (type?: string): string => (type === CatalogType.BUILDER ? CatalogType.BUILDER : CatalogType.NORMAL);
 
-/** AIR HabboCatalog.useNonTabbedCatalog: the Builders Club catalogue lists its whole tree without tabs. */
-export const isNonTabbedCatalog = (type: string): boolean => type === CatalogType.BUILDER;
-
 /** Nodes from the top-level tab down to the target; the index root is left out. */
 export const getCatalogNodePath = (target: ICatalogNode): ICatalogNode[] => {
     const nodes: ICatalogNode[] = [];

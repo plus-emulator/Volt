@@ -926,32 +926,43 @@
 }
 
 /*
- * Club gifts page, after the official clubGiftWidget: the info line (35 px, wrapping), the gift
- * list (1 px apart) and the past HC length centred below it. Rows follow club_gift_list_item:
- * 58 px, a 52x46 image at 7,6, name / description / requirement from x 58 (y 8, 22, 36), the
- * Select button in the bottom right corner and the VIP mark at 5,5.
+ * Club gifts page, after layout_club_gifts: a 360x460 widget with the u_italic info text (0,0 360x35),
+ * the gift list (0,35 360x409, items 1 px apart, scrollbar in its right 17 px) and the u_small past HC
+ * length centred at (0,445). Rows follow club_gift_list_item: a 320x58 border style 0 (habbo_skin_border_white
+ * tinted 0xe3e3e3), the 52x46 image
+ * at 7,6, u_bold name at 58,8, u_small requirement at 58,36, the auto-sized style 3 Select button
+ * right-aligned at 167,32 and the vip_icon at 5,5. Text fields add Flash's 2 px gutter.
  */
 .volt-catalog-club-gifts {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    min-height: 0;
+    position: relative;
+    width: 360px;
+    height: 460px;
     color: #000;
-    font-family: HabboAirUbuntu, UbuntuRegular, Ubuntu, sans-serif;
+    font-family: UbuntuRegular, Ubuntu, sans-serif;
 }
 
 .volt-catalog-club-gifts-info {
-    flex: 0 0 auto;
-    min-height: 35px;
-    font-size: 11px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    box-sizing: border-box;
+    width: 360px;
+    height: 35px;
+    padding: 0 2px;
+    overflow: hidden;
+    font-size: 12px;
     font-style: italic;
-    line-height: 14px;
+    letter-spacing: -0.04px;
+    line-height: 15px;
     overflow-wrap: anywhere;
 }
 
 .volt-catalog-club-gifts-list {
-    flex: 1 1 auto;
-    min-height: 0;
+    position: absolute;
+    top: 35px;
+    left: 0;
+    width: 360px;
+    height: 409px;
 }
 
 .volt-catalog-club-gifts-list-content {
@@ -961,19 +972,35 @@
 }
 
 .volt-catalog-club-gifts-past {
-    flex: 0 0 15px;
-    margin-top: 1px;
-    font-size: 9px;
-    line-height: 15px;
+    position: absolute;
+    top: 445px;
+    left: 0;
+    width: 360px;
+    height: 15px;
+    padding-top: 1px;
+    font-size: 10px;
+    line-height: 12px;
     text-align: center;
+    white-space: nowrap;
 }
 
 .volt-catalog-club-gift {
     position: relative;
     flex: 0 0 58px;
+    box-sizing: border-box;
+    width: 320px;
     height: 58px;
     overflow: hidden;
-    background: #e3e3e3;
+}
+
+.volt-catalog-club-gift::before {
+    position: absolute;
+    inset: 0;
+    box-sizing: border-box;
+    border: 6px solid transparent;
+    border-image: url("../../assets/images/catalog/air/gift/club-gift-item.png") 6 fill / 6px stretch;
+    content: "";
+    image-rendering: var(--volt-pixel-art, pixelated);
 }
 
 .volt-catalog-club-gift-image {
@@ -994,56 +1021,82 @@
     image-rendering: pixelated;
 }
 
+/* The icon window draws its bitmap at its top left corner. */
 .volt-catalog-club-gift .volt-catalog-club-gift-vip {
     position: absolute !important;
     top: 5px !important;
     left: 5px !important;
 }
 
+.volt-catalog-club-gift .volt-catalog-club-gift-vip::before {
+    top: 0;
+}
+
 .volt-catalog-club-gift-name,
-.volt-catalog-club-gift-desc,
 .volt-catalog-club-gift-requirement {
     position: absolute;
-    left: 58px;
-    right: 8px;
+    left: 60px;
     overflow: hidden;
     white-space: nowrap;
-    text-overflow: ellipsis;
 }
 
 .volt-catalog-club-gift-name {
     top: 8px;
-    height: 17px;
-    font-size: 11px;
+    height: 15px;
+    font-size: 12px;
     font-weight: 700;
-    line-height: 14px;
+    letter-spacing: -0.06px;
+    line-height: 15px;
 }
 
-.volt-catalog-club-gift-desc,
 .volt-catalog-club-gift-requirement {
+    top: 36px;
+    box-sizing: border-box;
+    width: 232px;
     height: 15px;
-    font-size: 9px;
+    padding-top: 1px;
+    font-size: 10px;
+    letter-spacing: -0.12px;
     line-height: 12px;
 }
 
-.volt-catalog-club-gift-desc {
-    top: 22px;
-}
-
-/* Shares the bottom line with the Select button, so it stops short of it. */
-.volt-catalog-club-gift-requirement {
-    top: 36px;
-    right: 76px;
-}
-
-.volt-catalog-window .volt-catalog-club-gift .volt-catalog-club-gift-select {
+/* habbo_skin_button_shiny_default: 22 px high, button_shiny_regular caption with 8 px side margins plus the 2 px text
+   gutter. The skin is drawn by border-image-width alone so the caption keeps the whole box. Disabled windows draw
+   their caption at half alpha. */
+.volt-catalog-club-gift-select {
     position: absolute;
+    top: 32px;
     right: 5px;
-    bottom: 4px;
-    min-width: 64px;
+    box-sizing: border-box;
     height: 22px;
-    min-height: 22px;
-    line-height: 16px !important;
+    margin: 0;
+    padding: 0 10px 3px;
+    border: 0;
+    border-image: var(--habbo-skin-shiny) 5 fill / 5px stretch;
+    border-radius: 0;
+    background: transparent;
+    color: #000;
+    font-family: UbuntuRegular, Ubuntu, sans-serif !important;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 15px !important;
+    white-space: nowrap;
+    cursor: pointer;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-catalog-club-gift-select:hover:not(:disabled) {
+    border-image-source: var(--habbo-skin-shiny-hover);
+}
+
+.volt-catalog-club-gift-select:active:not(:disabled) {
+    border-image-source: var(--habbo-skin-shiny-pressed);
+}
+
+.volt-catalog-club-gift-select:disabled {
+    border-image-source: var(--habbo-skin-shiny-disabled);
+    color: rgb(0 0 0 / 50%);
+    cursor: default;
 }
 
 /* layout_club_buy style-2 borders. HC items are 0x9b9448 over 0xebeada. VIP items are 0x969696 over 0xdfdfdf.

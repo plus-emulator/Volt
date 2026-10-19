@@ -1,7 +1,7 @@
 import { AddLinkEventTracker, CreateLinkEvent, DailyTaskData, GetSessionDataManager, ILinkEventTracker, RemoveLinkEventTracker } from '@volt/renderer';
 import { CSSProperties, FC, useEffect, useMemo, useRef, useState } from 'react';
-import { getDailyTaskImageUrl, getDailyTasksWindowCaption, localizeWithFallback } from '../../api';
-import { ClassicScrollAreaView, LayoutBadgeImageView, LayoutCurrencyIcon, VoltCardHeaderView, VoltCardView } from '../../common';
+import { getDailyTaskImageUrl, getDailyTasksWindowCaption, localizeWithFallback, ProductTypeEnum } from '../../api';
+import { ClassicScrollAreaView, LayoutBadgeImageView, LayoutCurrencyIcon, LayoutFurniIconImageView, VoltCardHeaderView, VoltCardView } from '../../common';
 import { NativeText } from '../../common/native-text/NativeText';
 import { useDailyTasks } from '../../hooks';
 import { AchievementText, useAirFieldWidth } from '../achievements/AchievementText';
@@ -12,7 +12,31 @@ import { QuestButton } from './QuestButton';
 import taskCompletedUrl from '../../assets/images/quests/task-completed.png';
 import '../../css/quests/DailyTasks.css';
 
-const CURRENCY_TYPES: Record<string, number> = { credits: -1, duckets: 0, diamonds: 5 };
+/**
+ * The reward's product type as the official product icon widget reads it (ProductIconWidget.as:91-160, AIR
+ * WIN63-202610151745-318700621): the item type id is a wall or floor class id, a badge code or a currency type.
+ */
+const REWARD_WALL_ITEM = 0;
+const REWARD_FLOOR_ITEMS = [1, 11];
+const REWARD_BADGE = 4;
+const REWARD_CURRENCY = 8;
+
+const DailyTaskRewardIcon: FC<{ reward: DailyTaskData['rewards'][number] }> = ({ reward }) => {
+    const itemTypeId = reward.rewardTypeId;
+    const classId = Number.parseInt(itemTypeId, 10);
+
+    if (reward.productItemTypeId === REWARD_BADGE) return <LayoutBadgeImageView badgeCode={itemTypeId} />;
+
+    if (Number.isNaN(classId)) return null;
+
+    if (reward.productItemTypeId === REWARD_CURRENCY) return <LayoutCurrencyIcon type={classId} />;
+
+    if (reward.productItemTypeId === REWARD_WALL_ITEM) return <LayoutFurniIconImageView productClassId={classId} productType={ProductTypeEnum.WALL} />;
+
+    if (REWARD_FLOOR_ITEMS.includes(reward.productItemTypeId)) return <LayoutFurniIconImageView productClassId={classId} productType={ProductTypeEnum.FLOOR} />;
+
+    return null;
+};
 
 const WINDOW_WIDTH = 428;
 const SCROLLING_WIDTH = 452;
@@ -76,7 +100,6 @@ const blend = (surface: number, color: number, alpha: number): number => {
 
 /** One reward of a task: the product icon with its amount badge, a 44x50 template. */
 const DailyTaskRewardView: FC<{ reward: DailyTaskData['rewards'][number]; card: number }> = ({ reward, card }) => {
-    const type = reward.rewardTypeId.toLowerCase();
     const amountText = `x${reward.amount}`;
     const fieldWidth = useAirFieldWidth(amountText, 11, true, 'u_regular');
     // reward_amount_border starts as 28 wide at x = 8 and grows around its centre by half the width change, truncated.
@@ -85,8 +108,7 @@ const DailyTaskRewardView: FC<{ reward: DailyTaskData['rewards'][number]; card: 
     return (
         <div className="air-dt-reward">
             <div className="air-dt-reward-icon">
-                {type in CURRENCY_TYPES && <LayoutCurrencyIcon type={CURRENCY_TYPES[type]} />}
-                {type === 'badge' && <LayoutBadgeImageView badgeCode={reward.extraParams} />}
+                <DailyTaskRewardIcon reward={reward} />
             </div>
             {reward.amount > 1 && (
                 <div className="air-dt-reward-amount" style={{ width: badgeWidth, left: 8 - Math.trunc((badgeWidth - 28) / 2), background: `#${blend(card, 0x7c7c7c, 231 / 255).toString(16).padStart(6, '0')}` }}>

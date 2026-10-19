@@ -1,4 +1,5 @@
 import type { ChatBubbleMessage } from '../../../../api';
+import { AIR_CHAT_BUBBLE_STYLES } from './airChatStyles';
 
 interface ChatCreation { mode: number; timestamp: number; }
 const creations = new WeakMap<ChatBubbleMessage, ChatCreation>();
@@ -109,6 +110,8 @@ const STYLE_GEOMETRY: Record<number, NativeChatGeometry> = {
     10000: { overlap: { x: 0, y: -2, width: 0, height: 0 }, unlimitedHeight: false },
 };
 export const getNativeChatGeometry = (styleId: number): NativeChatGeometry => STYLE_GEOMETRY[styleId] ?? STYLE_GEOMETRY[0];
+// PooledChatBubble.displayedHeight is the sprite height, which includes the pointer hanging below the bubble.
+const stackHeight = (chat: ChatBubbleMessage) => chat.height + (chat.pointerOverhang || 0);
 const intersects = (a: Rect, b: Rect) => a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 
 interface Collider {
@@ -162,7 +165,7 @@ export class NativeChatScroller {
             for (const bubble of this.bubbles) {
                 if (!bubble.chat) continue;
                 const geometry = getNativeChatGeometry(bubble.chat.styleId);
-                bubble.body.height = (geometry.unlimitedHeight ? bubble.chat.height : Math.min(Math.trunc(108 * fontScale), bubble.chat.height)) - 10 - bubble.overlap.y - bubble.overlap.height;
+                bubble.body.height = (geometry.unlimitedHeight ? stackHeight(bubble.chat) : Math.min(Math.trunc(108 * fontScale), stackHeight(bubble.chat))) - 10 - bubble.overlap.y - bubble.overlap.height;
             }
         }
     }
@@ -182,7 +185,7 @@ export class NativeChatScroller {
         const geometry = getNativeChatGeometry(chat.styleId);
         const overlap = geometry.overlap;
         const width = chat.width - overlap.x - overlap.width;
-        const height = (geometry.unlimitedHeight ? chat.height : Math.min(Math.trunc(108 * this.fontScale), chat.height)) - 10 - overlap.y - overlap.height;
+        const height = (geometry.unlimitedHeight ? stackHeight(chat) : Math.min(Math.trunc(108 * this.fontScale), stackHeight(chat))) - 10 - overlap.y - overlap.height;
         if (existing) {
             // A remeasured bubble keeps its centred reflow without changing collider mode.
             existing.body.x += (existing.body.width - width) / 2;
@@ -375,9 +378,11 @@ export class NativeChatScroller {
         }
         if (bubble.chat.left !== left) bubble.chat.left = left;
         if (bubble.chat.top !== y) bubble.chat.top = y;
-        // Default style regpoints use native fallback margins 28/15; other skins retain their CSS.
-        if (bubble.chat.styleId === 0 && bubble.chat.elementRef) {
-            const pointerX = `${Math.max(28, Math.min(bubble.chat.width - 15, bubble.chat.location.x - left))}px`;
+        // PooledChatBubble.repositionPointer: pointerXMargins, or the 28/15 fallback (AIR PooledChatBubble.as:452-459).
+        const airPointer = AIR_CHAT_BUBBLE_STYLES[bubble.chat.styleId]?.pointer;
+        if ((bubble.chat.styleId === 0 || airPointer) && bubble.chat.elementRef) {
+            const [ marginLeft, marginRight ] = airPointer?.margins ?? [ 28, 15 ];
+            const pointerX = `${Math.max(marginLeft, Math.min(bubble.chat.width - marginRight, bubble.chat.location.x - left))}px`;
             const style = bubble.chat.elementRef.style;
             if (style.getPropertyValue('--chat-pointer-x') !== pointerX) style.setProperty('--chat-pointer-x', pointerX);
         }

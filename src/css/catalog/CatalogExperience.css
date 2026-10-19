@@ -265,7 +265,7 @@
     height: 22px;
     padding: 0;
     border: 0;
-    background: url("@/assets/images/catalog/air/colour-grid/ctlg_clr_27x22_1.png") no-repeat;
+    background: url("@/assets/images/catalog/air/colour-grid/ctlg_clr_27x22_1.png") no-repeat #fff;
     cursor: pointer;
     image-rendering: var(--volt-pixel-art, pixelated);
 }
@@ -277,8 +277,10 @@
     inset: 0;
 }
 
+/* ColourGridCatalogWidget: a white cell, and ctlg_clr_27x22_2 multiplied by the colour (ColorTransform). */
 .volt-catalog-colour-swatch::before {
-    background-color: var(--volt-swatch-colour, #ffffff);
+    background: url("@/assets/images/catalog/air/colour-grid/ctlg_clr_27x22_2.png") no-repeat, var(--volt-swatch-colour, #ffffff);
+    background-blend-mode: multiply;
     mask: url("@/assets/images/catalog/air/colour-grid/ctlg_clr_27x22_2.png") no-repeat;
 }
 
@@ -312,12 +314,13 @@
     height: 116px;
 }
 
+/* recolorableFurnitureWidget (0, 275, 360x174): the caption, then the 152px palette with colourGrid at (3, 3). */
 .volt-catalog-recolorable-palette {
     position: absolute;
     left: 0;
     top: 275px;
-    bottom: 60px;
     width: 360px;
+    height: 174px;
 }
 
 .volt-catalog-recolorable-palette-caption {
@@ -325,13 +328,14 @@
     height: 17px;
     color: var(--catalog-standard-text, #000);
     font-size: 11px;
-    line-height: 17px;
+    line-height: 13px;
 }
 
 .volt-catalog-recolorable-palette .volt-catalog-colour-grid-shell {
     top: 22px;
     bottom: 0;
     height: auto;
+    padding: 3px;
 }
 
 .volt-catalog-loading-state {
@@ -723,7 +727,8 @@
     min-height: 12px;
     border: 0;
     border-radius: 0;
-    background: url('../../assets/images/scrollbar/thumb_middle.png') repeat-y center;
+    /* The grip pattern starts under the 4px top cap, as AIR draws it. */
+    background: url('../../assets/images/scrollbar/thumb_middle.png') repeat-y center 4px;
     cursor: grab;
     image-rendering: var(--volt-pixel-art, pixelated);
     touch-action: none;
@@ -741,13 +746,16 @@
     image-rendering: var(--volt-pixel-art, pixelated);
 }
 
+/* The caps at their own height: 4px on top, 5px at the bottom. */
 .volt-classic-scrollbar-thumb::before {
     top: 0;
+    height: 4px;
     background-image: url('../../assets/images/scrollbar/thumb_top.png');
 }
 
 .volt-classic-scrollbar-thumb::after {
     bottom: 0;
+    height: 5px;
     background-image: url('../../assets/images/scrollbar/thumb_bottom.png');
 }
 

@@ -69,6 +69,7 @@ export const ChatInputStyleSelectorView: FC<ChatInputStyleSelectorViewProps> = (
                             <button
                                 key={styleId}
                                 type="button"
+                                data-style-id={styleId}
                                 className={`swf-chat-style-option ${clickedStyleId === styleId ? 'is-active' : ''}`}
                                 onClick={() => selectStyle(styleId)}
                             >

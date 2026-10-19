@@ -591,6 +591,15 @@
     background: #2f4c6b;
 }
 
+/* A Builders Club furni: info_border 0x331C00 and spacers 0x543D18 (InfoStandFurniView.as:602-605). */
+.volt-furni-infostand--builders-club::before {
+    border-image-source: url("../../assets/images/habbo-skin/slices/border-colorless-331c00.png");
+}
+
+.volt-furni-infostand--builders-club .volt-furni-infostand__rule {
+    background: #543d18;
+}
+
 /* furni_view infostand_element_list: x=10 y=10 w=170, itemlist spacing 5, 1px #333333 spacers;
    controller: border.height = list.height + 20, name_text.height = textHeight + 5. */
 .volt-furni-infostand__list {

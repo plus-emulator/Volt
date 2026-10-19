@@ -1,10 +1,5 @@
-import { RoomObjectVariable } from '@volt/renderer';
 import { FC, useEffect, useState } from 'react';
-import {
-    isTeleportToRoomPickable,
-    localizeWithFallback,
-    WiredFurniType
-} from '../../../../api';
+import { WiredFurniType } from '../../../../api';
 import { useWired } from '../../../../hooks';
 import { WiredSourcesSelector } from '../WiredSourcesSelector';
 import { WiredActionBaseView } from './WiredActionBaseView';
@@ -12,19 +7,13 @@ import { WiredActionBaseView } from './WiredActionBaseView';
 const PICKED_SOURCE = 100;
 
 /**
- * Habbo's "teleport to room": sends the users to the room a picked room linker, room link or
- * teleporter leads to. AIR TeleportToRoom extends DefaultActionType without any owned form inputs.
+ * Habbo's "teleport to room": sends the users to the room the other half of a picked WIRED Room
+ * Linker stands in. AIR TeleportToRoom extends DefaultActionType without any owned form inputs, and
+ * the client lets any furni be picked (UserDefinedRoomEventsCtrl.stuffSelected); the server refuses
+ * the save with wiredfurni.error.require_room_linker.
  */
 export const WiredActionTeleportToRoomView: FC<{}> = () => {
-    const {
-        trigger = null,
-        setIntParams = null,
-        setStringParam = null,
-        setAllowedFurniCheck = null,
-        setAllowedInteractionErrorKey = null,
-        setFurniSources,
-        setUserSources
-    } = useWired();
+    const { trigger = null, setIntParams = null, setStringParam = null, setFurniSources, setUserSources } = useWired();
     const [userSource, setUserSource] = useState(0);
     const [furniSource, setFurniSource] = useState(PICKED_SOURCE);
 
@@ -34,23 +23,6 @@ export const WiredActionTeleportToRoomView: FC<{}> = () => {
         setUserSource(trigger.userSources[0] ?? 0);
         setFurniSource(trigger.furniSources[0] ?? 100);
     }, [trigger]);
-
-    useEffect(() => {
-        if (!setAllowedFurniCheck) return;
-
-        setAllowedFurniCheck((roomObject, furniData) =>
-            isTeleportToRoomPickable(roomObject?.model?.getValue<Record<string, unknown>>(RoomObjectVariable.FURNITURE_DATA), [
-                furniData?.className,
-                furniData?.name
-            ])
-        );
-        setAllowedInteractionErrorKey?.(localizeWithFallback('wiredfurni.error.require_room_linker', 'Pick a room linker.'));
-
-        return () => {
-            setAllowedFurniCheck(null);
-            setAllowedInteractionErrorKey?.(null);
-        };
-    }, [setAllowedFurniCheck, setAllowedInteractionErrorKey]);
 
     const save = () => {
         setStringParam('');

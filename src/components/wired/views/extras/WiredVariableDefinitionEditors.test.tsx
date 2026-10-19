@@ -5,6 +5,7 @@ import { WiredNativeContext } from '../WiredNativeContext';
 const state = vi.hoisted(() => ({ trigger: { intData: [11, 1], stringData: 'Game Score', variableIds: [] as string[], contexts: [] as any[] }, setIntParams: vi.fn(), setStringParam: vi.fn(), setVariableIds: vi.fn() }));
 vi.mock('../../../../api', async () => ({
     ...(await vi.importActual('../../../../api/wired/WiredVariableName')),
+    ...(await vi.importActual('../../../../api/wired/WiredNativeVariables')),
     WIRED_VARIABLE_ABSENT: 'n', WiredFurniType: { STUFF_SELECTION_OPTION_NONE: 0 },
     LocalizeText: (key: string) => key,
     localizeWithFallback: (key: string, fallback: string, names: string[] = [], values: string[] = []) => names.reduce((text, name, index) => text.replace(`%${name}%`, values[index]), fallback || key)

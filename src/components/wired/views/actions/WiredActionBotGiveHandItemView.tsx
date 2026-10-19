@@ -74,7 +74,7 @@ export const WiredActionBotGiveHandItemView: FC<{}> = (props) => {
                 {botSource === WIRED_BOT_NAMED_SOURCE && <WiredTextInput maxLength={32} value={botName} onChange={setBotName} />}
             </WiredSection>
             {/* Official BOT_GIVE_HAND_ITEM code list includes 1126/1127/1128. */}
-            <WiredHandItemField handItemId={handItemId} extraItemIds={[1126, 1127, 1128]} nativeSection={true} showCopyButton={true} onChange={setHandItemId} />
+            <WiredHandItemField handItemId={handItemId} extraItemIds={[1126, 1127, 1128]} captionKey="wiredfurni.tooltip.bot.handitem" nativeSection={true} showCopyButton={true} onChange={setHandItemId} />
         </WiredActionBaseView>
     );
 };

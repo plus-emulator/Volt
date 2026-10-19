@@ -1,5 +1,5 @@
 import { FC, useEffect, useMemo, useState } from 'react';
-import { localizeWithFallback, tokenOfVariableSlot, variableSlotOf, WIRED_VARIABLE_ABSENT, WiredFurniType } from '../../../../api';
+import { isWiredNullVariableId, localizeWithFallback, tokenOfVariableSlot, variableSlotOf, WIRED_VARIABLE_ABSENT, WiredFurniType } from '../../../../api';
 import { useAchievements, useWired } from '../../../../hooks';
 import { WiredDropdown } from '../WiredDropdown';
 import { WiredRadioGroup } from '../WiredOptions';
@@ -62,7 +62,7 @@ export const WiredActionProgressAchievementNativeView: FC<{}> = () => {
     );
     const dropdownOptions = useMemo(() => names.map((name, id) => ({ id, label: name })), [names]);
 
-    const validate = () => valueValid && (option !== 1 || variableSlotOf(variableToken) !== WIRED_VARIABLE_ABSENT);
+    const validate = () => valueValid && (option !== 1 || !isWiredNullVariableId(variableSlotOf(variableToken)));
 
     const save = () => {
         setStringParam(achievement);

@@ -11,10 +11,15 @@ const GROUP_CURRENT_ROOM = 0;
 const GROUP_SELECTED = 1;
 
 export const WiredSelectorUsersGroupView: FC<{}> = () => {
-    const { data: groups = [] } = useUserGroups();
+    const { data: groups = [], refresh: refreshGroups } = useUserGroups();
     const [groupType, setGroupType] = useState(GROUP_CURRENT_ROOM);
     const [selectedGroupId, setSelectedGroupId] = useState(0);
     const { trigger = null, setIntParams = null, setStringParam = null } = useWired();
+
+    // UsersInGroup.onEditStart asks the server for the current group list every time the editor opens.
+    useEffect(() => {
+        if (trigger) refreshGroups?.();
+    }, [trigger, refreshGroups]);
 
     useEffect(() => {
         if (!trigger) return;

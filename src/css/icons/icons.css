@@ -142,6 +142,12 @@
     height: 30px;
 }
 
+.volt-icon.icon-me-collectibles {
+    background-image: url("@/assets/images/toolbar/icons/me-menu/collectibles.png");
+    width: 32px;
+    height: 30px;
+}
+
 .volt-icon.icon-me-clothing {
     background-image: url("@/assets/images/toolbar/icons/me-menu/clothing.png");
     width: 27px;

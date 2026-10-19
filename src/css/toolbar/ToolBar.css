@@ -369,14 +369,15 @@
         inset 1px 1px rgba(255, 255, 255, 0.08);
 }
 
-/* me_menu_new_view.xml border style 6: habbo_skin_border_6, ubuntu atlas 8/4/8, window color #3b3933. */
+/* me_menu_new_view.xml / prog_menu_view.xml border style 6: habbo_skin_border_6 (habbo_skin_ubuntu_png 80,10 20x20,
+   8/4/8) multiplied by the window colour #3b3933, fully opaque: #2b2924 fill, #3b3933 bevel, black outline. */
 .volt-toolbar-me-popup {
     box-sizing: border-box;
     min-width: max-content;
     height: 53px;
     border: 0 solid transparent;
     border-radius: 0;
-    border-image-source: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAAUUlEQVR42mNkYGCwZkAC1pbGDKSAo8fPovAZYQaSahAug5moYRiyGUwMVAaM1pbG1tQ0kOouHDVw1MBRAwfGQPQCktIykfrFF3IVQG5Bi+xLAL1WELiIL1C2AAAAAElFTkSuQmCC");
+    border-image-source: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAAgElEQVR42u2UMQ6AIBAE5wi9/MXK+H5i5V/wBVhpooDhwJLtCGGyFDtCmoguUjpEgHWZVTS/7Q/WBYxaUAEsNncZwlEFcW7K/v/RrhaWg/ptx7Q0+3pj+DkDOIC9wNyUtPMzL2OooO/ZAdja0WvleEu1w4cAIo2WLhaUTv0n5j8BV+IkZPTyL4IAAAAASUVORK5CYII=");
     border-image-slice: 8 fill;
     border-image-width: 8px;
     border-image-repeat: stretch;

@@ -1863,25 +1863,6 @@
     color: inherit;
 }
 
-.bubble-container.native-room-bubble .bubble-0 {
-    border-image-source: url('@/assets/images/chat/chatbubbles/native-default-base.png');
-    border-image-slice: 17 21 6 29 fill;
-    border-image-width: 17px 21px 6px 29px;
-    border-image-outset: 0;
-    border-image-repeat: stretch;
-    min-width: 51px;
-    min-height: 24px;
-}
-
-.bubble-container.native-room-bubble .bubble-1 {
-    border-image-slice: 18 22 5 28 fill;
-    border-image-width: 18px 22px 5px 28px;
-    border-image-outset: 0;
-    border-image-repeat: stretch;
-    min-width: 51px;
-    min-height: 24px;
-}
-
 /* SnowStorm game chat: chatstyles 120 snowstorm_red / 121 snowstorm_blue, style_snowstorm_*_regpoints. */
 .bubble-container.native-room-bubble .bubble-120,
 .bubble-container.native-room-bubble .bubble-121 {
@@ -1922,27 +1903,6 @@
     background: url('@/assets/images/chat/chatbubbles/bubble_121_pointer.png');
 }
 
-.bubble-container.native-room-bubble .bubble-0 .chat-content,
-.bubble-container.native-room-bubble .bubble-1 .chat-content {
-    padding: 4px 12px 7px 28px;
-    margin: 0;
-    min-height: 0;
-    color: #000;
-}
-
-.bubble-container.native-room-bubble .bubble-1 .chat-content {
-    padding-top: 5px;
-}
-
-.bubble-container.native-room-bubble .bubble-0 .username,
-.bubble-container.native-room-bubble .bubble-0 .message {
-    color: #000;
-}
-
-.bubble-container.native-room-bubble .bubble-0 .pointer {
-    transform: none;
-}
-
 .bubble-container.native-room-bubble .type-1 .message {
     font-style: inherit;
 }
@@ -1962,4 +1922,59 @@
     max-height: none;
     transform: none;
     image-rendering: auto;
+}
+
+/* Styles drawn from their AIR regpoints (airChatStyles.ts); 9-slice, size and colours are inline.
+   Child order follows PooledChatBubble.recreate: background, emblem, pointer, face, text. */
+.bubble-container.native-room-bubble .air-chat-bubble .air-chat-emblem {
+    position: absolute;
+    z-index: 0;
+    max-width: none;
+    pointer-events: none;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.bubble-container.native-room-bubble .air-chat-bubble .air-chat-pointer {
+    position: absolute;
+    left: var(--chat-pointer-x, var(--chat-pointer-margin-left));
+    bottom: auto;
+    z-index: 1;
+    max-width: none;
+    background: none;
+    pointer-events: none;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.bubble-container.native-room-bubble .air-chat-bubble .air-chat-face {
+    position: absolute;
+    z-index: 2;
+    overflow: hidden;
+}
+
+.bubble-container.native-room-bubble .air-chat-bubble .air-chat-face img {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    max-width: none;
+    /* The head is rendered at twice its size; smooth downscaling gives the 1x head, pixelated drops pixels. */
+    image-rendering: auto;
+}
+
+.bubble-container.native-room-bubble .air-chat-bubble .chat-content {
+    position: relative;
+    z-index: 3;
+    margin: 0;
+    min-height: 0;
+    color: inherit;
+    line-height: var(--air-chat-line-height, 15px);
+}
+
+.bubble-container.native-room-bubble .air-chat-bubble .chat-content .username,
+.bubble-container.native-room-bubble .air-chat-bubble .chat-content .message {
+    color: inherit;
+}
+
+/* Whispers: the whole TextField at alpha 0.6 inside <i> (PooledChatBubble.as:156-166). */
+.bubble-container.native-room-bubble .air-chat-bubble.native-whisper:not(.air-native-text) .chat-content {
+    opacity: 0.6;
 }

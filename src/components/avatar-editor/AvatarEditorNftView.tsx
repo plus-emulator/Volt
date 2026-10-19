@@ -1,148 +1,64 @@
-import { AvatarFigurePartType, FigureDataContainer } from '@volt/renderer';
-import { FC, Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CreateLinkEvent, GetClubMemberLevel, IAvatarEditorCategory } from '../../api';
-import { LayoutCurrencyIcon } from '../../common';
+import { INftWardrobeItem } from '@volt/renderer';
+import { CSSProperties, FC } from 'react';
+import { LocalizeText } from '../../api';
+import { NativeText } from '../../common/native-text/NativeText';
+import { ClassicScrollAreaView } from '../../common/scroll-area/ClassicScrollAreaView';
 import { useAvatarEditor } from '../../hooks';
-import { AvatarEditorIcon } from './AvatarEditorIcon';
-import { AvatarEditorFigureSetView } from './figure-set';
-import { AvatarEditorAdvancedColorView, AvatarEditorPaletteSetView } from './palette-set';
+import { AvatarEditorHotLookThumbnailView } from './AvatarEditorHotLookThumbnailView';
 
-export const AvatarEditorNftView: FC<{
-    categories: IAvatarEditorCategory[];
-}> = (props) => {
-    const { categories = [] } = props;
-    const [activeSetType, setActiveSetType] = useState(() => categories[0]?.setType ?? '');
-    const [advancedColorMode, setAdvancedColorMode] = useState(false);
-    const subcategoryRef = useRef<HTMLDivElement>(null);
-    const hasHC = GetClubMemberLevel() > 0;
-    const {
-        maxPaletteCount = 1,
-        selectedColorParts = null,
-        getFirstSelectableColor = null,
-        selectEditorColor = null,
-        gender = null,
-        setGender = null
-    } = useAvatarEditor();
+// AIR WIN63-202610151745-318700621 wardrobe/NftOutfit.as initNftColors: button colour, active button colour per collection.
+const COLLECTION_BUTTON_COLORS: Record<string, [number, number]> = {
+    'habbo:avatar': [0xff6800, 0xff8823],
+    'habbo:clothes': [0xa09ab3, 0xb3adc5],
+    'habbo:avatar_genesis': [0x1d97a7, 0x3ca9b9]
+};
 
-    const resolvedSetType = useMemo(() => {
-        if (categories.some((category) => category.setType === activeSetType)) return activeSetType;
+// nft/NftWardrobeParamView.as getLocalizedCollectionName / getCollectionTextColor.
+const COLLECTION_INFO: Record<string, { name: string; color: number }> = {
+    'habbo:avatar': { name: 'wardrobe.token.avatar.name', color: 0xff8823 },
+    'habbo:clothes': { name: 'wardrobe.token.clothing.name', color: 0xb3adc5 },
+    'habbo:avatar_genesis': { name: 'wardrobe.token.crafted_avatar.name', color: 0x1acae1 }
+};
 
-        return categories[0]?.setType ?? '';
-    }, [categories, activeSetType]);
+const toCss = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
 
-    const activeCategory = useMemo(() => {
-        return categories.find((category) => category.setType === resolvedSetType) ?? null;
-    }, [categories, resolvedSetType]);
+/** The Avatar Collectibles tab (nft/NftAvatarsView.as, AvatarEditorContent nfts_content): the user's collectible avatars to choose from. */
+export const AvatarEditorNftView: FC = () =>
+{
+    const { nftAvatars, selectedNft, selectNftAvatar } = useAvatarEditor();
+    const selected = selectedNft ? nftAvatars.find((avatar) => avatar.id === selectedNft.id) : null;
+    const info = selected && selectedNft.infoVisible ? COLLECTION_INFO[selected.contractKey] : null;
+    const infoText = selected && selectedNft.infoVisible ? `${info ? LocalizeText(info.name) : 'null'} #${selected.id}` : null;
 
-    const selectSet = useCallback(
-        (setType: string) => {
-            const selectedPalettes = selectedColorParts?.[setType];
+    const getButtonStyle = (avatar: INftWardrobeItem): CSSProperties =>
+    {
+        const colors = COLLECTION_BUTTON_COLORS[avatar.contractKey];
 
-            if (!selectedPalettes || !selectedPalettes.length) selectEditorColor?.(setType, 0, getFirstSelectableColor?.(setType));
+        if (!colors) return undefined;
 
-            setActiveSetType(setType);
-
-            if (setType === AvatarFigurePartType.HEAD) subcategoryRef.current?.scrollTo({ left: 0, behavior: 'auto' });
-        },
-        [getFirstSelectableColor, selectEditorColor, selectedColorParts]
-    );
-
-    useEffect(() => {
-        if (!resolvedSetType) return;
-
-        const selectedPalettes = selectedColorParts?.[resolvedSetType];
-
-        if (resolvedSetType === activeSetType && selectedPalettes?.length) return;
-
-        selectSet(resolvedSetType);
-    }, [activeSetType, resolvedSetType, selectSet, selectedColorParts]);
-
-    if (!categories.length || !activeCategory) {
-        return <div className="volt-avatar-editor-empty-state">No NFT items available.</div>;
-    }
-
-    const hasPagedSubcategories = categories.length + (resolvedSetType === AvatarFigurePartType.HEAD ? 2 : 0) > 5;
-
-    const scrollSubcategories = (direction: number) => {
-        subcategoryRef.current?.scrollBy({ left: direction * 260, behavior: 'auto' });
+        return { backgroundColor: toCss(selectedNft?.id === avatar.id ? colors[1] : colors[0]) };
     };
 
-    return (
-        <div className="volt-avatar-editor-model volt-avatar-editor-nft-model">
-            <div ref={subcategoryRef} className={`volt-avatar-editor-subcategories${hasPagedSubcategories ? ' is-paged' : ''}`}>
-                {categories.map((category) => (
-                    <Fragment key={category.setType}>
-                        <button
-                            type="button"
-                            className="category-item"
-                            aria-pressed={resolvedSetType === category.setType}
-                            onClick={() => selectSet(category.setType)}
-                        >
-                            <AvatarEditorIcon icon={category.setType} selected={resolvedSetType === category.setType} />
-                        </button>
-                        {category.setType === AvatarFigurePartType.HEAD && resolvedSetType === AvatarFigurePartType.HEAD && (
-                            <>
-                                <button type="button" className="category-item" onClick={() => setGender?.(AvatarFigurePartType.MALE)}>
-                                    <AvatarEditorIcon icon="male" selected={gender === FigureDataContainer.MALE} />
-                                </button>
-                                <button type="button" className="category-item" onClick={() => setGender?.(AvatarFigurePartType.FEMALE)}>
-                                    <AvatarEditorIcon icon="female" selected={gender === FigureDataContainer.FEMALE} />
-                                </button>
-                            </>
-                        )}
-                    </Fragment>
-                ))}
-            </div>
-            {hasPagedSubcategories && (
-                <>
-                    <button
-                        type="button"
-                        className="volt-avatar-editor-nft-category-scroll is-left"
-                        aria-label="Previous NFT categories"
-                        onClick={() => scrollSubcategories(-1)}
-                    />
-                    <button
-                        type="button"
-                        className="volt-avatar-editor-nft-category-scroll is-right"
-                        aria-label="Next NFT categories"
-                        onClick={() => scrollSubcategories(1)}
-                    />
-                </>
-            )}
-
-            <div className="volt-avatar-editor-parts-grid">
-                <AvatarEditorFigureSetView category={activeCategory} columnCount={6} />
-            </div>
-
-            <button
-                type="button"
-                className={`volt-avatar-editor-advanced-color${advancedColorMode ? ' is-active' : ''}`}
-                onClick={() => (hasHC ? setAdvancedColorMode((prev) => !prev) : CreateLinkEvent('habboUI/open/hccenter'))}
-            >
-                Advanced Color
-                <LayoutCurrencyIcon type="hc" />
-            </button>
-
-            <div className={`volt-avatar-editor-palettes${maxPaletteCount === 2 ? ' dual-palette' : ''}`}>
-                {maxPaletteCount >= 1 && (
-                    <div className="avatar-editor-palette-set-view">
-                        {advancedColorMode ? (
-                            <AvatarEditorAdvancedColorView category={activeCategory} paletteIndex={0} />
-                        ) : (
-                            <AvatarEditorPaletteSetView category={activeCategory} columnCount={maxPaletteCount === 2 ? 9 : 20} paletteIndex={0} />
-                        )}
-                    </div>
-                )}
-                {maxPaletteCount === 2 && (
-                    <div className="avatar-editor-palette-set-view">
-                        {advancedColorMode ? (
-                            <AvatarEditorAdvancedColorView category={activeCategory} paletteIndex={1} />
-                        ) : (
-                            <AvatarEditorPaletteSetView category={activeCategory} columnCount={9} paletteIndex={1} />
-                        )}
-                    </div>
-                )}
-            </div>
+    return <div className="volt-avatar-editor-hotlooks volt-avatar-editor-nfts">
+        <NativeText className="volt-avatar-editor-hotlooks-title" text={LocalizeText('avatareditor.nfts.title')} textStyle="u_bold" background={0xe9e9e1} overrides={{ size: 20 }} />
+        <NativeText className="volt-avatar-editor-hotlooks-choose" text={LocalizeText('avatareditor.nfts.choose')} textStyle="u_regular" background={0xe9e9e1} />
+        <div className="volt-avatar-editor-nfts-grid">
+            <ClassicScrollAreaView contentClassName="volt-avatar-editor-nfts-items" scrollStep={50}>
+                {nftAvatars.map((avatar, index) => <button
+                    type="button"
+                    key={`${avatar.id}:${index}`}
+                    className={`volt-avatar-editor-hotlook volt-avatar-editor-nft${avatar.contractKey in COLLECTION_BUTTON_COLORS ? ' is-tinted' : ''}`}
+                    style={getButtonStyle(avatar)}
+                    aria-pressed={selectedNft?.id === avatar.id}
+                    aria-label={LocalizeText('avatareditor.nfts.choose')}
+                    onClick={() => selectNftAvatar(avatar)}
+                >
+                    {avatar.figureString && <AvatarEditorHotLookThumbnailView figure={avatar.figureString} gender={avatar.gender.toUpperCase()} />}
+                </button>)}
+            </ClassicScrollAreaView>
         </div>
-    );
+        {infoText && <div className="volt-avatar-editor-nft-info">
+            <NativeText text={infoText} textStyle="u_bold" background={0x454545} overrides={{ size: 10, color: info?.color ?? 0xffffff }} maxWidth={122} />
+        </div>}
+    </div>;
 };

@@ -2,7 +2,7 @@ import { WiredEditorContext } from '@volt/renderer';
 import { FC, useEffect, useMemo, useState } from 'react';
 import { LocalizeText, WiredFurniType } from '../../../../api';
 import { useWired } from '../../../../hooks';
-import { WIRED_VARIABLE_ABSENT } from '../../../../api';
+import { isWiredNullVariableId, WIRED_VARIABLE_ABSENT } from '../../../../api';
 import { WiredDropdown } from '../WiredDropdown';
 import { WiredSection } from '../WiredSection';
 import { WiredCheckboxOption } from '../WiredOptions';
@@ -53,7 +53,7 @@ export const WiredExtraVariableReferenceView: FC<{}> = () => {
 
         setVariableName(normalizeWiredVariableName(trigger.stringData));
         setReadOnly(trigger.intData.length > 0 ? trigger.intData[0] === 1 : true);
-        setSelectedVariableId(variableId === WIRED_VARIABLE_ABSENT ? '' : variableId);
+        setSelectedVariableId(isWiredNullVariableId(variableId) ? '' : variableId);
         setSelectedRoomId(row?.roomId ?? null);
     }, [sharedRows, trigger]);
 
@@ -75,7 +75,7 @@ export const WiredExtraVariableReferenceView: FC<{}> = () => {
         setVariableIds([selectedVariableId || WIRED_VARIABLE_ABSENT]);
     };
 
-    const validate = () => editable && !!normalizeWiredVariableName(variableName).length && !!selectedVariableId && selectedVariableId !== WIRED_VARIABLE_ABSENT;
+    const validate = () => editable && !!normalizeWiredVariableName(variableName).length && !isWiredNullVariableId(selectedVariableId);
 
     return <WiredExtraBaseView nativeLayout hasSpecialInput requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_NONE} save={save} validate={validate}>
         <WiredVariableNameSection value={variableName} onChange={setVariableName} disabled={!editable} />

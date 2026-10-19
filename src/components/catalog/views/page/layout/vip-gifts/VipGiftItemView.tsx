@@ -1,6 +1,6 @@
 import { CatalogPageMessageOfferData } from '@volt/renderer';
 import { FC, useCallback } from 'react';
-import { LocalizeText, ProductImageUtility } from '../../../../../../api';
+import { GetProductDataForLocalization, LocalizeText, ProductImageUtility } from '../../../../../../api';
 import { LayoutImage } from '../../../../../../common';
 
 export interface VipGiftItemViewProps {
@@ -22,8 +22,13 @@ export const VipGiftItem: FC<VipGiftItemViewProps> = (props) => {
         return ProductImageUtility.getProductImageUrl(productData.productType, productData.furniClassId, productData.extraParam);
     }, [offer]);
 
+    // ClubGiftWidget.createListItem names the gift after its product data; AIR's product data keeps no description, so gift_desc stays empty.
     const getItemTitle = useCallback(() => {
         if (!offer || !offer.products.length) return '';
+
+        const productName = GetProductDataForLocalization(offer.localizationId)?.name;
+
+        if (productName) return productName;
 
         const productData = offer.products[0];
 
@@ -35,22 +40,7 @@ export const VipGiftItem: FC<VipGiftItemViewProps> = (props) => {
         return LocalizeText(localizationKey);
     }, [offer]);
 
-    const getItemDesc = useCallback(() => {
-        if (!offer || !offer.products.length) return '';
-
-        const productData = offer.products[0];
-
-        const localizationKey =
-            ProductImageUtility.getProductCategory(productData.productType, productData.furniClassId) === 2
-                ? 'wallItem.desc.' + productData.furniClassId
-                : 'roomItem.desc.' + productData.furniClassId;
-
-        return LocalizeText(localizationKey);
-    }, [offer]);
-
-    const description = getItemDesc();
-
-    // Official club_gift_list_item: image box left, name / description / requirement stacked beside it,
+    // Official club_gift_list_item: image box left, name and requirement beside it,
     // Select bottom right (enabled only while this gift can be chosen), VIP mark in the corner.
     return (
         <div className="volt-catalog-club-gift">
@@ -59,11 +49,10 @@ export const VipGiftItem: FC<VipGiftItemViewProps> = (props) => {
             </div>
             {isVip && <span aria-hidden="true" className="volt-club-compact-mark is-vip volt-catalog-club-gift-vip" />}
             <div className="volt-catalog-club-gift-name">{getItemTitle()}</div>
-            {!!description && <div className="volt-catalog-club-gift-desc">{description}</div>}
             {!!requirementText && <div className="volt-catalog-club-gift-requirement">{requirementText}</div>}
             <button
                 aria-disabled={!isAvailable}
-                className="volt-catalog-standard-button volt-catalog-club-gift-select"
+                className="volt-catalog-club-gift-select"
                 disabled={!isAvailable}
                 type="button"
                 onClick={() => {
