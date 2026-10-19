@@ -59,6 +59,9 @@
     "avatareditor.show.clubitems.dimmed": true,
     "avatareditor.show.clubitems.first": true,
     "clothing.misc.tab.enabled": true,
+    "catalog.clothes.page": "clothing_new",
+    "avatareditor.pets.catalog.page.name": "clothing_companions",
+    "avatareditor.effects.buy.button.catalog.page.name": "ny2015_permeffects",
     "chat.history.max.items": 100,
     "system.currency.types": [
         -1,
