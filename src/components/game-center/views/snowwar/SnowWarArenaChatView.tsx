@@ -142,7 +142,7 @@ export const SnowWarArenaChatView: FC<{ chatMessages: readonly SnowWarChatMessag
 
     return (
         <div ref={ elementRef } className="absolute flex justify-center items-center w-full top-0 min-h-px z-(--chat-zindex) bg-transparent shadow-none pointer-events-none">
-            { chat.bubbles.map(({ bubble }) => <ChatWidgetMessageView key={ bubble.id } chat={ bubble } makeRoom={ makeRoom } mode={ RoomChatSettings.CHAT_MODE_FREE_FLOW } />) }
+            { chat.bubbles.map(({ bubble }) => <ChatWidgetMessageView key={ bubble.id } chat={ bubble } makeRoom={ makeRoom } mode={ RoomChatSettings.CHAT_MODE_FREE_FLOW } imageUrl={ bubble.imageUrl } color={ bubble.color } />) }
         </div>
     );
 };

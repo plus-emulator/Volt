@@ -1,11 +1,11 @@
 import { GetRoomEngine, RoomChatSettings, RoomObjectCategory } from '@volt/renderer';
-import { CSSProperties, FC, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { CSSProperties, FC, memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ChatBubbleMessage, GetConfigurationValue } from '../../../../api';
 import { useOnClickChat } from '../../../../hooks';
 import { useSessionInfo } from '../../../../hooks/session/useSessionInfo';
 import { ChatTextSize, getChatFontScale, getChatTextSize } from '../chat-input/chatTextSize';
 import { AIR_CHAT_BUBBLE_STYLES } from './airChatStyles';
-import { measureBubbleVisualOffsets } from './chatBubbleMetrics';
+import { measureChatBubble } from './chatBubbleMetrics';
 import { getNativeChatCreation, getNativeChatGeometry } from './nativeChatScroller';
 import { getNativeChatBaseFontSize, getNativeDefaultSkin, isNativeAnonymousStyle } from './nativeChatSkin';
 import { NativeChatText } from './NativeChatText';
@@ -46,15 +46,22 @@ interface ChatWidgetMessageViewProps {
     bubbleWidth?: number;
     showPointer?: boolean;
     layout?: 'room' | 'history';
+    // makeRoom measures the bubble itself (once per frame for every new bubble), so the bubble
+    // does not force a layout of its own when it mounts.
+    measuredByMakeRoom?: boolean;
+    // The face and its colour are written onto chat after the bubble mounts. Passing them lets memo see that change.
+    imageUrl?: string;
+    color?: string;
 }
 
-export const ChatWidgetMessageView: FC<ChatWidgetMessageViewProps> = ({
+const ChatWidgetMessageViewComponent: FC<ChatWidgetMessageViewProps> = ({
     chat = null,
     makeRoom = null,
     mode = RoomChatSettings.CHAT_MODE_FREE_FLOW,
     bubbleWidth = RoomChatSettings.CHAT_BUBBLE_WIDTH_NORMAL,
     showPointer = true,
-    layout = 'room'
+    layout = 'room',
+    measuredByMakeRoom = false
 }) => {
     const [creationMode] = useState(() => getNativeChatCreation(chat)?.mode ?? mode);
     const [isVisible, setIsVisible] = useState(false);
@@ -104,13 +111,10 @@ export const ChatWidgetMessageView: FC<ChatWidgetMessageViewProps> = ({
         const element = elementRef.current;
         if (!element) return;
 
-        const { offsetWidth: width, offsetHeight: height } = element;
-        const visualOffsets = measureBubbleVisualOffsets(element);
+        if (!measuredByMakeRoom) measureChatBubble(chat, element);
+        // Placed on the next frame: stay hidden until then, as a bubble placed straight away does.
+        else if (element.style.visibility !== 'visible') element.style.visibility = 'hidden';
 
-        chat.width = width;
-        chat.height = height;
-        chat.visualOffsetTop = visualOffsets.top;
-        chat.visualOffsetBottom = visualOffsets.bottom;
         chat.elementRef = element;
 
         if (airStyle) setLineCount(countTextLines(element, getTextLineHeight(airStyle.fontSize * fontScale) + 1));
@@ -125,6 +129,7 @@ export const ChatWidgetMessageView: FC<ChatWidgetMessageViewProps> = ({
         isVisible,
         showPointer,
         creationMode,
+        measuredByMakeRoom,
         airStyle,
         fontScale
     ]);
@@ -154,12 +159,7 @@ export const ChatWidgetMessageView: FC<ChatWidgetMessageViewProps> = ({
 
             if (width === chat.width && height === chat.height) return;
 
-            const visualOffsets = measureBubbleVisualOffsets(element);
-
-            chat.width = width;
-            chat.height = height;
-            chat.visualOffsetTop = visualOffsets.top;
-            chat.visualOffsetBottom = visualOffsets.bottom;
+            if (!measuredByMakeRoom) measureChatBubble(chat, element);
 
             if (makeRoomRef.current) makeRoomRef.current(chat, creationMode);
         });
@@ -172,7 +172,7 @@ export const ChatWidgetMessageView: FC<ChatWidgetMessageViewProps> = ({
         if (text) observer.observe(text);
 
         return () => observer.disconnect();
-    }, [chat, creationMode, airStyle, fontScale]);
+    }, [chat, creationMode, measuredByMakeRoom, airStyle, fontScale]);
 
     useEffect(() => {
         return () => {
@@ -348,3 +348,6 @@ export const ChatWidgetMessageView: FC<ChatWidgetMessageViewProps> = ({
         </div>
     );
 };
+
+// A new line re-renders the chat list; bubbles already on screen keep their props and skip it.
+export const ChatWidgetMessageView = memo(ChatWidgetMessageViewComponent);
