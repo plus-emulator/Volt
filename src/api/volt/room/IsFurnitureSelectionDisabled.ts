@@ -12,7 +12,7 @@ export function IsFurnitureSelectionDisabled(event: RoomEngineObjectEvent): bool
         if (selectionDisabled) {
             result = true;
 
-            if (HasPermission(Permission.RoomOwnerAny)) result = false;
+            if (HasPermission(Permission.RoomOwnerAny) || HasPermission(Permission.RoomItemSaveBrandingItems)) result = false;
         }
     }
 

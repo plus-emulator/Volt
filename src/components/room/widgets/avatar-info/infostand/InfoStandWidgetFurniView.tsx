@@ -46,7 +46,7 @@ import {
     Text,
     UserProfileIconView
 } from '../../../../../common';
-import { Permission } from '../../../../../api/permissions';
+import { HasPermission, Permission } from '../../../../../api/permissions';
 import { useFurniPickupGuard, useHasPermission, useMessageEvent, useVoltEvent, useRoom, useWiredTools } from '../../../../../hooks';
 import { useWiredLabelsStore } from '../../../../../hooks/rooms/widgets/useWiredLabelsState';
 import { VoltInput } from '../../../../../layout';
@@ -376,8 +376,8 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
                 furniIsSongDisk = true;
             }
 
-            // AIR InfoStandFurniView.showAdFurnitureDetails: the ad fields are shown to any room controller.
-            if (avatarInfo.isAnyRoomController) {
+            // Shown to the role permission the server checks before it saves them.
+            if (HasPermission(Permission.RoomItemSaveBrandingItems)) {
                 const extraParam = avatarInfo.extraParam.substr(RoomWidgetEnumItemExtradataParameter.BRANDING_OPTIONS.length);
 
                 if (extraParam) {

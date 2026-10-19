@@ -3,6 +3,7 @@ import { GetSessionDataManager } from '@volt/renderer';
 export const Permission = {
     ModerationTool: 'moderation.tool',
     RoomOwnerAny: 'room.owner.any',
+    RoomItemSaveBrandingItems: 'room.item_save_branding_items',
     Ambassador: 'ambassador',
     CampaignCalendarForce: 'campaign.calendar.force',
     CameraUse: 'camera.use',
