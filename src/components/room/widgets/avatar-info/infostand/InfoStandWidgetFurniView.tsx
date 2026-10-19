@@ -376,7 +376,8 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
                 furniIsSongDisk = true;
             }
 
-            if (godMode) {
+            // AIR InfoStandFurniView.showAdFurnitureDetails: the ad fields are shown to any room controller.
+            if (avatarInfo.isAnyRoomController) {
                 const extraParam = avatarInfo.extraParam.substr(RoomWidgetEnumItemExtradataParameter.BRANDING_OPTIONS.length);
 
                 if (extraParam) {
@@ -843,6 +844,29 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
                                 <div className="volt-furni-infostand__text">id: {avatarInfo.id}</div>
                             </>
                         )}
+                        {furniKeys.length > 0 && (
+                            <>
+                                <div className="volt-furni-infostand__rule" />
+                                <div className="flex flex-col gap-1">
+                                    {furniKeys.map((key, index) => {
+                                        return (
+                                            <Flex key={index} alignItems="center" gap={1}>
+                                                <Text small wrap align="end" className="col-span-4" variant="white">
+                                                    {key}
+                                                </Text>
+                                                <VoltInput
+                                                    type="text"
+                                                    className="text-black"
+                                                    style={{ color: '#000' }}
+                                                    value={furniValues[index]}
+                                                    onChange={(event) => onFurniSettingChange(index, event.target.value)}
+                                                />
+                                            </Flex>
+                                        );
+                                    })}
+                                </div>
+                            </>
+                        )}
                         {showBuildtools && (
                             <>
                                 <div className="volt-furni-infostand__rule" />
@@ -987,29 +1011,6 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
                                                 </div>
                                             </div>
                                         )}
-                                    </>
-                                )}
-                                {furniKeys.length > 0 && (
-                                    <>
-                                        <div className="volt-furni-infostand__rule" />
-                                        <div className="flex flex-col gap-1">
-                                            {furniKeys.map((key, index) => {
-                                                return (
-                                                    <Flex key={index} alignItems="center" gap={1}>
-                                                        <Text small wrap align="end" className="col-span-4" variant="white">
-                                                            {key}
-                                                        </Text>
-                                                        <VoltInput
-                                                            type="text"
-                                                            className="text-black"
-                                                            style={{ color: '#000' }}
-                                                            value={furniValues[index]}
-                                                            onChange={(event) => onFurniSettingChange(index, event.target.value)}
-                                                        />
-                                                    </Flex>
-                                                );
-                                            })}
-                                        </div>
                                     </>
                                 )}
                             </>
