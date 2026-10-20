@@ -41,7 +41,7 @@ vi.mock('../../hooks', () => ({
     useRoom: () => ({ roomSession: mocks.roomSession })
 }));
 
-import { HOLDER_TYPE_FURNI, HOLDER_TYPE_USER, WiredVariableOwnersView, wiredVariableIdOf } from './WiredVariableOwnersView';
+import { HOLDER_TYPE_FURNI, HOLDER_TYPE_USER, WiredVariableOwnersView } from './WiredVariableOwnersView';
 
 const holder = (entityType: number, entityId: number, entityName: string, value: number) => ({
     entityType,
@@ -90,13 +90,6 @@ describe('WiredVariableOwnersView', () => {
     afterEach(() => {
         cleanup();
         vi.useRealTimers();
-    });
-
-    it('builds the variable id the server keys the page on', () => {
-        expect(wiredVariableIdOf('user', 42)).toBe('user:42');
-        expect(wiredVariableIdOf('furni', 7)).toBe('furni:7');
-        expect(wiredVariableIdOf('global', 3)).toBe('room:3');
-        expect(wiredVariableIdOf('context', 9)).toBe('ctx:9');
     });
 
     it('asks for the first page of the variable and lists its holders, ignoring pages of other variables', () => {

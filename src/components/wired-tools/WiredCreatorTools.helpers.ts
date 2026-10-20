@@ -264,11 +264,7 @@ export const parseInspectionInt = (text: string): number | null => {
 /** The catalogue `variableTarget` each variable type button of the Variables tab lists. */
 export const VARIABLE_TARGET_OF_TYPE: Record<VariablesElementType, number> = { furni: 0, user: 1, global: -10, context: -20 };
 
-/** The catalogue `variableTarget` a variable type button lists, back to the button. */
-export const variablesTypeOfTarget = (target: number): VariablesElementType | null =>
-    (Object.keys(VARIABLE_TARGET_OF_TYPE) as VariablesElementType[]).find((type) => VARIABLE_TARGET_OF_TYPE[type] === target) ?? null;
-
-/** AIR WiredMenuOverviewTab.updateVariableListUI: the catalogue's visible variables of one target, sorted like AIR. */
+/** AIR WIN63-202610121709-785561319 WiredMenuOverviewTab.updateVariableListUI: the catalogue's visible variables of one target, sorted like AIR. */
 export const buildVariablePickerRows = (catalog: ReadonlyMap<string, IWiredVariableDiffEntry> | null, type: VariablesElementType): IWiredVariableData[] => {
     if (!catalog) return [];
 
@@ -280,7 +276,7 @@ export const buildVariablePickerRows = (catalog: ReadonlyMap<string, IWiredVaria
         .sort(compareVariables);
 };
 
-/** AIR WiredVariable.isPersisted: permanent, shared or reference availability. */
+/** AIR WIN63-202610121709-785561319 WiredVariable.isPersisted: permanent, shared or reference availability. */
 export const isPersistedVariable = (variable: IWiredVariableData): boolean => [10, 11, 20].includes(variable.availabilityType);
 
 /**
@@ -301,7 +297,7 @@ const VARIABLE_TARGET_LABELS: Record<number, [string, string]> = {
     [-20]: ['wiredfurni.params.sourcetype.context', 'Context']
 };
 
-/** AIR WiredMenuOverviewTab.updatePropertiesTableUI rows, with the PropertyTableObject texts. */
+/** AIR WIN63-202610121709-785561319 WiredMenuOverviewTab.updatePropertiesTableUI rows, with the PropertyTableObject texts. */
 export const buildVariableProperties = (variable: IWiredVariableData | null): { key: string; value: string }[] => {
     if (!variable) return [];
 
@@ -329,10 +325,10 @@ export const buildVariableProperties = (variable: IWiredVariableData | null): { 
     return rows.map(([key, fallback, value]) => ({ key: localizeWithFallback(`wiredmenu.variable_overview.properties.${key}`, fallback), value }));
 };
 
-// AIR WiredMenuOverviewTab.MAX_TEXT_CONNECTIONS: a longer connector lists only its fallback.
+// AIR WIN63-202610121709-785561319 WiredMenuOverviewTab.MAX_TEXT_CONNECTIONS: a longer connector lists only its fallback.
 const MAX_TEXT_CONNECTIONS = 400;
 
-/** AIR WiredMenuOverviewTab.updateTextTableUI: the text connector by numeric key, then the fallback as "_". */
+/** AIR WIN63-202610121709-785561319 WiredMenuOverviewTab.updateTextTableUI: the text connector by numeric key, then the fallback as "_". */
 export const buildVariableTextValues = (variable: IWiredVariableData | null): VariableTextValue[] => {
     if (!variable || variable.textConnector === null) return [];
 

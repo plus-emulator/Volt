@@ -95,17 +95,6 @@ export const VARIABLES_ELEMENTS: VariablesElementButton[] = [
     { key: 'context', label: 'Context', icon: contextInspectionIcon }
 ];
 
-export const TEAM_COLOR_NAMES: Record<number, string> = {
-    1: 'red',
-    2: 'green',
-    3: 'blue',
-    4: 'yellow'
-};
-
-export const WEEKDAY_NAMES: string[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-export const MONTH_NAMES: string[] = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-export const DIRECTION_NAMES: string[] = ['North', 'North-East', 'East', 'South-East', 'South', 'South-West', 'West', 'North-West'];
-
 /** wired_menu_view statistics html captions, in WiredMenuMonitorTab.updateRoomStatsUI order. */
 export const MONITOR_STAT_CAPTIONS: string[] = [
     'Wired usage:',

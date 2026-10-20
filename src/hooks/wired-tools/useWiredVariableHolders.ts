@@ -17,7 +17,11 @@ export const useWiredVariableHolders = (roomId: number, variableId: string | nul
     const [snapshot, setSnapshot] = useState<HoldersSnapshot | null>(null);
 
     useEffect(() => {
-        if (!variableId || roomId <= 0) return;
+        // Turning the highlight off forgets the holders, so old ones do not show when it is turned on again.
+        if (!variableId || roomId <= 0) {
+            setSnapshot(null);
+            return;
+        }
 
         const request = () => SendMessageComposer(new WiredVariableHoldersRequest64Composer(variableId));
 

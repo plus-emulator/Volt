@@ -516,15 +516,15 @@ export const WiredCreatorToolsView: FC<{}> = () => {
     }, [isVisible, activeTab, roomSession?.roomId, requestMonitorSnapshot]);
 
     useEffect(() => {
-        // The per-holder panel still reads the Volt variable snapshot; nothing else in the menu does.
-        if (!isVisible || !selectedManagedVariableEntry || !roomSession?.roomId || !roomSettings.canInspect || shouldPauseVariableSnapshotRefresh) return;
+        // The per-holder panel and the wired editors read the Volt variable snapshot, kept fresh while the menu is open.
+        if (!isVisible || !roomSession?.roomId || !roomSettings.canInspect || shouldPauseVariableSnapshotRefresh) return;
 
         requestUserVariables();
 
         const interval = window.setInterval(requestUserVariables, WIRED_VARIABLES_POLL_MS);
 
         return () => window.clearInterval(interval);
-    }, [isVisible, selectedManagedVariableEntry, roomSession?.roomId, roomSettings.canInspect, requestUserVariables, shouldPauseVariableSnapshotRefresh]);
+    }, [isVisible, roomSession?.roomId, roomSettings.canInspect, requestUserVariables, shouldPauseVariableSnapshotRefresh]);
 
     useEffect(() => {
         const linkTracker: ILinkEventTracker = {
@@ -618,6 +618,7 @@ export const WiredCreatorToolsView: FC<{}> = () => {
 
         return MONITOR_ERROR_INFO[selectedMonitorError.type] ?? null;
     }, [selectedMonitorError]);
+    // Counted from the room on the client until the renderer has WiredGetRoomStats and WiredRoomStats; PlusEMU already answers them.
     const monitorRoomStats = useMemo(() => {
         if (!roomSession) {
             return {
@@ -648,6 +649,9 @@ export const WiredCreatorToolsView: FC<{}> = () => {
     const monitorHistoryTypeOptions = useMemo(() => {
         return ['ALL', ...new Set(monitorSnapshot.history.map((entry) => entry.type))];
     }, [monitorSnapshot.history]);
+    useEffect(() => {
+        if (!monitorHistoryTypeOptions.includes(monitorHistoryTypeFilter)) setMonitorHistoryTypeFilter('ALL');
+    }, [monitorHistoryTypeOptions, monitorHistoryTypeFilter]);
     const previewPlaceholder = useMemo(() => {
         switch (inspectionType) {
             case 'furni':
@@ -819,7 +823,7 @@ export const WiredCreatorToolsView: FC<{}> = () => {
         }),
         [variableCatalog.catalog]
     );
-    // AIR identifies a variable of the overview by its name (VariableTableObject.identifier), and so do menu links.
+    // AIR WIN63-202610121709-785561319 identifies a variable of the overview by its name (VariableTableObject.identifier), and so do menu links.
     const variableNamesByType = useMemo(
         () =>
             Object.fromEntries(
@@ -827,7 +831,7 @@ export const WiredCreatorToolsView: FC<{}> = () => {
             ) as Record<VariablesElementType, { key: string }[]>,
         [variablesByType]
     );
-    // AIR WiredMenuOverviewTab.update: while the tab is open the catalogue is asked for every 500 ms; the request itself waits 800 ms.
+    // AIR WIN63-202610121709-785561319 WiredMenuOverviewTab.update: while the tab is open the catalogue is asked for every 500 ms; the request itself waits 800 ms.
     useEffect(() => {
         if (!isVisible || activeTab !== 'variables') return;
 
@@ -835,8 +839,14 @@ export const WiredCreatorToolsView: FC<{}> = () => {
 
         return () => window.clearInterval(interval);
     }, [isVisible, activeTab, variableCatalog.refresh]);
-    // AIR jumpToVariableByName: a link that arrives before the catalogue is kept until the catalogue is there.
+    // AIR WIN63-202610121709-785561319 WiredMenuOverviewTab.jumpToVariableByName: a link that arrives before the catalogue is kept until the catalogue is there.
     const pendingMenuLinkRef = useRef<string | null>(null);
+    useEffect(() => {
+        if (!isVisible) pendingMenuLinkRef.current = null;
+    }, [isVisible]);
+    useEffect(() => {
+        pendingMenuLinkRef.current = null;
+    }, [roomSession?.roomId]);
     useEffect(() => {
         if (!variableCatalog.ready || pendingMenuLinkRef.current === null) return;
 
@@ -854,7 +864,7 @@ export const WiredCreatorToolsView: FC<{}> = () => {
                     return;
                 }
                 openWiredMenuLink(url, variableNamesByType);
-                pendingMenuLinkRef.current = variableCatalog.ready ? null : url;
+                pendingMenuLinkRef.current = !variableCatalog.ready && url.startsWith('wiredmenu/open/variable_overview/') ? url : null;
             }
         };
         AddLinkEventTracker(nativeLinkTracker);
@@ -863,6 +873,9 @@ export const WiredCreatorToolsView: FC<{}> = () => {
 
 
     useEffect(() => {
+        // Closing the menu drops the catalogue; the selection is kept until a catalogue is there again.
+        if (!variableCatalog.ready) return;
+
         setSelectedVariableKeys((prevValue) => {
             let didChange = false;
             const nextValue = { ...prevValue };
@@ -887,7 +900,7 @@ export const WiredCreatorToolsView: FC<{}> = () => {
 
             return didChange ? nextValue : prevValue;
         });
-    }, [variableNamesByType]);
+    }, [variableCatalog.ready, variableNamesByType]);
     useEffect(() => {
         setSelectedManagedVariableEntry(null);
     }, [variablesType, selectedVariableKeys[variablesType]]);
@@ -952,7 +965,7 @@ export const WiredCreatorToolsView: FC<{}> = () => {
         },
         [roomSession]
     );
-    // AIR WiredMenuOverviewTab.canHighlightCurrentVariable.
+    // AIR WIN63-202610121709-785561319 WiredMenuOverviewTab.canHighlightCurrentVariable.
     const canVariableHighlight =
         !!selectedVariable &&
         !selectedVariable.requiresExecutionContext &&
@@ -963,7 +976,7 @@ export const WiredCreatorToolsView: FC<{}> = () => {
         roomSession?.roomId ?? 0,
         isVariableHighlightActive && canVariableHighlight && selectedVariable ? selectedVariable.variableId : null
     );
-    // AIR VariableHoldersHighlighter: a furni holder is a floor item, or a wall item when its id is negative; a user holder is found in the room.
+    // This server sends a negative furni id only for a temporary wall item; every other furni keeps its own id, floor or wall.
     const variableHighlightTargets = useMemo((): VariableHighlightTarget[] => {
         if (!variableHolders || !roomSession || !selectedVariable) return [];
 
@@ -979,10 +992,15 @@ export const WiredCreatorToolsView: FC<{}> = () => {
                 continue;
             }
 
-            const category = holder.objectId < 0 ? RoomObjectCategory.WALL : RoomObjectCategory.FLOOR;
             const objectId = Math.abs(holder.objectId);
+            const category =
+                holder.objectId > 0 && GetRoomEngine().getRoomObject(roomSession.roomId, objectId, RoomObjectCategory.FLOOR)
+                    ? RoomObjectCategory.FLOOR
+                    : GetRoomEngine().getRoomObject(roomSession.roomId, objectId, RoomObjectCategory.WALL)
+                      ? RoomObjectCategory.WALL
+                      : -1;
 
-            if (GetRoomEngine().getRoomObject(roomSession.roomId, objectId, category)) targets.push({ category, objectId, hasValue: value !== null, value });
+            if (category >= 0) targets.push({ category, objectId, hasValue: value !== null, value });
         }
 
         return targets;
@@ -1298,7 +1316,7 @@ export const WiredCreatorToolsView: FC<{}> = () => {
     }, [selectedManagedHolderVariableEntry, editingManagedHolderVariableId]);
     // The owners list and the per-holder panel work on variables created in this room.
     const variableManageCanOpen = selectedVariableItemId !== null && variablesType !== 'context' && !selectedVariable?.requiresExecutionContext;
-    // AIR WiredMenuOverviewTab.canDeleteCurrentVariable. Clearing reaches holders outside the room, so only the owner of the
+    // AIR WIN63-202610121709-785561319 WiredMenuOverviewTab.canDeleteCurrentVariable. Clearing reaches holders outside the room, so only the owner of the
     // definition box gets the button; the server enforces the same rule.
     const canVariableClear =
         roomSettings.canModify &&
