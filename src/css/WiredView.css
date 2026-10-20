@@ -2634,6 +2634,15 @@
     color: #8c8c88;
 }
 
+/* AIR VariableValueTableObject: a value the classic client cannot show, and a packed value. */
+.volt-wired-menu__text--hidden {
+    color: #ff5733;
+}
+
+.volt-wired-menu__text--packed {
+    color: #9b01c6;
+}
+
 .volt-wired-menu__box {
     border: 1px solid #b1b1ab;
     border-radius: 5px;

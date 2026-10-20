@@ -30,7 +30,7 @@ const INITIAL = {
     editingManagedHolderValue: '',
     selectedInspectionVariableKeys: { furni: '', user: '', global: '' },
     selectedVariableKeys: { furni: '', user: '', global: '', context: '' },
-    inspectionGiveVariableItemId: 0,
+    inspectionGiveVariableId: '',
     inspectionGiveValue: '0',
     selectedManagedVariableEntry: null,
     selectedManagedHolderVariableId: 0,
@@ -73,7 +73,7 @@ describe('useWiredCreatorToolsUiStore', () => {
         expect(state.editingManagedHolderValue).toBe('');
         expect(state.selectedInspectionVariableKeys).toEqual({ furni: '', user: '', global: '' });
         expect(state.selectedVariableKeys).toEqual({ furni: '', user: '', global: '', context: '' });
-        expect(state.inspectionGiveVariableItemId).toBe(0);
+        expect(state.inspectionGiveVariableId).toBe('');
         expect(state.inspectionGiveValue).toBe('0');
         expect(state.selectedManagedVariableEntry).toBeNull();
         expect(state.selectedManagedHolderVariableId).toBe(0);
@@ -405,22 +405,22 @@ describe('useWiredCreatorToolsUiStore', () => {
     });
 
     describe('inspection give pickers', () => {
-        it('setInspectionGiveVariableItemId / setInspectionGiveValue write the picker pair', () => {
-            useWiredCreatorToolsUiStore.getState().setInspectionGiveVariableItemId(42);
+        it('setInspectionGiveVariableId / setInspectionGiveValue write the picker pair', () => {
+            useWiredCreatorToolsUiStore.getState().setInspectionGiveVariableId('user:42');
             useWiredCreatorToolsUiStore.getState().setInspectionGiveValue('150');
 
-            expect(useWiredCreatorToolsUiStore.getState().inspectionGiveVariableItemId).toBe(42);
+            expect(useWiredCreatorToolsUiStore.getState().inspectionGiveVariableId).toBe('user:42');
             expect(useWiredCreatorToolsUiStore.getState().inspectionGiveValue).toBe('150');
         });
 
-        it('reset path uses 0 / "0" as the sentinel-empty pair (post-action and target-change paths)', () => {
-            useWiredCreatorToolsUiStore.getState().setInspectionGiveVariableItemId(42);
+        it('reset path uses "" / "0" as the sentinel-empty pair (post-action and target-change paths)', () => {
+            useWiredCreatorToolsUiStore.getState().setInspectionGiveVariableId('user:42');
             useWiredCreatorToolsUiStore.getState().setInspectionGiveValue('150');
 
-            useWiredCreatorToolsUiStore.getState().setInspectionGiveVariableItemId(0);
+            useWiredCreatorToolsUiStore.getState().setInspectionGiveVariableId('');
             useWiredCreatorToolsUiStore.getState().setInspectionGiveValue('0');
 
-            expect(useWiredCreatorToolsUiStore.getState().inspectionGiveVariableItemId).toBe(0);
+            expect(useWiredCreatorToolsUiStore.getState().inspectionGiveVariableId).toBe('');
             expect(useWiredCreatorToolsUiStore.getState().inspectionGiveValue).toBe('0');
         });
     });

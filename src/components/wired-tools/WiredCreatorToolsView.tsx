@@ -1,12 +1,8 @@
-import { WIRED_WALL_INSPECTION_TOKENS, parseWiredInt64 } from '@volt/renderer';
+import { parseWiredInt64 } from '@volt/renderer';
 import {
     AddLinkEventTracker,
-    AvatarExpressionEnum,
     FigureUpdateEvent,
     FurnitureFloorUpdateEvent,
-    FurnitureMultiStateComposer,
-    FurnitureWallMultiStateComposer,
-    FurnitureWallUpdateComposer,
     FurnitureWallUpdateEvent,
     GetLocalizationManager,
     GetRoomEngine,
@@ -18,19 +14,9 @@ import {
     RoomObjectCategory,
     RoomObjectType,
     RoomObjectVariable,
-    RoomUnitDanceEvent,
-    RoomUnitEffectEvent,
-    RoomUnitExpressionEvent,
-    RoomUnitHandItemEvent,
     RoomUnitInfoEvent,
-    RoomUnitStatusEvent,
-    UpdateFurniturePositionComposer,
-    Vector3d,
-    WiredFurniRuntimeStateEvent,
-    WiredFurniRuntimeStateRequestComposer,
     WiredMonitorDataEvent,
     WiredMonitorRequestComposer,
-    WiredUserInspectMoveComposer
 } from '@volt/renderer';
 import { FC, KeyboardEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -40,13 +26,13 @@ import {
     GetRoomObjectBounds,
     GetRoomObjectScreenLocation,
     IsOwnerOfFloorFurniture,
+    IsTemporaryFurniId,
     LocalizeText,
     localizeWithFallback,
     NotificationAlertType,
     decodeUserVariableHolder,
     findUserVariableHolderData,
     SendMessageComposer,
-    userVariableHolderKey,
     WiredSelectionVisualizer
 } from '../../api';
 import wiredErrorIcon from '../../assets/images/wiredtools/icon_wired_error.png';
@@ -66,12 +52,10 @@ import {
     VoltCardView,
     Text
 } from '../../common';
-import { useInventoryTrade, useMessageEvent, useNotification, useObjectSelectedEvent, useRoom, useWiredTools, useWiredFurniInspection } from '../../hooks';
+import { useMessageEvent, useNotification, useObjectSelectedEvent, useRoom, useWiredObjectVariables, useWiredTools, WiredObjectHolder, WiredObjectVariableOperation } from '../../hooks';
 import { WiredChestsTabView } from './WiredChestsTabView';
 import {
     DIRECTION_NAMES,
-    EDITABLE_FURNI_VARIABLES,
-    EDITABLE_USER_VARIABLES,
     INSPECTION_ELEMENTS,
     MONITOR_COLOR_GREEN,
     MONITOR_COLOR_ORANGE,
@@ -85,10 +69,6 @@ import {
     VARIABLES_ELEMENTS,
     WEEKDAY_NAMES,
     WIRED_CLOCK_REFRESH_MS,
-    WIRED_FREEZE_EFFECT_IDS,
-    WIRED_FURNI_RUNTIME_ACTION_READ,
-    WIRED_FURNI_RUNTIME_ACTION_WRITE,
-    WIRED_INSPECTION_REFRESH_MS,
     WIRED_MONITOR_ACTION_CLEAR_LOGS,
     WIRED_MONITOR_ACTION_FETCH,
     WIRED_MONITOR_CLEAR_LOCK_MS,
@@ -100,27 +80,23 @@ import {
     formatMonitorHistoryOccurrence,
     formatMonitorLatestOccurrence,
     formatMonitorSource,
+    buildInspectionGiveDefinitions,
+    buildInspectionRows,
     formatVariableTimestamp,
-    getHotelDateTimeParts,
     getHotelTimeFormatter,
     normalizeMonitorReason,
+    parseInspectionInt,
     toVariableTextValues
 } from './WiredCreatorTools.helpers';
 import {
-    HotelDateTimeParts,
     InspectionElementButton,
     InspectionElementType,
-    InspectionFurniLiveState,
     InspectionFurniSelection,
-    InspectionUserLiveState,
     InspectionUserSelection,
-    InspectionUserTeamData,
     InspectionVariable,
     ManagedHolderVariableEntry,
     MonitorLog,
     MonitorStat,
-    ParsedWallLocation,
-    TeamEffectData,
     VariableDefinition,
     VariableHighlightOverlay,
     VariableHighlightTarget,
@@ -141,8 +117,6 @@ import { useVariablesExplorerStore } from '../../state/variablesExplorer';
 import { WiredVariableHolderPanelView } from './WiredVariableHolderPanelView';
 import { WiredVariablesTabView } from './WiredVariablesTabView';
 import { openWiredMenuLink, useWiredCreatorToolsUiStore } from './wiredCreatorToolsUiStore';
-
-const WIRED_FURNI_GRAVITY_MODEL_KEY = 'wired_furni_gravity';
 
 /** icon_wired_<category>_png, as the official error view picks it. */
 const MONITOR_ERROR_ICONS: Record<string, string> = { ERROR: wiredErrorIcon, WARNING: wiredWarningIcon };
@@ -167,23 +141,9 @@ export const WiredCreatorToolsView: FC<{}> = () => {
     const [keepSelected, setKeepSelected] = useState(false);
     const selectedFurni = useWiredCreatorToolsUiStore((s) => s.selectedFurni);
     const setSelectedFurni = useWiredCreatorToolsUiStore((s) => s.setSelectedFurni);
-    const selectedFurniLiveState = useWiredCreatorToolsUiStore((s) => s.selectedFurniLiveState);
-    const setSelectedFurniLiveState = useWiredCreatorToolsUiStore((s) => s.setSelectedFurniLiveState);
-    const [selectedFurniRuntimeState, setSelectedFurniRuntimeState] = useState<{
-        itemId: number;
-        key: string;
-        value: number;
-        supported: boolean;
-    }>(null);
     const selectedUser = useWiredCreatorToolsUiStore((s) => s.selectedUser);
     const setSelectedUser = useWiredCreatorToolsUiStore((s) => s.setSelectedUser);
-    const selectedUserLiveState = useWiredCreatorToolsUiStore((s) => s.selectedUserLiveState);
-    const setSelectedUserLiveState = useWiredCreatorToolsUiStore((s) => s.setSelectedUserLiveState);
-    const selectedUserActionVersion = useWiredCreatorToolsUiStore((s) => s.selectedUserActionVersion);
-    const setSelectedUserActionVersion = useWiredCreatorToolsUiStore((s) => s.setSelectedUserActionVersion);
     const [globalClock, setGlobalClock] = useState(Date.now());
-    const [furniInternalRevision, setFurniInternalRevision] = useState(0);
-    const [roomEnteredAt, setRoomEnteredAt] = useState(Date.now());
     const monitorSnapshot = useWiredCreatorToolsUiStore((s) => s.monitorSnapshot);
     const setMonitorSnapshot = useWiredCreatorToolsUiStore((s) => s.setMonitorSnapshot);
     const resetMonitorSnapshot = useWiredCreatorToolsUiStore((s) => s.resetMonitorSnapshot);
@@ -208,8 +168,8 @@ export const WiredCreatorToolsView: FC<{}> = () => {
     const setSelectedInspectionVariableKeys = useWiredCreatorToolsUiStore((s) => s.setSelectedInspectionVariableKeys);
     const isInspectionGiveOpen = useWiredCreatorToolsUiStore((s) => s.isInspectionGiveOpen);
     const setIsInspectionGiveOpen = useWiredCreatorToolsUiStore((s) => s.setIsInspectionGiveOpen);
-    const inspectionGiveVariableItemId = useWiredCreatorToolsUiStore((s) => s.inspectionGiveVariableItemId);
-    const setInspectionGiveVariableItemId = useWiredCreatorToolsUiStore((s) => s.setInspectionGiveVariableItemId);
+    const inspectionGiveVariableId = useWiredCreatorToolsUiStore((s) => s.inspectionGiveVariableId);
+    const setInspectionGiveVariableId = useWiredCreatorToolsUiStore((s) => s.setInspectionGiveVariableId);
     const inspectionGiveValue = useWiredCreatorToolsUiStore((s) => s.inspectionGiveValue);
     const setInspectionGiveValue = useWiredCreatorToolsUiStore((s) => s.setInspectionGiveValue);
     const isVariableManageOpen = useWiredCreatorToolsUiStore((s) => s.isVariableManageOpen);
@@ -234,6 +194,7 @@ export const WiredCreatorToolsView: FC<{}> = () => {
     const setIsVariableHighlightActive = useWiredCreatorToolsUiStore((s) => s.setIsVariableHighlightActive);
     const variableHighlightOverlays = useWiredCreatorToolsUiStore((s) => s.variableHighlightOverlays);
     const setVariableHighlightOverlays = useWiredCreatorToolsUiStore((s) => s.setVariableHighlightOverlays);
+    const removedInspectionRowIndexRef = useRef(-1);
     const variableHighlightObjectsRef = useRef<Array<{ category: number; objectId: number }>>([]);
     const monitorRequestGateRef = useRef<ReturnType<typeof createPacketCooldownGate> | null>(null);
 
@@ -263,7 +224,6 @@ export const WiredCreatorToolsView: FC<{}> = () => {
 
     // Any change of the viewed room (A -> B -> A included) or closing the tab starts a new view: the loading state returns until an answer arrives for it.
     if (monitorLoadedKey !== 0 && monitorLoadedKey !== monitorViewKey) setMonitorLoadedKey(0);
-    const { ownUser: tradeOwnUser = null, otherUser: tradeOtherUser = null, isTrading = false } = useInventoryTrade();
     const {
         roomSettings,
         clearVariableForAllHolders,
@@ -285,44 +245,6 @@ export const WiredCreatorToolsView: FC<{}> = () => {
     } = useWiredTools();
     const { simpleAlert = null, showConfirm = null } = useNotification();
 
-    const getFurniLiveState = useCallback(
-        (objectId: number, category: number): InspectionFurniLiveState => {
-            if (!roomSession) return null;
-
-            const roomObject = GetRoomEngine().getRoomObject(roomSession.roomId, objectId, category);
-
-            if (!roomObject) return null;
-
-            const location = roomObject.getLocation();
-            const rawRotation = Math.round(roomObject.getDirection().x / 45);
-
-            return {
-                positionX: Math.round(location?.x ?? 0),
-                positionY: Math.round(location?.y ?? 0),
-                altitude: Math.round(Number(location?.z ?? 0) * 100),
-                rotation: ((rawRotation % 8) + 8) % 8,
-                state: Number(roomObject.getState(0) ?? 0)
-            };
-        },
-        [roomSession]
-    );
-
-    const parseWallLocation = (wallLocation: string): ParsedWallLocation => {
-        if (!wallLocation) return null;
-
-        const match = wallLocation.match(/^:w=(-?\d+),(-?\d+)\s+l=(-?\d+),(-?\d+)\s+([^\s]+)$/i);
-
-        if (!match) return null;
-
-        return {
-            width: parseInt(match[1], 10),
-            height: parseInt(match[2], 10),
-            localX: parseInt(match[3], 10),
-            localY: parseInt(match[4], 10),
-            direction: match[5]
-        };
-    };
-
     const getSignDisplayName = (value: number): string => {
         if (value < 0) return '';
 
@@ -343,65 +265,6 @@ export const WiredCreatorToolsView: FC<{}> = () => {
         if (localizedName && localizedName !== localizationKey) return localizedName;
 
         return `Dance ${value}`;
-    };
-
-    const getHandItemDisplayName = (value: number): string => {
-        if (value <= 0) return '';
-
-        const localizationKey = `handitem${value}`;
-        const localizedName = LocalizeText(localizationKey);
-
-        if (localizedName && localizedName !== localizationKey) return localizedName;
-
-        return `Item ${value}`;
-    };
-
-    const getEffectDisplayName = (value: number): string => {
-        if (value <= 0) return '';
-
-        const localizationKey = `fx_${value}`;
-        const localizedName = LocalizeText(localizationKey);
-
-        if (localizedName && localizedName !== localizationKey) return localizedName;
-
-        return `Effect ${value}`;
-    };
-
-    const getRoomEntryMethodNumericValue = (value: string): number => {
-        switch ((value || '').trim().toLowerCase()) {
-            case 'door':
-                return 1;
-            case 'teleport':
-                return 2;
-            case 'unknown':
-            case '':
-                return 0;
-            default:
-                return 3;
-        }
-    };
-
-    const getTimeZoneOffsetMinutes = (epochMs: number, timeZone: string): number => {
-        try {
-            const formatter = new Intl.DateTimeFormat('en-US', {
-                timeZone,
-                timeZoneName: 'shortOffset',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-            const timeZonePart = formatter.formatToParts(new Date(epochMs)).find((part) => part.type === 'timeZoneName')?.value ?? 'GMT';
-            const match = timeZonePart.match(/^GMT(?:(\+|-)(\d{1,2})(?::?(\d{2}))?)?$/i);
-
-            if (!match?.[1]) return 0;
-
-            const sign = match[1] === '-' ? -1 : 1;
-            const hours = parseInt(match[2] ?? '0', 10);
-            const minutes = parseInt(match[3] ?? '0', 10);
-
-            return sign * (hours * 60 + minutes);
-        } catch {
-            return 0;
-        }
     };
 
     const getVariableAvailabilityLabel = (value: number, targetType: 'user' | 'furni' | 'global' | 'context'): string => {
@@ -444,119 +307,6 @@ export const WiredCreatorToolsView: FC<{}> = () => {
                 return 'Wired';
         }
     };
-
-    const getTeamEffectData = (effectValue: number): TeamEffectData => {
-        if (!roomSession || effectValue <= 0) return null;
-
-        let teamType = -1;
-        let teamColor = 0;
-
-        if (effectValue >= 223 && effectValue <= 226) {
-            teamType = 0;
-            teamColor = effectValue - 222;
-        } else if (effectValue >= 33 && effectValue <= 36) {
-            teamType = 1;
-            teamColor = effectValue - 32;
-        } else if (effectValue >= 40 && effectValue <= 43) {
-            teamType = 2;
-            teamColor = effectValue - 39;
-        }
-
-        if (teamType < 0 || !(teamColor in TEAM_COLOR_NAMES)) return null;
-
-        return {
-            colorId: teamColor,
-            typeId: teamType
-        };
-    };
-
-    const getRoomTeamScore = (colorId: number): number => {
-        if (!roomSession || !(colorId in TEAM_COLOR_NAMES)) return 0;
-
-        const classNames = [
-            `battlebanzai_counter_${TEAM_COLOR_NAMES[colorId]}`,
-            `freeze_counter_${TEAM_COLOR_NAMES[colorId]}`,
-            `football_counter_${TEAM_COLOR_NAMES[colorId]}`
-        ];
-
-        const roomObjects = GetRoomEngine().getRoomObjects(roomSession.roomId, RoomObjectCategory.FLOOR);
-
-        for (const targetClassName of classNames) {
-            for (const roomObject of roomObjects) {
-                if (!roomObject) continue;
-
-                const typeId = roomObject.model.getValue<number>(RoomObjectVariable.FURNITURE_TYPE_ID);
-                const furnitureData = GetSessionDataManager().getFloorItemData(typeId);
-
-                if (!furnitureData || furnitureData.className !== targetClassName) continue;
-
-                return Number(roomObject.getState(0) ?? 0);
-            }
-        }
-
-        return 0;
-    };
-
-    const getSelectedUserTeamData = (effectValue: number): InspectionUserTeamData => {
-        const teamData = getTeamEffectData(effectValue);
-
-        if (!teamData) return null;
-
-        return {
-            colorId: teamData.colorId,
-            typeId: teamData.typeId,
-            score: teamData.typeId === 0 ? 0 : getRoomTeamScore(teamData.colorId)
-        };
-    };
-
-    const createUtcDateFromHotelParts = (parts: HotelDateTimeParts): Date => {
-        return new Date(Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second, parts.millisecond));
-    };
-
-    const getMondayBasedWeekday = (parts: HotelDateTimeParts): number => {
-        const jsDay = createUtcDateFromHotelParts(parts).getUTCDay();
-        return jsDay === 0 ? 7 : jsDay;
-    };
-
-    const getDayOfYear = (parts: HotelDateTimeParts): number => {
-        const currentDate = createUtcDateFromHotelParts(parts);
-        const startOfYear = new Date(Date.UTC(parts.year, 0, 1));
-        const millisecondsPerDay = 86400000;
-
-        return Math.floor((currentDate.getTime() - startOfYear.getTime()) / millisecondsPerDay) + 1;
-    };
-
-    const getIsoWeekOfYear = (parts: HotelDateTimeParts): number => {
-        const utcDate = new Date(Date.UTC(parts.year, parts.month - 1, parts.day));
-        const dayOfWeek = utcDate.getUTCDay() || 7;
-
-        utcDate.setUTCDate(utcDate.getUTCDate() + 4 - dayOfWeek);
-
-        const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
-
-        return Math.ceil(((utcDate.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-    };
-
-    const getUserLiveState = useCallback(
-        (roomIndex: number): InspectionUserLiveState => {
-            if (!roomSession) return null;
-
-            const roomObject = GetRoomEngine().getRoomObject(roomSession.roomId, roomIndex, RoomObjectCategory.UNIT);
-
-            if (!roomObject) return null;
-
-            const location = roomObject.getLocation();
-            const rawDirection = Math.round(roomObject.getDirection().x / 45);
-
-            return {
-                positionX: Math.round(location?.x ?? 0),
-                positionY: Math.round(location?.y ?? 0),
-                altitude: Math.round(Number(location?.z ?? 0) * 100),
-                direction: ((rawDirection % 8) + 8) % 8
-            };
-        },
-        [roomSession]
-    );
 
     const refreshSelectedUser = useCallback(
         (roomIndex: number = selectedUser?.roomIndex) => {
@@ -667,10 +417,8 @@ export const WiredCreatorToolsView: FC<{}> = () => {
                     });
                     break;
             }
-
-            setSelectedUserLiveState(getUserLiveState(roomIndex));
         },
-        [getUserLiveState, roomSession, selectedUser?.roomIndex]
+        [roomSession, selectedUser?.roomIndex]
     );
 
     const refreshSelectedFurni = useCallback(
@@ -686,10 +434,8 @@ export const WiredCreatorToolsView: FC<{}> = () => {
                 category,
                 info
             });
-
-            setSelectedFurniLiveState(getFurniLiveState(objectId, category));
         },
-        [getFurniLiveState, selectedFurni?.category, selectedFurni?.objectId]
+        [selectedFurni?.category, selectedFurni?.objectId]
     );
 
     useObjectSelectedEvent((event) => {
@@ -733,19 +479,6 @@ export const WiredCreatorToolsView: FC<{}> = () => {
         setMonitorLoadedKey(monitorViewKeyRef.current);
     });
 
-    useMessageEvent<WiredFurniRuntimeStateEvent>(WiredFurniRuntimeStateEvent, (event) => {
-        const parser = event.getParser();
-
-        if (parser.key !== '@gravity' || parser.itemId !== selectedFurni?.objectId) return;
-
-        setSelectedFurniRuntimeState({
-            itemId: parser.itemId,
-            key: parser.key,
-            value: parser.value,
-            supported: parser.supported
-        });
-    });
-
     useMessageEvent<FurnitureFloorUpdateEvent>(FurnitureFloorUpdateEvent, (event) => {
         if (!selectedFurni) return;
 
@@ -756,12 +489,6 @@ export const WiredCreatorToolsView: FC<{}> = () => {
         refreshSelectedFurni(selectedFurni.objectId, selectedFurni.category);
     });
 
-    useMessageEvent<FurnitureFloorUpdateEvent>(FurnitureFloorUpdateEvent, () => {
-        if (inspectionType !== 'user' || !selectedUser) return;
-
-        setSelectedUserActionVersion((previousValue) => previousValue + 1);
-    });
-
     useMessageEvent<FurnitureWallUpdateEvent>(FurnitureWallUpdateEvent, (event) => {
         if (!selectedFurni || selectedFurni.category !== RoomObjectCategory.WALL) return;
 
@@ -770,17 +497,6 @@ export const WiredCreatorToolsView: FC<{}> = () => {
         if (parser.item.itemId !== selectedFurni.objectId) return;
 
         refreshSelectedFurni(selectedFurni.objectId, selectedFurni.category);
-    });
-
-    useMessageEvent<RoomUnitStatusEvent>(RoomUnitStatusEvent, (event) => {
-        if (!selectedUser) return;
-
-        const parser = event.getParser();
-
-        if (!parser?.statuses?.some((status) => status.id === selectedUser.roomIndex)) return;
-
-        setSelectedUserLiveState(getUserLiveState(selectedUser.roomIndex));
-        setSelectedUserActionVersion((previousValue) => previousValue + 1);
     });
 
     useMessageEvent<RoomUnitInfoEvent>(RoomUnitInfoEvent, (event) => {
@@ -801,64 +517,6 @@ export const WiredCreatorToolsView: FC<{}> = () => {
         refreshSelectedUser(selectedUser.roomIndex);
     });
 
-    useMessageEvent<RoomUnitDanceEvent>(RoomUnitDanceEvent, (event) => {
-        if (!selectedUser) return;
-
-        if (event.getParser().unitId !== selectedUser.roomIndex) return;
-
-        setSelectedUserActionVersion((previousValue) => previousValue + 1);
-    });
-
-    useMessageEvent<RoomUnitEffectEvent>(RoomUnitEffectEvent, (event) => {
-        if (!selectedUser) return;
-
-        if (event.getParser().unitId !== selectedUser.roomIndex) return;
-
-        setSelectedUserActionVersion((previousValue) => previousValue + 1);
-    });
-
-    useMessageEvent<RoomUnitHandItemEvent>(RoomUnitHandItemEvent, (event) => {
-        if (!selectedUser) return;
-
-        if (event.getParser().unitId !== selectedUser.roomIndex) return;
-
-        setSelectedUserActionVersion((previousValue) => previousValue + 1);
-    });
-
-    useMessageEvent<RoomUnitExpressionEvent>(RoomUnitExpressionEvent, (event) => {
-        if (!selectedUser) return;
-
-        if (event.getParser().unitId !== selectedUser.roomIndex) return;
-
-        setSelectedUserActionVersion((previousValue) => previousValue + 1);
-    });
-
-    useEffect(() => {
-        if (!isVisible || inspectionType !== 'user' || !selectedUser || !roomSession) return;
-
-        let lastMutedValue = Number(
-            GetRoomEngine()
-                .getRoomObject(roomSession.roomId, selectedUser.roomIndex, RoomObjectCategory.UNIT)
-                ?.model.getValue<number>(RoomObjectVariable.FIGURE_IS_MUTED) ?? 0
-        );
-
-        const interval = window.setInterval(() => {
-            const currentMutedValue = Number(
-                GetRoomEngine()
-                    .getRoomObject(roomSession.roomId, selectedUser.roomIndex, RoomObjectCategory.UNIT)
-                    ?.model.getValue<number>(RoomObjectVariable.FIGURE_IS_MUTED) ?? 0
-            );
-
-            if (currentMutedValue === lastMutedValue) return;
-
-            lastMutedValue = currentMutedValue;
-
-            setSelectedUserActionVersion((previousValue) => previousValue + 1);
-        }, WIRED_INSPECTION_REFRESH_MS);
-
-        return () => window.clearInterval(interval);
-    }, [isVisible, inspectionType, selectedUser, roomSession]);
-
     useEffect(() => {
         const shouldTick = isVisible;
 
@@ -870,12 +528,6 @@ export const WiredCreatorToolsView: FC<{}> = () => {
 
         return () => window.clearInterval(interval);
     }, [isVisible, activeTab, inspectionType, roomSession?.roomId]);
-
-    useEffect(() => {
-        if (!roomSession?.roomId) return;
-
-        setRoomEnteredAt(Date.now());
-    }, [roomSession?.roomId]);
 
     useEffect(() => {
         resetMonitorSnapshot();
@@ -923,55 +575,6 @@ export const WiredCreatorToolsView: FC<{}> = () => {
 
         return () => window.clearInterval(interval);
     }, [isVisible, roomSession?.roomId, roomSettings.canInspect, requestUserVariables, shouldPauseVariableSnapshotRefresh]);
-
-    useEffect(() => {
-        if (!isVisible || activeTab !== 'inspection') return;
-
-        const refreshInspectionState = () => {
-            if (inspectionType === 'furni' && selectedFurni) {
-                const nextLiveState = getFurniLiveState(selectedFurni.objectId, selectedFurni.category);
-
-                setSelectedFurniLiveState((previousValue) => {
-                    if (
-                        previousValue?.positionX === nextLiveState?.positionX &&
-                        previousValue?.positionY === nextLiveState?.positionY &&
-                        previousValue?.altitude === nextLiveState?.altitude &&
-                        previousValue?.rotation === nextLiveState?.rotation &&
-                        previousValue?.state === nextLiveState?.state
-                    )
-                        return previousValue;
-
-                    return nextLiveState;
-                });
-
-                return;
-            }
-
-            if (inspectionType === 'user' && selectedUser) {
-                const nextLiveState = getUserLiveState(selectedUser.roomIndex);
-
-                setSelectedUserLiveState((previousValue) => {
-                    if (
-                        previousValue?.positionX === nextLiveState?.positionX &&
-                        previousValue?.positionY === nextLiveState?.positionY &&
-                        previousValue?.altitude === nextLiveState?.altitude &&
-                        previousValue?.direction === nextLiveState?.direction
-                    )
-                        return previousValue;
-
-                    return nextLiveState;
-                });
-
-                setSelectedUserActionVersion((previousValue) => previousValue + 1);
-            }
-        };
-
-        refreshInspectionState();
-
-        const interval = window.setInterval(refreshInspectionState, WIRED_INSPECTION_REFRESH_MS);
-
-        return () => window.clearInterval(interval);
-    }, [isVisible, activeTab, inspectionType, selectedFurni, selectedUser, getFurniLiveState, getUserLiveState]);
 
     useEffect(() => {
         const linkTracker: ILinkEventTracker = {
@@ -1059,37 +662,6 @@ export const WiredCreatorToolsView: FC<{}> = () => {
 
         setIsVisible(false);
     }, [isVisible, roomSession?.roomId, roomSettings.isLoaded, roomSettings.canInspect]);
-
-    const [selectedRoomObject, setSelectedRoomObject] = useState<ReturnType<ReturnType<typeof GetRoomEngine>['getRoomObject']> | null>(null);
-    const isCurrentWallSelection = useCallback(() => {
-        const current = useWiredCreatorToolsUiStore.getState();
-        return current.isVisible && current.activeTab === 'inspection' && current.inspectionType === 'furni'
-            && current.selectedFurni === selectedFurni && selectedFurni?.category === RoomObjectCategory.WALL;
-    }, [selectedFurni]);
-    const wallInspection = useWiredFurniInspection(roomSession, selectedFurni?.objectId ?? 0, selectedRoomObject,
-        isVisible && activeTab === 'inspection' && inspectionType === 'furni' && selectedFurni?.category === RoomObjectCategory.WALL && roomSettings.canInspect,
-        roomSettings.canModify, isCurrentWallSelection);
-
-    useEffect(() => {
-        if (selectedFurni?.category !== RoomObjectCategory.WALL || wallInspection.canEdit
-            || !['@rotation', '@altitude', '@wallitem_offset'].includes(editingVariable)) return;
-        setEditingVariable(null);
-        setEditingValue('');
-    }, [selectedFurni, wallInspection.canEdit, editingVariable, setEditingVariable, setEditingValue]);
-
-    const [selectedUserRoomObject, setSelectedUserRoomObject] = useState<ReturnType<ReturnType<typeof GetRoomEngine>['getRoomObject']> | null>(null);
-
-    useEffect(() => {
-        setSelectedRoomObject(
-            roomSession && selectedFurni ? GetRoomEngine().getRoomObject(roomSession.roomId, selectedFurni.objectId, selectedFurni.category) : null
-        );
-    }, [roomSession, selectedFurni, furniInternalRevision]);
-
-    useEffect(() => {
-        setSelectedUserRoomObject(
-            roomSession && selectedUser ? GetRoomEngine().getRoomObject(roomSession.roomId, selectedUser.roomIndex, RoomObjectCategory.UNIT) : null
-        );
-    }, [roomSession, selectedUser, selectedUserActionVersion]);
 
     const selectedMonitorErrorInfo = useMemo(() => {
         if (!selectedMonitorError) return null;
@@ -1246,409 +818,47 @@ export const WiredCreatorToolsView: FC<{}> = () => {
             }
         ];
     }, [monitorSnapshot, monitorRoomStats]);
-    const selectedFurnitureData = useMemo(() => {
-        if (!selectedRoomObject || !selectedFurni) return null;
-
-        const typeId = selectedRoomObject.model.getValue<number>(RoomObjectVariable.FURNITURE_TYPE_ID);
-
-        if (selectedFurni.category === RoomObjectCategory.WALL) return GetSessionDataManager().getWallItemData(typeId);
-
-        return GetSessionDataManager().getFloorItemData(typeId);
-    }, [selectedRoomObject, selectedFurni]);
-    const currentWallLocationString = useMemo(() => {
-        if (!roomSession || !selectedFurni || selectedFurni.category !== RoomObjectCategory.WALL || !selectedRoomObject) return null;
-
-        const wallGeometry = GetRoomEngine().getLegacyWallGeometry(roomSession.roomId);
-
-        if (!wallGeometry) return null;
-
-        const angle = (((Math.round(selectedRoomObject.getDirection().x / 45) % 8) + 8) % 8) * 45;
-
-        return wallGeometry.getOldLocationString(selectedRoomObject.getLocation(), angle);
-    }, [roomSession, selectedFurni, selectedRoomObject, selectedFurniLiveState]);
-    const parsedWallLocation = useMemo(() => parseWallLocation(currentWallLocationString), [currentWallLocationString]);
-    const wallItemOffset = useMemo(() => {
-        if (!parsedWallLocation) return null;
-
-        return `${parsedWallLocation.localX},${parsedWallLocation.localY}`;
-    }, [parsedWallLocation]);
-    const canEditInspection = roomSettings.canModify;
     const roomVariableAssignmentMap = useMemo(() => {
         return new Map(roomVariableAssignments.map((assignment) => [assignment.variableItemId, assignment]));
     }, [roomVariableAssignments]);
-    const roomCustomVariableDefinitions = useMemo(() => {
-        return [...roomVariableDefinitions].sort(
-            (left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }) || left.itemId - right.itemId
-        );
-    }, [roomVariableDefinitions]);
-    const roomCustomVariableDefinitionMap = useMemo(() => {
-        return new Map(roomCustomVariableDefinitions.map((definition) => [definition.name, definition]));
-    }, [roomCustomVariableDefinitions]);
-    const selectedFurniAssignments = useMemo(() => {
-        if (!selectedFurni) return [];
-
-        return furniVariableAssignments[selectedFurni.objectId] ?? [];
-    }, [selectedFurni, furniVariableAssignments]);
-    const selectedFurniAssignmentMap = useMemo(() => {
-        return new Map(selectedFurniAssignments.map((assignment) => [assignment.variableItemId, assignment]));
-    }, [selectedFurniAssignments]);
-    const selectedFurniCustomVariableDefinitions = useMemo(() => {
-        if (!selectedFurniAssignments.length) return [];
-
-        return furniVariableDefinitions
-            .filter((definition) => selectedFurniAssignmentMap.has(definition.itemId))
-            .sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }) || left.itemId - right.itemId);
-    }, [selectedFurniAssignments, selectedFurniAssignmentMap, furniVariableDefinitions]);
-    const selectedFurniCustomVariableDefinitionMap = useMemo(() => {
-        return new Map(selectedFurniCustomVariableDefinitions.map((definition) => [definition.name, definition]));
-    }, [selectedFurniCustomVariableDefinitions]);
-    const furniVariables = useMemo(() => {
-        if (!selectedFurni || !selectedRoomObject) return [];
-
-        const classId = selectedRoomObject.model.getValue<number>(RoomObjectVariable.FURNITURE_TYPE_ID);
-        const tileSizeZ = Number(selectedFurnitureData?.tileSizeZ ?? 0);
-        const liveState = selectedFurniLiveState ?? getFurniLiveState(selectedFurni.objectId, selectedFurni.category);
-        const opacity = Math.round(Math.max(0, Math.min(1, selectedRoomObject.model.getValue<number>(RoomObjectVariable.FURNITURE_ALPHA_MULTIPLIER) ?? 1)) * 100);
-        const gravity = Math.max(0, Math.min(1, selectedRoomObject.model.getValue<number>(WIRED_FURNI_GRAVITY_MODEL_KEY) ?? 0));
-
-        const dynamicFlags: InspectionVariable[] = [];
-
-        if (selectedFurni.info?.allowSit) dynamicFlags.push({ key: '@can_sit_on', value: '' });
-        if (selectedFurni.info?.allowLay) dynamicFlags.push({ key: '@can_lay_on', value: '' });
-        if (selectedFurni.info?.allowWalk) dynamicFlags.push({ key: '@can_stand_on', value: '' });
-        if (selectedFurni.info?.allowStack) dynamicFlags.push({ key: '@is_stackable', value: '' });
-
-        const customVariables: InspectionVariable[] = selectedFurniCustomVariableDefinitions.map((definition) => {
-            const assignment = selectedFurniAssignmentMap.get(definition.itemId);
-
-            return {
-                key: definition.name,
-                value: definition.hasValue ? String(assignment?.value ?? 0) : '',
-                editable: canEditInspection && definition.hasValue
-            };
-        });
-
-        if (selectedFurni.category === RoomObjectCategory.WALL) {
-            return [
-                ...customVariables,
-                { key: 'Server inspection', value: 'Server values', valueClassName: 'volt-wired-menu__text--bold' },
-                ...WIRED_WALL_INSPECTION_TOKENS.map(key => ({
-                    key,
-                    value: wallInspection.values?.get(key)?.toString() ?? 'Unavailable',
-                    editable: wallInspection.canEdit && ['@rotation', '@altitude', '@wallitem_offset'].includes(key)
-                })),
-                { key: 'Furniture controls', value: 'Client state / opacity local preview', valueClassName: 'volt-wired-menu__text--bold' },
-                { key: '@state', value: String(liveState?.state ?? 0), editable: canEditInspection },
-                { key: '@opacity', value: String(opacity), editable: canEditInspection },
-                { key: '@gravity', value: 'Unavailable' }
-            ];
-        }
-
-        const variables: InspectionVariable[] = [
-            ...customVariables,
-            ...(Number(selectedFurni.info?.teleportTargetId ?? 0) > 0
-                ? [{ key: '~teleport.target_id', value: String(selectedFurni.info.teleportTargetId) }]
-                : []),
-            { key: '@id', value: String(selectedFurni.objectId) },
-            { key: '@class_id', value: String(classId) },
-            { key: '@height', value: String(Math.round(tileSizeZ * 100)) },
-            { key: '@state', value: String(liveState?.state ?? 0), editable: canEditInspection },
-            { key: '@position_x', value: String(liveState?.positionX ?? 0), editable: canEditInspection },
-            { key: '@position_y', value: String(liveState?.positionY ?? 0), editable: canEditInspection },
-            { key: '@rotation', value: String(liveState?.rotation ?? 0), editable: canEditInspection },
-            { key: '@altitude', value: String(liveState?.altitude ?? 0), editable: canEditInspection },
-            { key: '@opacity', value: String(opacity), editable: canEditInspection },
-            {
-                key: '@gravity',
-                value: String(
-                    selectedFurniRuntimeState?.itemId === selectedFurni.objectId && selectedFurniRuntimeState.supported
-                        ? selectedFurniRuntimeState.value
-                        : gravity
-                ),
-                editable: canEditInspection
-            },
-            { key: '@is_invisible', value: '0' },
-            ...(wallItemOffset ? [{ key: '@wallitem_offset', value: wallItemOffset, editable: canEditInspection }] : []),
-            ...dynamicFlags,
-            { key: '@dimensions.x', value: String(selectedFurni.info?.tileSizeX ?? 0) },
-            { key: '@dimensions.y', value: String(selectedFurni.info?.tileSizeY ?? 0) },
-            { key: '@owner_id', value: String(selectedFurni.info?.ownerId ?? 0) }
-        ];
-
-        return variables;
-    }, [
-        selectedFurni,
-        selectedFurniLiveState,
-        selectedRoomObject,
-        selectedFurnitureData,
-        wallItemOffset,
-        canEditInspection,
-        selectedFurniCustomVariableDefinitions,
-        selectedFurniAssignmentMap,
-        selectedFurniRuntimeState,
-        furniInternalRevision,
-        wallInspection.values,
-        wallInspection.canEdit
-    ]);
-    const canEditSelectedUser = useMemo(() => {
-        return !!selectedUser && !!roomSession && roomSettings.canModify;
-    }, [selectedUser, roomSession, roomSettings.canModify]);
-    const selectedUserHolderKey = selectedUser ? userVariableHolderKey(selectedUser.kind, selectedUser.userId) : 0;
-    const selectedUserAssignments = useMemo(() => {
-        if (!selectedUserHolderKey) return [];
-
-        return userVariableAssignments[selectedUserHolderKey] ?? [];
-    }, [selectedUserHolderKey, userVariableAssignments]);
-    const selectedUserAssignmentMap = useMemo(() => {
-        return new Map(selectedUserAssignments.map((assignment) => [assignment.variableItemId, assignment]));
-    }, [selectedUserAssignments]);
-    const selectedUserCustomVariableDefinitions = useMemo(() => {
-        if (!selectedUserAssignments.length) return [];
-
-        return userVariableDefinitions
-            .filter((definition) => selectedUserAssignmentMap.has(definition.itemId))
-            .sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }) || left.itemId - right.itemId);
-    }, [selectedUserAssignments.length, selectedUserAssignmentMap, userVariableDefinitions]);
-    const selectedUserCustomVariableDefinitionMap = useMemo(() => {
-        return new Map(selectedUserCustomVariableDefinitions.map((definition) => [definition.name, definition]));
-    }, [selectedUserCustomVariableDefinitions]);
-    const userVariables = useMemo(() => {
-        if (!selectedUser) return [];
-
-        const liveState = selectedUserLiveState ?? getUserLiveState(selectedUser.roomIndex);
-        const currentControllerLevel =
-            selectedUser.kind === 'user'
-                ? selectedUser.roomIndex === roomSession?.ownRoomIndex
-                    ? (roomSession?.controllerLevel ?? selectedUser.level ?? 0)
-                    : Number(selectedUserRoomObject?.model.getValue<number>(RoomObjectVariable.FIGURE_FLAT_CONTROL) ?? selectedUser.level ?? 0)
-                : Number(selectedUser.level ?? 0);
-        const isSelectedUserOwner =
-            selectedUser.kind === 'user'
-                ? (selectedUser.roomIndex === roomSession?.ownRoomIndex && !!roomSession?.isRoomOwner) ||
-                  currentControllerLevel >= RoomControllerLevel.ROOM_OWNER
-                : !!selectedUser.isOwner;
-        const hasSelectedUserRights = selectedUser.kind === 'user' ? currentControllerLevel >= RoomControllerLevel.GUEST : !!selectedUser.hasRights;
-        const isSelectedUserGroupAdmin =
-            selectedUser.kind === 'user' && !!roomSession?.isGuildRoom && currentControllerLevel >= RoomControllerLevel.GUILD_ADMIN;
-        const isSelectedUserMuted = Number(selectedUserRoomObject?.model.getValue<number>(RoomObjectVariable.FIGURE_IS_MUTED) ?? 0) > 0;
-        const isSelectedUserTrading =
-            !!isTrading && selectedUser.kind === 'user' && (tradeOwnUser?.userId === selectedUser.userId || tradeOtherUser?.userId === selectedUser.userId);
-        const signValue = Number(selectedUserRoomObject?.model.getValue<number>(RoomObjectVariable.FIGURE_SIGN) ?? -1);
-        const danceValue = Number(selectedUserRoomObject?.model.getValue<number>(RoomObjectVariable.FIGURE_DANCE) ?? 0);
-        const handItemValue = Number(selectedUserRoomObject?.model.getValue<number>(RoomObjectVariable.FIGURE_CARRY_OBJECT) ?? 0);
-        const expressionValue = Number(selectedUserRoomObject?.model.getValue<number>(RoomObjectVariable.FIGURE_EXPRESSION) ?? 0);
-        const effectValue = Number(selectedUserRoomObject?.model.getValue<number>(RoomObjectVariable.FIGURE_EFFECT) ?? 0);
-        const petOwnerId = selectedUser.kind === 'pet' ? Number(roomSession?.userDataManager.getPetData(selectedUser.userId)?.ownerId ?? 0) : 0;
-        const identityKey =
-            selectedUser.kind === 'pet' ? '@pet_id' : selectedUser.kind === 'bot' || selectedUser.kind === 'rentable_bot' ? '@bot_id' : '@user_id';
-        const teamData = getSelectedUserTeamData(effectValue);
-        const dynamicUserFlags: InspectionVariable[] = [];
-        const dynamicUserActions: InspectionVariable[] = [];
-
-        if (selectedUser.isHC) dynamicUserFlags.push({ key: '@is_hc', value: '' });
-        if (hasSelectedUserRights) dynamicUserFlags.push({ key: '@has_rights', value: '' });
-        if (isSelectedUserOwner) dynamicUserFlags.push({ key: '@is_owner', value: '' });
-        if (isSelectedUserGroupAdmin) dynamicUserFlags.push({ key: '@is_group_admin', value: '' });
-        if (isSelectedUserMuted) dynamicUserFlags.push({ key: '@is_muted', value: '' });
-        if (isSelectedUserTrading) dynamicUserFlags.push({ key: '@is_trading', value: '' });
-        if (WIRED_FREEZE_EFFECT_IDS.has(effectValue)) dynamicUserFlags.push({ key: '@is_frozen', value: '' });
-        if (effectValue > 0) dynamicUserActions.push({ key: '@effect_id', value: `${effectValue} (${getEffectDisplayName(effectValue)})` });
-        if (teamData) dynamicUserActions.push({ key: '@team_score', value: String(teamData.score) });
-        if (teamData) dynamicUserActions.push({ key: '@team_color', value: `${teamData.colorId} (${getTeamColorDisplayName(teamData.colorId)})` });
-        if (teamData) dynamicUserActions.push({ key: '@team_type', value: `${teamData.typeId} (${getTeamTypeDisplayName(teamData.typeId)})` });
-        if (signValue >= 0) dynamicUserActions.push({ key: '@sign', value: `${signValue} (${getSignDisplayName(signValue)})` });
-        if (danceValue > 0) dynamicUserActions.push({ key: '@dance', value: `${danceValue} (${getDanceDisplayName(danceValue)})` });
-        if (expressionValue === AvatarExpressionEnum.IDLE.ordinal) dynamicUserActions.push({ key: '@is_idle', value: '' });
-        if (handItemValue > 0) dynamicUserActions.push({ key: '@handitem_id', value: `${handItemValue} (${getHandItemDisplayName(handItemValue)})` });
-
-        const customVariables: InspectionVariable[] = selectedUserCustomVariableDefinitions.map((definition) => {
-            const assignment = selectedUserAssignmentMap.get(definition.itemId);
-
-            return {
-                key: definition.name,
-                value: definition.hasValue ? String(assignment?.value ?? 0) : '',
-                editable: canEditSelectedUser && definition.hasValue
-            };
-        });
-
-        return [
-            ...customVariables,
-            { key: '@index', value: String(selectedUser.roomIndex) },
-            { key: '@type', value: `${selectedUser.kind === 'user' ? 1 : selectedUser.kind === 'pet' ? 2 : 4} (${selectedUser.kind})` },
-            { key: '@gender', value: `${selectedUser.gender === 'F' ? 1 : selectedUser.gender === 'M' ? 0 : -1} (${selectedUser.gender || 'U'})` },
-            { key: '@level', value: String(currentControllerLevel) },
-            { key: '@achievement_score', value: String(selectedUser.achievementScore ?? 0) },
-            ...dynamicUserFlags,
-            ...dynamicUserActions,
-            { key: '@position_x', value: String(liveState?.positionX ?? 0), editable: canEditSelectedUser },
-            { key: '@position_y', value: String(liveState?.positionY ?? 0), editable: canEditSelectedUser },
-            { key: '@direction', value: String(liveState?.direction ?? 0), editable: canEditSelectedUser },
-            { key: '@altitude', value: String(liveState?.altitude ?? 0) },
-            ...(Number(selectedUser.favouriteGroupId ?? 0) > 0 ? [{ key: '@favourite_group_id', value: String(selectedUser.favouriteGroupId) }] : []),
-            ...(selectedUser.roomEntryMethod && selectedUser.roomEntryMethod !== 'unknown'
-                ? [{ key: '@room_entry.method', value: `${getRoomEntryMethodNumericValue(selectedUser.roomEntryMethod)} (${selectedUser.roomEntryMethod})` }]
-                : []),
-            ...(selectedUser.roomEntryMethod === 'teleport' && Number(selectedUser.roomEntryTeleportId ?? 0) > 0
-                ? [{ key: '@room_entry.teleport_id', value: String(selectedUser.roomEntryTeleportId) }]
-                : []),
-            { key: identityKey, value: String(selectedUser.kind === 'bot' || selectedUser.kind === 'rentable_bot' ? Math.abs(selectedUser.userId ?? 0) : (selectedUser.userId ?? 0)) },
-            ...(petOwnerId > 0 ? [{ key: '@pet_owner_id', value: String(petOwnerId) }] : [])
-        ];
-    }, [
-        selectedUser,
-        selectedUserLiveState,
-        canEditSelectedUser,
-        selectedUserRoomObject,
-        selectedUserActionVersion,
-        roomSession,
-        isTrading,
-        tradeOwnUser,
-        tradeOtherUser,
-        selectedUserCustomVariableDefinitions,
-        selectedUserAssignmentMap
-    ]);
-    const globalVariables = useMemo(() => {
-        if (!roomSession) return [];
-
-        const roomId = roomSession.roomId;
-        const unitObjects = GetRoomEngine().getRoomObjects(roomId, RoomObjectCategory.UNIT);
-        const floorObjects = GetRoomEngine().getRoomObjects(roomId, RoomObjectCategory.FLOOR);
-        const wallObjects = GetRoomEngine().getRoomObjects(roomId, RoomObjectCategory.WALL);
-
-        const teamSizes: Record<number, number> = {
-            1: 0,
-            2: 0,
-            3: 0,
-            4: 0
-        };
-
-        let userCount = 0;
-
-        for (const roomObject of unitObjects) {
-            if (!roomObject) continue;
-
-            const userData = roomSession.userDataManager.getUserDataByIndex(roomObject.id);
-
-            if (!userData || userData.type !== RoomObjectType.USER) continue;
-
-            userCount++;
-
-            const effectValue = Number(roomObject.model.getValue<number>(RoomObjectVariable.FIGURE_EFFECT) ?? 0);
-            const teamData = getTeamEffectData(effectValue);
-
-            if (!teamData) continue;
-
-            teamSizes[teamData.colorId] = teamSizes[teamData.colorId] + 1;
-        }
-
-        const hotelTimeZone = roomSession.hotelTimeZone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-        const hotelTimeSnapshotMs = Number(roomSession.hotelTimeSnapshotMs ?? 0);
-        const hotelTimeSyncMs = Number(roomSession.hotelTimeSyncMs ?? 0);
-        const hotelCurrentTimeMs =
-            hotelTimeSnapshotMs > 0 && hotelTimeSyncMs > 0 ? hotelTimeSnapshotMs + Math.max(0, globalClock - hotelTimeSyncMs) : globalClock;
-        const hotelNow = getHotelDateTimeParts(hotelCurrentTimeMs, hotelTimeZone);
-        const clientTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-        const hotelTimeZoneOffsetMinutes = getTimeZoneOffsetMinutes(hotelCurrentTimeMs, hotelTimeZone);
-        const clientTimeZoneOffsetMinutes = getTimeZoneOffsetMinutes(hotelCurrentTimeMs, clientTimeZone);
-        const weekdayIndex = getMondayBasedWeekday(hotelNow);
-        const monthIndex = hotelNow.month;
-        const customVariables: InspectionVariable[] = roomCustomVariableDefinitions.map((definition) => {
-            const assignment = roomVariableAssignmentMap.get(definition.itemId);
-
-            return {
-                key: definition.name,
-                value: String(assignment?.value ?? 0),
-                editable: canEditInspection
-            };
-        });
-
-        return [
-            ...customVariables,
-            { key: '@furni_count', value: String(floorObjects.length + wallObjects.length) },
-            { key: '@user_count', value: String(userCount) },
-            { key: '@wired_timer', value: String(Math.max(0, Math.floor((globalClock - roomEnteredAt) / 500))) },
-            { key: '@team_red_score', value: String(getRoomTeamScore(1)) },
-            { key: '@team_green_score', value: String(getRoomTeamScore(2)) },
-            { key: '@team_blue_score', value: String(getRoomTeamScore(3)) },
-            { key: '@team_yellow_score', value: String(getRoomTeamScore(4)) },
-            { key: '@team_red_size', value: String(teamSizes[1]) },
-            { key: '@team_green_size', value: String(teamSizes[2]) },
-            { key: '@team_blue_size', value: String(teamSizes[3]) },
-            { key: '@team_yellow_size', value: String(teamSizes[4]) },
-            { key: '@room_id', value: String(roomId) },
-            { key: '@group_id', value: String(Number(roomSession.groupId ?? 0)) },
-            { key: '@timezone_server', value: `${hotelTimeZoneOffsetMinutes} (${hotelTimeZone})` },
-            { key: '@timezone_client', value: `${clientTimeZoneOffsetMinutes} (${clientTimeZone})` },
-            { key: '@current_time', value: String(Math.floor(hotelCurrentTimeMs / 1000)) },
-            { key: '@current_time.millisecond_of_second', value: String(hotelNow.millisecond) },
-            { key: '@current_time.seconds_of_minute', value: String(hotelNow.second) },
-            { key: '@current_time.minute_of_hour', value: String(hotelNow.minute) },
-            { key: '@current_time.hour_of_day', value: String(hotelNow.hour) },
-            { key: '@current_time.day_of_week', value: `${weekdayIndex} (${WEEKDAY_NAMES[weekdayIndex - 1]})` },
-            { key: '@current_time.day_of_month', value: String(hotelNow.day) },
-            { key: '@current_time.day_of_year', value: String(getDayOfYear(hotelNow)) },
-            { key: '@current_time.week_of_year', value: String(getIsoWeekOfYear(hotelNow)) },
-            { key: '@current_time.month_of_year', value: `${monthIndex} (${MONTH_NAMES[monthIndex - 1]})` },
-            { key: '@current_time.year', value: String(hotelNow.year) }
-        ];
-    }, [roomSession, globalClock, roomEnteredAt, roomCustomVariableDefinitions, roomVariableAssignmentMap, canEditInspection]);
-    const displayedVariables = inspectionType === 'user' ? userVariables : inspectionType === 'global' ? globalVariables : furniVariables;
-    const selectedInspectionVariableKey = selectedInspectionVariableKeys[inspectionType] ?? '';
-    const currentVariableMaps = useMemo(
-        () => ({
-            furni: new Map<string, InspectionVariable>(furniVariables.map((variable) => [variable.key, variable])),
-            user: new Map<string, InspectionVariable>(userVariables.map((variable) => [variable.key, variable])),
-            global: new Map<string, InspectionVariable>(globalVariables.map((variable) => [variable.key, variable]))
-        }),
-        [furniVariables, userVariables, globalVariables]
-    );
-    const selectedInspectionCustomDefinition = useMemo(() => {
-        if (!selectedInspectionVariableKey) return null;
-
+    // AIR InfoStandWidgetHandler.as:1118-1124 sends a wall item as -id. This server reads a negative furni id only for a temporary
+    // wall item and finds every other wall item by its own id.
+    const selectedFurniWireId =
+        selectedFurni?.category === RoomObjectCategory.WALL && IsTemporaryFurniId(selectedFurni.objectId) ? -selectedFurni.objectId : (selectedFurni?.objectId ?? 0);
+    const inspectionHolder = useMemo<WiredObjectHolder | null>(() => {
         switch (inspectionType) {
-            case 'user':
-                return selectedUserCustomVariableDefinitionMap.get(selectedInspectionVariableKey) ?? null;
             case 'global':
-                return roomCustomVariableDefinitionMap.get(selectedInspectionVariableKey) ?? null;
+                return { type: -10, objectId: 0 };
+            case 'user':
+                return selectedUser ? { type: 1, objectId: selectedUser.roomIndex } : null;
             default:
-                return selectedFurniCustomVariableDefinitionMap.get(selectedInspectionVariableKey) ?? null;
+                return selectedFurni ? { type: 0, objectId: selectedFurniWireId } : null;
         }
-    }, [
-        inspectionType,
-        selectedInspectionVariableKey,
-        selectedUserCustomVariableDefinitionMap,
-        roomCustomVariableDefinitionMap,
-        selectedFurniCustomVariableDefinitionMap
-    ]);
-    const availableInspectionDefinitions = useMemo(() => {
-        if (inspectionType === 'global') return [];
-        if (inspectionType === 'user' && !selectedUser) return [];
-        if (inspectionType === 'furni' && !selectedFurni) return [];
-
-        const definitions = inspectionType === 'user' ? userVariableDefinitions : furniVariableDefinitions;
-        const assignments = inspectionType === 'user' ? selectedUserAssignments : selectedFurniAssignments;
-        const assignedIds = new Set(assignments.map((assignment) => assignment.variableItemId));
-
-        return definitions
-            .filter((definition) => !assignedIds.has(definition.itemId) && !definition.isReadOnly)
-            .sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }) || left.itemId - right.itemId);
-    }, [inspectionType, selectedUser, selectedFurni, userVariableDefinitions, furniVariableDefinitions, selectedUserAssignments, selectedFurniAssignments]);
-    const selectedInspectionGiveDefinition = useMemo(() => {
-        if (!availableInspectionDefinitions.length) return null;
-
-        return availableInspectionDefinitions.find((definition) => definition.itemId === inspectionGiveVariableItemId) ?? availableInspectionDefinitions[0];
-    }, [availableInspectionDefinitions, inspectionGiveVariableItemId]);
-    const canManageInspectionVariableAssignments = useMemo(() => {
-        if (!roomSettings.canModify) return false;
-
-        if (inspectionType === 'user') return !!selectedUser;
-        if (inspectionType === 'furni') return !!selectedFurni;
-
-        return false;
-    }, [roomSettings.canModify, inspectionType, selectedUser, selectedFurni]);
-    const canRemoveInspectionVariable =
-        canManageInspectionVariableAssignments && !!selectedInspectionCustomDefinition && !selectedInspectionCustomDefinition.isReadOnly;
-    const canGiveInspectionVariable = canManageInspectionVariableAssignments && !!availableInspectionDefinitions.length;
+    }, [inspectionType, selectedUser, selectedFurni, selectedFurniWireId]);
+    const objectVariables = useWiredObjectVariables(roomSession?.roomId ?? 0, inspectionHolder, isVisible && activeTab === 'inspection', roomSettings.canInspect);
+    const canWriteInspection = roomSettings.canModify;
+    const displayedVariables = useMemo(
+        () =>
+            objectVariables.values && objectVariables.catalog ? buildInspectionRows(objectVariables.values, objectVariables.catalog, canWriteInspection) : [],
+        [objectVariables.values, objectVariables.catalog, canWriteInspection]
+    );
+    const selectedInspectionVariableKey = selectedInspectionVariableKeys[inspectionType] ?? '';
+    const selectedInspectionVariable = displayedVariables.find((variable) => variable.key === selectedInspectionVariableKey) ?? null;
+    const availableInspectionDefinitions = useMemo(
+        () =>
+            inspectionHolder && inspectionHolder.type !== -10 && objectVariables.values && objectVariables.catalog
+                ? buildInspectionGiveDefinitions(inspectionHolder.type, objectVariables.values, objectVariables.catalog)
+                : [],
+        [inspectionHolder, objectVariables.values, objectVariables.catalog]
+    );
+    const selectedInspectionGiveDefinition =
+        availableInspectionDefinitions.find((definition) => definition.variableId === inspectionGiveVariableId) ??
+        availableInspectionDefinitions.find((definition) => definition.available) ??
+        null;
+    // AIR WiredMenuInspectionTab.updateButtonsUI: write permission, data shown, and not the room.
+    const canGiveInspectionVariable = canWriteInspection && inspectionType !== 'global' && !!objectVariables.values;
+    const canRemoveInspectionVariable = canGiveInspectionVariable && !!selectedInspectionVariable?.removable;
+    const canCreateInspectionVariable = canGiveInspectionVariable && !!selectedInspectionGiveDefinition?.available;
     const variableDefinitionsByType = useMemo<Record<VariablesElementType, VariableDefinition[]>>(() => {
         const customUserDefinitions: VariableDefinition[] = userVariableDefinitions
             .map((definition) => ({
@@ -1793,13 +1003,6 @@ export const WiredCreatorToolsView: FC<{}> = () => {
 
         return variablePickerDefinitions.find((variable) => variable.key === selectedKey) ?? variablePickerDefinitions[0] ?? null;
     }, [variablesType, selectedVariableKeys, variablePickerDefinitions]);
-    const selectedVariableHasInspectionValue = useMemo(() => {
-        if (!selectedVariableDefinition) return false;
-
-        if (variablesType === 'context') return !!selectedVariableDefinition.hasValue;
-
-        return currentVariableMaps[variablesType].has(selectedVariableDefinition.key);
-    }, [selectedVariableDefinition, currentVariableMaps, variablesType]);
     const selectedVariableProperties = useMemo(() => {
         if (!selectedVariableDefinition) return [];
 
@@ -1808,7 +1011,7 @@ export const WiredCreatorToolsView: FC<{}> = () => {
             { key: 'Type', value: selectedVariableDefinition.type },
             { key: 'Target', value: selectedVariableDefinition.target },
             { key: 'Availability', value: selectedVariableDefinition.availability },
-            { key: 'Has value', value: selectedVariableHasInspectionValue ? 'Yes' : 'No' },
+            { key: 'Has value', value: selectedVariableDefinition.hasValue ? 'Yes' : 'No' },
             { key: 'Can write to', value: selectedVariableDefinition.canWriteTo && roomSettings.canModify ? 'Yes' : 'No' },
             { key: 'Can create/delete', value: selectedVariableDefinition.canCreateDelete ? 'Yes' : 'No' },
             { key: 'Can intercept', value: selectedVariableDefinition.canIntercept ? 'Yes' : 'No' },
@@ -1817,7 +1020,7 @@ export const WiredCreatorToolsView: FC<{}> = () => {
             { key: 'Has update time', value: selectedVariableDefinition.hasUpdateTime ? 'Yes' : 'No' },
             { key: 'Is text connected', value: selectedVariableDefinition.isTextConnected ? 'Yes' : 'No' }
         ];
-    }, [selectedVariableDefinition, selectedVariableHasInspectionValue, roomSettings.canModify]);
+    }, [selectedVariableDefinition, roomSettings.canModify]);
     const selectedVariableTextValues = useMemo((): VariableTextValue[] => {
         if (!selectedVariableDefinition) return [];
 
@@ -2479,606 +1682,55 @@ export const WiredCreatorToolsView: FC<{}> = () => {
     const beginVariableEdit = (variable: InspectionVariable) => {
         if (!variable.editable) return;
 
-        if (inspectionType === 'furni' && selectedFurni?.category === RoomObjectCategory.WALL
-            && WIRED_WALL_INSPECTION_TOKENS.includes(variable.key)) {
-            if (!wallInspection.canEdit || !['@rotation', '@altitude', '@wallitem_offset'].includes(variable.key)) return;
-            setEditingVariable(variable.key);
-            setEditingValue(variable.value);
-            return;
-        }
-        if (inspectionType === 'furni') {
-            const isEditableBuiltIn = EDITABLE_FURNI_VARIABLES.includes(variable.key);
-            const customDefinition = selectedFurniCustomVariableDefinitionMap.get(variable.key);
-            const isEditableCustom = !!customDefinition?.hasValue && !customDefinition?.isReadOnly;
-
-            if (!isEditableBuiltIn && !isEditableCustom) return;
-        }
-        if (inspectionType === 'user') {
-            const isEditableBuiltIn = EDITABLE_USER_VARIABLES.includes(variable.key);
-            const customDefinition = selectedUserCustomVariableDefinitionMap.get(variable.key);
-            const isEditableCustom = !!customDefinition?.hasValue && !customDefinition?.isReadOnly;
-
-            if (!isEditableBuiltIn && !isEditableCustom) return;
-        }
-        if (inspectionType === 'global') {
-            const customDefinition = roomCustomVariableDefinitionMap.get(variable.key);
-            const isEditableCustom = !!customDefinition && !customDefinition.isReadOnly;
-
-            if (!isEditableCustom) return;
-        }
-
         setEditingVariable(variable.key);
-        setEditingValue(variable.value);
-    };
-
-    const commitVariableEdit = () => {
-        if (inspectionType === 'global') {
-            const customDefinition = roomCustomVariableDefinitionMap.get(editingVariable);
-
-            if (!customDefinition || customDefinition.isReadOnly) {
-                cancelVariableEdit();
-                return;
-            }
-
-            const parsed = parseScalarInput(editingValue);
-            if (parsed === null) return;
-
-            const currentValue = roomVariableAssignmentMap.get(customDefinition.itemId)?.value ?? 0n;
-
-            if (currentValue === parsed) {
-                cancelVariableEdit();
-                return;
-            }
-
-            updateRoomVariableValue(customDefinition.itemId, parsed);
-            setEditingVariable(null);
-            setEditingValue('');
-            return;
-        }
-
-        if (inspectionType === 'user' && selectedUser) {
-            const customDefinition = selectedUserCustomVariableDefinitionMap.get(editingVariable);
-
-            if (customDefinition?.hasValue && !customDefinition.isReadOnly) {
-                const parsed = parseScalarInput(editingValue);
-                if (parsed === null) return;
-
-                const assignment = selectedUserAssignmentMap.get(customDefinition.itemId);
-
-                if (!assignment || assignment.value === parsed) {
-                    cancelVariableEdit();
-                    return;
-                }
-
-                updateUserVariableValue(selectedUserHolderKey, customDefinition.itemId, parsed);
-                setEditingVariable(null);
-                setEditingValue('');
-                return;
-            }
-
-            if (!roomSession) {
-                cancelVariableEdit();
-                return;
-            }
-
-            const currentLiveState = selectedUserLiveState ?? getUserLiveState(selectedUser.roomIndex);
-
-            if (!currentLiveState) {
-                cancelVariableEdit();
-                return;
-            }
-
-            let nextX = currentLiveState.positionX;
-            let nextY = currentLiveState.positionY;
-            let nextDirection = currentLiveState.direction;
-            let isValid = true;
-
-            switch (editingVariable) {
-                case '@position_x': {
-                    const parsed = parseInt(editingValue.trim(), 10);
-
-                    if (Number.isNaN(parsed)) {
-                        isValid = false;
-                        break;
-                    }
-
-                    nextX = parsed;
-                    break;
-                }
-                case '@position_y': {
-                    const parsed = parseInt(editingValue.trim(), 10);
-
-                    if (Number.isNaN(parsed)) {
-                        isValid = false;
-                        break;
-                    }
-
-                    nextY = parsed;
-                    break;
-                }
-                case '@direction': {
-                    const parsed = parseInt(editingValue.trim(), 10);
-
-                    if (Number.isNaN(parsed)) {
-                        isValid = false;
-                        break;
-                    }
-
-                    nextDirection = ((parsed % 8) + 8) % 8;
-                    break;
-                }
-                default:
-                    isValid = false;
-                    break;
-            }
-
-            if (!isValid) {
-                cancelVariableEdit();
-                return;
-            }
-
-            if (nextX === currentLiveState.positionX && nextY === currentLiveState.positionY && nextDirection === currentLiveState.direction) {
-                cancelVariableEdit();
-                return;
-            }
-
-            const selectedRoomObject = GetRoomEngine().getRoomObject(roomSession.roomId, selectedUser.roomIndex, RoomObjectCategory.UNIT);
-            const currentLocation =
-                selectedRoomObject?.getLocation() ?? new Vector3d(currentLiveState.positionX, currentLiveState.positionY, currentLiveState.altitude / 100);
-            const nextLocation = new Vector3d(nextX, nextY, currentLocation.z);
-            const nextDirectionVector = new Vector3d(nextDirection * 45);
-
-            GetRoomEngine().updateRoomObjectUserLocation(
-                roomSession.roomId,
-                selectedUser.roomIndex,
-                currentLocation,
-                nextLocation,
-                false,
-                0,
-                nextDirectionVector,
-                nextDirection * 45,
-                false,
-                true
-            );
-
-            SendMessageComposer(new WiredUserInspectMoveComposer(selectedUser.roomIndex, nextX, nextY, nextDirection));
-
-            setSelectedUserLiveState({
-                ...currentLiveState,
-                positionX: nextX,
-                positionY: nextY,
-                direction: nextDirection
-            });
-
-            setEditingVariable(null);
-            setEditingValue('');
-            return;
-        }
-
-        const customFurniDefinition = selectedFurniCustomVariableDefinitionMap.get(editingVariable);
-
-        if (customFurniDefinition?.hasValue && !customFurniDefinition.isReadOnly) {
-            const parsed = parseScalarInput(editingValue);
-            if (parsed === null) return;
-
-            const assignment = selectedFurniAssignmentMap.get(customFurniDefinition.itemId);
-
-            if (!assignment || assignment.value === parsed) {
-                cancelVariableEdit();
-                return;
-            }
-
-            updateFurniVariableValue(selectedFurni.objectId, customFurniDefinition.itemId, parsed);
-            setEditingVariable(null);
-            setEditingValue('');
-            return;
-        }
-
-        if (selectedFurni?.category === RoomObjectCategory.WALL && WIRED_WALL_INSPECTION_TOKENS.includes(editingVariable)) {
-            try {
-                if (!wallInspection.write(editingVariable, editingValue)) {
-                    simpleAlert?.('Wall inspection is unavailable. Select the current wall and wait for its server values.');
-                    return;
-                }
-                setEditingVariable(null);
-                setEditingValue('');
-            } catch (error) {
-                simpleAlert?.(String(error instanceof Error ? error.message : error));
-            }
-            return;
-        }
-
-        if (editingVariable === '@gravity') {
-            if (selectedFurni?.category === RoomObjectCategory.WALL) {
-                cancelVariableEdit();
-                return;
-            }
-            const parsed = parseInt(editingValue.trim(), 10);
-            if (!selectedFurni || !roomSession || (parsed !== 0 && parsed !== 1)) {
-                cancelVariableEdit();
-                return;
-            }
-            if (selectedFurniRuntimeState?.itemId === selectedFurni.objectId && selectedFurniRuntimeState.value === parsed) {
-                cancelVariableEdit();
-                return;
-            }
-
-            SendMessageComposer(new WiredFurniRuntimeStateRequestComposer(selectedFurni.objectId, WIRED_FURNI_RUNTIME_ACTION_WRITE, '@gravity', parsed));
-            setEditingVariable(null);
-            setEditingValue('');
-            return;
-        }
-
-        if (!editingVariable || !selectedFurni || !selectedRoomObject || !roomSession) return;
-
-        const currentLiveState = selectedFurniLiveState ?? getFurniLiveState(selectedFurni.objectId, selectedFurni.category);
-
-        if (!currentLiveState) {
-            cancelVariableEdit();
-            return;
-        }
-
-        let nextX = currentLiveState.positionX;
-        let nextY = currentLiveState.positionY;
-        let nextZ = currentLiveState.altitude / 100;
-        let nextRotation = currentLiveState.rotation;
-        let nextState: number = null;
-        let nextOpacity: number = null;
-        let nextGravity: number = null;
-        let nextWallOffsetX: number = null;
-        let nextWallOffsetY: number = null;
-        let isValid = true;
-
-        switch (editingVariable) {
-            case '@position_x': {
-                const parsed = parseInt(editingValue.trim(), 10);
-
-                if (Number.isNaN(parsed)) {
-                    isValid = false;
-                    break;
-                }
-
-                nextX = parsed;
-                break;
-            }
-            case '@position_y': {
-                const parsed = parseInt(editingValue.trim(), 10);
-
-                if (Number.isNaN(parsed)) {
-                    isValid = false;
-                    break;
-                }
-
-                nextY = parsed;
-                break;
-            }
-            case '@rotation': {
-                const parsed = parseInt(editingValue.trim(), 10);
-
-                if (Number.isNaN(parsed)) {
-                    isValid = false;
-                    break;
-                }
-
-                nextRotation = ((parsed % 8) + 8) % 8;
-                break;
-            }
-            case '@altitude': {
-                const parsed = parseInt(editingValue.trim(), 10);
-
-                if (Number.isNaN(parsed)) {
-                    isValid = false;
-                    break;
-                }
-
-                nextZ = Math.max(0, Math.min(40, parsed / 100));
-                break;
-            }
-            case '@state': {
-                const parsed = parseInt(editingValue.trim(), 10);
-
-                if (Number.isNaN(parsed)) {
-                    isValid = false;
-                    break;
-                }
-
-                nextState = parsed;
-                break;
-            }
-            case '@opacity': {
-                const parsed = parseInt(editingValue.trim(), 10);
-
-                if (Number.isNaN(parsed)) {
-                    isValid = false;
-                    break;
-                }
-
-                nextOpacity = Math.max(0, Math.min(100, parsed));
-                break;
-            }
-            case '@gravity': {
-                const parsed = parseInt(editingValue.trim(), 10);
-
-                if (Number.isNaN(parsed)) {
-                    isValid = false;
-                    break;
-                }
-
-                nextGravity = parsed > 0 ? 1 : 0;
-                break;
-            }
-            case '@wallitem_offset': {
-                if (selectedFurni.category !== RoomObjectCategory.WALL) {
-                    isValid = false;
-                    break;
-                }
-
-                const match = editingValue.trim().match(/^(-?\d+)\s*,\s*(-?\d+)$/);
-
-                if (!match) {
-                    isValid = false;
-                    break;
-                }
-
-                nextWallOffsetX = parseInt(match[1], 10);
-                nextWallOffsetY = parseInt(match[2], 10);
-                break;
-            }
-        }
-
-        if (!isValid) {
-            cancelVariableEdit();
-            return;
-        }
-
-        if (editingVariable === '@opacity') {
-            const currentOpacity = Math.round(
-                Math.max(0, Math.min(1, selectedRoomObject.model.getValue<number>(RoomObjectVariable.FURNITURE_ALPHA_MULTIPLIER) ?? 1)) * 100
-            );
-
-            if (nextOpacity === currentOpacity) {
-                cancelVariableEdit();
-                return;
-            }
-
-            selectedRoomObject.model.setValue(RoomObjectVariable.FURNITURE_ALPHA_MULTIPLIER, nextOpacity / 100);
-            if (selectedFurni.category === RoomObjectCategory.WALL) {
-                setFurniInternalRevision((previousValue) => previousValue + 1);
-            } else {
-                SendMessageComposer(new WiredFurniRuntimeStateRequestComposer(selectedFurni.objectId, WIRED_FURNI_RUNTIME_ACTION_WRITE, '@opacity', nextOpacity));
-            }
-            setEditingVariable(null);
-            setEditingValue('');
-            return;
-        }
-
-        if (editingVariable === '@gravity') {
-            const currentGravity = Math.max(0, Math.min(1, selectedRoomObject.model.getValue<number>(WIRED_FURNI_GRAVITY_MODEL_KEY) ?? 0));
-
-            if (nextGravity === currentGravity) {
-                cancelVariableEdit();
-                return;
-            }
-
-            selectedRoomObject.model.setValue(WIRED_FURNI_GRAVITY_MODEL_KEY, nextGravity);
-            setFurniInternalRevision((previousValue) => previousValue + 1);
-            SendMessageComposer(new WiredFurniRuntimeStateRequestComposer(selectedFurni.objectId, WIRED_FURNI_RUNTIME_ACTION_WRITE, '@gravity', nextGravity));
-            setEditingVariable(null);
-            setEditingValue('');
-            return;
-        }
-
-        if (editingVariable === '@state') {
-            if (nextState === currentLiveState.state) {
-                cancelVariableEdit();
-                return;
-            }
-
-            setSelectedFurniLiveState((previousValue) => {
-                if (!previousValue) return previousValue;
-
-                return { ...previousValue, state: nextState };
-            });
-
-            if (selectedFurni.category === RoomObjectCategory.WALL) SendMessageComposer(new FurnitureWallMultiStateComposer(selectedFurni.objectId, nextState));
-            else SendMessageComposer(new FurnitureMultiStateComposer(selectedFurni.objectId, nextState));
-
-            setEditingVariable(null);
-            setEditingValue('');
-            return;
-        }
-
-        if (editingVariable === '@wallitem_offset') {
-            if (selectedFurni.category !== RoomObjectCategory.WALL || !parsedWallLocation) {
-                cancelVariableEdit();
-                return;
-            }
-
-            if (nextWallOffsetX === parsedWallLocation.localX && nextWallOffsetY === parsedWallLocation.localY) {
-                cancelVariableEdit();
-                return;
-            }
-
-            const wallGeometry = GetRoomEngine().getLegacyWallGeometry(roomSession.roomId);
-
-            if (!wallGeometry) {
-                cancelVariableEdit();
-                return;
-            }
-
-            const nextWallLocationString = `:w=${parsedWallLocation.width},${parsedWallLocation.height} l=${nextWallOffsetX},${nextWallOffsetY} ${parsedWallLocation.direction}`;
-            const nextLocation = wallGeometry.getLocation(
-                parsedWallLocation.width,
-                parsedWallLocation.height,
-                nextWallOffsetX,
-                nextWallOffsetY,
-                parsedWallLocation.direction
-            );
-            const nextAngle = wallGeometry.getDirection(parsedWallLocation.direction);
-            const currentExtra = selectedFurni.info?.stuffData?.getLegacyString?.() ?? selectedFurni.info?.extraParam ?? '0';
-
-            if (!nextLocation) {
-                cancelVariableEdit();
-                return;
-            }
-
-            GetRoomEngine().updateRoomObjectWall(
-                roomSession.roomId,
-                selectedFurni.objectId,
-                nextLocation,
-                new Vector3d(nextAngle),
-                currentLiveState.state,
-                currentExtra
-            );
-
-            setSelectedFurniLiveState((previousValue) => {
-                if (!previousValue) return previousValue;
-
-                return {
-                    ...previousValue,
-                    positionX: Math.round(nextLocation.x),
-                    positionY: Math.round(nextLocation.y),
-                    altitude: Math.round(nextLocation.z * 100),
-                    rotation: ((Math.round(nextAngle / 45) % 8) + 8) % 8
-                };
-            });
-
-            SendMessageComposer(new FurnitureWallUpdateComposer(selectedFurni.objectId, nextWallLocationString));
-            setEditingVariable(null);
-            setEditingValue('');
-            return;
-        }
-
-        if (
-            nextX === currentLiveState.positionX &&
-            nextY === currentLiveState.positionY &&
-            Math.round(nextZ * 100) === currentLiveState.altitude &&
-            nextRotation === currentLiveState.rotation
-        ) {
-            cancelVariableEdit();
-            return;
-        }
-
-        setSelectedFurniLiveState((previousValue) => {
-            if (!previousValue) return previousValue;
-
-            return {
-                ...previousValue,
-                positionX: nextX,
-                positionY: nextY,
-                altitude: Math.round(nextZ * 100),
-                rotation: nextRotation
-            };
-        });
-
-        if (selectedFurni.category === RoomObjectCategory.WALL) {
-            const wallGeometry = GetRoomEngine().getLegacyWallGeometry(roomSession.roomId);
-
-            if (!wallGeometry) {
-                cancelVariableEdit();
-                return;
-            }
-
-            const currentLocation = selectedRoomObject.getLocation();
-            const currentExtra = selectedFurni.info?.stuffData?.getLegacyString?.() ?? selectedFurni.info?.extraParam ?? '0';
-            const nextLocation = new Vector3d(nextX, nextY, nextZ);
-            const nextAngle = nextRotation * 45;
-            const wallLocation = wallGeometry.getOldLocationString(nextLocation, nextAngle);
-
-            if (!wallLocation) {
-                cancelVariableEdit();
-                return;
-            }
-
-            GetRoomEngine().updateRoomObjectWall(
-                roomSession.roomId,
-                selectedFurni.objectId,
-                nextLocation,
-                new Vector3d(nextAngle),
-                currentLiveState.state,
-                currentExtra
-            );
-
-            if (currentLocation) {
-                setSelectedFurniLiveState((previousValue) => {
-                    if (!previousValue) return previousValue;
-
-                    return {
-                        ...previousValue,
-                        positionX: Math.round(nextLocation.x),
-                        positionY: Math.round(nextLocation.y),
-                        altitude: Math.round(nextLocation.z * 100),
-                        rotation: nextRotation
-                    };
-                });
-            }
-
-            SendMessageComposer(new FurnitureWallUpdateComposer(selectedFurni.objectId, wallLocation));
-            setEditingVariable(null);
-            setEditingValue('');
-            return;
-        }
-
-        SendMessageComposer(new UpdateFurniturePositionComposer(selectedFurni.objectId, nextX, nextY, Math.round(nextZ * 10000), nextRotation));
-
-        setEditingVariable(null);
-        setEditingValue('');
+        setEditingValue(String(variable.rawValue));
     };
 
     const cancelVariableEdit = () => {
         setEditingVariable(null);
         setEditingValue('');
     };
-    const giveInspectionVariable = useCallback(() => {
-        if (!canManageInspectionVariableAssignments || !selectedInspectionGiveDefinition) return;
 
-        const nextValue = parseScalarInput(inspectionGiveValue);
-        if (nextValue === null) return;
+    const commitVariableEdit = () => {
+        const variable = displayedVariables.find((entry) => entry.key === editingVariable);
+        const value = parseInspectionInt(editingValue);
 
-        if (inspectionType === 'user' && selectedUser) {
-            assignUserVariable(selectedUserHolderKey, selectedInspectionGiveDefinition.itemId, nextValue);
-            setSelectedInspectionVariableKeys((prev) => ({ ...prev, user: selectedInspectionGiveDefinition.name }));
-        } else if (inspectionType === 'furni' && selectedFurni) {
-            assignFurniVariable(selectedFurni.objectId, selectedInspectionGiveDefinition.itemId, nextValue);
-            setSelectedInspectionVariableKeys((prev) => ({ ...prev, furni: selectedInspectionGiveDefinition.name }));
-        }
-
-        setInspectionGiveValue('0');
-        setIsInspectionGiveOpen(false);
-    }, [
-        canManageInspectionVariableAssignments,
-        selectedInspectionGiveDefinition,
-        inspectionGiveValue,
-        inspectionType,
-        selectedUser,
-        selectedUserHolderKey,
-        assignUserVariable,
-        selectedFurni,
-        assignFurniVariable
-    ]);
-    const removeInspectionVariable = useCallback(() => {
-        if (!canManageInspectionVariableAssignments || !selectedInspectionCustomDefinition || selectedInspectionCustomDefinition.isReadOnly) return;
+        if (variable?.editable && value !== null) objectVariables.write(variable.target, variable.key, value, WiredObjectVariableOperation.WRITE);
 
         cancelVariableEdit();
+    };
 
-        if (inspectionType === 'user' && selectedUser) {
-            removeUserVariable(selectedUserHolderKey, selectedInspectionCustomDefinition.itemId);
-            setSelectedInspectionVariableKeys((prev) => ({ ...prev, user: '' }));
-        } else if (inspectionType === 'furni' && selectedFurni) {
-            removeFurniVariable(selectedFurni.objectId, selectedInspectionCustomDefinition.itemId);
-            setSelectedInspectionVariableKeys((prev) => ({ ...prev, furni: '' }));
-        }
+    const openGiveInspectionVariable = () => {
+        // AIR refreshes the variable catalogue before it opens the picker.
+        if (!isInspectionGiveOpen) objectVariables.refreshCatalog();
 
+        setIsInspectionGiveOpen((value) => !value);
+    };
+
+    const giveInspectionVariable = () => {
+        const definition = selectedInspectionGiveDefinition;
+
+        if (!canCreateInspectionVariable || !definition) return;
+
+        // AIR int(text): text that is not a number creates the variable with 0.
+        const value = definition.hasValue ? (parseInspectionInt(inspectionGiveValue) ?? 0) : 0;
+
+        objectVariables.write(definition.target, definition.variableId, value, WiredObjectVariableOperation.CREATE);
+        setSelectedInspectionVariableKeys((prev) => ({ ...prev, [inspectionType]: definition.variableId }));
+        setInspectionGiveValue('0');
         setIsInspectionGiveOpen(false);
-    }, [
-        canManageInspectionVariableAssignments,
-        selectedInspectionCustomDefinition,
-        inspectionType,
-        selectedUser,
-        removeUserVariable,
-        selectedFurni,
-        removeFurniVariable
-    ]);
+    };
+
+    const removeInspectionVariable = () => {
+        const variable = selectedInspectionVariable;
+
+        if (!canRemoveInspectionVariable || !variable) return;
+
+        cancelVariableEdit();
+        removedInspectionRowIndexRef.current = displayedVariables.indexOf(variable);
+        objectVariables.write(variable.target, variable.key, 0, WiredObjectVariableOperation.DELETE);
+        setIsInspectionGiveOpen(false);
+    };
 
     const onVariableInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
         event.stopPropagation();
@@ -3131,50 +1783,16 @@ export const WiredCreatorToolsView: FC<{}> = () => {
 
         if (displayedVariables.some((variable) => variable.key === selectedInspectionVariableKey)) return;
 
-        setSelectedInspectionVariableKeys((prev) => ({ ...prev, [inspectionType]: displayedVariables[0].key }));
+        // AIR WiredMenuInspectionTab.as:471-481 selects the row at the removed row's index.
+        const index = Math.min(Math.max(removedInspectionRowIndexRef.current, 0), displayedVariables.length - 1);
+
+        removedInspectionRowIndexRef.current = -1;
+        setSelectedInspectionVariableKeys((prev) => ({ ...prev, [inspectionType]: displayedVariables[index].key }));
     }, [displayedVariables, inspectionType, selectedInspectionVariableKey]);
-    useEffect(() => {
-        if (!availableInspectionDefinitions.length) {
-            setInspectionGiveVariableItemId(0);
-            return;
-        }
-
-        if (availableInspectionDefinitions.some((definition) => definition.itemId === inspectionGiveVariableItemId)) return;
-
-        setInspectionGiveVariableItemId(availableInspectionDefinitions[0].itemId);
-    }, [availableInspectionDefinitions, inspectionGiveVariableItemId]);
     useEffect(() => {
         setIsInspectionGiveOpen(false);
         setInspectionGiveValue('0');
     }, [inspectionType, selectedUser?.userId, selectedFurni?.objectId]);
-
-    useEffect(() => {
-        if (inspectionType !== 'furni' || !selectedFurni) {
-            setSelectedFurniLiveState(null);
-
-            return;
-        }
-
-        setSelectedFurniLiveState(getFurniLiveState(selectedFurni.objectId, selectedFurni.category));
-    }, [inspectionType, selectedFurni?.objectId, selectedFurni?.category]);
-
-    useEffect(() => {
-        setSelectedFurniRuntimeState(null);
-        if (!isVisible || inspectionType !== 'furni' || !roomSettings.canInspect || !selectedFurni || selectedFurni.category !== RoomObjectCategory.FLOOR)
-            return;
-
-        SendMessageComposer(new WiredFurniRuntimeStateRequestComposer(selectedFurni.objectId, WIRED_FURNI_RUNTIME_ACTION_READ, '@gravity', 0));
-    }, [isVisible, inspectionType, roomSettings.canInspect, selectedFurni?.objectId, selectedFurni?.category]);
-
-    useEffect(() => {
-        if (inspectionType !== 'user' || !selectedUser) {
-            setSelectedUserLiveState(null);
-
-            return;
-        }
-
-        setSelectedUserLiveState(getUserLiveState(selectedUser.roomIndex));
-    }, [inspectionType, selectedUser?.roomIndex]);
 
     if (!isVisible) return null;
 
@@ -3252,14 +1870,16 @@ export const WiredCreatorToolsView: FC<{}> = () => {
                                 beginVariableEdit(variable);
                             }}
                             selectedInspectionGiveDefinition={selectedInspectionGiveDefinition}
-                            onSelectGiveVariable={setInspectionGiveVariableItemId}
+                            onSelectGiveVariable={setInspectionGiveVariableId}
                             availableInspectionDefinitions={availableInspectionDefinitions}
                             inspectionGiveValue={inspectionGiveValue}
                             onInspectionGiveValueChange={setInspectionGiveValue}
                             canGiveInspectionVariable={canGiveInspectionVariable}
-                            onGiveInspectionVariable={() => giveInspectionVariable()}
+                            onOpenGiveInspectionVariable={openGiveInspectionVariable}
+                            canCreateInspectionVariable={canCreateInspectionVariable}
+                            onGiveInspectionVariable={giveInspectionVariable}
                             canRemoveInspectionVariable={canRemoveInspectionVariable}
-                            onRemoveInspectionVariable={() => removeInspectionVariable()}
+                            onRemoveInspectionVariable={removeInspectionVariable}
                         />
                     )}
                     {activeTab === 'variables' && (

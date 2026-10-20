@@ -107,11 +107,26 @@ export interface MonitorSnapshot {
     }>;
 }
 
+/** One Inspection row: a WiredVariablesForObject value joined with its catalogue definition. `key` is the server's variable id. */
 export interface InspectionVariable {
     key: string;
+    name: string;
     value: string;
-    editable?: boolean;
+    rawValue: number;
+    target: number;
+    editable: boolean;
+    removable: boolean;
     valueClassName?: string;
+    valueTitle?: string;
+}
+
+/** A catalogue definition offered by "Give variable"; `available` is false when the holder has it or it cannot be created. */
+export interface InspectionGiveDefinition {
+    variableId: string;
+    name: string;
+    target: number;
+    hasValue: boolean;
+    available: boolean;
 }
 
 export interface VariableDefinition {
@@ -172,31 +187,3 @@ export interface ManagedHolderVariableEntry {
     variableItemId: number;
 }
 
-export interface InspectionUserTeamData {
-    colorId: number;
-    typeId: number;
-    score: number;
-}
-
-export interface TeamEffectData {
-    colorId: number;
-    typeId: number;
-}
-
-export interface ParsedWallLocation {
-    width: number;
-    height: number;
-    localX: number;
-    localY: number;
-    direction: string;
-}
-
-export interface HotelDateTimeParts {
-    year: number;
-    month: number;
-    day: number;
-    hour: number;
-    minute: number;
-    second: number;
-    millisecond: number;
-}
