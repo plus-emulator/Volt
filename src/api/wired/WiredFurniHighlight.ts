@@ -19,8 +19,21 @@ export const WIRED_HIGHLIGHT_COLORS: readonly number[] = [
     2149480, 5300272, 10546464, 16557530, 12291417
 ];
 
-/** The darken levels come from the room property wired.furni_highlight.darken_levels; this is its default. */
+/** The ui-config key that lists the darken levels, comma separated. */
+export const WIRED_HIGHLIGHT_DARKEN_LEVELS_KEY = 'wired.furni_highlight.darken_levels';
+
+/** The darken levels when the key is missing. */
 export const WIRED_HIGHLIGHT_DEFAULT_DARKEN_LEVELS: readonly number[] = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+
+/**
+ * The darken levels of the ui-config value. A missing value (null) gives the default list; an empty value gives only Off.
+ * Observed on AIR WIN63-202610201032-107964540: roomevents/wired_setup/actiontypes/class_4226.as darkenLevels.
+ */
+export const parseWiredHighlightDarkenLevels = (value: string | null | undefined): number[] =>
+    value == null ? [...WIRED_HIGHLIGHT_DEFAULT_DARKEN_LEVELS] : value.split(',').map((level) => Number.parseInt(level, 10) || 0);
+
+/** Darkening is offered only when a level above Off is configured (class_4226.as darkeningAvailable). */
+export const isWiredHighlightDarkeningAvailable = (darkenLevels: readonly number[]): boolean => darkenLevels.some((level) => level > 0);
 
 export type WiredHighlightStrengthOption = { value: number; kind: 'off' } | { value: number; kind: 'on' } | { value: number; kind: 'level'; level: number };
 
