@@ -6,15 +6,20 @@ import furniIcon from '../../assets/images/wired/native/menu_variable_furni.png'
 import globalIcon from '../../assets/images/wired/native/menu_variable_global.png';
 import userIcon from '../../assets/images/wired/native/menu_variable_user.png';
 import { VARIABLES_ELEMENTS } from './WiredCreatorTools.constants';
-import { VariableDefinition, VariablesElementButton, VariablesElementType, VariableTextValue } from './WiredCreatorTools.types';
+import { VariablesElementButton, VariablesElementType, VariableTextValue } from './WiredCreatorTools.types';
 import { WiredMenuButton, WiredMenuItem, WiredMenuPanel, WiredMenuTable, WiredMenuTitle } from './WiredMenuParts';
 import { useWiredCreatorToolsUiStore } from './wiredCreatorToolsUiStore';
 
 const TYPE_ICONS: Partial<Record<VariablesElementType, string>> = { furni: furniIcon, user: userIcon, global: globalIcon, context: contextIcon };
 
+/** One picker row: the variable's name, which is also how the picker tells variables apart. */
+export interface VariablePickerRow {
+    key: string;
+}
+
 export interface WiredVariablesTabViewProps {
-    variablePickerDefinitions: VariableDefinition[];
-    selectedVariableDefinition: VariableDefinition | null;
+    variablePickerDefinitions: VariablePickerRow[];
+    selectedVariableDefinition: VariablePickerRow | null;
     onPickVariable: (key: string) => void;
     canVariableHighlight: boolean;
     variableManageCanOpen: boolean;

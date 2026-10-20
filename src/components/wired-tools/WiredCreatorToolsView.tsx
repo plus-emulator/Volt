@@ -1,10 +1,9 @@
-import { parseWiredInt64 } from '@volt/renderer';
+import { IWiredVariableData, parseWiredInt64 } from '@volt/renderer';
 import {
     AddLinkEventTracker,
     FigureUpdateEvent,
     FurnitureFloorUpdateEvent,
     FurnitureWallUpdateEvent,
-    GetLocalizationManager,
     GetRoomEngine,
     GetSessionDataManager,
     GetStage,
@@ -52,27 +51,22 @@ import {
     VoltCardView,
     Text
 } from '../../common';
-import { useMessageEvent, useNotification, useObjectSelectedEvent, useRoom, useWiredObjectVariables, useWiredTools, WiredObjectHolder, WiredObjectVariableOperation } from '../../hooks';
+import { useMessageEvent, useNotification, useObjectSelectedEvent, useRoom, useWiredCatalogRows, useWiredObjectVariables, useWiredTools, useWiredVariableHolders, WiredObjectHolder, WiredObjectVariableOperation } from '../../hooks';
 import { WiredChestsTabView } from './WiredChestsTabView';
 import {
-    DIRECTION_NAMES,
     INSPECTION_ELEMENTS,
     MONITOR_COLOR_GREEN,
     MONITOR_COLOR_ORANGE,
     MONITOR_ERROR_INFO,
-    MONITOR_LOG_ORDER,
     MONITOR_STAT_CAPTIONS,
-    MONTH_NAMES,
     TABS,
-    TEAM_COLOR_NAMES,
-    VARIABLE_DEFINITIONS,
     VARIABLES_ELEMENTS,
-    WEEKDAY_NAMES,
     WIRED_CLOCK_REFRESH_MS,
     WIRED_MONITOR_ACTION_CLEAR_LOGS,
     WIRED_MONITOR_ACTION_FETCH,
     WIRED_MONITOR_CLEAR_LOCK_MS,
     WIRED_MONITOR_POLL_MS,
+    WIRED_VARIABLE_OVERVIEW_POLL_MS,
     WIRED_VARIABLES_POLL_MS
 } from './WiredCreatorTools.constants';
 import {
@@ -86,7 +80,14 @@ import {
     getHotelTimeFormatter,
     normalizeMonitorReason,
     parseInspectionInt,
-    toVariableTextValues
+    buildVariablePickerRows,
+    buildVariableProperties,
+    buildVariableTextValues,
+    customVariableItemId,
+    isPersistedVariable,
+    VARIABLE_TARGET_OF_TYPE,
+    VARIABLE_TYPE_CUSTOM,
+    VARIABLE_TYPE_INTERNAL
 } from './WiredCreatorTools.helpers';
 import {
     InspectionElementButton,
@@ -97,12 +98,10 @@ import {
     ManagedHolderVariableEntry,
     MonitorLog,
     MonitorStat,
-    VariableDefinition,
     VariableHighlightOverlay,
     VariableHighlightTarget,
     VariablesElementButton,
     VariablesElementType,
-    VariableTextValue,
     WiredToolsTab
 } from './WiredCreatorTools.types';
 import { WiredInspectionTabView } from './WiredInspectionTabView';
@@ -112,7 +111,7 @@ import { WiredRoomLogsView } from './WiredRoomLogsView';
 import { WiredSelfDonationView } from './WiredSelfDonationView';
 import { WiredToolsSettingsTabView } from './WiredToolsSettingsTabView';
 import { WiredArrayInspectorView, wiredArrayVariableTypeOf } from './WiredArrayInspectorView';
-import { HOLDER_TYPE_FURNI, HOLDER_TYPE_USER, WiredHolderDescription, WiredVariableOwnersView, wiredVariableIdOf } from './WiredVariableOwnersView';
+import { HOLDER_TYPE_FURNI, HOLDER_TYPE_USER, WiredHolderDescription, WiredVariableOwnersView } from './WiredVariableOwnersView';
 import { useVariablesExplorerStore } from '../../state/variablesExplorer';
 import { WiredVariableHolderPanelView } from './WiredVariableHolderPanelView';
 import { WiredVariablesTabView } from './WiredVariablesTabView';
@@ -233,7 +232,6 @@ export const WiredCreatorToolsView: FC<{}> = () => {
         furniVariableAssignments,
         roomVariableDefinitions,
         roomVariableAssignments,
-        contextVariableDefinitions,
         requestUserVariables,
         assignUserVariable,
         removeUserVariable,
@@ -244,28 +242,6 @@ export const WiredCreatorToolsView: FC<{}> = () => {
         updateRoomVariableValue
     } = useWiredTools();
     const { simpleAlert = null, showConfirm = null } = useNotification();
-
-    const getSignDisplayName = (value: number): string => {
-        if (value < 0) return '';
-
-        const localizationKey = `wiredfurni.params.action.sign.${value}`;
-        const localizedName = LocalizeText(localizationKey);
-
-        if (localizedName && localizedName !== localizationKey) return localizedName;
-
-        return `Sign ${value}`;
-    };
-
-    const getDanceDisplayName = (value: number): string => {
-        if (value <= 0) return '';
-
-        const localizationKey = `widget.memenu.dance${value}`;
-        const localizedName = LocalizeText(localizationKey);
-
-        if (localizedName && localizedName !== localizationKey) return localizedName;
-
-        return `Dance ${value}`;
-    };
 
     const getVariableAvailabilityLabel = (value: number, targetType: 'user' | 'furni' | 'global' | 'context'): string => {
         if (targetType === 'context') return 'Current wired execution';
@@ -279,33 +255,6 @@ export const WiredCreatorToolsView: FC<{}> = () => {
         if (value === 10) return 'Permanent';
 
         return targetType === 'furni' || targetType === 'global' ? 'While the room is active' : 'While the user is in the room';
-    };
-
-    const getTeamColorDisplayName = (value: number): string => {
-        if (value <= 0) return '';
-
-        const localizationKey = `wiredfurni.params.team.${value}`;
-        const localizedName = LocalizeText(localizationKey);
-
-        if (localizedName && localizedName !== localizationKey) return localizedName;
-
-        return TEAM_COLOR_NAMES[value] ?? `Team ${value}`;
-    };
-
-    const getTeamTypeDisplayName = (value: number): string => {
-        const localizationKey = `wiredfurni.params.team_type.${value}`;
-        const localizedName = LocalizeText(localizationKey);
-
-        if (localizedName && localizedName !== localizationKey) return localizedName;
-
-        switch (value) {
-            case 1:
-                return 'Battle Banzai';
-            case 2:
-                return 'Freeze';
-            default:
-                return 'Wired';
-        }
     };
 
     const refreshSelectedUser = useCallback(
@@ -567,6 +516,7 @@ export const WiredCreatorToolsView: FC<{}> = () => {
     }, [isVisible, activeTab, roomSession?.roomId, requestMonitorSnapshot]);
 
     useEffect(() => {
+        // The per-holder panel and the wired editors read the Volt variable snapshot, kept fresh while the menu is open.
         if (!isVisible || !roomSession?.roomId || !roomSettings.canInspect || shouldPauseVariableSnapshotRefresh) return;
 
         requestUserVariables();
@@ -668,6 +618,7 @@ export const WiredCreatorToolsView: FC<{}> = () => {
 
         return MONITOR_ERROR_INFO[selectedMonitorError.type] ?? null;
     }, [selectedMonitorError]);
+    // Counted from the room on the client until the renderer has WiredGetRoomStats and WiredRoomStats; PlusEMU already answers them.
     const monitorRoomStats = useMemo(() => {
         if (!roomSession) {
             return {
@@ -696,8 +647,12 @@ export const WiredCreatorToolsView: FC<{}> = () => {
         };
     }, [roomSession, globalClock]);
     const monitorHistoryTypeOptions = useMemo(() => {
-        return ['ALL', ...Array.from(new Set([...MONITOR_LOG_ORDER, ...monitorSnapshot.history.map((entry) => entry.type)]))];
+        return ['ALL', ...new Set(monitorSnapshot.history.map((entry) => entry.type))];
     }, [monitorSnapshot.history]);
+    useEffect(() => {
+        // Wait for the first monitor answer, or an empty history while loading would reset a saved filter.
+        if (monitorLoaded && !monitorHistoryTypeOptions.includes(monitorHistoryTypeFilter)) setMonitorHistoryTypeFilter('ALL');
+    }, [monitorLoaded, monitorHistoryTypeOptions, monitorHistoryTypeFilter]);
     const previewPlaceholder = useMemo(() => {
         switch (inspectionType) {
             case 'furni':
@@ -748,7 +703,7 @@ export const WiredCreatorToolsView: FC<{}> = () => {
 
             return {
                 type: log.type,
-                category: String(log?.severity ?? MONITOR_ERROR_INFO[log.type]?.severity ?? 'ERROR'),
+                category: log.severity,
                 amount: String(amount),
                 latest: amount > 0 ? formatMonitorLatestOccurrence(Number(log?.latestOccurrenceSeconds ?? 0), globalClock) : '/'
             };
@@ -859,92 +814,46 @@ export const WiredCreatorToolsView: FC<{}> = () => {
     const canGiveInspectionVariable = canWriteInspection && inspectionType !== 'global' && !!objectVariables.values;
     const canRemoveInspectionVariable = canGiveInspectionVariable && !!selectedInspectionVariable?.removable;
     const canCreateInspectionVariable = canGiveInspectionVariable && !!selectedInspectionGiveDefinition?.available;
-    const variableDefinitionsByType = useMemo<Record<VariablesElementType, VariableDefinition[]>>(() => {
-        const customUserDefinitions: VariableDefinition[] = userVariableDefinitions
-            .map((definition) => ({
-                key: definition.name,
-                itemId: definition.itemId,
-                target: 'User' as const,
-                type: 'Custom',
-                hasValue: definition.hasValue,
-                isReadOnly: !!definition.isReadOnly,
-                availability: getVariableAvailabilityLabel(definition.availability, 'user'),
-                canWriteTo: definition.hasValue && !definition.isReadOnly,
-                canCreateDelete: false,
-                canIntercept: false,
-                hasCreationTime: true,
-                hasUpdateTime: true,
-                isTextConnected: definition.isTextConnected,
-                isAlwaysAvailable: false,
-                textConnector: toVariableTextValues(definition.textConnector)
-            }))
-            .sort((left, right) => left.key.localeCompare(right.key, undefined, { sensitivity: 'base' }));
-        const customFurniDefinitions: VariableDefinition[] = furniVariableDefinitions
-            .map((definition) => ({
-                key: definition.name,
-                itemId: definition.itemId,
-                target: 'Furni' as const,
-                type: 'Custom',
-                hasValue: definition.hasValue,
-                isReadOnly: !!definition.isReadOnly,
-                availability: getVariableAvailabilityLabel(definition.availability, 'furni'),
-                canWriteTo: definition.hasValue && !definition.isReadOnly,
-                canCreateDelete: false,
-                canIntercept: false,
-                hasCreationTime: true,
-                hasUpdateTime: true,
-                isTextConnected: definition.isTextConnected,
-                isAlwaysAvailable: false,
-                textConnector: toVariableTextValues(definition.textConnector)
-            }))
-            .sort((left, right) => left.key.localeCompare(right.key, undefined, { sensitivity: 'base' }));
-        const customRoomDefinitions: VariableDefinition[] = roomVariableDefinitions
-            .map((definition) => ({
-                key: definition.name,
-                itemId: definition.itemId,
-                target: 'Global' as const,
-                type: 'Custom',
-                hasValue: definition.hasValue,
-                isReadOnly: !!definition.isReadOnly,
-                availability: getVariableAvailabilityLabel(definition.availability, 'global'),
-                canWriteTo: !definition.isReadOnly,
-                canCreateDelete: false,
-                canIntercept: false,
-                hasCreationTime: false,
-                hasUpdateTime: true,
-                isTextConnected: definition.isTextConnected,
-                isAlwaysAvailable: false,
-                textConnector: toVariableTextValues(definition.textConnector)
-            }))
-            .sort((left, right) => left.key.localeCompare(right.key, undefined, { sensitivity: 'base' }));
-        const customContextDefinitions: VariableDefinition[] = contextVariableDefinitions
-            .map((definition) => ({
-                key: definition.name,
-                itemId: definition.itemId,
-                target: 'Context' as const,
-                type: 'Custom',
-                hasValue: definition.hasValue,
-                isReadOnly: !!definition.isReadOnly,
-                availability: getVariableAvailabilityLabel(definition.availability, 'context'),
-                canWriteTo: definition.hasValue && !definition.isReadOnly,
-                canCreateDelete: true,
-                canIntercept: !!definition.hasValue,
-                hasCreationTime: true,
-                hasUpdateTime: true,
-                isTextConnected: definition.isTextConnected,
-                isAlwaysAvailable: false,
-                textConnector: toVariableTextValues(definition.textConnector)
-            }))
-            .sort((left, right) => left.key.localeCompare(right.key, undefined, { sensitivity: 'base' }));
+    const variableCatalog = useWiredCatalogRows(roomSession?.roomId ?? 0, isVisible, roomSettings.canInspect);
+    const variablesByType = useMemo<Record<VariablesElementType, IWiredVariableData[]>>(
+        () => ({
+            furni: buildVariablePickerRows(variableCatalog.catalog, 'furni'),
+            user: buildVariablePickerRows(variableCatalog.catalog, 'user'),
+            global: buildVariablePickerRows(variableCatalog.catalog, 'global'),
+            context: buildVariablePickerRows(variableCatalog.catalog, 'context')
+        }),
+        [variableCatalog.catalog]
+    );
+    // AIR WIN63-202610121709-785561319 identifies a variable of the overview by its name (VariableTableObject.identifier), and so do menu links.
+    const variableNamesByType = useMemo(
+        () =>
+            Object.fromEntries(
+                Object.entries(variablesByType).map(([type, variables]) => [type, variables.map((variable) => ({ key: variable.variableName }))])
+            ) as Record<VariablesElementType, { key: string }[]>,
+        [variablesByType]
+    );
+    // AIR WIN63-202610121709-785561319 WiredMenuOverviewTab.update: while the tab is open the catalogue is asked for every 500 ms; the request itself waits 800 ms.
+    useEffect(() => {
+        if (!isVisible || activeTab !== 'variables') return;
 
-        return {
-            furni: [...customFurniDefinitions, ...VARIABLE_DEFINITIONS.furni],
-            user: [...customUserDefinitions, ...VARIABLE_DEFINITIONS.user],
-            global: [...customRoomDefinitions, ...VARIABLE_DEFINITIONS.global],
-            context: [...customContextDefinitions, ...VARIABLE_DEFINITIONS.context]
-        };
-    }, [contextVariableDefinitions, userVariableDefinitions, furniVariableDefinitions, roomVariableDefinitions]);
-    const variablePickerDefinitions = variableDefinitionsByType[variablesType];
+        const interval = window.setInterval(variableCatalog.refresh, WIRED_VARIABLE_OVERVIEW_POLL_MS);
+
+        return () => window.clearInterval(interval);
+    }, [isVisible, activeTab, variableCatalog.refresh]);
+    // AIR WIN63-202610121709-785561319 WiredMenuOverviewTab.jumpToVariableByName: a link that arrives before the catalogue is kept until the catalogue is there.
+    const pendingMenuLinkRef = useRef<string | null>(null);
+    useEffect(() => {
+        if (!isVisible) pendingMenuLinkRef.current = null;
+    }, [isVisible]);
+    useEffect(() => {
+        pendingMenuLinkRef.current = null;
+    }, [roomSession?.roomId]);
+    useEffect(() => {
+        if (!variableCatalog.ready || pendingMenuLinkRef.current === null) return;
+
+        openWiredMenuLink(pendingMenuLinkRef.current, variableNamesByType);
+        pendingMenuLinkRef.current = null;
+    }, [variableCatalog.ready, variableNamesByType]);
 
     useEffect(() => {
         const nativeLinkTracker: ILinkEventTracker = {
@@ -955,21 +864,25 @@ export const WiredCreatorToolsView: FC<{}> = () => {
                     simpleAlert?.(LocalizeText('wiredmenu.invalid_room.desc'), NotificationAlertType.ALERT, null, null, LocalizeText('wiredmenu.invalid_room.title'));
                     return;
                 }
-                openWiredMenuLink(url, variableDefinitionsByType);
+                openWiredMenuLink(url, variableNamesByType);
+                pendingMenuLinkRef.current = !variableCatalog.ready && url.startsWith('wiredmenu/open/variable_overview/') ? url : null;
             }
         };
         AddLinkEventTracker(nativeLinkTracker);
         return () => RemoveLinkEventTracker(nativeLinkTracker);
-    }, [variableDefinitionsByType, roomSettings.canInspect, simpleAlert]);
+    }, [variableNamesByType, variableCatalog.ready, roomSettings.canInspect, simpleAlert]);
 
 
     useEffect(() => {
+        // Closing the menu drops the catalogue; the selection is kept until a catalogue is there again.
+        if (!variableCatalog.ready) return;
+
         setSelectedVariableKeys((prevValue) => {
             let didChange = false;
             const nextValue = { ...prevValue };
 
             for (const type of ['furni', 'user', 'global', 'context'] as VariablesElementType[]) {
-                const definitions = variableDefinitionsByType[type];
+                const definitions = variableNamesByType[type];
 
                 if (!definitions.length) {
                     if (nextValue[type] !== '') {
@@ -988,7 +901,7 @@ export const WiredCreatorToolsView: FC<{}> = () => {
 
             return didChange ? nextValue : prevValue;
         });
-    }, [variableDefinitionsByType]);
+    }, [variableCatalog.ready, variableNamesByType]);
     useEffect(() => {
         setSelectedManagedVariableEntry(null);
     }, [variablesType, selectedVariableKeys[variablesType]]);
@@ -998,153 +911,15 @@ export const WiredCreatorToolsView: FC<{}> = () => {
         setSelectedManagedVariableEntry(null);
     }, [isVariableManageOpen]);
 
-    const selectedVariableDefinition = useMemo(() => {
+    const selectedVariable = useMemo(() => {
+        const variables = variablesByType[variablesType];
         const selectedKey = selectedVariableKeys[variablesType];
 
-        return variablePickerDefinitions.find((variable) => variable.key === selectedKey) ?? variablePickerDefinitions[0] ?? null;
-    }, [variablesType, selectedVariableKeys, variablePickerDefinitions]);
-    const selectedVariableProperties = useMemo(() => {
-        if (!selectedVariableDefinition) return [];
-
-        return [
-            { key: 'Name', value: selectedVariableDefinition.key },
-            { key: 'Type', value: selectedVariableDefinition.type },
-            { key: 'Target', value: selectedVariableDefinition.target },
-            { key: 'Availability', value: selectedVariableDefinition.availability },
-            { key: 'Has value', value: selectedVariableDefinition.hasValue ? 'Yes' : 'No' },
-            { key: 'Can write to', value: selectedVariableDefinition.canWriteTo && roomSettings.canModify ? 'Yes' : 'No' },
-            { key: 'Can create/delete', value: selectedVariableDefinition.canCreateDelete ? 'Yes' : 'No' },
-            { key: 'Can intercept', value: selectedVariableDefinition.canIntercept ? 'Yes' : 'No' },
-            { key: 'Is always available', value: selectedVariableDefinition.isAlwaysAvailable ? 'Yes' : 'No' },
-            { key: 'Has creation time', value: selectedVariableDefinition.hasCreationTime ? 'Yes' : 'No' },
-            { key: 'Has update time', value: selectedVariableDefinition.hasUpdateTime ? 'Yes' : 'No' },
-            { key: 'Is text connected', value: selectedVariableDefinition.isTextConnected ? 'Yes' : 'No' }
-        ];
-    }, [selectedVariableDefinition, roomSettings.canModify]);
-    const selectedVariableTextValues = useMemo((): VariableTextValue[] => {
-        if (!selectedVariableDefinition) return [];
-
-        const localization = GetLocalizationManager();
-        const variableKey = selectedVariableDefinition.key;
-        const textValues: VariableTextValue[] = [];
-        const pushIfLocalized = (value: string, localizationKey: string, fallback: string = null) => {
-            if (localization?.hasValue(localizationKey)) {
-                textValues.push({ value, text: localization.getValue(localizationKey) });
-                return;
-            }
-
-            if (fallback) textValues.push({ value, text: fallback });
-        };
-
-        switch (variableKey) {
-            case '@gender':
-                return [
-                    { value: '-1', text: 'Unknown' },
-                    { value: '0', text: 'M' },
-                    { value: '1', text: 'F' }
-                ];
-            case '@type':
-                if (variablesType === 'furni') {
-                    return [
-                        { value: '1', text: 'floor' },
-                        { value: '2', text: 'wall' }
-                    ];
-                }
-
-                if (variablesType === 'user') {
-                    return [
-                        { value: 'user', text: 'User' },
-                        { value: 'bot', text: 'Bot' },
-                        { value: 'rentable_bot', text: 'Rentable bot' },
-                        { value: 'pet', text: 'Pet' }
-                    ];
-                }
-
-                return [];
-            case '@direction':
-                return DIRECTION_NAMES.map((name, index) => ({ value: index.toString(), text: name }));
-            case '@room_entry.method':
-                return [
-                    { value: 'door', text: 'Door' },
-                    { value: 'teleport', text: 'Teleport' },
-                    { value: 'room_network', text: 'Room network' }
-                ];
-            case '@team_color':
-                return [1, 2, 3, 4].map((value) => ({
-                    value: value.toString(),
-                    text: getTeamColorDisplayName(value)
-                }));
-            case '@team_type':
-                return [0, 1, 2].map((value) => ({
-                    value: value.toString(),
-                    text: getTeamTypeDisplayName(value)
-                }));
-            case '@sign':
-                for (let value = 0; value <= 17; value++) {
-                    textValues.push({
-                        value: value.toString(),
-                        text: getSignDisplayName(value)
-                    });
-                }
-
-                return textValues;
-            case '@dance':
-                pushIfLocalized('0', 'widget.memenu.dance.stop', 'Stop');
-
-                for (let value = 1; value <= 4; value++) {
-                    textValues.push({
-                        value: value.toString(),
-                        text: getDanceDisplayName(value)
-                    });
-                }
-
-                return textValues;
-            case '@handitem_id':
-                for (let value = 1; value <= 5000; value++) {
-                    const localizationKey = `handitem${value}`;
-
-                    if (!localization?.hasValue(localizationKey)) continue;
-
-                    textValues.push({
-                        value: value.toString(),
-                        text: localization.getValue(localizationKey)
-                    });
-                }
-
-                return textValues;
-            case '@effect_id':
-                for (let value = 1; value <= 500; value++) {
-                    const localizationKey = `fx_${value}`;
-
-                    if (!localization?.hasValue(localizationKey)) continue;
-
-                    textValues.push({
-                        value: value.toString(),
-                        text: localization.getValue(localizationKey)
-                    });
-                }
-
-                return textValues;
-            case '@current_time.day_of_week':
-                return WEEKDAY_NAMES.map((name, index) => ({
-                    value: (index + 1).toString(),
-                    text: name
-                }));
-            case '@current_time.month_of_year':
-                return MONTH_NAMES.map((name, index) => ({
-                    value: (index + 1).toString(),
-                    text: name
-                }));
-            case '@chat_type':
-                return [
-                    { value: '0', text: 'Talk' },
-                    { value: '1', text: 'Shout' },
-                    { value: '2', text: 'Whisper' }
-                ];
-            default:
-                return selectedVariableDefinition.textConnector ?? [];
-        }
-    }, [selectedVariableDefinition, variablesType]);
+        return variables.find((variable) => variable.variableName === selectedKey) ?? variables[0] ?? null;
+    }, [variablesByType, variablesType, selectedVariableKeys]);
+    const selectedVariableItemId = selectedVariable ? customVariableItemId(selectedVariable) : null;
+    const selectedVariableProperties = useMemo(() => buildVariableProperties(selectedVariable), [selectedVariable]);
+    const selectedVariableTextValues = useMemo(() => buildVariableTextValues(selectedVariable), [selectedVariable]);
     const describeVariableHolder = useCallback(
         (entityType: number, entityId: number, entityName: string): WiredHolderDescription => {
             if (entityType === HOLDER_TYPE_USER) {
@@ -1191,74 +966,46 @@ export const WiredCreatorToolsView: FC<{}> = () => {
         },
         [roomSession]
     );
+    // AIR WIN63-202610121709-785561319 WiredMenuOverviewTab.canHighlightCurrentVariable.
     const canVariableHighlight =
-        !!selectedVariableDefinition?.itemId &&
-        selectedVariableDefinition.type === 'Custom' &&
+        !!selectedVariable &&
+        !selectedVariable.requiresExecutionContext &&
+        selectedVariable.variableType !== VARIABLE_TYPE_INTERNAL &&
         (variablesType === 'user' || variablesType === 'furni') &&
         !!roomSession;
+    const variableHolders = useWiredVariableHolders(
+        roomSession?.roomId ?? 0,
+        isVariableHighlightActive && canVariableHighlight && selectedVariable ? selectedVariable.variableId : null
+    );
+    // This server sends a negative furni id only for a temporary wall item; every other furni keeps its own id, floor or wall.
     const variableHighlightTargets = useMemo((): VariableHighlightTarget[] => {
-        if (!isVariableHighlightActive || !canVariableHighlight || !roomSession || !selectedVariableDefinition?.itemId) return [];
+        if (!variableHolders || !roomSession || !selectedVariable) return [];
 
-        if (variablesType === 'user') {
-            const targets: VariableHighlightTarget[] = [];
+        const targets: VariableHighlightTarget[] = [];
 
-            for (const [userIdString, assignments] of Object.entries(userVariableAssignments)) {
-                const assignment = assignments.find((entry) => entry.variableItemId === selectedVariableDefinition.itemId);
+        for (const holder of variableHolders) {
+            const value = selectedVariable.hasValue ? holder.value : null;
 
-                if (!assignment) continue;
+            if (selectedVariable.variableTarget === VARIABLE_TARGET_OF_TYPE.user) {
+                const roomIndex = Number(findUserVariableHolderData(roomSession.userDataManager, holder.objectId)?.roomIndex ?? -1);
 
-                const userData = findUserVariableHolderData(roomSession.userDataManager, Number(userIdString));
-                const roomIndex = Number(userData?.roomIndex ?? -1);
-
-                if (roomIndex < 0) continue;
-
-                targets.push({
-                    category: RoomObjectCategory.UNIT,
-                    objectId: roomIndex,
-                    hasValue: !!assignment.hasValue && !!selectedVariableDefinition.hasValue && assignment.value !== null && assignment.value !== undefined,
-                    value: assignment.value
-                });
+                if (roomIndex >= 0) targets.push({ category: RoomObjectCategory.UNIT, objectId: roomIndex, hasValue: value !== null, value });
+                continue;
             }
 
-            return targets;
+            const objectId = Math.abs(holder.objectId);
+            const category =
+                holder.objectId > 0 && GetRoomEngine().getRoomObject(roomSession.roomId, objectId, RoomObjectCategory.FLOOR)
+                    ? RoomObjectCategory.FLOOR
+                    : GetRoomEngine().getRoomObject(roomSession.roomId, objectId, RoomObjectCategory.WALL)
+                      ? RoomObjectCategory.WALL
+                      : -1;
+
+            if (category >= 0) targets.push({ category, objectId, hasValue: value !== null, value });
         }
 
-        if (variablesType === 'furni') {
-            const targets: VariableHighlightTarget[] = [];
-
-            for (const [furniIdString, assignments] of Object.entries(furniVariableAssignments)) {
-                const assignment = assignments.find((entry) => entry.variableItemId === selectedVariableDefinition.itemId);
-
-                if (!assignment) continue;
-
-                const furniId = Number(furniIdString);
-                const floorObject = GetRoomEngine().getRoomObject(roomSession.roomId, furniId, RoomObjectCategory.FLOOR);
-                const wallObject = floorObject ? null : GetRoomEngine().getRoomObject(roomSession.roomId, furniId, RoomObjectCategory.WALL);
-                const category = floorObject ? RoomObjectCategory.FLOOR : wallObject ? RoomObjectCategory.WALL : -1;
-
-                if (category < 0) continue;
-
-                targets.push({
-                    category,
-                    objectId: furniId,
-                    hasValue: !!assignment.hasValue && !!selectedVariableDefinition.hasValue && assignment.value !== null && assignment.value !== undefined,
-                    value: assignment.value
-                });
-            }
-
-            return targets;
-        }
-
-        return [];
-    }, [
-        canVariableHighlight,
-        furniVariableAssignments,
-        isVariableHighlightActive,
-        roomSession,
-        selectedVariableDefinition,
-        userVariableAssignments,
-        variablesType
-    ]);
+        return targets;
+    }, [variableHolders, roomSession, selectedVariable]);
     useEffect(() => {
         if (isVisible && activeTab === 'variables' && canVariableHighlight) return;
 
@@ -1547,11 +1294,11 @@ export const WiredCreatorToolsView: FC<{}> = () => {
 
         if (managedHolderVariableEntries.some((entry) => entry.variableItemId === selectedManagedHolderVariableId)) return;
 
-        const preferredItemId = Number(selectedVariableDefinition?.itemId ?? 0);
+        const preferredItemId = selectedVariableItemId ?? 0;
         const preferredEntry = managedHolderVariableEntries.find((entry) => entry.variableItemId === preferredItemId);
 
         setSelectedManagedHolderVariableId(preferredEntry?.variableItemId ?? managedHolderVariableEntries[0].variableItemId);
-    }, [managedHolderVariableEntries, selectedManagedHolderVariableId, selectedVariableDefinition?.itemId]);
+    }, [managedHolderVariableEntries, selectedManagedHolderVariableId, selectedVariableItemId]);
     useEffect(() => {
         if (!availableManagedHolderDefinitions.length) {
             setManagedGiveVariableItemId(0);
@@ -1568,19 +1315,23 @@ export const WiredCreatorToolsView: FC<{}> = () => {
 
         setEditingManagedHolderValue(String(selectedManagedHolderVariableEntry.value ?? 0));
     }, [selectedManagedHolderVariableEntry, editingManagedHolderVariableId]);
-    const variableManageCanOpen = !!selectedVariableDefinition && selectedVariableDefinition.type === 'Custom' && variablesType !== 'context';
-    // Clearing reaches holders outside the room, so only the owner of the definition box gets the
-    // button; the server enforces the same rule.
+    // The owners list and the per-holder panel work on variables created in this room.
+    const variableManageCanOpen = selectedVariableItemId !== null && variablesType !== 'context' && !selectedVariable?.requiresExecutionContext;
+    // AIR WIN63-202610121709-785561319 WiredMenuOverviewTab.canDeleteCurrentVariable. Clearing reaches holders outside the room, so only the owner of the
+    // definition box gets the button; the server enforces the same rule.
     const canVariableClear =
-        variableManageCanOpen &&
-        (variablesType === 'user' || variablesType === 'furni') &&
         roomSettings.canModify &&
-        !!selectedVariableDefinition?.itemId &&
-        IsOwnerOfFloorFurniture(selectedVariableDefinition.itemId);
+        !!selectedVariable &&
+        selectedVariable.canCreateAndDelete &&
+        isPersistedVariable(selectedVariable) &&
+        selectedVariable.variableType === VARIABLE_TYPE_CUSTOM &&
+        (variablesType === 'user' || variablesType === 'furni') &&
+        selectedVariableItemId !== null &&
+        IsOwnerOfFloorFurniture(selectedVariableItemId);
     const confirmClearVariable = () => {
-        if (!canVariableClear || !showConfirm || !selectedVariableDefinition?.itemId) return;
+        if (!canVariableClear || !showConfirm || selectedVariableItemId === null) return;
         const scope = variablesType === 'furni' ? 'furni' : 'user';
-        const itemId = selectedVariableDefinition.itemId;
+        const itemId = selectedVariableItemId;
 
         showConfirm(
             localizeWithFallback(
@@ -1884,8 +1635,8 @@ export const WiredCreatorToolsView: FC<{}> = () => {
                     )}
                     {activeTab === 'variables' && (
                         <WiredVariablesTabView
-                            variablePickerDefinitions={variablePickerDefinitions}
-                            selectedVariableDefinition={selectedVariableDefinition}
+                            variablePickerDefinitions={variableNamesByType[variablesType]}
+                            selectedVariableDefinition={selectedVariable ? { key: selectedVariable.variableName } : null}
                             onPickVariable={(key) => setSelectedVariableKeys((prev) => ({ ...prev, [variablesType]: key }))}
                             canVariableHighlight={canVariableHighlight}
                             variableManageCanOpen={variableManageCanOpen}
@@ -1896,7 +1647,7 @@ export const WiredCreatorToolsView: FC<{}> = () => {
                                 setSelectedManagedVariableEntry(null);
                                 setIsVariableManageOpen(true);
                             }}
-                            arrayInspectorCanOpen={!!selectedVariableDefinition?.itemId}
+                            arrayInspectorCanOpen={selectedVariableItemId !== null}
                             onOpenArrayInspector={() => setIsArrayInspectorOpen(true)}
                             selectedVariableProperties={selectedVariableProperties}
                             selectedVariableTextValues={selectedVariableTextValues}
@@ -2004,28 +1755,28 @@ export const WiredCreatorToolsView: FC<{}> = () => {
                     </VoltCardContentView>
                 </VoltCardView>
             )}
-            {isVariableManageOpen && !!selectedVariableDefinition?.itemId && variablesType !== 'context' && (
+            {isVariableManageOpen && variableManageCanOpen && !!selectedVariable && (
                 <WiredVariableOwnersView
-                    variableId={wiredVariableIdOf(variablesType, selectedVariableDefinition.itemId)}
-                    variableName={selectedVariableDefinition.key}
+                    variableId={selectedVariable.variableId}
+                    variableName={selectedVariable.variableName}
                     variablesType={variablesType}
-                    hasValue={!!selectedVariableDefinition.hasValue}
+                    hasValue={selectedVariable.hasValue}
                     describeHolder={describeVariableHolder}
                     onManage={setSelectedManagedVariableEntry}
                     onClose={() => setIsVariableManageOpen(false)}
                 />
             )}
-            {isArrayInspectorOpen && !!selectedVariableDefinition?.itemId && (
+            {isArrayInspectorOpen && selectedVariableItemId !== null && !!selectedVariable && (
                 <WiredArrayInspectorView
-                    definitionItemId={selectedVariableDefinition.itemId}
-                    variableName={selectedVariableDefinition.key}
+                    definitionItemId={selectedVariableItemId}
+                    variableName={selectedVariable.variableName}
                     variableType={wiredArrayVariableTypeOf(variablesType)}
                     onClose={() => setIsArrayInspectorOpen(false)}
                 />
             )}
             {isRoomLogsOpen && <WiredRoomLogsView onClose={() => setIsRoomLogsOpen(false)} />}
             {isSelfDonationOpen && <WiredSelfDonationView onClose={() => setIsSelfDonationOpen(false)} />}
-            {!!selectedManagedVariableEntry && !!selectedVariableDefinition && (
+            {!!selectedManagedVariableEntry && !!selectedVariable && (
                 <WiredVariableHolderPanelView
                     title={managedHolderPanelTitle}
                     warningText={managedHolderWarningText}

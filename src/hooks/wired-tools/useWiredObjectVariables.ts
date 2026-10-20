@@ -1,8 +1,8 @@
-import { GetCommunication, IWiredVariableDiffEntry, WiredGetVariablesForObjectComposer, WiredSetObjectVariableValueComposer, WiredVariablesForObjectEvent } from '@volt/renderer';
+import { GetCommunication, WiredGetVariablesForObjectComposer, WiredSetObjectVariableValueComposer, WiredVariablesForObjectEvent } from '@volt/renderer';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { GetRoomSession, SendMessageComposer } from '../../api';
 import { useMessageEvent } from '../events';
-import { useWiredCatalog } from '../wired/useWiredCatalog';
+import { useWiredCatalogRows } from './useWiredCatalogRows';
 
 /** The inspected holder as the official messages name it: furni 0 (item id), user 1 (room index), room -10 (id 0). */
 export interface WiredObjectHolder {
@@ -21,8 +21,6 @@ export enum WiredObjectVariableOperation {
 const POLL_MS = 500;
 // A request the server never answers (no rights, unknown object) is sent again after this long.
 const UNANSWERED_MS = 4000;
-// AIR WiredVariablesSynchronizer serves catalogue requests within 800 ms from its cache.
-const CATALOG_REFRESH_MS = 800;
 
 interface PendingRead {
     roomId: number;
@@ -42,23 +40,13 @@ interface Snapshot {
  * room and holder, and reads the variable definitions from the room's shared variable catalogue.
  */
 export const useWiredObjectVariables = (roomId: number, holder: WiredObjectHolder | null, active: boolean, canInspect: boolean) => {
-    const { provider: catalogProvider, bind: bindCatalog } = useWiredCatalog();
-    const [catalogState, setCatalogState] = useState<{ roomId: number; rows: ReadonlyMap<string, IWiredVariableDiffEntry> } | null>(null);
     const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
     const pending = useRef<PendingRead | null>(null);
-    const lastCatalogRefresh = useRef(0);
     const enabled = active && canInspect && roomId > 0;
+    const { catalog, refresh: refreshCatalog } = useWiredCatalogRows(roomId, enabled, canInspect);
     const holderType = holder?.type ?? null;
     const holderObjectId = holder?.objectId ?? 0;
     const key = enabled && holderType !== null ? `${roomId}:${holderType}:${holderObjectId}` : null;
-    const catalog = enabled && catalogState?.roomId === roomId ? catalogState.rows : null;
-
-    useEffect(() => {
-        if (!enabled) return;
-        bindCatalog(canInspect);
-        lastCatalogRefresh.current = Date.now();
-        return catalogProvider.subscribe((state) => setCatalogState({ roomId, rows: state.rows }));
-    }, [enabled, roomId, canInspect, catalogProvider, bindCatalog]);
 
     useEffect(() => {
         pending.current = null;
@@ -92,11 +80,7 @@ export const useWiredObjectVariables = (roomId: number, holder: WiredObjectHolde
         setSnapshot({ key, values: parser.values });
 
         // As AIR, the catalogue is only asked for again when the answer names a variable it does not know yet.
-        const now = Date.now();
-        const unknown = [...parser.values.keys()].some((variableId) => !catalog?.has(variableId));
-        if (!unknown || now - lastCatalogRefresh.current < CATALOG_REFRESH_MS) return;
-        lastCatalogRefresh.current = now;
-        catalogProvider.refresh();
+        if ([...parser.values.keys()].some((variableId) => !catalog?.has(variableId))) refreshCatalog();
     });
 
     const write = useCallback(
@@ -108,11 +92,6 @@ export const useWiredObjectVariables = (roomId: number, holder: WiredObjectHolde
         },
         [key, holderType, holderObjectId]
     );
-
-    const refreshCatalog = useCallback(() => {
-        lastCatalogRefresh.current = Date.now();
-        catalogProvider.refresh();
-    }, [catalogProvider]);
 
     return {
         values: snapshot && snapshot.key === key ? snapshot.values : null,

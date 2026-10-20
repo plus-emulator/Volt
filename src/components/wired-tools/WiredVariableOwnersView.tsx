@@ -25,20 +25,6 @@ const SORT_VALUE_ASCENDING = 0;
 const SORT_VALUE_DESCENDING = 1;
 const SORT_NAME = 2;
 
-/** The variable id the server keys the page on: the target prefix plus the definition item id. */
-export const wiredVariableIdOf = (variablesType: VariablesElementType, itemId: number): string => {
-    switch (variablesType) {
-        case 'user':
-            return `user:${itemId}`;
-        case 'furni':
-            return `furni:${itemId}`;
-        case 'context':
-            return `ctx:${itemId}`;
-        default:
-            return `room:${itemId}`;
-    }
-};
-
 interface HoldersPage {
     variableId: string;
     totalEntries: number;

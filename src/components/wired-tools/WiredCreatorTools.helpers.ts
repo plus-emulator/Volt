@@ -1,7 +1,7 @@
 import { MONITOR_COLOR_GREEN, MONITOR_COLOR_ORANGE, MONITOR_COLOR_RED } from './WiredCreatorTools.constants';
 import type { IWiredVariableData, IWiredVariableDiffEntry } from '@volt/renderer';
 import { localizeWithFallback } from '../../api';
-import type { InspectionGiveDefinition, InspectionVariable, MonitorSnapshot, VariableTextValue } from './WiredCreatorTools.types';
+import type { InspectionGiveDefinition, InspectionVariable, MonitorSnapshot, VariablesElementType, VariableTextValue } from './WiredCreatorTools.types';
 
 const HOTEL_TIME_FORMATTERS: Map<string, Intl.DateTimeFormat> = new Map();
 
@@ -113,13 +113,6 @@ export const normalizeMonitorReason = (reason: string): string => {
     return normalizedReason || 'No detailed reason was recorded for this entry.';
 };
 
-/** The server's text-connector table as the variables tab lists it; undefined when there is none. */
-export const toVariableTextValues = (textConnector?: Array<{ key: number; value: string }>): VariableTextValue[] | undefined => {
-    if (!textConnector?.length) return undefined;
-
-    return textConnector.map((entry) => ({ value: String(entry.key), text: entry.value }));
-};
-
 /** WiredMenuMonitorTab.colorize: share of the cap below t1 is green, below t2 orange, else (including 0/0) red. */
 export const colorizeMonitorStat = (amount: number, cap: number, t1: number, t2: number): string =>
 {
@@ -131,8 +124,9 @@ export const colorizeMonitorStat = (amount: number, cap: number, t1: number, t2:
     return MONITOR_COLOR_RED;
 };
 
-// AIR WIN63-202610151745-318700621 class_4039: variableType 1 is a built-in (internal) variable, 3 a smart (~) one.
-const VARIABLE_TYPE_INTERNAL = 1;
+// AIR WIN63-202610151745-318700621 class_4039: variableType 0 is created by a user, 1 is a built-in (internal) variable, 3 a smart (~) one.
+export const VARIABLE_TYPE_CUSTOM = 0;
+export const VARIABLE_TYPE_INTERNAL = 1;
 const VARIABLE_TYPE_SMART = 3;
 const INT_MAX = 2147483647;
 const INT_MIN = -2147483648;
@@ -265,4 +259,85 @@ export const parseInspectionInt = (text: string): number | null => {
     const value = match[1] === '-' ? -magnitude : magnitude;
 
     return value > INT_MIN && value <= INT_MAX ? value : null;
+};
+
+/** The catalogue `variableTarget` each variable type button of the Variables tab lists. */
+export const VARIABLE_TARGET_OF_TYPE: Record<VariablesElementType, number> = { furni: 0, user: 1, global: -10, context: -20 };
+
+/** AIR WIN63-202610121709-785561319 WiredMenuOverviewTab.updateVariableListUI: the catalogue's visible variables of one target, sorted like AIR. */
+export const buildVariablePickerRows = (catalog: ReadonlyMap<string, IWiredVariableDiffEntry> | null, type: VariablesElementType): IWiredVariableData[] => {
+    if (!catalog) return [];
+
+    const target = VARIABLE_TARGET_OF_TYPE[type];
+
+    return [...catalog.values()]
+        .map((entry) => entry.variable)
+        .filter((variable) => !variable.isInvisible && variable.variableTarget === target)
+        .sort(compareVariables);
+};
+
+/** AIR WIN63-202610121709-785561319 WiredVariable.isPersisted: permanent, shared or reference availability. */
+export const isPersistedVariable = (variable: IWiredVariableData): boolean => [10, 11, 20].includes(variable.availabilityType);
+
+/**
+ * The definition box item id of a variable created in this room. The server names those "user:12", "furni:12", "room:12" or
+ * "ctx:12"; built-in, smart and shared variables have no box and give null.
+ */
+export const customVariableItemId = (variable: IWiredVariableData): number | null => {
+    const match = /^(?:user|furni|room|ctx):(\d+)$/.exec(variable.variableId);
+    const itemId = match ? Number(match[1]) : 0;
+
+    return itemId > 0 ? itemId : null;
+};
+
+const VARIABLE_TARGET_LABELS: Record<number, [string, string]> = {
+    0: ['wiredfurni.params.sourcetype.furni', 'Furni'],
+    1: ['wiredfurni.params.sourcetype.users', 'User'],
+    [-10]: ['wiredfurni.params.sourcetype.global', 'Global'],
+    [-20]: ['wiredfurni.params.sourcetype.context', 'Context']
+};
+
+/** AIR WIN63-202610121709-785561319 WiredMenuOverviewTab.updatePropertiesTableUI rows, with the PropertyTableObject texts. */
+export const buildVariableProperties = (variable: IWiredVariableData | null): { key: string; value: string }[] => {
+    if (!variable) return [];
+
+    const yesNo = (value: boolean) => (value ? localizeWithFallback('wiredmenu.bool.yes', 'Yes') : localizeWithFallback('wiredmenu.bool.no', 'No'));
+    const target = VARIABLE_TARGET_LABELS[variable.variableTarget];
+    const rows: [string, string, string][] = [
+        ['name', 'Name', variable.variableName],
+        ['type', 'Type', localizeWithFallback(`wiredfurni.params.variables.idtype.${variable.variableType}`, String(variable.variableType))],
+        ['target', 'Target', target ? localizeWithFallback(target[0], target[1]) : ''],
+        [
+            'availability',
+            'Availability',
+            localizeWithFallback(`wiredfurni.params.variables.availability.${variable.availabilityType}`, localizeWithFallback('wiredfurni.params.variables.availability.misc', '/'))
+        ],
+        ['has_value', 'Has value', yesNo(variable.hasValue)],
+        ['can_write_to', 'Can write to', yesNo(variable.canWriteValue)],
+        ['can_create_delete', 'Can create/delete', yesNo(variable.canCreateAndDelete)],
+        ['can_intercept', 'Can intercept', yesNo(variable.canInterceptChanges)],
+        ['is_always_available', 'Is always available', yesNo(variable.alwaysAvailable)],
+        ['can_read_creation_time', 'Has creation time', yesNo(variable.canReadCreationTime)],
+        ['can_read_last_update_time', 'Has update time', yesNo(variable.canReadLastUpdateTime)],
+        ['is_text_connected', 'Is text connected', yesNo(variable.textConnector !== null)]
+    ];
+
+    return rows.map(([key, fallback, value]) => ({ key: localizeWithFallback(`wiredmenu.variable_overview.properties.${key}`, fallback), value }));
+};
+
+// AIR WIN63-202610121709-785561319 WiredMenuOverviewTab.MAX_TEXT_CONNECTIONS: a longer connector lists only its fallback.
+const MAX_TEXT_CONNECTIONS = 400;
+
+/** AIR WIN63-202610121709-785561319 WiredMenuOverviewTab.updateTextTableUI: the text connector by numeric key, then the fallback as "_". */
+export const buildVariableTextValues = (variable: IWiredVariableData | null): VariableTextValue[] => {
+    if (!variable || variable.textConnector === null) return [];
+
+    const rows: VariableTextValue[] =
+        variable.textConnector.length <= MAX_TEXT_CONNECTIONS
+            ? [...variable.textConnector].sort((left, right) => left.key - right.key).map((entry) => ({ value: String(entry.key), text: entry.value }))
+            : [];
+
+    if (variable.hasTextConnectorFallback && variable.textConnectorFallback !== null) rows.push({ value: '_', text: variable.textConnectorFallback });
+
+    return rows;
 };
