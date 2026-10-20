@@ -1,15 +1,32 @@
 import {
+    FurnitureMultiStateComposer,
     GetRoomEngine,
     RoomAreaSelectionManager,
     RoomEngineAreaHideStateEvent,
+    RoomControllerLevel,
     RoomEngineTriggerWidgetEvent,
     RoomObjectVariable,
-    SetObjectDataMessageComposer
+    SetAreaHideComposer
 } from '@volt/renderer';
-import { useCallback, useEffect, useState } from 'react';
-import { CanManipulateFurniture, SendMessageComposer } from '../../../../api';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { HasPermission, Permission, SendMessageComposer } from '../../../../api';
 import { useVoltEvent } from '../../../events';
 import { useRoom } from '../../useRoom';
+
+/** AIR AreaHideFurniWidget saves every change at once (AUTO_SAVE) and the server clamps the size to 0..64. */
+const MAX_AREA_SIZE = 64;
+
+const clampSize = (value: number) => Math.max(0, Math.min(MAX_AREA_SIZE, Math.floor(value) || 0));
+
+type AreaHideValues = {
+    rootX: number;
+    rootY: number;
+    width: number;
+    length: number;
+    invisibility: boolean;
+    wallItems: boolean;
+    inverted: boolean;
+};
 
 const useFurnitureAreaHideWidgetState = () => {
     const [objectId, setObjectId] = useState<number>(-1);
@@ -39,28 +56,48 @@ const useFurnitureAreaHideWidgetState = () => {
         GetRoomEngine().areaSelectionManager.deactivate();
     };
 
-    const saveChanges = useCallback(() => {
-        if (objectId === -1) return;
+    const valuesRef = useRef<AreaHideValues>({ rootX: 0, rootY: 0, width: 0, length: 0, invisibility: false, wallItems: false, inverted: false });
 
-        const nextState = isOn ? 0 : 1;
-        const data = new Map<string, string>();
+    valuesRef.current = { rootX, rootY, width, length, invisibility, wallItems, inverted };
 
-        data.set('state', nextState.toString());
-        data.set('rootX', rootX.toString());
-        data.set('rootY', rootY.toString());
-        data.set('width', width.toString());
-        data.set('length', length.toString());
-        data.set('invisibility', invisibility ? '1' : '0');
-        data.set('wallItems', wallItems ? '1' : '0');
-        data.set('invert', inverted ? '1' : '0');
+    const objectIdRef = useRef<number>(-1);
 
-        SendMessageComposer(new SetObjectDataMessageComposer(objectId, data));
+    objectIdRef.current = objectId;
 
-        onClose();
-    }, [objectId, isOn, rootX, rootY, width, length, invisibility, wallItems, inverted]);
+    // AIR updateData: out 3831 with the whole rectangle and all three options.
+    const save = useCallback((changes: Partial<AreaHideValues>) => {
+        if (objectIdRef.current === -1) return;
+
+        const next = { ...valuesRef.current, ...changes };
+
+        next.width = clampSize(next.width);
+        next.length = clampSize(next.length);
+        next.rootX = Math.max(0, next.rootX);
+        next.rootY = Math.max(0, next.rootY);
+
+        valuesRef.current = next;
+
+        setRootX(next.rootX);
+        setRootY(next.rootY);
+        setWidth(next.width);
+        setLength(next.length);
+        setInvisibility(next.invisibility);
+        setWallItems(next.wallItems);
+        setInverted(next.inverted);
+
+        SendMessageComposer(new SetAreaHideComposer(objectIdRef.current, next.rootX, next.rootY, next.width, next.length, next.invisibility, next.wallItems, next.inverted));
+    }, []);
+
+    // AIR onClickOnOff: the normal use furniture packet.
+    const toggleOnOff = useCallback(() => {
+        if (objectIdRef.current === -1) return;
+
+        SendMessageComposer(new FurnitureMultiStateComposer(objectIdRef.current, 0));
+    }, []);
 
     useVoltEvent<RoomEngineTriggerWidgetEvent>(RoomEngineTriggerWidgetEvent.REQUEST_AREA_HIDE, (event) => {
-        if (!CanManipulateFurniture(roomSession, event.objectId, event.category)) return;
+        // AIR FurnitureAreaHideWidgetHandler: room owner, rights holder or any-room control.
+        if (!roomSession || !(roomSession.isRoomOwner || roomSession.controllerLevel >= RoomControllerLevel.GUEST || HasPermission(Permission.RoomOwnerAny))) return;
 
         setObjectId(event.objectId);
         setCategory(event.category);
@@ -91,41 +128,33 @@ const useFurnitureAreaHideWidgetState = () => {
         if (objectId === -1) return;
 
         if (!isOn) {
-            const callback = (rootX: number, rootY: number, width: number, height: number) => {
-                setRootX(rootX);
-                setRootY(rootY);
-                setWidth(width);
-                setLength(height);
+            const callback = (selectedX: number, selectedY: number, selectedWidth: number, selectedLength: number) => {
+                save({ rootX: selectedX, rootY: selectedY, width: selectedWidth, length: selectedLength });
             };
 
             if (GetRoomEngine().areaSelectionManager.activate(callback, RoomAreaSelectionManager.HIGHLIGHT_DARKEN)) {
-                GetRoomEngine().areaSelectionManager.setHighlight(rootX, rootY, width, length);
+                const values = valuesRef.current;
+
+                GetRoomEngine().areaSelectionManager.setHighlight(values.rootX, values.rootY, values.width, values.length);
             }
         } else {
             GetRoomEngine().areaSelectionManager.deactivate();
         }
-    }, [objectId, isOn, rootX, rootY, width, length]);
+    }, [objectId, isOn, save]);
 
     return {
         objectId,
         category,
         isOn,
-        setIsOn,
         rootX,
-        setRootX,
         rootY,
-        setRootY,
         width,
-        setWidth,
         length,
-        setLength,
         invisibility,
-        setInvisibility,
         wallItems,
-        setWallItems,
         inverted,
-        setInverted,
-        saveChanges,
+        save,
+        toggleOnOff,
         onClose
     };
 };

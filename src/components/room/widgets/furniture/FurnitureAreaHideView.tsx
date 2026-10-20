@@ -9,12 +9,10 @@ export const FurnitureAreaHideView: FC<{}> = (props) => {
         objectId = -1,
         isOn,
         wallItems,
-        setWallItems,
         inverted,
-        setInverted,
         invisibility,
-        setInvisibility,
-        saveChanges = null,
+        save = null,
+        toggleOnOff = null,
         onClose = null
     } = useFurnitureAreaHideWidget();
 
@@ -33,10 +31,10 @@ export const FurnitureAreaHideView: FC<{}> = (props) => {
                         <Text bold>{LocalizeText('wiredfurni.params.area_selection.info')}</Text>
                     </Column>
                     <Flex gap={1}>
-                        <Button fullWidth variant="primary" onClick={(event) => GetRoomEngine().areaSelectionManager.startSelecting()}>
+                        <Button fullWidth variant="primary" disabled={isOn} onClick={(event) => GetRoomEngine().areaSelectionManager.startSelecting()}>
                             {LocalizeText('wiredfurni.params.area_selection.select')}
                         </Button>
-                        <Button fullWidth variant="primary" onClick={(event) => GetRoomEngine().areaSelectionManager.clearHighlight()}>
+                        <Button fullWidth variant="primary" disabled={isOn} onClick={(event) => GetRoomEngine().areaSelectionManager.clearHighlight()}>
                             {LocalizeText('wiredfurni.params.area_selection.clear')}
                         </Button>
                     </Flex>
@@ -49,7 +47,8 @@ export const FurnitureAreaHideView: FC<{}> = (props) => {
                             type="checkbox"
                             id="setWallItems"
                             checked={wallItems}
-                            onChange={(event) => setWallItems(event.target.checked ? true : false)}
+                            disabled={isOn}
+                            onChange={(event) => save({ wallItems: event.target.checked })}
                         />
                         <Text>{LocalizeText('widget.areahide.options.wallitems')}</Text>
                     </Flex>
@@ -59,7 +58,8 @@ export const FurnitureAreaHideView: FC<{}> = (props) => {
                             type="checkbox"
                             id="setInverted"
                             checked={inverted}
-                            onChange={(event) => setInverted(event.target.checked ? true : false)}
+                            disabled={isOn}
+                            onChange={(event) => save({ inverted: event.target.checked })}
                         />
                         <Column gap={1}>
                             <Text>{LocalizeText('widget.areahide.options.invert')}</Text>
@@ -72,7 +72,8 @@ export const FurnitureAreaHideView: FC<{}> = (props) => {
                             type="checkbox"
                             id="setInvisibility"
                             checked={invisibility}
-                            onChange={(event) => setInvisibility(event.target.checked ? true : false)}
+                            disabled={isOn}
+                            onChange={(event) => save({ invisibility: event.target.checked })}
                         />
                         <Column gap={1}>
                             <Text>{LocalizeText('widget.areahide.options.invisibility')}</Text>
@@ -80,7 +81,7 @@ export const FurnitureAreaHideView: FC<{}> = (props) => {
                         </Column>
                     </Flex>
                 </Column>
-                <Button fullWidth variant="primary" onClick={saveChanges}>
+                <Button fullWidth variant="primary" onClick={toggleOnOff}>
                     {LocalizeText(isOn ? 'widget.dimmer.button.off' : 'widget.dimmer.button.on')}
                 </Button>
             </VoltCardContentView>
