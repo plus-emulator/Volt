@@ -4,3 +4,5 @@ export * from './useWiredToolsState';
 export * from './useWiredToolsStore';
 export * from './useWiredPageRequests';
 export * from './useWiredObjectVariables';
+export * from './useWiredCatalogRows';
+export * from './useWiredVariableHolders';
