@@ -8,6 +8,8 @@ import { useAvatarEditor } from '../../hooks';
 import { getEditorEffectSeconds } from '../../hooks/avatar-editor/useAvatarEditorEffects';
 import { useAvatarEditorGridWheel } from '../../hooks/avatar-editor/useAvatarEditorGridWheel';
 
+// EffectsParamView opens this page; the stock catalogue's Clothing > Effects.
+const EFFECTS_CATALOG_PAGE = 'ny2015_permeffects';
 const EFFECT_ICONS = import.meta.glob('../../assets/images/avatareditor/effects/*.png', { eager: true, import: 'default' });
 
 export const AvatarEditorEffectsView: FC = () =>
@@ -49,7 +51,7 @@ export const AvatarEditorEffectsView: FC = () =>
             <img src={fxSrc} alt="" draggable={false} />
             <NativeText text={LocalizeText('inventory.effects')} textStyle="u_bold" background={0xe9e9e1} overrides={{ size: 20 }} />
         </div>
-        <button type="button" className="volt-avatar-editor-effects-shop" onClick={() => CreateLinkEvent(`catalog/open/${GetConfigurationValue<string>('avatareditor.effects.buy.button.catalog.page.name', '')}`)}>
+        <button type="button" className="volt-avatar-editor-effects-shop" onClick={() => CreateLinkEvent(`catalog/open/${GetConfigurationValue<string>('avatareditor.effects.buy.button.catalog.page.name', EFFECTS_CATALOG_PAGE)}`)}>
             <NativeText text={LocalizeText('avatareditor.effects.shop')} textStyle="button_shiny_bold" background={0xffffff} />
         </button>
         {effects.length === 0 ? <div className="volt-avatar-editor-effects-empty">

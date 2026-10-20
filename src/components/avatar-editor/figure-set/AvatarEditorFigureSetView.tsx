@@ -1,3 +1,4 @@
+import { AvatarFigurePartType } from '@volt/renderer';
 import { FC } from 'react';
 import { CreateLinkEvent, GetConfigurationValue, IAvatarEditorCategory, IAvatarEditorCategoryPartItem } from '../../../api';
 import { useAvatarEditor } from '../../../hooks';
@@ -43,7 +44,12 @@ export const AvatarEditorFigureSetView: FC<{
                         setType={category.setType}
                         onClick={() => {
                             if (item.isGetMore) {
-                                const page = GetConfigurationValue<string>('catalog.clothes.page', '');
+                                // AIR AvatarEditorGridView GET_MORE opens catalog.clothes.page; the stock catalogue's Clothing > New Additions.
+                                // The pet tab opens Clothing > Companions instead, where the pet companions are sold.
+                                const page =
+                                    category.setType === AvatarFigurePartType.PET
+                                        ? GetConfigurationValue<string>('avatareditor.pets.catalog.page.name', 'clothing_companions')
+                                        : GetConfigurationValue<string>('catalog.clothes.page', 'clothing_new');
 
                                 CreateLinkEvent(`catalog/open/${page}`);
 
