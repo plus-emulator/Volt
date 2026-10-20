@@ -14,8 +14,10 @@ import {
     RoomObjectType,
     RoomObjectVariable,
     RoomUnitInfoEvent,
+    WiredGetRoomStatsComposer,
     WiredMonitorDataEvent,
     WiredMonitorRequestComposer,
+    WiredRoomStatsEvent,
 } from '@volt/renderer';
 import { FC, KeyboardEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -85,6 +87,7 @@ import {
     buildVariableTextValues,
     customVariableItemId,
     isPersistedVariable,
+    monitorRoomStatRows,
     VARIABLE_TARGET_OF_TYPE,
     VARIABLE_TYPE_CUSTOM,
     VARIABLE_TYPE_INTERNAL
@@ -97,6 +100,7 @@ import {
     InspectionVariable,
     ManagedHolderVariableEntry,
     MonitorLog,
+    MonitorRoomStats,
     MonitorStat,
     VariableHighlightOverlay,
     VariableHighlightTarget,
@@ -223,6 +227,11 @@ export const WiredCreatorToolsView: FC<{}> = () => {
 
     // Any change of the viewed room (A -> B -> A included) or closing the tab starts a new view: the loading state returns until an answer arrives for it.
     if (monitorLoadedKey !== 0 && monitorLoadedKey !== monitorViewKey) setMonitorLoadedKey(0);
+    // WiredRoomStats answers are kept for the view they arrived in, the same way, so a new view never shows the last view's counts.
+    const [monitorRoomStatsAnswer, setMonitorRoomStatsAnswer] = useState<{ viewKey: number; stats: MonitorRoomStats } | null>(null);
+
+    if (monitorRoomStatsAnswer && monitorRoomStatsAnswer.viewKey !== monitorViewKey) setMonitorRoomStatsAnswer(null);
+    const monitorRoomStats = monitorRoomStatsAnswer?.stats ?? null;
     const {
         roomSettings,
         clearVariableForAllHolders,
@@ -428,6 +437,31 @@ export const WiredCreatorToolsView: FC<{}> = () => {
         setMonitorLoadedKey(monitorViewKeyRef.current);
     });
 
+    useMessageEvent<WiredRoomStatsEvent>(WiredRoomStatsEvent, (event) => {
+        const viewKey = monitorViewKeyRef.current;
+
+        // An answer that arrives after the Monitor tab was left belongs to no view.
+        if (viewKey === 0) return;
+
+        const parser = event.getParser();
+
+        setMonitorRoomStatsAnswer({
+            viewKey,
+            stats: {
+                floorItemCount: parser.floorItemCount,
+                floorItemCap: parser.floorItemCap,
+                wallItemCount: parser.wallItemCount,
+                wallItemCap: parser.wallItemCap,
+                permanentFurniVariables: parser.permanentFurniVariables,
+                maxPermanentFurniVariables: parser.maxPermanentFurniVariables,
+                permanentUserVariables: parser.permanentUserVariables,
+                maxPermanentUserVariables: parser.maxPermanentUserVariables,
+                permanentGlobalVariables: parser.permanentGlobalVariables,
+                maxPermanentGlobalVariables: parser.maxPermanentGlobalVariables
+            }
+        });
+    });
+
     useMessageEvent<FurnitureFloorUpdateEvent>(FurnitureFloorUpdateEvent, (event) => {
         if (!selectedFurni) return;
 
@@ -501,7 +535,9 @@ export const WiredCreatorToolsView: FC<{}> = () => {
 
     const requestMonitorSnapshot = useCallback(() => {
         monitorRequestGateRef.current?.request(() => {
+            // WiredMenuMonitorTab.requestData: the room stats are asked for with the monitor data, on opening and every POLL_MONITOR_MS.
             SendMessageComposer(new WiredMonitorRequestComposer(WIRED_MONITOR_ACTION_FETCH));
+            SendMessageComposer(new WiredGetRoomStatsComposer());
         });
     }, []);
 
@@ -618,34 +654,6 @@ export const WiredCreatorToolsView: FC<{}> = () => {
 
         return MONITOR_ERROR_INFO[selectedMonitorError.type] ?? null;
     }, [selectedMonitorError]);
-    // Counted from the room on the client until the renderer has WiredGetRoomStats and WiredRoomStats; PlusEMU already answers them.
-    const monitorRoomStats = useMemo(() => {
-        if (!roomSession) {
-            return {
-                roomFurniCount: 0,
-                roomItemLimit: 0,
-                wallFurniCount: 0,
-                permanentFurniVariables: 0
-            };
-        }
-
-        const roomId = roomSession.roomId;
-        const floorObjects = GetRoomEngine().getRoomObjects(roomId, RoomObjectCategory.FLOOR);
-        const wallObjects = GetRoomEngine().getRoomObjects(roomId, RoomObjectCategory.WALL);
-
-        return {
-            roomFurniCount: floorObjects.length + wallObjects.length,
-            roomItemLimit: Number(roomSession.roomItemLimit ?? 0),
-            wallFurniCount: wallObjects.length,
-            permanentFurniVariables: [...floorObjects, ...wallObjects].reduce((total, roomObject) => {
-                if (!roomObject) return total;
-
-                const customVariables = roomObject.model.getValue<string[]>(RoomObjectVariable.FURNITURE_CUSTOM_VARIABLES);
-
-                return total + (customVariables?.length ?? 0);
-            }, 0)
-        };
-    }, [roomSession, globalClock]);
     const monitorHistoryTypeOptions = useMemo(() => {
         return ['ALL', ...new Set(monitorSnapshot.history.map((entry) => entry.type))];
     }, [monitorSnapshot.history]);
@@ -664,28 +672,20 @@ export const WiredCreatorToolsView: FC<{}> = () => {
         }
     }, [inspectionType]);
     const monitorStats = useMemo<MonitorStat[]>(() => {
-        // WiredMenuMonitorTab.updateRoomStatsUI rows. Until the room stats arrive the html fields keep their
-        // layout captions, so the values stay empty. This server reports no permanent user/global variable
-        // counts; those two rows keep their caption only.
+        // WiredMenuMonitorTab.updateRoomStatsUI rows. Until an answer arrives the html fields keep their layout captions, so the values stay empty.
         if (!monitorLoaded) return MONITOR_STAT_CAPTIONS.map((label) => ({ label, value: '' }));
 
-        const floorFurniCount = monitorRoomStats.roomFurniCount - monitorRoomStats.wallFurniCount;
         const usageColor = colorizeMonitorStat(monitorSnapshot.usageCurrentWindow, monitorSnapshot.usageLimitPerWindow, 0.3, 0.7);
 
         return [
-            { label: MONITOR_STAT_CAPTIONS[0], value: `${monitorSnapshot.usageCurrentWindow}/${Math.max(0, monitorSnapshot.usageLimitPerWindow)}`, color: usageColor },
+            { label: MONITOR_STAT_CAPTIONS[0], value: `${monitorSnapshot.usageCurrentWindow}/${Math.max(0, monitorSnapshot.usageLimitPerWindow)}`, color: usageColor, alarm: true },
             {
                 label: MONITOR_STAT_CAPTIONS[1],
                 value: monitorSnapshot.isHeavy ? localizeWithFallback('wiredmenu.bool.yes', 'Yes') : localizeWithFallback('wiredmenu.bool.no', 'No'),
-                color: monitorSnapshot.isHeavy ? MONITOR_COLOR_ORANGE : MONITOR_COLOR_GREEN
+                color: monitorSnapshot.isHeavy ? MONITOR_COLOR_ORANGE : MONITOR_COLOR_GREEN,
+                alarm: true
             },
-            // AIR colours these rows from WiredRoomStatsData (server counts and separate floor/wall caps). The monitor packet carries neither, and the room's
-            // single item limit from the guest room data is not that per-category cap, so the client-side counts are shown without a cap or a colour.
-            { label: MONITOR_STAT_CAPTIONS[2], value: `${floorFurniCount}` },
-            { label: MONITOR_STAT_CAPTIONS[3], value: `${monitorRoomStats.wallFurniCount}` },
-            { label: MONITOR_STAT_CAPTIONS[4], value: `${monitorRoomStats.permanentFurniVariables}` },
-            { label: MONITOR_STAT_CAPTIONS[5], value: '' },
-            { label: MONITOR_STAT_CAPTIONS[6], value: '' },
+            ...monitorRoomStatRows(monitorRoomStats),
             // Volt's executor metrics, not part of the official list: kept after the official rows.
             { label: 'Delayed events', value: `${monitorSnapshot.delayedEventsPending}/${Math.max(0, monitorSnapshot.delayedEventsLimit)}` },
             { label: 'Average execution', value: `${monitorSnapshot.averageExecutionMs}ms` },
@@ -765,11 +765,15 @@ export const WiredCreatorToolsView: FC<{}> = () => {
             },
             {
                 title: 'Room counters',
-                lines: [
-                    `Room furni: ${monitorRoomStats.roomFurniCount}/${Math.max(0, monitorRoomStats.roomItemLimit) || 0}`,
-                    `Wall furni: ${monitorRoomStats.wallFurniCount}/${Math.max(0, monitorRoomStats.roomItemLimit) || 0}`,
-                    `Permanent furni vars: ${monitorRoomStats.permanentFurniVariables} renderer-side custom variable entries currently attached to room items.`
-                ]
+                lines: monitorRoomStats
+                    ? [
+                          `Floor furni: ${monitorRoomStats.floorItemCount}/${monitorRoomStats.floorItemCap}`,
+                          `Wall furni: ${monitorRoomStats.wallItemCount}/${monitorRoomStats.wallItemCap}`,
+                          `Permanent furni vars: ${monitorRoomStats.permanentFurniVariables}/${monitorRoomStats.maxPermanentFurniVariables}`,
+                          `Permanent user vars: ${monitorRoomStats.permanentUserVariables}/${monitorRoomStats.maxPermanentUserVariables}`,
+                          `Permanent global vars: ${monitorRoomStats.permanentGlobalVariables}/${monitorRoomStats.maxPermanentGlobalVariables}`
+                      ]
+                    : ['Waiting for the server.']
             }
         ];
     }, [monitorSnapshot, monitorRoomStats]);

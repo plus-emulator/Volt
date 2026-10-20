@@ -1,7 +1,7 @@
-import { MONITOR_COLOR_GREEN, MONITOR_COLOR_ORANGE, MONITOR_COLOR_RED } from './WiredCreatorTools.constants';
+import { MONITOR_COLOR_GREEN, MONITOR_COLOR_ORANGE, MONITOR_COLOR_RED, MONITOR_STAT_CAPTIONS } from './WiredCreatorTools.constants';
 import type { IWiredVariableData, IWiredVariableDiffEntry } from '@volt/renderer';
 import { localizeWithFallback } from '../../api';
-import type { InspectionGiveDefinition, InspectionVariable, MonitorSnapshot, VariablesElementType, VariableTextValue } from './WiredCreatorTools.types';
+import type { InspectionGiveDefinition, InspectionVariable, MonitorRoomStats, MonitorSnapshot, MonitorStat, VariablesElementType, VariableTextValue } from './WiredCreatorTools.types';
 
 const HOTEL_TIME_FORMATTERS: Map<string, Intl.DateTimeFormat> = new Map();
 
@@ -122,6 +122,30 @@ export const colorizeMonitorStat = (amount: number, cap: number, t1: number, t2:
     if (ratio < t2) return MONITOR_COLOR_ORANGE;
 
     return MONITOR_COLOR_RED;
+};
+
+/**
+ * WiredMenuMonitorTab.updateRoomStatsUI rows 3 to 7 from WiredRoomStatsData. Furni turn orange at 60% and red at 85% of the cap,
+ * permanent variables at 50% and 80%. Without an answer the rows keep their caption only.
+ */
+export const monitorRoomStatRows = (stats: MonitorRoomStats | null): MonitorStat[] =>
+{
+    const row = (caption: number, amount: number, cap: number, t1: number, t2: number, alarm: boolean): MonitorStat => ({
+        label: MONITOR_STAT_CAPTIONS[caption],
+        value: `${amount}/${cap}`,
+        color: colorizeMonitorStat(amount, cap, t1, t2),
+        alarm
+    });
+
+    if (!stats) return MONITOR_STAT_CAPTIONS.slice(2).map((label) => ({ label, value: '' }));
+
+    return [
+        row(2, stats.floorItemCount, stats.floorItemCap, 0.6, 0.85, true),
+        row(3, stats.wallItemCount, stats.wallItemCap, 0.6, 0.85, true),
+        row(4, stats.permanentFurniVariables, stats.maxPermanentFurniVariables, 0.5, 0.8, false),
+        row(5, stats.permanentUserVariables, stats.maxPermanentUserVariables, 0.5, 0.8, false),
+        row(6, stats.permanentGlobalVariables, stats.maxPermanentGlobalVariables, 0.5, 0.8, false)
+    ];
 };
 
 // AIR WIN63-202610151745-318700621 class_4039: variableType 0 is created by a user, 1 is a built-in (internal) variable, 3 a smart (~) one.
