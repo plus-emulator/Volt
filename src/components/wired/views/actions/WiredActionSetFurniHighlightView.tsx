@@ -1,5 +1,5 @@
-import { FC, useEffect, useState } from 'react';
-import { localizeWithFallback, WiredFurniType } from '../../../../api';
+import { FC, useEffect, useMemo, useState } from 'react';
+import { GetConfigurationValue, localizeWithFallback, WiredFurniType } from '../../../../api';
 import {
     getWiredHighlightColors,
     getWiredHighlightShownStrength,
@@ -8,7 +8,12 @@ import {
     getWiredHighlightStrengthFromParam,
     getWiredHighlightStrengthOptions,
     hasWiredHighlightColor,
+    isWiredHighlightDarkeningAvailable,
+    parseWiredHighlightDarkenLevels,
+    WIRED_HIGHLIGHT_COLORS,
+    WIRED_HIGHLIGHT_DARKEN_LEVELS_KEY,
     WIRED_HIGHLIGHT_TYPE_BRIGHTEN,
+    WIRED_HIGHLIGHT_TYPE_DARKEN,
     WiredHighlightStrengthOption
 } from '../../../../api/wired/WiredFurniHighlight';
 import { Text } from '../../../../common';
@@ -28,7 +33,7 @@ import { WIRED_VISUALIZATION_AUDIENCE_EVERYONE, WiredVisualizationAudienceSectio
 
 const SOURCE_SELECTED = 100;
 const NORMAL_FURNI_WARNING_TYPE = 3;
-const DEFAULT_COLOR = 16777215;
+const DEFAULT_COLOR = WIRED_HIGHLIGHT_COLORS[0];
 const ANIMATION_STEADY = 0;
 const ANIMATION_PULSE = 1;
 const TYPE_LABELS = ['Outline', 'Soft glow', 'Darken', 'Color tint', 'Brighten', 'Neon aura'];
@@ -59,34 +64,47 @@ export const WiredActionSetFurniHighlightView: FC<{}> = () => {
     const [furniSource, setFurniSource] = useState(SOURCE_SELECTED);
     const [userSource, setUserSource] = useState(0);
     const [audienceUserSource, setAudienceUserSource] = useState(0);
+    // Observed on AIR WIN63-202610201032-107964540 (class_4226.as): the hotel lists the darken levels in ui-config, and Darken is
+    // offered only when one of them is above Off.
+    const darkenLevels = useMemo(() => parseWiredHighlightDarkenLevels(GetConfigurationValue<string | null>(WIRED_HIGHLIGHT_DARKEN_LEVELS_KEY, null)), []);
+    const darkeningAvailable = isWiredHighlightDarkeningAvailable(darkenLevels);
 
     const isBrighten = type === WIRED_HIGHLIGHT_TYPE_BRIGHTEN;
     const effectiveAnimation = isBrighten ? ANIMATION_PULSE : animation;
     const colorEnabled = hasWiredHighlightColor(type);
     const easingEnabled = effectiveAnimation === ANIMATION_STEADY;
-    const strengthOptions = getWiredHighlightStrengthOptions(type);
+    const strengthOptions = getWiredHighlightStrengthOptions(type, darkenLevels);
     const colors = getWiredHighlightColors(type);
 
     useEffect(() => {
         if (!trigger) return;
 
-        const savedType = Math.min(TYPE_LABELS.length - 1, Math.max(0, trigger.intData?.[1] ?? 0));
+        let savedType = Math.min(TYPE_LABELS.length - 1, Math.max(0, trigger.intData?.[1] ?? 0));
+        let savedStrength = trigger.intData?.[2] ?? 0;
+        let savedColor = trigger.intData?.[3] ?? DEFAULT_COLOR;
+
+        // A saved Darken opens as an Outline switched off while the hotel offers no darkening.
+        if (savedType === WIRED_HIGHLIGHT_TYPE_DARKEN && !darkeningAvailable) {
+            savedType = 0;
+            savedStrength = 0;
+            savedColor = DEFAULT_COLOR;
+        }
 
         setAudience(trigger.intData?.[0] === WIRED_VISUALIZATION_AUDIENCE_EVERYONE ? WIRED_VISUALIZATION_AUDIENCE_EVERYONE : 0);
         setType(savedType);
-        setStrength(getWiredHighlightStrengthFromParam(savedType, trigger.intData?.[2] ?? 0));
-        setColor(trigger.intData?.[3] ?? DEFAULT_COLOR);
+        setStrength(getWiredHighlightStrengthFromParam(savedType, savedStrength, darkenLevels));
+        setColor(savedColor);
         setAnimation(trigger.intData?.[4] === ANIMATION_PULSE ? ANIMATION_PULSE : ANIMATION_STEADY);
         setEasing(Math.min(EASING_LABELS.length - 1, Math.max(0, trigger.intData?.[5] ?? 0)));
         setTargetUsers(trigger.intData?.[6] === 1);
         setFurniSource(trigger.furniSources?.[0] ?? SOURCE_SELECTED);
         setUserSource(trigger.userSources?.[1] ?? 0);
         setAudienceUserSource(trigger.userSources?.[0] ?? 0);
-    }, [trigger]);
+    }, [trigger, darkenLevels, darkeningAvailable]);
 
     const changeType = (next: number) => {
         // The strength keeps its nearest step on the new type; the colour and animation keep their values.
-        setStrength(getWiredHighlightShownStrength(next, strength));
+        setStrength(getWiredHighlightShownStrength(next, strength, darkenLevels));
         setType(next);
     };
 
@@ -107,7 +125,8 @@ export const WiredActionSetFurniHighlightView: FC<{}> = () => {
     };
 
     return (
-        <WiredActionBaseView advancedAlwaysVisible
+        <WiredActionBaseView
+            advancedAlwaysVisible
             hasSpecialInput={true}
             nativeLayout={true}
             requiresFurni={WiredFurniType.STUFF_SELECTION_OPTION_BY_ID_BY_TYPE_OR_FROM_CONTEXT}
@@ -129,7 +148,10 @@ export const WiredActionSetFurniHighlightView: FC<{}> = () => {
             <WiredVisualizationAudienceSection audience={audience} onChange={setAudience} />
             <WiredSection title={localizeWithFallback('wiredfurni.params.set_furni_highlight.type', 'Highlight type:')}>
                 <WiredDropdown
-                    options={TYPE_LABELS.map((label, id) => ({ id, label: localizeWithFallback(`wiredfurni.params.set_furni_highlight.type.${id}`, label) }))}
+                    options={TYPE_LABELS.map((label, id) => ({
+                        id,
+                        label: localizeWithFallback(`wiredfurni.params.set_furni_highlight.type.${id}`, label)
+                    })).filter((option) => darkeningAvailable || option.id !== WIRED_HIGHLIGHT_TYPE_DARKEN)}
                     value={type}
                     onChange={changeType}
                 />
@@ -145,7 +167,7 @@ export const WiredActionSetFurniHighlightView: FC<{}> = () => {
             <WiredSection title={localizeWithFallback('wiredfurni.params.set_furni_highlight.strength', 'Strength:')}>
                 <WiredDropdown
                     options={strengthOptions.map((option) => ({ id: option.value, label: strengthLabel(option) }))}
-                    value={getWiredHighlightShownStrength(type, strength)}
+                    value={getWiredHighlightShownStrength(type, strength, darkenLevels)}
                     onChange={setStrength}
                 />
             </WiredSection>
@@ -158,7 +180,14 @@ export const WiredActionSetFurniHighlightView: FC<{}> = () => {
                             disabled={!colorEnabled}
                             aria-label={hexOf(swatch)}
                             aria-pressed={color === swatch}
-                            style={{ width: 18, height: 18, padding: 0, border: `1px solid ${color === swatch ? '#ffffff' : '#555555'}`, boxShadow: color === swatch ? 'inset 0 0 0 1px #000000' : undefined, backgroundColor: hexOf(swatch) }}
+                            style={{
+                                width: 18,
+                                height: 18,
+                                padding: 0,
+                                border: `1px solid ${color === swatch ? '#ffffff' : '#555555'}`,
+                                boxShadow: color === swatch ? 'inset 0 0 0 1px #000000' : undefined,
+                                backgroundColor: hexOf(swatch)
+                            }}
                             onClick={() => setColor(swatch)}
                         />
                     ))}

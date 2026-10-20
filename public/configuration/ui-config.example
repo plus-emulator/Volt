@@ -38,6 +38,7 @@
     "wired.action.kick.from.room.max.length": 100,
     "wired.action.mute.user.max.length": 100,
     "wired.timezones": "",
+    "wired.furni_highlight.darken_levels": "0",
     "wired.selfdonation.enabled": false,
     "wired.selfdonation.max.amount": 500,
     "game.center.enabled": false,
