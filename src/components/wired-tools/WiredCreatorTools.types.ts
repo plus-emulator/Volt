@@ -61,6 +61,22 @@ export interface MonitorStat {
     value: string;
     /** WiredMenuMonitorTab.colorize result (hex without #); Volt-only rows have none. */
     color?: string;
+    /** WiredMenuMonitorTab.isFrankPanicking reads this row's colour. The permanent variable rows are coloured but do not count. */
+    alarm?: boolean;
+}
+
+/** WiredRoomStatsData: the server's furni and permanent variable counts with their caps. */
+export interface MonitorRoomStats {
+    floorItemCount: number;
+    floorItemCap: number;
+    wallItemCount: number;
+    wallItemCap: number;
+    permanentFurniVariables: number;
+    maxPermanentFurniVariables: number;
+    permanentUserVariables: number;
+    maxPermanentUserVariables: number;
+    permanentGlobalVariables: number;
+    maxPermanentGlobalVariables: number;
 }
 
 export interface MonitorLog {

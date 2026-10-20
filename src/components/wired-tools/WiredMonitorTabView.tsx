@@ -30,7 +30,7 @@ export interface WiredMonitorTabViewProps {
 export const WiredMonitorTabView = (props: WiredMonitorTabViewProps) => {
     const { loading, canClear, canOpenLogs, monitorStats, monitorLogs, onOpenRoomLogs, onClearMonitorLogs, onOpenMonitorErrorInfo } = props;
     // updateImageUI: Frank panics on a heavy room, any non-green figure or any thrown error; image 2 is the layout default.
-    const panicking = loading || monitorStats.some((stat) => stat.color && stat.color !== MONITOR_COLOR_GREEN) || monitorLogs.some((log) => log.amount !== '0');
+    const panicking = loading || monitorStats.some((stat) => stat.alarm && stat.color && stat.color !== MONITOR_COLOR_GREEN) || monitorLogs.some((log) => log.amount !== '0');
 
     return (
         <>
