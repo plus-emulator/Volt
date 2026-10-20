@@ -114,12 +114,12 @@ interface WiredCreatorToolsUiState {
     selectedVariableKeys: Record<VariablesElementType, string>;
 
     /**
-     * Inspection-tab "Give variable" popover state. `itemId` is the
-     * picked variable definition id (0 = none); `value` is the in-flight
+     * Inspection-tab "Give variable" popover state. `variableId` is the
+     * picked catalogue variable id ("" = none); `value` is the in-flight
      * value text. Both reset to their defaults whenever the inspection
      * target changes (sync effect in WiredCreatorToolsView).
      */
-    inspectionGiveVariableItemId: number;
+    inspectionGiveVariableId: string;
     inspectionGiveValue: string;
 
     /**
@@ -173,7 +173,7 @@ interface WiredCreatorToolsUiState {
     setSelectedInspectionVariableKeys: (next: Updater<Record<InspectionElementType, string>>) => void;
     setSelectedVariableKeys: (next: Updater<Record<VariablesElementType, string>>) => void;
 
-    setInspectionGiveVariableItemId: (next: number) => void;
+    setInspectionGiveVariableId: (next: string) => void;
     setInspectionGiveValue: (next: string) => void;
 
     setSelectedManagedVariableEntry: (next: VariableManageEntry | null) => void;
@@ -219,7 +219,7 @@ export const useWiredCreatorToolsUiStore = createVoltStore<WiredCreatorToolsUiSt
     selectedInspectionVariableKeys: { furni: '', user: '', global: '' },
     selectedVariableKeys: { furni: '', user: '', global: '', context: '' },
 
-    inspectionGiveVariableItemId: 0,
+    inspectionGiveVariableId: '',
     inspectionGiveValue: '0',
 
     selectedManagedVariableEntry: null,
@@ -265,7 +265,7 @@ export const useWiredCreatorToolsUiStore = createVoltStore<WiredCreatorToolsUiSt
     setSelectedInspectionVariableKeys: (next) => set((state) => ({ selectedInspectionVariableKeys: apply(state.selectedInspectionVariableKeys, next) })),
     setSelectedVariableKeys: (next) => set((state) => ({ selectedVariableKeys: apply(state.selectedVariableKeys, next) })),
 
-    setInspectionGiveVariableItemId: (next) => set({ inspectionGiveVariableItemId: next }),
+    setInspectionGiveVariableId: (next) => set({ inspectionGiveVariableId: next }),
     setInspectionGiveValue: (next) => set({ inspectionGiveValue: next }),
 
     setSelectedManagedVariableEntry: (next) => set({ selectedManagedVariableEntry: next }),

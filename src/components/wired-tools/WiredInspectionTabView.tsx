@@ -6,22 +6,11 @@ import globalIcon from '../../assets/images/wired/native/menu_variable_global.pn
 import userIcon from '../../assets/images/wired/native/menu_variable_user.png';
 import { LayoutAvatarImageView, LayoutPetImageView, LayoutRoomObjectImageView } from '../../common';
 import { INSPECTION_ELEMENTS } from './WiredCreatorTools.constants';
-import { InspectionFurniSelection, InspectionUserSelection, InspectionVariable } from './WiredCreatorTools.types';
+import { InspectionFurniSelection, InspectionGiveDefinition, InspectionUserSelection, InspectionVariable } from './WiredCreatorTools.types';
 import { WiredMenuButton, WiredMenuCheckbox, WiredMenuItem, WiredMenuPanel, WiredMenuTable, WiredMenuTitle } from './WiredMenuParts';
 import { useWiredCreatorToolsUiStore } from './wiredCreatorToolsUiStore';
 
 const TYPE_ICONS: Record<string, string> = { furni: furniIcon, user: userIcon, global: globalIcon, context: contextIcon };
-
-/**
- * Structural shape we need from the renderer's variable-definition
- * objects (`IWiredUserVariableDefinition` / `IWiredFurniVariableDefinition`).
- * Declared locally to avoid pulling the renderer SDK into the view.
- */
-export interface InspectionGiveDefinition {
-    itemId: number;
-    name: string;
-    hasValue: boolean;
-}
 
 export interface WiredInspectionTabViewProps {
     // preview
@@ -49,11 +38,13 @@ export interface WiredInspectionTabViewProps {
 
     // give-variable popover
     selectedInspectionGiveDefinition: InspectionGiveDefinition | null;
-    onSelectGiveVariable: (itemId: number) => void;
+    onSelectGiveVariable: (variableId: string) => void;
     availableInspectionDefinitions: InspectionGiveDefinition[];
     inspectionGiveValue: string;
     onInspectionGiveValueChange: (value: string) => void;
     canGiveInspectionVariable: boolean;
+    onOpenGiveInspectionVariable: () => void;
+    canCreateInspectionVariable: boolean;
     onGiveInspectionVariable: () => void;
 
     // remove variable
@@ -86,6 +77,8 @@ export const WiredInspectionTabView = (props: WiredInspectionTabViewProps) => {
         inspectionGiveValue,
         onInspectionGiveValueChange,
         canGiveInspectionVariable,
+        onOpenGiveInspectionVariable,
+        canCreateInspectionVariable,
         onGiveInspectionVariable,
         canRemoveInspectionVariable,
         onRemoveInspectionVariable
@@ -94,7 +87,6 @@ export const WiredInspectionTabView = (props: WiredInspectionTabViewProps) => {
     const inspectionType = useWiredCreatorToolsUiStore((s) => s.inspectionType);
     const setInspectionType = useWiredCreatorToolsUiStore((s) => s.setInspectionType);
     const isInspectionGiveOpen = useWiredCreatorToolsUiStore((s) => s.isInspectionGiveOpen);
-    const setIsInspectionGiveOpen = useWiredCreatorToolsUiStore((s) => s.setIsInspectionGiveOpen);
     const editingVariable = useWiredCreatorToolsUiStore((s) => s.editingVariable);
     const editingValue = useWiredCreatorToolsUiStore((s) => s.editingValue);
     const setEditingValue = useWiredCreatorToolsUiStore((s) => s.setEditingValue);
@@ -162,7 +154,7 @@ export const WiredInspectionTabView = (props: WiredInspectionTabViewProps) => {
                     selected: selectedInspectionVariableKey === variable.key,
                     onSelect: () => onSelectInspectionVariable(variable),
                     cells: {
-                        variable: variable.key,
+                        variable: variable.name,
                         value:
                             editingVariable === variable.key ? (
                                 <input
@@ -179,6 +171,7 @@ export const WiredInspectionTabView = (props: WiredInspectionTabViewProps) => {
                             ) : variable.editable ? (
                                 <button
                                     className={`volt-wired-menu__link ${variable.valueClassName ?? ''}`}
+                                    title={variable.valueTitle}
                                     type="button"
                                     onClick={(event) => {
                                         event.stopPropagation();
@@ -188,7 +181,9 @@ export const WiredInspectionTabView = (props: WiredInspectionTabViewProps) => {
                                     {variable.value}
                                 </button>
                             ) : (
-                                <span className={variable.valueClassName}>{variable.value}</span>
+                                <span className={variable.valueClassName} title={variable.valueTitle}>
+                                    {variable.value}
+                                </span>
                             )
                     }
                 }))}
@@ -199,7 +194,7 @@ export const WiredInspectionTabView = (props: WiredInspectionTabViewProps) => {
             <WiredMenuButton disabled={!canRemoveInspectionVariable} h={25} w={145} x={183} y={343} onClick={onRemoveInspectionVariable}>
                 Remove variable
             </WiredMenuButton>
-            <WiredMenuButton disabled={!canGiveInspectionVariable} h={25} w={145} x={341} y={343} onClick={() => setIsInspectionGiveOpen((value) => !value)}>
+            <WiredMenuButton disabled={!canGiveInspectionVariable} h={25} w={145} x={341} y={343} onClick={onOpenGiveInspectionVariable}>
                 Give variable
             </WiredMenuButton>
             {isInspectionGiveOpen && (
@@ -211,12 +206,12 @@ export const WiredInspectionTabView = (props: WiredInspectionTabViewProps) => {
                         <div className="volt-wired-menu__dropdown-wrap">
 <select
                             className="volt-wired-menu__dropdown"
-                            value={selectedInspectionGiveDefinition?.itemId ?? 0}
-                            onChange={(event) => onSelectGiveVariable(Number(event.target.value))}
+                            value={selectedInspectionGiveDefinition?.variableId ?? ''}
+                            onChange={(event) => onSelectGiveVariable(event.target.value)}
                         >
-                            {!availableInspectionDefinitions.length && <option value={0}>No variables available</option>}
+                            {!availableInspectionDefinitions.length && <option value="">No variables available</option>}
                             {availableInspectionDefinitions.map((definition) => (
-                                <option key={definition.itemId} value={definition.itemId}>
+                                <option key={definition.variableId} disabled={!definition.available} value={definition.variableId}>
                                     {definition.name}
                                 </option>
                             ))}
@@ -234,7 +229,7 @@ export const WiredInspectionTabView = (props: WiredInspectionTabViewProps) => {
                             onChange={(event) => onInspectionGiveValueChange(event.target.value)}
                         />
                     </WiredMenuItem>
-                    <WiredMenuButton disabled={!canGiveInspectionVariable} h={25} w={158} x={6} y={100} onClick={onGiveInspectionVariable}>
+                    <WiredMenuButton disabled={!canCreateInspectionVariable} h={25} w={158} x={6} y={100} onClick={onGiveInspectionVariable}>
                         Create
                     </WiredMenuButton>
                 </WiredMenuItem>
