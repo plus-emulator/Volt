@@ -650,8 +650,9 @@ export const WiredCreatorToolsView: FC<{}> = () => {
         return ['ALL', ...new Set(monitorSnapshot.history.map((entry) => entry.type))];
     }, [monitorSnapshot.history]);
     useEffect(() => {
-        if (!monitorHistoryTypeOptions.includes(monitorHistoryTypeFilter)) setMonitorHistoryTypeFilter('ALL');
-    }, [monitorHistoryTypeOptions, monitorHistoryTypeFilter]);
+        // Wait for the first monitor answer, or an empty history while loading would reset a saved filter.
+        if (monitorLoaded && !monitorHistoryTypeOptions.includes(monitorHistoryTypeFilter)) setMonitorHistoryTypeFilter('ALL');
+    }, [monitorLoaded, monitorHistoryTypeOptions, monitorHistoryTypeFilter]);
     const previewPlaceholder = useMemo(() => {
         switch (inspectionType) {
             case 'furni':
