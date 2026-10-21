@@ -1,0 +1,599 @@
+/* collectible_view_xml (AIR WIN63-202610201032-107964540): a 500x600 frame_3 coloured 0x2a2a2a whose content area has the margins
+   6/35/6/6. Geometry comes from the layout as inline rects; this file holds the skins, fonts and colours. */
+.volt-collectibles-hub.volt-card-shell.volt-card-frame-3 {
+    width: 500px;
+    height: 600px;
+    min-width: 500px !important;
+    min-height: 600px !important;
+    max-width: 500px !important;
+    max-height: 600px !important;
+}
+
+.volt-collectibles-hub-content,
+.volt-collectibles-reward-box-content {
+    position: absolute;
+    color: #000000;
+    font-family: HabboAirUbuntu, UbuntuRegular, sans-serif;
+    font-size: 12px;
+    line-height: 15px;
+    image-rendering: pixelated;
+    user-select: none;
+}
+
+.volt-collectibles-hub-content {
+    top: 35px;
+    left: 6px;
+    width: 488px;
+    height: 559px;
+}
+
+.volt-collectibles-abs,
+.volt-collectibles-centered,
+.volt-collectibles-bitmap,
+.volt-collectibles-text,
+.volt-collectibles-html,
+.volt-collectibles-unknown-icon,
+.volt-collectibles-bg-star,
+.volt-collectibles-loading-icon,
+.volt-collectibles-product-preview,
+.volt-collectibles-effect-preview {
+    position: absolute;
+    box-sizing: border-box;
+}
+
+.volt-collectibles-abs.is-clipped {
+    overflow: hidden;
+}
+
+.volt-collectibles-bitmap {
+    background-repeat: no-repeat;
+    pointer-events: none;
+}
+
+/* Centres a widget's image in its rect, like pivot_point center. */
+.volt-collectibles-centered,
+.volt-collectibles-product-preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+/* border style 2 / 6: the tinted skin is drawn on its own layer so a blend never fades the children. */
+.volt-collectibles-border {
+    position: absolute;
+    inset: 0;
+    box-sizing: border-box;
+    border-style: solid;
+    border-color: transparent;
+    border-image-repeat: stretch;
+    pointer-events: none;
+}
+
+/* border style 3 (border_slot): a flat fill whose 7x7 skin cuts two pixels off each corner row. */
+.volt-collectibles-slot {
+    position: absolute;
+    inset: 0;
+    clip-path: polygon(
+        2px 0, calc(100% - 2px) 0, calc(100% - 2px) 1px, calc(100% - 1px) 1px, calc(100% - 1px) 2px, 100% 2px,
+        100% calc(100% - 2px), calc(100% - 1px) calc(100% - 2px), calc(100% - 1px) calc(100% - 1px), calc(100% - 2px) calc(100% - 1px), calc(100% - 2px) 100%,
+        2px 100%, 2px calc(100% - 1px), 1px calc(100% - 1px), 1px calc(100% - 2px), 0 calc(100% - 2px),
+        0 2px, 1px 2px, 1px 1px, 2px 1px
+    );
+    pointer-events: none;
+}
+
+/* Text windows keep the TextField's 2px gutter. */
+.volt-collectibles-text,
+.volt-collectibles-html {
+    padding: 0 2px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+/* A word-wrapped text window grows to fit its lines. */
+.volt-collectibles-text.is-wrap {
+    overflow: visible;
+    white-space: normal;
+}
+
+.volt-collectibles-text.is-center,
+.volt-collectibles-html.is-center {
+    text-align: center;
+}
+
+.volt-collectibles-text.is-right {
+    text-align: right;
+}
+
+.volt-collectibles-text.is-white,
+.volt-collectibles-html.is-white {
+    color: #ffffff;
+}
+
+.volt-collectibles-text.is-bold {
+    font-weight: 700;
+}
+
+.volt-collectibles-text.is-tiny,
+.volt-collectibles-html.is-tiny {
+    font-size: 10px;
+    line-height: 13px;
+}
+
+.volt-collectibles-text.is-small,
+.volt-collectibles-html.is-small {
+    font-size: 11px;
+    line-height: 14px;
+}
+
+.volt-collectibles-text.is-medium {
+    font-size: 13px;
+    line-height: 16px;
+}
+
+.volt-collectibles-text.is-large {
+    font-size: 16px;
+    line-height: 19px;
+}
+
+.volt-collectibles-text.is-huge {
+    font-size: 30px;
+    line-height: 35px;
+}
+
+.volt-collectibles-text.is-price {
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 18px;
+}
+
+.volt-collectibles-text.is-cost {
+    position: relative;
+    padding-top: 4px;
+    font-size: 16px;
+    line-height: 19px;
+}
+
+.volt-collectibles-text.is-gold {
+    color: #ffd300;
+}
+
+.volt-collectibles-text.is-orange {
+    color: #eb8f01;
+}
+
+.volt-collectibles-text.is-wallet {
+    color: #8f9db1;
+}
+
+.volt-collectibles-html {
+    white-space: normal;
+}
+
+.volt-collectibles-html a {
+    color: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+/* Header: score texts (font 13, u_bold, white), level (font 20) and its blended LEVEL caption (font 9). */
+.volt-collectibles-text.is-score {
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 16px;
+}
+
+.volt-collectibles-text.is-level {
+    color: #ffffff;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 24px;
+}
+
+.volt-collectibles-text.is-level-title {
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 11px;
+    opacity: 0.41;
+}
+
+/* tab_button style 3 (button_tab_3). */
+.volt-collectibles-tab {
+    position: absolute;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 5px 0 0;
+    border: 0;
+    background-color: transparent;
+    background-image: url("../../assets/images/habbo-skin/slices/tab-3-default-left.png"), url("../../assets/images/habbo-skin/slices/tab-3-default-right.png"),
+        url("../../assets/images/habbo-skin/slices/tab-3-default-mid.png");
+    background-repeat: no-repeat;
+    background-position: left top, right top, 7px top;
+    background-size: 9px 32px, 9px 32px, calc(100% - 14px) 32px;
+    color: #000000;
+    font: 12px/17px HabboAirUbuntu, UbuntuRegular, sans-serif;
+    text-align: center;
+    white-space: nowrap;
+    cursor: pointer;
+    image-rendering: pixelated;
+}
+
+.volt-collectibles-tab:hover {
+    background-image: url("../../assets/images/habbo-skin/slices/tab-3-hover-left.png"), url("../../assets/images/habbo-skin/slices/tab-3-hover-right.png"),
+        url("../../assets/images/habbo-skin/slices/tab-3-hover-mid.png");
+}
+
+.volt-collectibles-tab.is-selected {
+    background-image: url("../../assets/images/habbo-skin/slices/tab-3-selected-left.png"), url("../../assets/images/habbo-skin/slices/tab-3-selected-right.png"),
+        url("../../assets/images/habbo-skin/slices/tab-3-selected-mid.png");
+}
+
+/* button style 3 / 5 (button_shiny, 5px caps); style 5 uses the white caption of button_shiny_black. */
+.volt-collectibles-button {
+    position: absolute;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0 5px 1px;
+    border: 5px solid transparent;
+    border-image-source: var(--volt-collectibles-button);
+    border-image-slice: 5 fill;
+    border-image-width: 5px;
+    border-image-repeat: stretch;
+    border-radius: 0;
+    background: transparent;
+    color: #000000;
+    font: 12px HabboAirUbuntu, UbuntuRegular, sans-serif;
+    line-height: 19px;
+    text-align: center;
+    white-space: nowrap;
+    cursor: pointer;
+    image-rendering: pixelated;
+}
+
+.volt-collectibles-button.is-white {
+    color: #ffffff;
+}
+
+.volt-collectibles-button:hover:not(:disabled) {
+    border-image-source: var(--volt-collectibles-button-hover);
+}
+
+.volt-collectibles-button:active:not(:disabled) {
+    border-image-source: var(--volt-collectibles-button-pressed);
+}
+
+.volt-collectibles-button:disabled {
+    border-image-source: var(--volt-collectibles-button-disabled);
+    cursor: default;
+}
+
+/* Rotating bitmaps: loading_icon at 90 and bg_star at 20 degrees a second (CollectionsTab.var_2869, BG_STAR_ROTATE_SPEED). */
+@keyframes volt-collectibles-rotate {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.volt-collectibles-loading-icon {
+    animation: volt-collectibles-rotate 4s linear infinite;
+}
+
+.volt-collectibles-bg-star {
+    background-size: 100% 100%;
+    opacity: 0.35;
+    animation: volt-collectibles-rotate 18s linear infinite;
+    pointer-events: none;
+}
+
+.volt-collectibles-preview-bg {
+    overflow: hidden;
+}
+
+/* Semi-transparent black strips: 0xd6000000 and 0xaa000000. */
+.volt-collectibles-shade-d6 {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.839);
+}
+
+.volt-collectibles-shade-aa {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.667);
+}
+
+.volt-collectibles-product-info {
+    position: absolute;
+    background: rgba(59, 24, 41, 0.6);
+}
+
+.volt-collectibles-product-info-list {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.volt-collectibles-product-info-entry {
+    position: relative;
+    flex: 0 0 auto;
+    width: 242px;
+    height: 20px;
+    background: rgba(17, 11, 20, 0.733);
+}
+
+.volt-collectibles-progress-bar {
+    position: absolute;
+    background: #112e31;
+}
+
+.volt-collectibles-progress-top {
+    position: absolute;
+    background: #00910a;
+}
+
+.volt-collectibles-progress-bottom {
+    position: absolute;
+    background: #037c00;
+}
+
+/* Navigation list item_template (180x22). */
+.volt-collectibles-list {
+    position: absolute;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.volt-collectibles-list.is-spaced {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.volt-collectibles-nav-node {
+    position: relative;
+    width: 180px;
+    height: 22px;
+    cursor: pointer;
+}
+
+.volt-collectibles-nav-highlight {
+    position: absolute;
+    background: #b4b4ae;
+}
+
+.volt-collectibles-nav-highlight-outer {
+    position: absolute;
+    background: #82d1ed;
+}
+
+.volt-collectibles-nav-highlight-inner {
+    position: absolute;
+    background: #63c5e9;
+}
+
+.volt-collectibles-nav-title {
+    position: absolute;
+    color: #666666;
+    font-weight: 700;
+    line-height: 17px;
+    white-space: nowrap;
+}
+
+.volt-collectibles-nav-title.is-etched {
+    text-shadow: 0 -1px 0 #b4b4ae;
+}
+
+.volt-collectibles-nav-title.is-active {
+    color: #ffffff;
+}
+
+.volt-collectibles-nav-progress-text {
+    position: absolute;
+    color: #ffffff;
+    font-size: 10px;
+    line-height: 15px;
+    text-align: center;
+}
+
+/* scrollable_itemgrid_vertical: 52-wide items with 1px spacing. */
+.volt-collectibles-grid {
+    position: absolute;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 1px;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.volt-collectibles-grid-item {
+    position: relative;
+    flex: 0 0 auto;
+    width: 52px;
+    cursor: pointer;
+}
+
+.volt-collectibles-reward-row {
+    position: relative;
+    flex: 0 0 auto;
+    width: 466px;
+    height: 50px;
+}
+
+/* Horizontal item lists: items in a row, spacing windows as spacers. */
+.volt-collectibles-mint-collect,
+.volt-collectibles-token-cost {
+    position: absolute;
+    display: flex;
+    align-items: flex-start;
+}
+
+/* scale_to_fit_items: the list grows with its items instead of squeezing them. */
+.volt-collectibles-mint-collect > *,
+.volt-collectibles-token-cost > * {
+    flex: 0 0 auto;
+}
+
+.volt-collectibles-mint-collect > .volt-collectibles-text {
+    position: relative;
+    padding-top: 6px;
+}
+
+.volt-collectibles-spacer {
+    flex: 0 0 auto;
+    height: 30px;
+}
+
+.volt-collectibles-row-icon {
+    flex: 0 0 auto;
+    height: 30px;
+    object-fit: none;
+}
+
+.volt-collectibles-dropmenu.habbo-dropmenu.habbo-dropmenu {
+    position: absolute;
+}
+
+/* border style 105 (illumina input) with a transparent clear button over the close icon. */
+.volt-collectibles-search {
+    position: absolute;
+}
+
+.volt-collectibles-search-input {
+    position: absolute;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 2px;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: #000000;
+    font: 12px HabboAirUbuntu, UbuntuRegular, sans-serif;
+}
+
+.volt-collectibles-search-placeholder {
+    position: absolute;
+    padding: 2px;
+    color: #000000;
+    pointer-events: none;
+}
+
+.volt-collectibles-search-clear {
+    position: absolute;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+}
+
+.volt-collectibles-centered-image {
+    position: absolute;
+    object-fit: none;
+}
+
+.volt-collectibles-loading {
+    position: absolute;
+}
+
+/* collectible_reward_xml: a 424x570 frame_3 in the rarity colour, content area at (0,33). */
+.volt-collectibles-reward-box.volt-card-shell.volt-card-frame-3 {
+    width: 424px;
+    height: 570px;
+    min-width: 424px !important;
+    min-height: 570px !important;
+    max-width: 424px !important;
+    max-height: 570px !important;
+}
+
+.volt-collectibles-reward-box-content {
+    top: 33px;
+    left: 0;
+    width: 424px;
+    height: 537px;
+    overflow: hidden;
+}
+
+.volt-collectibles-text.is-reward-title {
+    font-size: 18px;
+    line-height: 22px;
+}
+
+.volt-collectibles-text.is-reward-name {
+    color: #f3cd03;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 24px;
+}
+
+.volt-collectibles-text.is-reward-info {
+    font-size: 14px;
+    line-height: 17px;
+}
+
+.volt-collectibles-text.is-rarity-title {
+    color: #440300;
+    font-size: 14px;
+    line-height: 17px;
+}
+
+.volt-collectibles-text.is-rarity {
+    color: #440300;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 22px;
+}
+
+/* The nft_image widget of the purchase confirmation: the product preview centred in the dialog's image area. */
+.volt-catalog-purchase-confirm-preview .volt-collectibles-confirm-preview {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 290px;
+    height: 260px;
+    transform: translate(-50%, -50%);
+}
+
+/* notification_nft_opening_xml: 190x110. */
+.volt-collectibles-nft-opening {
+    position: relative;
+    width: 190px;
+    height: 110px;
+    color: #ffffff;
+    font-family: HabboAirUbuntu, UbuntuRegular, sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.volt-collectibles-nft-opening-header-fill {
+    position: absolute;
+    background: #012723;
+}
+
+.volt-collectibles-nft-opening-title {
+    position: absolute;
+    font-weight: 700;
+    line-height: 17px;
+    white-space: nowrap;
+    opacity: 0.95;
+}
+
+.volt-collectibles-nft-opening-icon {
+    position: absolute;
+}
+
+.volt-collectibles-nft-opening-text {
+    position: absolute;
+    overflow: hidden;
+    font-size: 11px;
+    line-height: 13px;
+}
+
+/* room_previewer widget: no rounded corners or shadow around the effect preview. */
+.volt-collectibles-effect-preview > div {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
