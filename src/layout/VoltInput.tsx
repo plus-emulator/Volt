@@ -5,6 +5,8 @@ const classes = {
     base: 'block w-full bg-white text-black placeholder-gray-400 border border-gray-300 shadow-sm appearance-none',
     disabled: '',
     size: {
+        xs: 'px-1 py-0.5 text-xs',
+        sm: 'px-2 py-1 text-sm',
         default: 'px-2 py-2  font-medium'
     },
     rounded: 'rounded-md',
