@@ -63,6 +63,7 @@
     "catalog.clothes.page": "clothing_new",
     "avatareditor.pets.catalog.page.name": "clothing_companions",
     "avatareditor.effects.buy.button.catalog.page.name": "ny2015_permeffects",
+    "effects.reactivate.on.room.entry": true,
     "chat.history.max.items": 100,
     "system.currency.types": [
         -1,
