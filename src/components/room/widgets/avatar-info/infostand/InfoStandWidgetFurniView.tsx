@@ -836,11 +836,12 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
                                         const range = BRANDING_NUMBER_RANGES[key];
 
                                         return (
-                                            <Flex key={index} alignItems="center" gap={1}>
-                                                <Text small wrap align="end" className="col-span-4" variant="white">
+                                            <div key={index} className="flex flex-col gap-[2px]">
+                                                <Text small wrap variant="white">
                                                     {key}
                                                 </Text>
                                                 <VoltInput
+                                                    inputSize="xs"
                                                     type={range ? 'number' : 'text'}
                                                     min={range?.[0]}
                                                     max={range?.[1]}
@@ -851,7 +852,7 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
                                                     value={furniValues[index]}
                                                     onChange={(event) => onFurniSettingChange(index, event.target.value)}
                                                 />
-                                            </Flex>
+                                            </div>
                                         );
                                     })}
                                 </div>
@@ -1011,18 +1012,19 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
                                 <div className="flex flex-col gap-1">
                                     {customKeys.map((key, index) => {
                                         return (
-                                            <Flex key={index} alignItems="center" gap={1}>
-                                                <Text small wrap align="end" className="col-span-4" variant="white">
+                                            <div key={index} className="flex flex-col gap-[2px]">
+                                                <Text small wrap variant="white">
                                                     {key}
                                                 </Text>
                                                 <VoltInput
+                                                    inputSize="xs"
                                                     type="text"
                                                     className="text-black"
                                                     style={{ color: '#000' }}
                                                     value={customValues[index]}
                                                     onChange={(event) => onCustomVariableChange(index, event.target.value)}
                                                 />
-                                            </Flex>
+                                            </div>
                                         );
                                     })}
                                 </div>
