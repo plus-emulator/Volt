@@ -6,12 +6,7 @@ import {
     GetCollectorScoreMessageComposer,
     ILinkEventTracker,
     NftStorePurchaseResultMessageEvent,
-    NotEnoughBalanceMessageEvent,
-    PurchaseErrorMessageEvent,
-    PurchaseMintTokensMessageComposer,
     PurchaseNftStoreOfferMessageComposer,
-    PurchaseNotAllowedMessageEvent,
-    PurchaseOKMessageEvent,
     RemoveLinkEventTracker
 } from '@volt/renderer';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -38,20 +33,18 @@ export interface CollectiblesWalletActivation {
 export interface CollectorScore {
     score: number;
     highestScore: number;
-    level: number;
+    level: number | null;
 }
 
 export const STARDUST_WALLET_DISPLAY_NAME = 'Collector Wallet';
-
-export const GetNonStardustWallets = (wallets: CollectiblesWallets): string[] => (wallets ? wallets.addresses.filter((address) => address !== wallets.stardust) : null);
 
 /** CollectiblesController + CollectiblesView: the link, the wallets, the active wallet and the collector score. */
 export const useCollectiblesHub = () => {
     const [hubWindow, setHubWindow] = useState<CollectiblesHubWindow>('none');
     const [wallets, setWallets] = useState<CollectiblesWallets>(null);
     const [activation, setActivation] = useState<CollectiblesWalletActivation>({ wallet: null, seq: 0 });
-    const [score, setScore] = useState<CollectorScore>({ score: 0, highestScore: 0, level: 0 });
-    // HabboCatalog's purchase confirmation for a MintTokenPurchaseOffer or NftStorePurchaseOffer (var_70).
+    const [score, setScore] = useState<CollectorScore>({ score: 0, highestScore: 0, level: null });
+    // HabboCatalog's purchase confirmation for an NftStorePurchaseOffer (var_70).
     const [purchase, setPurchase] = useState<CollectiblesPurchase>(null);
     const [isPurchasing, setIsPurchasing] = useState(false);
     const { simpleAlert = null, showSingleBubble = null } = useNotification();
@@ -143,18 +136,18 @@ export const useCollectiblesHub = () => {
 
         setIsPurchasing(true);
 
-        if (purchase.kind === 'mint_tokens') SendMessageComposer(new PurchaseMintTokensMessageComposer(purchase.offer.offerId, purchase.wallet));
-        else SendMessageComposer(new PurchaseNftStoreOfferMessageComposer(purchase.offer.productCode, purchase.wallet));
+        SendMessageComposer(new PurchaseNftStoreOfferMessageComposer(purchase.offer.productCode, purchase.wallet));
     };
 
     // HabboCatalog.onNftStorePurchase
     useMessageEvent<NftStorePurchaseResultMessageEvent>(NftStorePurchaseResultMessageEvent, (event) => {
         if (event.getParser().result === 1) {
             simpleAlert?.(LocalizeText('notification.nft.purchase.error'), null, null, null, LocalizeText('catalog.alert.purchaseerror.title'));
-        } else if (purchase?.kind === 'nft_store') {
+        } else if (purchase) {
             const productName = GetCollectibleProductName(purchase.offer.productInfo);
 
             showSingleBubble?.(LocalizeText('notifications.text.purchase.ok', ['productName'], [productName]), NotificationBubbleType.INFO, stampLarge);
+            SendMessageComposer(new GetCollectorScoreMessageComposer(activation.wallet));
         }
 
         closePurchase();
@@ -172,54 +165,6 @@ export const useCollectiblesHub = () => {
             LocalizeText('catalog.alert.notenough.activitypoints.title', ['currencyname'], [currencyName])
         );
     }, [simpleAlert]);
-
-    // A mint token purchase is answered by the catalog purchase messages (HabboCatalog.onPurchaseOK, onPurchaseError,
-    // onPurchaseNotAllowed, onNotEnoughBalance).
-    const isBuyingTokens = purchase?.kind === 'mint_tokens' && isPurchasing;
-
-    useMessageEvent<PurchaseOKMessageEvent>(PurchaseOKMessageEvent, () => {
-        if (isBuyingTokens) closePurchase();
-    });
-
-    useMessageEvent<PurchaseErrorMessageEvent>(PurchaseErrorMessageEvent, (event) => {
-        if (!isBuyingTokens) return;
-
-        const code = event.getParser().code;
-
-        simpleAlert?.(
-            LocalizeText(code > 0 ? `catalog.alert.purchaseerror.description.${code}` : 'catalog.alert.purchaseerror.description'),
-            null,
-            null,
-            null,
-            LocalizeText('catalog.alert.purchaseerror.title')
-        );
-        closePurchase();
-    });
-
-    // The dialog stays open with its buttons disabled; only its close button works.
-    useMessageEvent<PurchaseNotAllowedMessageEvent>(PurchaseNotAllowedMessageEvent, (event) => {
-        if (!isBuyingTokens) return;
-
-        simpleAlert?.(
-            LocalizeText(event.getParser().code === 1 ? 'catalog.alert.purchasenotallowed.hc.description' : 'catalog.alert.purchasenotallowed.unknown.description'),
-            null,
-            null,
-            null,
-            LocalizeText('catalog.alert.purchasenotallowed.title')
-        );
-    });
-
-    // PurchaseConfirmationDialog.notEnoughCredits: the dialog stays and can be used again.
-    useMessageEvent<NotEnoughBalanceMessageEvent>(NotEnoughBalanceMessageEvent, (event) => {
-        if (!isBuyingTokens) return;
-
-        const parser = event.getParser();
-
-        if (parser.notEnoughCredits) simpleAlert?.(LocalizeText('catalog.alert.notenough.credits.description'), null, null, null, LocalizeText('catalog.alert.notenough.title'));
-        else if (parser.notEnoughActivityPoints) alertNotEnoughActivityPoints(parser.activityPointType);
-
-        setIsPurchasing(false);
-    });
 
     const selectWallet = useCallback((index: number) => {
         if (wallets) setActiveWalletIndex(wallets.addresses, index);

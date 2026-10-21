@@ -2,15 +2,11 @@ import {
     CollectibleMintableItemData,
     CollectibleMintableItemTypesMessageEvent,
     CollectibleMintingEnabledMessageEvent,
-    CollectibleMintTokensMessageEvent,
     GetCollectibleMintableItemTypesMessageComposer,
     GetCollectibleMintingEnabledMessageComposer,
-    GetCollectibleMintTokensMessageComposer,
-    GetMintTokenOffersMessageComposer,
+    GetCollectorScoreMessageComposer,
     MintCollectibleMessageComposer,
-    MintCollectibleResultMessageEvent,
-    MintTokenOfferData,
-    MintTokenOffersMessageEvent
+    MintCollectibleResultMessageEvent
 } from '@volt/renderer';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CollectibleProductType, GroupItem, ICollectibleProduct, LocalizeText, NotificationBubbleType, SendMessageComposer } from '../../api';
@@ -18,11 +14,10 @@ import stampLarge from '../../assets/images/collectibles/collectables-icon-curat
 import { useMessageEvent } from '../events';
 import { useInventoryFurni } from '../inventory';
 import { useNotification } from '../notification';
-import { usePurse } from '../purse';
 import { CollectiblesWalletActivation } from './useCollectiblesHub';
 
-/** What MintInventoryListTab still waits for before it shows its content (var_3781, var_3452, var_3473, var_3284, var_3551). */
-type MintingRequest = 'wallet' | 'tokens' | 'types' | 'enabled' | 'inventory';
+/** What MintInventoryListTab still waits for before it shows its content. */
+type MintingRequest = 'wallet' | 'types' | 'enabled' | 'inventory';
 
 // MintCollectibleResult: 1 is success (class_4045.name_6), 0 and 2 are failures.
 const MINT_RESULT_SUCCESS = 1;
@@ -47,15 +42,12 @@ const getIdsInInventory = (groupItems: GroupItem[], item: CollectibleMintableIte
     return group ? group.items.filter((furni) => !furni.rentable).map((furni) => furni.id) : [];
 };
 
-/** MintInventoryListTab: mintable furni with the user's own counts, mint tokens and their offers, and the mint flow. */
+/** MintInventoryListTab: mintable furni with the user's own counts and the mint flow. */
 export const useCollectiblesMinting = (activation: CollectiblesWalletActivation) => {
     const { groupItems = [], isInitialized = false, requestInitialization = null } = useInventoryFurni();
     const [pending, setPending] = useState<ReadonlySet<MintingRequest>>(() => new Set<MintingRequest>([ 'wallet', 'types', 'enabled' ]));
-    const [tokens, setTokens] = useState(0);
     const [productItems, setProductItems] = useState<CollectibleMintableItemData[]>([]);
     const [mintingEnabled, setMintingEnabled] = useState(false);
-    const [tokenOffers, setTokenOffers] = useState<MintTokenOfferData[]>([]);
-    const [selectedOffer, setSelectedOffer] = useState(-1);
     // populateItems runs once, the first time every request has answered (var_3624).
     const [items, setItems] = useState<CollectibleMintableItemData[]>(null);
     const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -63,7 +55,6 @@ export const useCollectiblesMinting = (activation: CollectiblesWalletActivation)
     const [isConfirming, setIsConfirming] = useState(false);
     const requestedRef = useRef(false);
     const { showSingleBubble = null, showConfirm = null } = useNotification();
-    const { getCurrencyAmount } = usePurse();
 
     const settle = (request: MintingRequest) => setPending((current) => {
         if (!current.has(request)) return current;
@@ -86,7 +77,6 @@ export const useCollectiblesMinting = (activation: CollectiblesWalletActivation)
             setPending((current) => new Set(current).add('inventory'));
             requestInitialization?.();
         }
-        SendMessageComposer(new GetMintTokenOffersMessageComposer());
     }, [isInitialized, requestInitialization]);
 
     useEffect(() => {
@@ -98,11 +88,6 @@ export const useCollectiblesMinting = (activation: CollectiblesWalletActivation)
         if (!activation.seq) return;
 
         settle('wallet');
-
-        if (activation.wallet !== null) {
-            setPending((current) => new Set(current).add('tokens'));
-            SendMessageComposer(new GetCollectibleMintTokensMessageComposer(activation.wallet));
-        }
     }, [activation]);
 
     const ready = pending.size === 0;
@@ -114,11 +99,6 @@ export const useCollectiblesMinting = (activation: CollectiblesWalletActivation)
         setSelectedIndex(productItems.length > 0 ? 0 : -1);
     }, [ready, items, productItems]);
 
-    useMessageEvent<CollectibleMintTokensMessageEvent>(CollectibleMintTokensMessageEvent, (event) => {
-        setTokens(event.getParser().totalTokens);
-        settle('tokens');
-    });
-
     useMessageEvent<CollectibleMintingEnabledMessageEvent>(CollectibleMintingEnabledMessageEvent, (event) => {
         setMintingEnabled(event.getParser().enabled);
         settle('enabled');
@@ -129,23 +109,15 @@ export const useCollectiblesMinting = (activation: CollectiblesWalletActivation)
         settle('types');
     });
 
-    useMessageEvent<MintTokenOffersMessageEvent>(MintTokenOffersMessageEvent, (event) => {
-        const offers = event.getParser().tokenOffers;
-
-        setTokenOffers(offers);
-        setSelectedOffer(offers.length > 0 ? 0 : -1);
-    });
-
     // onMintItemResult: CatalogEvent COLLECTIBLES_MINT_SUCCESS / _FAIL, shown by HabboNotifications.
     useMessageEvent<MintCollectibleResultMessageEvent>(MintCollectibleResultMessageEvent, (event) => {
         const success = event.getParser().mintResult === MINT_RESULT_SUCCESS;
 
         showSingleBubble?.(LocalizeText(success ? 'shop.minting.success' : 'shop.minting.failed'), NotificationBubbleType.INFO, stampLarge);
+        if (success) SendMessageComposer(new GetCollectorScoreMessageComposer(activation.wallet));
         setIsMinting(false);
     });
 
-    // onSelectTokenOffer: the offer's silver price against the purse; read on every render so a balance that arrives later counts.
-    const canBuyTokens = selectedOffer >= 0 && tokenOffers[selectedOffer].silverPrice <= getCurrencyAmount(1000);
     const amounts = useMemo(() => (items ?? []).map((item) => getIdsInInventory(groupItems, item).length), [groupItems, items]);
     const selected = selectedIndex >= 0 && items ? items[selectedIndex] : null;
 
@@ -186,12 +158,7 @@ export const useCollectiblesMinting = (activation: CollectiblesWalletActivation)
 
     return {
         ready,
-        tokens,
         mintingEnabled,
-        tokenOffers,
-        selectedOffer,
-        selectOffer: setSelectedOffer,
-        canBuyTokens,
         items: items ?? [],
         amounts,
         selectedIndex,

@@ -1,7 +1,7 @@
 import { GetLocalizationManager, VoltLogger } from '@volt/renderer';
 
 /**
- * Wired texts shipped with the client (public/configuration/wired-texts.json), taken from Habbo's external texts.
+ * Shipped texts (public/configuration/wired-texts.json), mostly taken from Habbo's external texts.
  * They only fill keys the hotel's own texts lack, so a hotel can still override any of them in its gamedata.
  * The file is optional: a hotel whose configuration host does not serve it still boots.
  */
@@ -25,6 +25,6 @@ export const loadWiredTexts = async (): Promise<void> =>
     }
     catch (error)
     {
-        VoltLogger.warn(`[Localization] Wired texts unavailable at ${url}; missing Wired keys stay unlocalized`, error);
+        VoltLogger.warn(`[Localization] Shipped texts unavailable at ${url}; missing keys stay unlocalized`, error);
     }
 };

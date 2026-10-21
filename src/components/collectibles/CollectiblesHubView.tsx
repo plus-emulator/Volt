@@ -1,4 +1,3 @@
-import { HabboWebTools } from '@volt/renderer';
 import { CSSProperties, FC, useMemo, useState } from 'react';
 import { CreateCollectiblesPurchaseOffer, GetCollectorLevelColor, GetConfigurationValue, LocalizeText } from '../../api';
 import cabinetElement from '../../assets/images/collectibles/collectables-cabinet-element.png';
@@ -9,12 +8,10 @@ import scoreBackgroundGradient from '../../assets/images/collectibles/collectabl
 import scoreBackgroundRight from '../../assets/images/collectibles/collectables-score-background-right.png';
 import scoreElement from '../../assets/images/collectibles/collectables-score-element.png';
 import scoreElement2 from '../../assets/images/collectibles/collectables-score-element2.png';
-import mintingTokenLarge from '../../assets/images/collectibles/minting-token-large.png';
 import emeraldIcon from '../../assets/images/collectibles/pursearea-mid-emerald-icon.png';
-import silverIcon from '../../assets/images/collectibles/pursearea-mid-silver-icon.png';
 import frameBase from '../../assets/images/habbo-skin/slices/frame-ubuntu-3-base.png';
 import { useTintedSkin, VoltCardHeaderView, VoltCardView } from '../../common';
-import { GetNonStardustWallets, useCollectiblesHub } from '../../hooks/collectibles/useCollectiblesHub';
+import { useCollectiblesHub } from '../../hooks/collectibles/useCollectiblesHub';
 import { usePurse } from '../../hooks/purse';
 import { CatalogPurchaseConfirmView } from '../catalog/views/CatalogPurchaseConfirmView';
 import { CollectibleProductPreviewView } from './CollectibleProductImageView';
@@ -24,9 +21,8 @@ import { CollectiblesRewardsTabView } from './CollectiblesRewardsTabView';
 import { CollectiblesHtmlText } from './CollectiblesSharedView';
 import { CollectiblesShopTabView } from './CollectiblesShopTabView';
 import { at, SlotBorder, TintedBitmap } from './CollectiblesSkinView';
-import { CollectiblesTransferTabView } from './CollectiblesTransferTabView';
 
-type CollectiblesTab = 'rewards' | 'collections' | 'shop' | 'minting' | 'transfer' | 'info';
+type CollectiblesTab = 'rewards' | 'collections' | 'shop' | 'minting' | 'info';
 
 // top_view_select_tab_context: the tab buttons in layout order with their widths and captions (CollectiblesView constructor).
 const TABS: { tab: CollectiblesTab; width: number; caption: string; flag?: string }[] = [
@@ -34,16 +30,11 @@ const TABS: { tab: CollectiblesTab; width: number; caption: string; flag?: strin
     { tab: 'collections', width: 87, caption: 'collectibles.collections.title' },
     { tab: 'shop', width: 52, caption: 'collectibles.shop.title', flag: 'nft.shop.enabled' },
     { tab: 'minting', width: 66, caption: 'shop.minting.title', flag: 'nft.minting.enabled' },
-    { tab: 'transfer', width: 70, caption: 'collectibles.transfer', flag: 'collectibles.transfer.enabled' },
     { tab: 'info', width: 46, caption: 'collectibles.info.title' }
 ];
 
 const FRAME_COLOR = 0x2a2a2a;
 const WINDOW_WIDTH = 500;
-
-const openWebPage = (url: string) => {
-    if (url) HabboWebTools.openWebPage(url);
-};
 
 /** CollectiblesController + CollectiblesView: the Collectibles hub (collectible_view_xml, 500x600), opened by collectibles/open. */
 export const CollectiblesHubView: FC<{}> = () => {
@@ -52,8 +43,8 @@ export const CollectiblesHubView: FC<{}> = () => {
     const [currentTab, setCurrentTab] = useState<CollectiblesTab>('rewards');
     const { getCurrencyAmount } = usePurse();
     const frameImage = useTintedSkin(frameBase, FRAME_COLOR, 33);
-    const levelColor = GetCollectorLevelColor(score.level);
-    const transferWallets = useMemo(() => GetNonStardustWallets(wallets), [wallets]);
+    const level = score.level ?? 0;
+    const levelColor = GetCollectorLevelColor(level);
     const walletAddresses = wallets ? wallets.addresses : null;
     const purchaseOffer = useMemo(() => (purchase ? CreateCollectiblesPurchaseOffer(purchase) : null), [purchase]);
 
@@ -92,21 +83,15 @@ export const CollectiblesHubView: FC<{}> = () => {
                             </div>
                             <img alt="" className="volt-collectibles-abs" draggable={false} src={levelBackground} style={at(335, 2, 64, 68)} />
                             <div className="volt-collectibles-abs" style={at(344, 16, 45, 35)}>
-                                <div className="volt-collectibles-text is-level is-center" style={at(2, 0, 40, 26)}>{String(score.level)}</div>
+                                <div className="volt-collectibles-text is-level is-center" style={at(2, 0, 40, 26)}>{String(level)}</div>
                                 <div className="volt-collectibles-text is-level-title is-center" style={at(3, 22, 41, 14)}>{LocalizeText('collectibles.level').toUpperCase()}</div>
                             </div>
                             <SlotBorder color={0xa99490} style={at(419, 18, 70, 22)}>
                                 <SlotBorder color={0x3a2f29} style={at(1, 1, 68, 20)}>
-                                    <div className="volt-collectibles-text is-center is-white" style={at(2, 1, 45, 17)}>{String(getCurrencyAmount(1000))}</div>
-                                </SlotBorder>
-                            </SlotBorder>
-                            <img alt="" className="volt-collectibles-abs" draggable={false} src={silverIcon} style={at(466, 17, 24, 24)} />
-                            <SlotBorder color={0xa99490} style={at(419, 48, 70, 22)}>
-                                <SlotBorder color={0x3a2f29} style={at(1, 1, 68, 20)}>
                                     <div className="volt-collectibles-text is-center is-white" style={at(2, 1, 45, 17)}>{String(getCurrencyAmount(1001))}</div>
                                 </SlotBorder>
                             </SlotBorder>
-                            <img alt="" className="volt-collectibles-abs" draggable={false} src={emeraldIcon} style={at(466, 47, 24, 24)} />
+                            <img alt="" className="volt-collectibles-abs" draggable={false} src={emeraldIcon} style={at(466, 17, 24, 24)} />
                         </SlotBorder>
                         {/* tab_bg is a child of the 122px header container, so the header clips its bottom 8px. */}
                         {tabsWidth > 350 && <SlotBorder blend={0.4} color={0x000000} style={at(-2, 91, 502, 39)} />}
@@ -127,13 +112,12 @@ export const CollectiblesHubView: FC<{}> = () => {
                     <CollectiblesRewardsTabView visible={currentTab === 'rewards'} walletAddresses={walletAddresses} />
                     <CollectiblesCollectionsTabView activation={activation} visible={currentTab === 'collections'} wallets={wallets} onSelectWallet={selectWallet} />
                     {/* Mount order follows CollectiblesView.initWidgets, so the tabs send their first requests in AIR's order. */}
-                    <CollectiblesMintingTabView activation={activation} visible={currentTab === 'minting'} onPurchase={showPurchase} />
-                    <CollectiblesTransferTabView stardustWallet={wallets?.stardust ?? null} transferWallets={transferWallets} visible={currentTab === 'transfer'} />
-                    <CollectiblesShopTabView activeWallet={activation.wallet} visible={currentTab === 'shop'} onNotEnoughEmeralds={alertNotEnoughActivityPoints} onPurchase={showPurchase} />
+                    <CollectiblesMintingTabView activation={activation} visible={currentTab === 'minting'} onNotEnoughEmeralds={alertNotEnoughActivityPoints} />
+                    <CollectiblesShopTabView activeWallet={activation.wallet} level={score.level} visible={currentTab === 'shop'} onNotEnoughEmeralds={alertNotEnoughActivityPoints} onPurchase={showPurchase} />
                     <div className="volt-collectibles-abs" style={at(0, 125, 390, 419, { display: currentTab === 'info' ? undefined : 'none' })}>
                         <div className="volt-collectibles-text is-bold" style={at(0, 4, 480, 17)}>{LocalizeText('collectibles.info.title')}</div>
-                        <CollectiblesHtmlText html={LocalizeText('collectibles.info.description')} style={at(0, 22, 480, 50)} onLinkClick={openWebPage} />
-                        <CollectiblesHtmlText html={LocalizeText('collectibles.info.trading')} style={at(0, 75, 480, 60)} onLinkClick={openWebPage} />
+                        <CollectiblesHtmlText html={LocalizeText('collectibles.info.hub')} style={at(0, 22, 480, 50)} />
+                        <CollectiblesHtmlText html={LocalizeText('collectibles.info.emeralds')} style={at(0, 75, 480, 60)} />
                         <img alt="" className="volt-collectibles-abs" draggable={false} src={collectionDefault} style={at(128, 155, 216, 264)} />
                     </div>
                 </div>
@@ -144,13 +128,9 @@ export const CollectiblesHubView: FC<{}> = () => {
                     isSubmitting={isPurchasing}
                     offer={purchaseOffer}
                     preview={
-                        purchase.kind === 'mint_tokens' ? (
-                            <img alt="" draggable={false} src={mintingTokenLarge} />
-                        ) : (
-                            <div className="volt-collectibles-confirm-preview">
-                                <CollectibleProductPreviewView product={purchase.offer.productInfo} />
-                            </div>
-                        )
+                        <div className="volt-collectibles-confirm-preview">
+                            <CollectibleProductPreviewView product={purchase.offer.productInfo} />
+                        </div>
                     }
                     quantity={1}
                     onCancel={closePurchase}
