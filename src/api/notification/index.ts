@@ -4,4 +4,5 @@ export * from './NotificationBubbleItem';
 export * from './NotificationBubbleType';
 export * from './NotificationConfirmItem';
 export * from './NotificationConfirmType';
+export * from './NotificationNftOpening';
 export * from './AchievementNotificationBubbleItem';
