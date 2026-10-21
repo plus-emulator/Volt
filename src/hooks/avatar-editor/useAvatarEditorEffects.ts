@@ -1,7 +1,9 @@
 import {
-    AvatarEffectActivatedEvent, AvatarEffectAddedEvent, AvatarEffectExpiredEvent, AvatarEffectsEvent, GetCommunication, VoltEventType
+    AvatarEffectActivatedComposer, AvatarEffectActivatedEvent, AvatarEffectAddedEvent, AvatarEffectExpiredEvent, AvatarEffectSelectedComposer, AvatarEffectsEvent,
+    GetCommunication, RoomEntryInfoMessageEvent, VoltEventType
 } from '@volt/renderer';
 import { useState } from 'react';
+import { GetConfigurationValue, SendMessageComposer } from '../../api';
 import { useMessageEvent, useVoltEvent } from '../events';
 
 export interface AvatarEditorEffect {
@@ -87,6 +89,23 @@ export const useAvatarEditorEffects = () =>
         setEffects(current => current.flatMap(effect => effect.type !== type ? [effect]
             : effect.amount > 1 ? [{ ...effect, amount: effect.amount - 1, active: false, secondsLeft: effect.duration }] : []));
         setWornEffect(-1);
+    });
+
+    // class_1974.onRoomEnter -> EffectsModel.reactivateLastEffect: every room entry selects the last worn effect again, activating it first if needed.
+    useMessageEvent<RoomEntryInfoMessageEvent>(RoomEntryInfoMessageEvent, () =>
+    {
+        if (wornEffect === -1 || !GetConfigurationValue<boolean>('effects.reactivate.on.room.entry', true)) return;
+
+        const effect = effects.find(item => item.type === wornEffect);
+
+        if (!effect)
+        {
+            setWornEffect(-1);
+            return;
+        }
+
+        if (!effect.active) SendMessageComposer(new AvatarEffectActivatedComposer(wornEffect));
+        SendMessageComposer(new AvatarEffectSelectedComposer(wornEffect));
     });
 
     return { effects, wornEffect, setWornEffect };
