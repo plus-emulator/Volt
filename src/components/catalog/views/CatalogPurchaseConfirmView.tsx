@@ -1,7 +1,8 @@
-import { FC, KeyboardEvent, useEffect, useRef, useState } from 'react';
+import { CSSProperties, FC, KeyboardEvent, ReactNode, useEffect, useRef, useState } from 'react';
 import { GetConfigurationValue, IPurchasableOffer, LocalizeText, ProductTypeEnum } from '../../../api';
 import { getCatalogBundlePrice, ICatalogBundleDiscountRuleset } from '../../../api/catalog/CatalogBundleDiscount';
-import { LayoutCurrencyIcon, LayoutFurniImageView, VoltCardContentView, VoltCardHeaderView, VoltCardView } from '../../../common';
+import frameBase from '../../../assets/images/habbo-skin/slices/frame-ubuntu-3-base.png';
+import { LayoutCurrencyIcon, LayoutFurniImageView, useTintedSkin, VoltCardContentView, VoltCardHeaderView, VoltCardView } from '../../../common';
 
 interface CatalogPurchaseConfirmViewProps {
     offer: IPurchasableOffer;
@@ -11,10 +12,14 @@ interface CatalogPurchaseConfirmViewProps {
     isSubmitting?: boolean;
     onConfirm: () => void;
     onCancel: () => void;
+    preview?: ReactNode;
+    /** PurchaseConfirmationDialog.showConfirmationDialog colours collectibles offers 0x2a2a2a. */
+    frameColor?: number;
 }
 
 export const CatalogPurchaseConfirmView: FC<CatalogPurchaseConfirmViewProps> = (props) => {
-    const { offer = null, quantity = 1, bundleDiscountRuleset = null, isGift = false, isSubmitting = false, onConfirm = null, onCancel = null } = props;
+    const { offer = null, quantity = 1, bundleDiscountRuleset = null, isGift = false, isSubmitting = false, onConfirm = null, onCancel = null, preview = null, frameColor = null } = props;
+    const tintedFrame = useTintedSkin(frameColor === null ? null : frameBase, frameColor, 33);
     const dialogRef = useRef<HTMLDivElement>(null);
     const spendingDisclaimerEnabled = GetConfigurationValue<boolean>('disclaimer.credit_spending.enabled', false) === true;
     const [spendingDisclaimerAccepted, setSpendingDisclaimerAccepted] = useState(!spendingDisclaimerEnabled);
@@ -89,6 +94,7 @@ export const CatalogPurchaseConfirmView: FC<CatalogPurchaseConfirmViewProps> = (
             frameStyle={3}
             isResizable={false}
             role="dialog"
+            style={tintedFrame ? ({ '--volt-card-frame-3': tintedFrame } as CSSProperties) : undefined}
             tabIndex={-1}
             theme="primary-slim"
             onKeyDown={onKeyDown}
@@ -96,7 +102,7 @@ export const CatalogPurchaseConfirmView: FC<CatalogPurchaseConfirmViewProps> = (
             <VoltCardHeaderView headerText={title} onCloseClick={onCancel} />
             <VoltCardContentView classNames={contentClassNames} overflow="hidden">
                 <div className="volt-catalog-purchase-confirm-preview">
-                    {isFurniture ? (
+                    {preview ?? (isFurniture ? (
                         <LayoutFurniImageView
                             aria-label={offer.localizationName}
                             direction={90}
@@ -108,7 +114,7 @@ export const CatalogPurchaseConfirmView: FC<CatalogPurchaseConfirmViewProps> = (
                         />
                     ) : (
                         !!iconUrl && <img alt={offer.localizationName} src={iconUrl} />
-                    )}
+                    ))}
                 </div>
                 <div className="volt-catalog-purchase-confirm-properties">
                     <strong className="volt-catalog-purchase-confirm-product">{offer.localizationName}</strong>

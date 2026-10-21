@@ -1,4 +1,5 @@
 import { NotificationBubbleType } from './NotificationBubbleType';
+import { NotificationNftOpening } from './NotificationNftOpening';
 
 export class NotificationBubbleItem {
     private static ITEM_ID: number = -1;
@@ -9,13 +10,15 @@ export class NotificationBubbleItem {
     private _iconUrl: string;
     private _linkUrl: string;
     private _senderName: string;
+    private _nftOpening: NotificationNftOpening;
 
     constructor(
         message: string,
         notificationType: string = NotificationBubbleType.INFO,
         iconUrl: string = null,
         linkUrl: string = null,
-        senderName: string = ''
+        senderName: string = '',
+        nftOpening: NotificationNftOpening = null
     ) {
         NotificationBubbleItem.ITEM_ID += 1;
 
@@ -25,6 +28,7 @@ export class NotificationBubbleItem {
         this._iconUrl = iconUrl;
         this._linkUrl = linkUrl;
         this._senderName = senderName;
+        this._nftOpening = nftOpening;
     }
 
     public get id(): number {
@@ -49,5 +53,9 @@ export class NotificationBubbleItem {
 
     public get senderName(): string {
         return this._senderName;
+    }
+
+    public get nftOpening(): NotificationNftOpening {
+        return this._nftOpening;
     }
 }

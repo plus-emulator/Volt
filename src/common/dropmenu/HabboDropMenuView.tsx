@@ -27,6 +27,7 @@ interface HabboDropMenuViewProps<T> {
     disabled?: boolean;
     /** Caption when no option is selected. */
     caption?: string;
+    displayCaption?: string;
     /** AIR ExpandableDropdown: reveal advanced options without committing a selection. */
     advancedCaption?: string;
     /** AIR window-manager skin: Volter (0), Ubuntu (3), or Illumina (100). */
@@ -83,7 +84,7 @@ const ThumbSkin = ({ pressed, patternId }: { pressed: boolean; patternId: string
 };
 
 /** Native style-0 dropmenu; feature adapters own preference/domain values and saves. */
-export const HabboDropMenuView = <T extends string | number,>({ label, options: allOptions, value, onSelect, disabled = false, caption = '', advancedCaption, skinStyle = 0, className = '', popupClassName = '', style, menuRef }: HabboDropMenuViewProps<T>): ReactNode => {
+export const HabboDropMenuView = <T extends string | number,>({ label, options: allOptions, value, onSelect, disabled = false, caption = '', displayCaption, advancedCaption, skinStyle = 0, className = '', popupClassName = '', style, menuRef }: HabboDropMenuViewProps<T>): ReactNode => {
     const id = useId();
     const [advancedExpanded, setAdvancedExpanded] = useState(false);
     const expandingRef = useRef(false);
@@ -314,8 +315,8 @@ export const HabboDropMenuView = <T extends string | number,>({ label, options: 
                 onClick={(event) => { if (event.detail === 0 && !isOpen) open(); }}
             >
                 <span className="habbo-dropmenu-caption">{skinStyle === 100
-                    ? <NativeText text={options[selectedIndex]?.label ?? caption} textStyle="il_regular" background={0xffffff} />
-                    : options[selectedIndex]?.label ?? caption}</span>
+                    ? <NativeText text={displayCaption ?? options[selectedIndex]?.label ?? caption} textStyle="il_regular" background={0xffffff} />
+                    : displayCaption ?? options[selectedIndex]?.label ?? caption}</span>
                 {skinStyle !== 100 && <img className="habbo-dropmenu-arrow" src={skinStyle === 3 ? ubuntuArrow : arrow} alt="" />}
             </button>
             {isOpen && createPortal(

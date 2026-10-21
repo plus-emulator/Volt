@@ -46,6 +46,7 @@ import {
     NotificationBubbleItem,
     NotificationBubbleType,
     NotificationConfirmItem,
+    NotificationNftOpening,
     PlaySound,
     ProductImageUtility,
     TradingNotificationType,
@@ -170,10 +171,10 @@ const useNotificationStore = () => {
     const showVoltAlert = useCallback(() => simpleAlert(null, NotificationAlertType.VOLT), [simpleAlert]);
 
     const showSingleBubble = useCallback(
-        (message: string, type: string, imageUrl: string = null, internalLink: string = null, senderName: string = '') => {
+        (message: string, type: string, imageUrl: string = null, internalLink: string = null, senderName: string = '', nftOpening: NotificationNftOpening = null) => {
             if (bubblesDisabled) return;
 
-            const notificationItem = new NotificationBubbleItem(message, type, imageUrl, internalLink, senderName);
+            const notificationItem = new NotificationBubbleItem(message, type, imageUrl, internalLink, senderName, nftOpening);
 
             setBubbleAlerts((prevValue) => prependSingleBubble(prevValue, notificationItem));
         },

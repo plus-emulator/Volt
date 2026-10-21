@@ -24,6 +24,8 @@ import { useInventoryUnseenTracker } from './useInventoryUnseenTracker';
 
 const useInventoryFurniState = () => {
     const [needsUpdate, setNeedsUpdate] = useState(true);
+    const [isInitialized, setIsInitialized] = useState(false);
+    const initializationRequestedRef = useRef(false);
     const [groupItems, setGroupItems] = useState<GroupItem[]>([]);
     const [selectedItem, setSelectedItem] = useState<GroupItem>(null);
     const fragmentsRef = useRef<Map<number, FurnitureListItemParser>[] | null>(null);
@@ -86,6 +88,7 @@ const useInventoryFurniState = () => {
         const context = buildContext();
 
         setGroupItems((prev) => applyMergedFurnitureList(prev, merged, context));
+        setIsInitialized(true);
     });
 
     useMessageEvent<FurnitureListInvalidateEvent>(FurnitureListInvalidateEvent, () => {
@@ -125,6 +128,15 @@ const useInventoryFurniState = () => {
         };
     }, [isVisible, resetCategory]);
 
+    // HabboInventory.checkCategoryInitilization: load the furni list for a feature that needs it while the inventory is closed.
+    const requestInitialization = () => {
+        if (isInitialized || initializationRequestedRef.current) return;
+
+        initializationRequestedRef.current = true;
+        SendMessageComposer(new FurnitureListComposer());
+        setNeedsUpdate(false);
+    };
+
     useEffect(() => {
         if (!isVisible || !needsUpdate) return;
 
@@ -153,7 +165,20 @@ const useInventoryFurniState = () => {
         return () => window.removeEventListener('volt-localization-updated', refreshFurnitureLocalization);
     }, []);
 
-    return { isVisible, groupItems, setGroupItems, selectedItem, setSelectedItem, activate, deactivate, getWallItemById, getFloorItemById, getItemsByType };
+    return {
+        isVisible,
+        isInitialized,
+        requestInitialization,
+        groupItems,
+        setGroupItems,
+        selectedItem,
+        setSelectedItem,
+        activate,
+        deactivate,
+        getWallItemById,
+        getFloorItemById,
+        getItemsByType
+    };
 };
 
 export const useInventoryFurni = () => useSharedHook(useInventoryFurniState);

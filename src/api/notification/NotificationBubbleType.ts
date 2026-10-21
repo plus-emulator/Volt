@@ -15,4 +15,5 @@ export class NotificationBubbleType {
     public static BUYFURNI: string = 'buyfurni';
     public static VIP: string = 'vip';
     public static ROOMMESSAGESPOSTED: string = 'roommessagesposted';
+    public static NFT_OPENING: string = 'nft_opening';
 }

@@ -3,6 +3,7 @@ import { NotificationBadgeReceivedBubbleView } from './NotificationBadgeReceived
 import { NotificationClubGiftBubbleView } from './NotificationClubGiftBubbleView';
 import { NotificationDefaultBubbleView } from './NotificationDefaultBubbleView';
 import { NotificationFriendOnlineBubbleView } from './NotificationFriendOnlineBubbleView';
+import { NotificationNftOpeningBubbleView } from './NotificationNftOpeningBubbleView';
 
 export const GetBubbleLayout = (item: NotificationBubbleItem, onClose: () => void) => {
     if (!item) return null;
@@ -17,6 +18,8 @@ export const GetBubbleLayout = (item: NotificationBubbleItem, onClose: () => voi
             return <NotificationClubGiftBubbleView key={item.id} {...props} />;
         case NotificationBubbleType.FRIENDONLINE:
             return <NotificationFriendOnlineBubbleView key={item.id} {...props} />;
+        case NotificationBubbleType.NFT_OPENING:
+            return <NotificationNftOpeningBubbleView key={item.id} {...props} />;
         default:
             return <NotificationDefaultBubbleView key={item.id} {...props} />;
     }
