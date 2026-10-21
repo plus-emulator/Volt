@@ -1,106 +1,174 @@
-import { FC, useEffect, useState } from 'react';
-import { FaPen, FaTrophy } from 'react-icons/fa';
-import { LocalizeText, ProductTypeEnum, SanitizeHtml } from '../../../../../api';
-import { Text } from '../../../../../common';
-import { useCatalogData, useCatalogUiState } from '../../../../../hooks';
-import { CatalogAddOnBadgeWidgetView } from '../widgets/CatalogAddOnBadgeWidgetView';
-import { CatalogItemGridWidgetView } from '../widgets/CatalogItemGridWidgetView';
+import { CSSProperties, FC, useEffect, useMemo, useState } from 'react';
+import { IPurchasableOffer, SanitizeHtml } from '../../../../../api';
+import previewArrowLeft from '../../../../../assets/images/catalog/air/preview-arrow-left.png';
+import previewArrowRight from '../../../../../assets/images/catalog/air/preview-arrow-right.png';
+import { LayoutFurniImageView } from '../../../../../common';
+import { useCatalogActions, useCatalogData, useCatalogUiState } from '../../../../../hooks';
 import { CatalogPurchaseWidgetView } from '../widgets/CatalogPurchaseWidgetView';
 import { CatalogTotalPriceWidget } from '../widgets/CatalogTotalPriceWidget';
-import { CatalogViewProductWidgetView } from '../widgets/CatalogViewProductWidgetView';
 import { CatalogLayoutProps } from './CatalogLayout.types';
 
+type TrophyMetal = 'g' | 's' | 'b';
+
+/** One trophy model: its offers keyed by metal, or by '' when the offer has no metal suffix. */
+type TrophyModel = Map<TrophyMetal | '', IPurchasableOffer>;
+
+/** TrophyCatalogWidget.onWidgetsInitialized: gold, silver and bronze swatches, in that order. */
+const TROPHY_METALS: { metal: TrophyMetal; colour: number }[] = [
+    { metal: 'g', colour: 0xffcc00 },
+    { metal: 's', colour: 0xcccccc },
+    { metal: 'b', colour: 0xcc6600 }
+];
+
+/** TrophyCatalogWidget.getTrophyTypeFromProduct: a trailing `_g`, `_s` or `_b`, except for prizetrophy_2011_ offers. */
+const getTrophyMetal = (localizationId: string): TrophyMetal | '' => {
+    if (localizationId.includes('prizetrophy_2011_')) return '';
+
+    const separator = localizationId.lastIndexOf('_');
+    const suffix = localizationId.substring(separator + 1);
+
+    return separator > -1 && (suffix === 'g' || suffix === 's' || suffix === 'b') ? suffix : '';
+};
+
+const groupTrophyModels = (offers: IPurchasableOffer[]): TrophyModel[] => {
+    const models = new Map<string, TrophyModel>();
+
+    for (const offer of offers) {
+        const metal = getTrophyMetal(offer.localizationId);
+        const baseName = metal ? offer.localizationId.slice(0, -2) : offer.localizationId;
+
+        if (!models.has(baseName)) models.set(baseName, new Map());
+
+        const model = models.get(baseName);
+
+        if (!model.has(metal)) model.set(metal, offer);
+    }
+
+    return [...models.values()];
+};
+
+const pickTrophyOffer = (model: TrophyModel, metal: TrophyMetal) => model?.get(metal) ?? model?.values().next().value ?? null;
+
+const toCssColour = (colour: number) => `#${colour.toString(16).padStart(6, '0')}`;
+
+/**
+ * AIR layout_trophies: the page text, the trophy preview with its price and model arrows (trophyWidget),
+ * the gold/silver/bronze colour grid, the inscription and the purchase row. There is no item grid.
+ */
 export const CatalogLayoutTrophiesView: FC<CatalogLayoutProps> = (props) => {
     const { page = null } = props;
-    const [trophyText, setTrophyText] = useState<string>('');
+    const [trophyText, setTrophyText] = useState('');
+    const [metal, setMetal] = useState<TrophyMetal>('g');
     const { currentOffer = null } = useCatalogData();
     const { setPurchaseOptions = null } = useCatalogUiState();
+    const { selectCatalogOffer = null } = useCatalogActions();
+
+    const offers = page?.offers ?? [];
+    const models = useMemo(() => groupTrophyModels(page?.offers ?? []), [page?.offers]);
+    const modelIndex = currentOffer ? models.findIndex((model) => [...model.values()].includes(currentOffer)) : -1;
+    const product = modelIndex > -1 ? currentOffer.product : null;
+    const showModelButtons = offers.length !== 1;
+    const showColourGrid = offers.length !== 1 || !!offers[0]?.product?.furnitureData?.fullName?.includes('*');
+
+    useEffect(() => {
+        if (modelIndex > -1 || !models.length) return;
+
+        setMetal('g');
+        selectCatalogOffer(pickTrophyOffer(models[0], 'g'));
+    }, [modelIndex, models, selectCatalogOffer]);
 
     useEffect(() => {
         if (!currentOffer) return;
 
-        setPurchaseOptions((prevValue) => {
-            const newValue = { ...prevValue };
-
-            newValue.extraData = trophyText;
-
-            return newValue;
-        });
+        setPurchaseOptions((prevValue) => ({ ...prevValue, extraData: trophyText }));
     }, [currentOffer, trophyText, setPurchaseOptions]);
 
-    const canPurchase = currentOffer && trophyText.trim().length > 0;
+    const selectModel = (index: number) => {
+        const offer = pickTrophyOffer(models[(index + models.length) % models.length], metal);
+
+        if (offer) selectCatalogOffer(offer);
+    };
+
+    const selectMetal = (nextMetal: TrophyMetal) => {
+        setMetal(nextMetal);
+
+        const offer = pickTrophyOffer(models[Math.max(modelIndex, 0)], nextMetal);
+
+        if (offer) selectCatalogOffer(offer);
+    };
 
     return (
-        <div className="flex flex-col h-full gap-2">
-            {/* Selected trophy card. shrink-0 + no overflow-hidden so the
-                 Buy button stays inside the panel even when the grid below
-                 holds many trophies. */}
-            {currentOffer ? (
-                <div className="volt-catalog-trophy-card flex gap-0 bg-white rounded border-2 border-warning/40 shrink-0">
-                    {/* Preview */}
-                    <div className="volt-catalog-trophy-preview w-[120px] min-w-[120px] relative flex items-center justify-center border-r-2 border-warning/30">
-                        {currentOffer.product.productType !== ProductTypeEnum.BADGE ? (
-                            <>
-                                <CatalogViewProductWidgetView />
-                                <CatalogAddOnBadgeWidgetView className="bg-muted rounded bottom-1 right-1 absolute" />
-                            </>
-                        ) : (
-                            <CatalogAddOnBadgeWidgetView className="scale-200" />
-                        )}
-                    </div>
-                    {/* Info */}
-                    <div className="flex flex-col flex-1 min-w-0 p-2 gap-1.5">
-                        <div className="flex items-center gap-1.5">
-                            <FaTrophy className="text-warning text-[11px]" />
-                            <Text className="text-[12px]! font-bold text-dark leading-tight">{currentOffer.localizationName}</Text>
+        <div className="volt-catalog-trophy-layout">
+            <div className="volt-catalog-trophy-description" dangerouslySetInnerHTML={{ __html: SanitizeHtml(page.localization.getText(0)) }} />
+
+            <div className="volt-catalog-trophy-widget">
+                {product && (
+                    <>
+                        <div className="volt-catalog-trophy-image">
+                            <LayoutFurniImageView
+                                direction={2}
+                                extraData={product.extraParam}
+                                productClassId={product.productClassId}
+                                productType={product.productType}
+                            />
                         </div>
-                        <CatalogTotalPriceWidget />
-                        {!canPurchase && <span className="text-[9px] text-warning italic">{LocalizeText('catalog.trophies.write.hint')}</span>}
-                        <div className="flex gap-1.5">
-                            <CatalogPurchaseWidgetView />
+                        <div className="volt-catalog-trophy-price volt-catalog-preview-price volt-catalog-price-frame">
+                            <CatalogTotalPriceWidget alignItems="end" />
                         </div>
-                    </div>
-                </div>
-            ) : (
-                <div className="flex items-start gap-3 p-2.5 bg-white rounded border-2 border-card-grid-item-border">
-                    {!!page.localization.getImage(1) && (
-                        <img alt="" className="w-[50px] h-[50px] object-contain rounded shrink-0 mt-0.5" src={page.localization.getImage(1)} />
-                    )}
-                    <div className="min-w-0">
-                        <div className="flex items-center gap-1.5 mb-1">
-                            <FaTrophy className="text-warning text-[11px]" />
-                            <span className="text-[12px] font-bold">{LocalizeText('catalog.trophies.title')}</span>
-                        </div>
-                        <Text
-                            className="text-[10px]! text-muted leading-relaxed"
-                            dangerouslySetInnerHTML={{ __html: SanitizeHtml(page.localization.getText(0)) }}
-                        />
+                    </>
+                )}
+                {showModelButtons && (
+                    <>
+                        <button
+                            aria-label="Previous trophy"
+                            className="volt-catalog-trophy-model-button is-prev"
+                            type="button"
+                            onClick={() => selectModel(modelIndex - 1)}
+                        >
+                            <img alt="" draggable={false} src={previewArrowLeft} />
+                        </button>
+                        <button
+                            aria-label="Next trophy"
+                            className="volt-catalog-trophy-model-button is-next"
+                            type="button"
+                            onClick={() => selectModel(modelIndex + 1)}
+                        >
+                            <img alt="" draggable={false} src={previewArrowRight} />
+                        </button>
+                    </>
+                )}
+            </div>
+
+            {showColourGrid && (
+                <div className="volt-catalog-colour-grid-shell volt-catalog-trophy-colours">
+                    <div aria-label="Metal" className="volt-catalog-colour-grid" role="radiogroup">
+                        {TROPHY_METALS.map((entry) => (
+                            <button
+                                key={entry.metal}
+                                aria-checked={metal === entry.metal}
+                                className={`volt-catalog-colour-swatch ${metal === entry.metal ? 'is-chosen' : ''}`}
+                                role="radio"
+                                style={{ '--volt-swatch-colour': toCssColour(entry.colour) } as CSSProperties}
+                                type="button"
+                                onClick={() => selectMetal(entry.metal)}
+                            />
+                        ))}
                     </div>
                 </div>
             )}
 
-            {/* Trophy inscription */}
-            <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-1.5">
-                    <FaPen className="text-[8px] text-warning" />
-                    <span className="text-[9px] font-bold text-muted uppercase tracking-wider">{LocalizeText('catalog.trophies.inscription')}</span>
-                    <span className={`text-[9px] ml-auto ${trophyText.length > 180 ? 'text-danger font-bold' : 'text-muted'}`}>{trophyText.length}/200</span>
-                </div>
-                <div className="relative">
-                    <textarea
-                        className={`volt-catalog-trophy-inscription w-full h-[60px] text-[11px] rounded p-2 pr-3 resize-none focus:outline-none transition-all border-2 ${trophyText.length > 0 ? 'has-text' : ''}`}
-                        maxLength={200}
-                        placeholder={LocalizeText('catalog.trophies.inscription.placeholder')}
-                        value={trophyText}
-                        onChange={(event) => setTrophyText(event.target.value)}
-                    />
-                    {trophyText.length > 0 && <FaTrophy className="absolute top-2 right-2 text-[10px] text-warning/30" />}
-                </div>
+            <div className="volt-catalog-trophy-inscription-label" dangerouslySetInnerHTML={{ __html: SanitizeHtml(page.localization.getText(1)) }} />
+
+            <div className="volt-catalog-trophy-inscription">
+                <textarea maxLength={300} value={trophyText} onChange={(event) => setTrophyText(event.target.value)} />
             </div>
 
-            {/* Trophy grid */}
-            <div className="flex-1 overflow-auto min-h-0">
-                <CatalogItemGridWidgetView columnCount={7} columnMinHeight={50} columnMinWidth={50} />
+            <div className="volt-catalog-purchase-row">
+                {currentOffer && (
+                    <div className="volt-catalog-offer-actions flex gap-1.5">
+                        <CatalogPurchaseWidgetView />
+                    </div>
+                )}
             </div>
         </div>
     );
