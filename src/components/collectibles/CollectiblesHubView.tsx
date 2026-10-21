@@ -108,8 +108,9 @@ export const CollectiblesHubView: FC<{}> = () => {
                             </SlotBorder>
                             <img alt="" className="volt-collectibles-abs" draggable={false} src={emeraldIcon} style={at(466, 47, 24, 24)} />
                         </SlotBorder>
+                        {/* tab_bg is a child of the 122px header container, so the header clips its bottom 8px. */}
+                        {tabsWidth > 350 && <SlotBorder blend={0.4} color={0x000000} style={at(-2, 91, 502, 39)} />}
                     </div>
-                    {tabsWidth > 350 && <SlotBorder blend={0.4} color={0x000000} style={at(-2, 91, 502, 39)} />}
                     <div className="volt-collectibles-abs" style={at(-5, 89, 498, 34)}>
                         {visibleTabs.map((entry, index) => (
                             <button
