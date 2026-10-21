@@ -2,6 +2,7 @@ import {
     AvatarAction,
     AvatarExpressionEnum,
     CreateLinkEvent,
+    GetRoomEngine,
     RoomControllerLevel,
     RoomObjectCategory,
     RoomObjectVariable,
@@ -91,7 +92,8 @@ export const AvatarInfoWidgetOwnAvatarView: FC<AvatarInfoWidgetOwnAvatarViewProp
 
     const expressionsMenuEnabled = GetConfigurationValue('avatar.expressions_menu.enabled', true);
     const signsEnabled = GetConfigurationValue('avatar.signs.enabled', true);
-    const handItemDropEnabled = GetConfigurationValue('handitem.drop.enabled', true);
+    // AIR OwnAvatarMenuView: the drop hand item button is hidden while the room blocks hand item control.
+    const handItemDropEnabled = GetConfigurationValue('handitem.drop.enabled', true) && !GetRoomEngine().activeRoomHasHanditemControlBlocked;
     const sittingEnabled = GetConfigurationValue('avatar.sitting.enabled', true);
     const expression67Enabled = GetConfigurationValue('avatar.expression.67.enabled', false);
 

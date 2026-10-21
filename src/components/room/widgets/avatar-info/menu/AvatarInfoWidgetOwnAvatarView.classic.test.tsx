@@ -37,6 +37,7 @@ vi.mock('@volt/renderer', () => ({
         WAVE: { ordinal: 1 }
     },
     CreateLinkEvent: mocks.createLinkEvent,
+    GetRoomEngine: () => ({ activeRoomHasHanditemControlBlocked: false }),
     RoomControllerLevel: { GUEST: 0 },
     RoomObjectCategory: { UNIT: 100 },
     RoomObjectVariable: { FIGURE_EFFECT: 'figure_effect' },

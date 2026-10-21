@@ -2,6 +2,7 @@ import {
     CreateLinkEvent,
     FlatControllerAddedEvent,
     FlatControllerRemovedEvent,
+    GetRoomEngine,
     GetSessionDataManager,
     RoomControllerLevel,
     RoomObjectCategory,
@@ -49,7 +50,9 @@ export const AvatarInfoWidgetAvatarView: FC<AvatarInfoWidgetAvatarViewProps> = (
     const [mode, setMode] = useState(MODE_NORMAL);
     const { canRequestFriend = null } = useFriends();
     const { report = null } = useHelp();
-    const { roomSession = null, isHandItemBlocked = false } = useRoom();
+    const { roomSession = null } = useRoom();
+    // AIR AvatarMenuView: the pass hand item button is hidden while the room blocks hand item control.
+    const isHandItemBlocked = GetRoomEngine().activeRoomHasHanditemControlBlocked;
     const { userRespectRemaining = 0, respectUser = null } = useSessionInfo();
     const { openInspectionForUser, showInspectButton } = useWiredTools();
     // Reactive: the menu auto-flips Ignore <-> Unignore if the state

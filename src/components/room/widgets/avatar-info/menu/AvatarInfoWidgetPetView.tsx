@@ -28,7 +28,7 @@ const MODE_MONSTER_PLANT: number = 3;
 export const AvatarInfoWidgetPetView: FC<AvatarInfoWidgetPetViewProps> = (props) => {
     const { avatarInfo = null, onClose = null } = props;
     const [mode, setMode] = useState(MODE_NORMAL);
-    const { roomSession = null, isHandItemBlocked = false } = useRoom();
+    const { roomSession = null } = useRoom();
     const { petRespectRemaining = 0, respectPet = null } = useSessionInfo();
     const canManageAnyRoom = useHasPermission(Permission.RoomOwnerAny);
 
@@ -37,8 +37,6 @@ export const AvatarInfoWidgetPetView: FC<AvatarInfoWidgetPetViewProps> = (props)
     }, [roomSession, canManageAnyRoom]);
 
     const canGiveHandItem = useMemo(() => {
-        if (isHandItemBlocked) return false;
-
         let flag = false;
 
         const roomObject = GetOwnRoomObject();
@@ -50,7 +48,7 @@ export const AvatarInfoWidgetPetView: FC<AvatarInfoWidgetPetViewProps> = (props)
         }
 
         return flag;
-    }, [isHandItemBlocked]);
+    }, []);
 
     const processAction = (name: string) => {
         let hideMenu = true;
