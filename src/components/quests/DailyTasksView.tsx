@@ -1,7 +1,7 @@
 import { AddLinkEventTracker, CreateLinkEvent, DailyTaskData, GetSessionDataManager, ILinkEventTracker, RemoveLinkEventTracker } from '@volt/renderer';
 import { CSSProperties, FC, useEffect, useMemo, useRef, useState } from 'react';
-import { getDailyTaskImageUrl, getDailyTasksWindowCaption, localizeWithFallback, ProductTypeEnum } from '../../api';
-import { ClassicScrollAreaView, LayoutBadgeImageView, LayoutCurrencyIcon, LayoutFurniIconImageView, VoltCardHeaderView, VoltCardView } from '../../common';
+import { ACTIVITY_POINT_ICON_LAYOUT_SIZES, ACTIVITY_POINT_ICON_REGIONS, GetActivityPointIconStyle, getDailyTaskImageUrl, getDailyTasksWindowCaption, localizeWithFallback, ProductTypeEnum } from '../../api';
+import { ClassicScrollAreaView, LayoutActivityPointIcon, LayoutBadgeImageView, LayoutFurniIconImageView, VoltCardHeaderView, VoltCardView } from '../../common';
 import { NativeText } from '../../common/native-text/NativeText';
 import { useDailyTasks } from '../../hooks';
 import { AchievementText, useAirFieldWidth } from '../achievements/AchievementText';
@@ -21,6 +21,18 @@ const REWARD_FLOOR_ITEMS = [1, 11];
 const REWARD_BADGE = 4;
 const REWARD_CURRENCY = 8;
 
+/** A currency is product_icon.xml's icon window: big icon style, sized to its skin layout and kept centred in the 40x40 widget (half the size change, truncated). */
+const DailyTaskCurrencyIcon: FC<{ type: number }> = ({ type }) => {
+    const style = GetActivityPointIconStyle(type, true);
+    const region = ACTIVITY_POINT_ICON_REGIONS[style];
+
+    if (!region) return null;
+
+    const [width, height] = ACTIVITY_POINT_ICON_LAYOUT_SIZES[style] ?? [region[2], region[3]];
+
+    return <LayoutActivityPointIcon big type={type} style={{ position: 'absolute', left: Math.trunc((40 - width) / 2), top: Math.trunc((40 - height) / 2) }} />;
+};
+
 const DailyTaskRewardIcon: FC<{ reward: DailyTaskData['rewards'][number] }> = ({ reward }) => {
     const itemTypeId = reward.rewardTypeId;
     const classId = Number.parseInt(itemTypeId, 10);
@@ -29,7 +41,7 @@ const DailyTaskRewardIcon: FC<{ reward: DailyTaskData['rewards'][number] }> = ({
 
     if (Number.isNaN(classId)) return null;
 
-    if (reward.productItemTypeId === REWARD_CURRENCY) return <LayoutCurrencyIcon type={classId} />;
+    if (reward.productItemTypeId === REWARD_CURRENCY) return <DailyTaskCurrencyIcon type={classId} />;
 
     if (reward.productItemTypeId === REWARD_WALL_ITEM) return <LayoutFurniIconImageView productClassId={classId} productType={ProductTypeEnum.WALL} />;
 
@@ -107,7 +119,8 @@ const DailyTaskRewardView: FC<{ reward: DailyTaskData['rewards'][number]; card: 
 
     return (
         <div className="air-dt-reward">
-            <div className="air-dt-reward-icon">
+            {/* Without an amount badge the widget is centred in the 50 high template. */}
+            <div className="air-dt-reward-icon" style={reward.amount > 1 ? undefined : { top: 5 }}>
                 <DailyTaskRewardIcon reward={reward} />
             </div>
             {reward.amount > 1 && (

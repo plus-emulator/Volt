@@ -98,6 +98,21 @@ export const ACTIVITY_POINT_ICON_REGIONS: Record<number, [number, number, number
     87: [574, 0, 12, 11]
 };
 
+// The icon window's size after fitToSize is its skin layout, which differs from the region for these styles.
+export const ACTIVITY_POINT_ICON_LAYOUT_SIZES: Record<number, [number, number]> = {
+    30: [24, 24],
+    32: [24, 24],
+    34: [24, 24],
+    36: [24, 24],
+    44: [24, 24],
+    47: [19, 15],
+    53: [24, 24],
+    56: [19, 20],
+    58: [19, 20],
+    59: [11, 11],
+    73: [9, 12]
+};
+
 export const IsSeasonalActivityPointType = (type: number): boolean => type >= 101 && type <= 105;
 
 // getIconStyleFor: the icon style for a currency type, 0 when the hotel configures none.
