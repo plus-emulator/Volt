@@ -1,7 +1,6 @@
 import { RelationshipStatusEnum, RelationshipStatusInfo } from '@volt/renderer';
 import { FC } from 'react';
 import { GetUserProfile, LocalizeText, localizeWithFallback } from '../../../../../api';
-import { Flex, Text } from '../../../../../common';
 
 interface InfoStandWidgetUserRelationshipsRelationshipItemViewProps {
     type: number;
@@ -16,21 +15,24 @@ export const InfoStandWidgetUserRelationshipsRelationshipItemView: FC<InfoStandW
     const relationshipName = RelationshipStatusEnum.RELATIONSHIP_NAMES[type].toLocaleLowerCase();
 
     return (
-        <div className="flex items-center gap-1">
-            <i className={`volt-friends-spritesheet icon-${relationshipName}`} />
-            <Flex alignItems="center" gap={0}>
-                <Text small variant="white" onClick={(event) => GetUserProfile(relationship.randomFriendId)}>
-                    <u>{relationship.randomFriendName}</u>
-                    {relationship.friendCount > 1 &&
-                        ' ' +
-                            localizeWithFallback(
-                                `infostand.relstatus.${relationshipName}.others`,
-                                LocalizeText(`extendedprofile.relstatus.others.${relationshipName}`, ['count'], [(relationship.friendCount - 1).toString()]),
-                                ['amount'],
-                                [(relationship.friendCount - 1).toString()]
-                            )}
-                </Text>
-            </Flex>
+        <div className="volt-infostand__relationship">
+            <span className="volt-infostand__relationship-icon">
+                <i className={`volt-friends-spritesheet icon-${relationshipName}`} />
+            </span>
+            <span className="volt-infostand__relationship-name" onClick={(event) => GetUserProfile(relationship.randomFriendId)}>
+                {relationship.randomFriendName}
+            </span>
+            {relationship.friendCount > 1 && (
+                <span>
+                    {' ' +
+                        localizeWithFallback(
+                            `infostand.relstatus.${relationshipName}.others`,
+                            LocalizeText(`extendedprofile.relstatus.others.${relationshipName}`, ['count'], [(relationship.friendCount - 1).toString()]),
+                            ['amount'],
+                            [(relationship.friendCount - 1).toString()]
+                        )}
+                </span>
+            )}
         </div>
     );
 };

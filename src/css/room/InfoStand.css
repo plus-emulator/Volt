@@ -190,8 +190,28 @@
   .volt-infostand__relationships {
     display: flex;
     flex-direction: column;
-    gap: 3px;
     min-height: 55px;
+  }
+
+  /* relationship_<type>: a 16px row with a 17x14 icon slot, then a bold underlined link and the regular "others" label. */
+  .volt-infostand__relationship {
+    display: flex;
+    align-items: flex-start;
+    height: 16px;
+    white-space: pre;
+  }
+
+  .volt-infostand__relationship-icon {
+    display: flex;
+    flex: none;
+    width: 17px;
+    height: 14px;
+  }
+
+  .volt-infostand__relationship-name {
+    font-weight: bold;
+    text-decoration: underline;
+    cursor: pointer;
   }
 
   .volt-infostand__figure-row {
