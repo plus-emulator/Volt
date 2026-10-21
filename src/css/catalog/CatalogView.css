@@ -991,7 +991,7 @@
     cursor: pointer;
 }
 
-.volt-catalog-badge-preview .volt-catalog-price-frame {
+:is(.volt-catalog-badge-preview, .volt-catalog-trophy-widget) .volt-catalog-price-frame {
     box-sizing: border-box;
     display: flex;
     align-items: center;
@@ -1010,20 +1010,20 @@
     box-shadow: none;
 }
 
-.volt-catalog-badge-preview .volt-catalog-price-frame .volt-catalog-standard-price-display {
+:is(.volt-catalog-badge-preview, .volt-catalog-trophy-widget) .volt-catalog-price-frame .volt-catalog-standard-price-display {
     height: 13px;
     min-height: 13px;
     gap: 1px;
 }
 
-.volt-catalog-badge-preview .volt-catalog-price-frame .volt-catalog-standard-price-pill {
+:is(.volt-catalog-badge-preview, .volt-catalog-trophy-widget) .volt-catalog-price-frame .volt-catalog-standard-price-pill {
     min-width: 0;
     height: 13px;
     gap: 1px;
     padding: 0;
 }
 
-.volt-catalog-badge-preview .volt-catalog-price-frame .volt-catalog-standard-price-text {
+:is(.volt-catalog-badge-preview, .volt-catalog-trophy-widget) .volt-catalog-price-frame .volt-catalog-standard-price-text {
     color: #111 !important;
     font-family: Ubuntu, Arial, sans-serif;
     font-size: 14px !important;
@@ -1032,7 +1032,7 @@
     text-shadow: none !important;
 }
 
-.volt-catalog-badge-preview .volt-catalog-price-frame .volt-currency-icon {
+:is(.volt-catalog-badge-preview, .volt-catalog-trophy-widget) .volt-catalog-price-frame .volt-currency-icon {
     flex: 0 0 22px;
     width: 22px !important;
     height: 22px !important;
@@ -1040,7 +1040,7 @@
     image-rendering: var(--volt-pixel-art, pixelated);
 }
 
-.volt-catalog-badge-preview .volt-catalog-price-frame .is-credits .volt-currency-icon {
+:is(.volt-catalog-badge-preview, .volt-catalog-trophy-widget) .volt-catalog-price-frame .is-credits .volt-currency-icon {
     background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABYAAAAWCAYAAADEtGw7AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAD/SURBVEhLtZSBDYMwDAQzTTtNR2GmrlBW6SBlhFSO9OFsnJRKraUngPH5ZSCl1lr+oXZ43i8HtWQpdhhqWhuTBNZtrlGDA1hQFa7LXGxATgvdIFSF2+pFt3bNBoQ7MKECqXC57mA7l9hAcAeObgnmqrwacGR03cEZNILlUhCtmevTYCq6jNdfgW2lToBvHSw3hBMc8wSz2WmwxDydfwRbIhZzLMpRbKAX68DRdSwcic8ZuEMF5g8i5ywcSUA1GoHdSASO89a5VgO/HgGqzw1gu+lczcAGTKApuMOzmVMAOuhhE3Jb3v4gizPRZYNmm1AMV3RCPiZgRQRE5SHwr/UG8Hq+iW3+jYQAAAAASUVORK5CYII=") !important;
 }
 
@@ -1231,21 +1231,179 @@
     background-size: contain;
 }
 
-.volt-catalog-trophy-card {
-    box-shadow: 0 0 8px rgba(255, 193, 7, 0.15);
+/*
+ * AIR layout_trophies (360x460): trophy.description (0,0 360x190), trophyWidget (0,145 360x135) with the furni image
+ * centred, priceDisplayWidget at its bottom right and the style 3 model buttons (30x30) at 115,101 and 210,101,
+ * colourGridWidget (0,285 360x40), the u_small trophy.enscription at 6,326, a border style 5 (0,340 360x83) holding
+ * the bold input at 6,7 349x70, and purchaseWidget at 0,430. Text fields add Flash's 2 px gutter.
+ */
+.volt-catalog-trophy-layout {
+    position: relative;
+    width: 100%;
+    height: 460px;
+    min-height: 460px;
+    overflow: hidden;
+    color: #000;
+    font-family: UbuntuRegular, Ubuntu, sans-serif;
 }
 
-.volt-catalog-trophy-preview {
-    background: linear-gradient(180deg, #fff9e6 0%, #fff3cc 100%);
+.volt-catalog-trophy-description {
+    position: absolute;
+    top: 0;
+    left: 0;
+    box-sizing: border-box;
+    width: 360px;
+    height: 190px;
+    padding: 2px;
+    overflow: hidden;
+    font-size: 12px;
+    line-height: 14px;
+    overflow-wrap: anywhere;
+}
+
+.volt-catalog-trophy-widget {
+    position: absolute;
+    top: 145px;
+    left: 0;
+    width: 360px;
+    height: 135px;
+}
+
+.volt-catalog-trophy-image {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.volt-catalog-trophy-image .furni-image {
+    flex: 0 0 auto;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-catalog-trophy-price {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    z-index: 2;
+}
+
+/* container_button style 3: habbo_skin_button_shiny_thick, with the 10x9 simple arrow icon (style 2 or 3) at 9,8. */
+.volt-catalog-window button.volt-catalog-trophy-model-button {
+    position: absolute;
+    top: 101px;
+    z-index: 3;
+    box-sizing: border-box;
+    width: 30px;
+    height: 30px;
+    margin: 0;
+    padding: 0;
+    border: 5px solid transparent;
+    border-image: url("@/assets/images/habbo-skin/slices/button-shiny-thick-default.png") 5 fill / 5px stretch;
+    border-radius: 0;
+    background: transparent;
+    cursor: pointer;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-catalog-window button.volt-catalog-trophy-model-button:hover {
+    border-image-source: url("@/assets/images/habbo-skin/slices/button-shiny-thick-hover.png");
+}
+
+.volt-catalog-window button.volt-catalog-trophy-model-button:active {
+    border-image-source: url("@/assets/images/habbo-skin/slices/button-shiny-thick-pressed.png");
+}
+
+.volt-catalog-trophy-model-button.is-prev {
+    left: 115px;
+}
+
+.volt-catalog-trophy-model-button.is-next {
+    left: 210px;
+}
+
+.volt-catalog-trophy-model-button img {
+    position: absolute;
+    top: 3px;
+    left: 4px;
+    width: 10px;
+    height: 9px;
+}
+
+.volt-catalog-colour-grid-shell.volt-catalog-trophy-colours {
+    top: 285px;
+    height: 40px;
+}
+
+/* TrophyCatalogWidget sends its colours with the ctlg_clr_40x32 swatches. */
+.volt-catalog-trophy-colours .volt-catalog-colour-swatch {
+    width: 40px;
+    height: 32px;
+    background-image: url("@/assets/images/catalog/air/colour-grid/ctlg_clr_40x32_1.png");
+}
+
+.volt-catalog-trophy-colours .volt-catalog-colour-swatch::before {
+    background-image: url("@/assets/images/catalog/air/colour-grid/ctlg_clr_40x32_2.png");
+    mask-image: url("@/assets/images/catalog/air/colour-grid/ctlg_clr_40x32_2.png");
+}
+
+.volt-catalog-trophy-colours .volt-catalog-colour-swatch.is-chosen::after {
+    background-image: url("@/assets/images/catalog/air/colour-grid/ctlg_clr_40x32_3.png");
+}
+
+.volt-catalog-trophy-inscription-label {
+    position: absolute;
+    top: 326px;
+    left: 6px;
+    box-sizing: border-box;
+    width: 355px;
+    height: 15px;
+    padding: 1px 2px 0;
+    overflow: hidden;
+    font-size: 10px;
+    line-height: 12px;
+    white-space: nowrap;
 }
 
 .volt-catalog-trophy-inscription {
-    background: #ffffff;
+    position: absolute;
+    top: 340px;
+    left: 0;
+    box-sizing: border-box;
+    width: 360px;
+    height: 83px;
+    border: 5px solid transparent;
+    border-image: url("@/assets/images/habbo-skin/slices/border-5.png") 5 fill / 5px stretch;
+    image-rendering: var(--volt-pixel-art, pixelated);
 }
 
-.volt-catalog-trophy-inscription.has-text {
-    background: linear-gradient(180deg, #fffdf5 0%, #fff8e8 100%);
-    border-color: rgba(255, 193, 7, 0.4) !important;
+.volt-catalog-window .volt-catalog-trophy-inscription textarea {
+    position: absolute;
+    top: 2px;
+    left: 1px;
+    box-sizing: border-box;
+    width: 349px;
+    height: 70px;
+    min-height: 0;
+    margin: 0;
+    padding: 2px;
+    border: 0 !important;
+    border-radius: 0 !important;
+    outline: 0;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #000 !important;
+    font-family: UbuntuRegular, Ubuntu, sans-serif;
+    font-size: 12px !important;
+    font-weight: 700;
+    line-height: 14px;
+    resize: none;
+}
+
+.volt-catalog-trophy-layout .volt-catalog-offer-actions > .volt-catalog-standard-buy-button {
+    margin-left: auto !important;
 }
 
 .volt-catalog-offer-info {
