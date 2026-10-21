@@ -126,6 +126,15 @@ function getValidRoomObjectDirection(roomObject: any, isPositive: boolean) {
     return direction;
 }
 
+// The server clamps these branding settings to the same limits.
+const BRANDING_NUMBER_RANGES: Record<string, [number, number]> = {
+    offsetX: [-10000, 10000],
+    offsetY: [-10000, 10000],
+    offsetZ: [-1000, 1000],
+    scale: [10, 500],
+    alpha: [0, 100]
+};
+
 export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (props) => {
     const { avatarInfo = null, onClose = null } = props;
     const { roomSession = null } = useRoom();
@@ -384,11 +393,12 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
                     const parts = extraParam.split('\t');
 
                     for (const part of parts) {
-                        const value = part.split('=');
+                        // A value may hold '=' (an image address with a query string): split on the first one only.
+                        const separator = part.indexOf('=');
 
-                        if (value && value.length === 2) {
-                            furniKeyss.push(value[0]);
-                            furniValuess.push(value[1]);
+                        if (separator > 0) {
+                            furniKeyss.push(part.substring(0, separator));
+                            furniValuess.push(part.substring(separator + 1));
                         }
                     }
                 }
@@ -521,25 +531,6 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
         [customValues]
     );
 
-    const getFurniSettingsAsString = useCallback(() => {
-        if (furniKeys.length === 0 || furniValues.length === 0) return '';
-
-        let data = '';
-
-        let i = 0;
-
-        while (i < furniKeys.length) {
-            const key = furniKeys[i];
-            const value = furniValues[i];
-
-            data = data + (key + '=' + value + '\t');
-
-            i++;
-        }
-
-        return data;
-    }, [furniKeys, furniValues]);
-
     const getBrandingOffset = useCallback(
         (key: string): number => {
             const index = furniKeys.indexOf(key);
@@ -622,15 +613,8 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
                     break;
                 case 'save_branding_configuration': {
                     const mapData = new Map<string, string>();
-                    const dataParts = getFurniSettingsAsString().split('\t');
 
-                    if (dataParts) {
-                        for (const part of dataParts) {
-                            const [key, value] = part.split('=', 2);
-
-                            mapData.set(key, value);
-                        }
-                    }
+                    for (let i = 0; i < furniKeys.length; i++) mapData.set(furniKeys[i], furniValues[i] ?? '');
 
                     GetRoomEngine().modifyRoomObjectDataWithMap(avatarInfo.id, avatarInfo.category, RoomObjectOperationType.OBJECT_SAVE_STUFF_DATA, mapData);
                     break;
@@ -650,7 +634,7 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
                 }
             }
         },
-        [avatarInfo, pickupMode, customKeys, customValues, getFurniSettingsAsString, pickupRoomObject]
+        [avatarInfo, pickupMode, customKeys, customValues, furniKeys, furniValues, pickupRoomObject]
     );
 
     if (!avatarInfo) return null;
@@ -849,13 +833,19 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
                                 <div className="volt-furni-infostand__rule" />
                                 <div className="flex flex-col gap-1">
                                     {furniKeys.map((key, index) => {
+                                        const range = BRANDING_NUMBER_RANGES[key];
+
                                         return (
                                             <Flex key={index} alignItems="center" gap={1}>
                                                 <Text small wrap align="end" className="col-span-4" variant="white">
                                                     {key}
                                                 </Text>
                                                 <VoltInput
-                                                    type="text"
+                                                    type={range ? 'number' : 'text'}
+                                                    min={range?.[0]}
+                                                    max={range?.[1]}
+                                                    step={range ? 1 : undefined}
+                                                    placeholder={key === 'imageUrl' || key === 'clickUrl' ? 'https://' : undefined}
                                                     className="text-black"
                                                     style={{ color: '#000' }}
                                                     value={furniValues[index]}
