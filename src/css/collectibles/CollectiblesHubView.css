@@ -422,12 +422,14 @@
     height: 50px;
 }
 
-/* Horizontal item lists: items in a row, spacing windows as spacers. */
+/* Horizontal item lists: items in a row, spacing windows as spacers. Their params hold ON_RESIZE_ALIGN_RIGHT,
+   so a wider item grows the list to the left and its right edge stays put. */
 .volt-collectibles-mint-collect,
 .volt-collectibles-token-cost {
     position: absolute;
     display: flex;
     align-items: flex-start;
+    justify-content: flex-end;
 }
 
 /* scale_to_fit_items: the list grows with its items instead of squeezing them. */
