@@ -111,6 +111,10 @@
     color: #ffffff;
 }
 
+.volt-collectibles-text.is-counter {
+    line-height: 20px;
+}
+
 .volt-collectibles-text.is-bold {
     font-weight: 700;
 }
