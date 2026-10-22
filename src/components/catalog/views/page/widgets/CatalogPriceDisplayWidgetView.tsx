@@ -1,7 +1,8 @@
 import { FC } from 'react';
 import { IPurchasableOffer } from '../../../../../api';
 import { getCatalogBundlePrice, ICatalogBundlePrice } from '../../../../../api/catalog/CatalogBundleDiscount';
-import { LayoutCurrencyIcon, Text } from '../../../../../common';
+import { LayoutCurrencyIcon } from '../../../../../common';
+import { SubpixelText } from '../../../../../common/native-text/SubpixelText';
 import { useCatalogBundleDiscountRuleset, useCatalogUiState } from '../../../../../hooks';
 
 interface CatalogPriceDisplayWidgetViewProps {
@@ -21,10 +22,20 @@ export const CatalogPriceDisplayWidgetView: FC<CatalogPriceDisplayWidgetViewProp
     const credits = getCatalogBundlePrice(offer.priceInCredits, quantity, offer.bundlePurchaseAllowed, bundleDiscountRuleset);
     const activityPoints = getCatalogBundlePrice(offer.priceInActivityPoints, quantity, offer.bundlePurchaseAllowed, bundleDiscountRuleset);
 
+    // totalPriceWidget amount texts: bold on sub-pixel pens, the struck original price in 0x999999.
     const Price = ({ price }: { price: ICatalogBundlePrice }) => (
         <>
-            {price.hasDiscount && <Text className="volt-catalog-standard-price-original">{price.originalPrice}</Text>}
-            <Text className="volt-catalog-standard-price-text">{price.price}</Text>
+            {price.hasDiscount && (
+                <SubpixelText
+                    transparent
+                    background={0xe9e9e1}
+                    className="volt-catalog-standard-price-original"
+                    color={0x999999}
+                    text={String(price.originalPrice)}
+                    textStyle="u_bold"
+                />
+            )}
+            <SubpixelText transparent background={0xe9e9e1} className="volt-catalog-standard-price-text" text={String(price.price)} textStyle="u_bold" />
         </>
     );
 
@@ -36,7 +47,9 @@ export const CatalogPriceDisplayWidgetView: FC<CatalogPriceDisplayWidgetViewProp
                     <LayoutCurrencyIcon type={-1} />
                 </div>
             )}
-            {separator && offer.priceInCredits > 0 && offer.priceInActivityPoints > 0 && <Text className="volt-catalog-standard-price-plus">+</Text>}
+            {separator && offer.priceInCredits > 0 && offer.priceInActivityPoints > 0 && (
+                <SubpixelText transparent background={0xe9e9e1} className="volt-catalog-standard-price-plus" text="+" textStyle="u_bold" />
+            )}
             {offer.priceInActivityPoints > 0 && (
                 <div className="volt-catalog-standard-price-pill is-activity-points" data-currency-type={offer.activityPointType}>
                     <Price price={activityPoints} />

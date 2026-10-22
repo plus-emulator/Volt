@@ -77,14 +77,17 @@ export const nativeTextStyles = {
         sharpness: 80.0,
         thickness: -15.0
     },
+    // AIR WIN63-202610201032 draws the header_3 caption (a label) black with sharpness 200 and thickness 150 and tints it,
+    // not with the CSS 80/-15 (matched pixel for pixel against the official client).
     u_frame_title: {
         family: 'Ubuntu',
         size: 12,
         bold: true,
         kerning: true,
         antiAliasType: 'advanced',
-        sharpness: 80.0,
-        thickness: -15.0
+        sharpness: 200.0,
+        thickness: 150.0,
+        tinted: true
     },
     u_chat_name: {
         family: 'Ubuntu',

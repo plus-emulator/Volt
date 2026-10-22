@@ -14,9 +14,6 @@ describe('standard catalog product view structure', () => {
         expect(layoutSource).toMatch(/volt-catalog-preview-limited[\s\S]*CatalogLimitedItemWidgetView/);
         expect(experienceCss).not.toContain('238px');
         expect(experienceCss).toContain('.volt-catalog-preview-details');
-        expect(experienceCss).toMatch(
-            /volt-catalog-offer-preview:not\(\.is-badge\)[\s\S]*volt-catalog-product-details-description[\s\S]*color:\s*#fff\s*!important/
-        );
         expect(experienceCss).toMatch(/volt-catalog-grid-shell\s*\{[\s\S]*bottom: 60px/);
         expect(experienceCss).toMatch(/volt-catalog-price-row\s*\{[\s\S]*bottom: 30px/);
         expect(experienceCss).toMatch(/volt-catalog-purchase-row\s*\{[\s\S]*bottom: 0/);

@@ -1,10 +1,13 @@
 import { CSSProperties, FC, KeyboardEvent, useCallback, useEffect, useRef } from 'react';
-import { FaCaretDown, FaCaretUp } from 'react-icons/fa';
-import { ICatalogNode } from '../../../../api';
-import { useCatalogNodeState } from '../../../../hooks';
+import { CatalogType, ICatalogNode } from '../../../../api';
+import { NativeText } from '../../../../common/native-text/NativeText';
+import { useCatalogNodeState, useCatalogUiState } from '../../../../hooks';
 import { CatalogIconView } from '../catalog-icon/CatalogIconView';
 import { CatalogNavigationRuntime } from './CatalogNavigationRuntime';
 import { CatalogNavigationSetView } from './CatalogNavigationSetView';
+
+/** border style 6 at blend 0.5 over the frame: the list's surface colour. */
+const NAVIGATION_BACKGROUND = 0xd2d1cb;
 
 export interface CatalogNavigationItemViewProps {
     node: ICatalogNode;
@@ -18,6 +21,8 @@ export const CatalogNavigationItemView: FC<CatalogNavigationItemViewProps> = (pr
     const { node = null, runtime, child = false, searchDepth = null } = props;
     const { activateNode } = runtime;
     const { isActive, isOpen } = useCatalogNodeState(node);
+    const { currentType = null } = useCatalogUiState();
+    const isBuilder = currentType === CatalogType.BUILDER;
     const itemRef = useRef<HTMLDivElement>(null);
     // Strip only technical technical suffixes; labels such as
     // "Flags (Wall)" or "Forest (Blue)" are meaningful catalog names.
@@ -61,10 +66,27 @@ export const CatalogNavigationItemView: FC<CatalogNavigationItemViewProps> = (pr
                 <div className="volt-catalog-navigation-icon">
                     <CatalogIconView icon={node.iconId} />
                 </div>
-                <span className="volt-catalog-navigation-label">{swfLabel}</span>
-                {node.isBranch && (
-                    <span className="volt-catalog-navigation-caret text-[9px] text-muted shrink-0">{isOpen ? <FaCaretUp /> : <FaCaretDown />}</span>
-                )}
+                <span className="volt-catalog-navigation-label">
+                    {/* ITEM_TITLE u_bold (u_bold italic below the top level) on the list, then white with the etching over SELECTION_HILIGHT. */}
+                    <NativeText
+                        nativeResolution
+                        background={NAVIGATION_BACKGROUND}
+                        className="volt-catalog-navigation-label-normal"
+                        overrides={{ color: child ? (isBuilder ? 0xb77734 : 0x52819a) : 0x666666 }}
+                        text={swfLabel}
+                        textStyle={child ? 'u_bold_italic' : 'u_bold'}
+                    />
+                    <NativeText
+                        ariaHidden
+                        nativeResolution
+                        background={isBuilder ? 0xff8d00 : 0x63c5e9}
+                        className="volt-catalog-navigation-label-selected"
+                        overrides={{ color: 0xffffff, etchingColor: isBuilder ? 0xcf7200 : 0xb4b4ae, etchingPosition: 'top' }}
+                        text={swfLabel}
+                        textStyle={child ? 'u_bold_italic' : 'u_bold'}
+                    />
+                </span>
+                {node.isBranch && <span aria-hidden="true" className="volt-catalog-navigation-caret" />}
             </div>
             {searchDepth === null && isOpen && node.isBranch && <CatalogNavigationSetView child={true} node={node} runtime={runtime} />}
         </div>

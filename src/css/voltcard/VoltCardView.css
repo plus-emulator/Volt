@@ -283,8 +283,10 @@
         background-color: transparent;
         background-image: var(--volt-card-tab-3-left), var(--volt-card-tab-3-right), var(--volt-card-tab-3-mid);
         background-repeat: no-repeat, no-repeat, no-repeat;
-        background-position: left top, right top, 7px top;
-        background-size: 9px 32px, 9px 32px, calc(100% - 14px) 32px;
+        /* button_tab_3: tab_left (0, 9px), tab_mid from 9px stretched, tab_right moved; the slices are semi-transparent,
+           so they must not overlap. */
+        background-position: left top, right top, 9px top;
+        background-size: 9px 32px, 9px 32px, calc(100% - 18px) 32px;
         border: 0;
         border-radius: 0 !important;
         box-shadow: none !important;

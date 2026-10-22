@@ -1,16 +1,34 @@
 import { MouseEventType } from '@volt/renderer';
 import { FC, KeyboardEvent, MouseEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { GetConfigurationValue, GetProductIconUrl, IPurchasableOffer, Offer, ProductTypeEnum } from '../../../../../api';
+import {
+    ACTIVITY_POINT_ICON_REGIONS,
+    GetActivityPointIconStyle,
+    GetConfigurationValue,
+    GetProductIconUrl,
+    IPurchasableOffer,
+    Offer,
+    ProductTypeEnum
+} from '../../../../../api';
 import dealIconNarrow from '../../../../../assets/images/catalog/air/ctlg-pic-deal-icon-narrow.png';
 import {
     LayoutActivityPointIcon,
     LayoutAvatarImageView,
     LayoutGridItem,
     LayoutGridItemProps,
-    LayoutHabbiconImageView,
-    UsesActivityPointIcon
+    LayoutHabbiconImageView
 } from '../../../../../common';
+import { SubpixelText } from '../../../../../common/native-text/SubpixelText';
 import { isAirBaseCatalogOffer } from './catalogAirGrid.helpers';
+
+/** gridItem_with_price amount and plus: bold u_regular in black on sub-pixel pens, drawn for the grid surface and for the selected item's white tile. */
+const CatalogPriceText: FC<{ text: string }> = ({ text }) => (
+    <>
+        <SubpixelText background={0xd2d1cb} className="volt-catalog-grid-price-text-normal" text={text} textStyle="u_bold" />
+        <SubpixelText ariaHidden background={0xffffff} className="volt-catalog-grid-price-text-selected" text={text} textStyle="u_bold" />
+    </>
+);
+
+const HasActivityPointIconStyle = (type: number) => !!ACTIVITY_POINT_ICON_REGIONS[GetActivityPointIconStyle(type, false)];
 
 export interface CatalogOfferTileViewProps extends LayoutGridItemProps {
     offer: IPurchasableOffer;
@@ -160,13 +178,24 @@ export const CatalogOfferTileView: FC<CatalogOfferTileViewProps> = (props) => {
                     <span className={`volt-catalog-grid-price ${prices.length > 1 ? 'is-multi-price' : 'is-single-price'}`}>
                         {prices.map((price, index) => (
                             <span key={`${price.type}-${index}`} className="volt-catalog-grid-price-entry">
-                                {index > 0 && <span className="volt-catalog-grid-price-plus">+</span>}
-                                <span className="volt-catalog-grid-price-amount">{price.amount}</span>
-                                {UsesActivityPointIcon(price.type) ? (
-                                    <LayoutActivityPointIcon type={price.type} />
+                                {index > 0 && (
+                                    <span className="volt-catalog-grid-price-plus">
+                                        <CatalogPriceText text="+" />
+                                    </span>
+                                )}
+                                <span className="volt-catalog-grid-price-amount">
+                                    <CatalogPriceText text={String(price.amount)} />
+                                </span>
+                                {/* ProductContainer: the icon window takes getIconStyleFor(type), credits included. */}
+                                {HasActivityPointIconStyle(price.type) ? (
+                                    <span className="volt-catalog-grid-price-currency">
+                                        <LayoutActivityPointIcon type={price.type} />
+                                    </span>
                                 ) : (
                                     !!getCurrencyIconUrl(price.type) && (
-                                        <img className="volt-catalog-grid-price-currency" src={getCurrencyIconUrl(price.type)} draggable={false} />
+                                        <span className="volt-catalog-grid-price-currency">
+                                            <img src={getCurrencyIconUrl(price.type)} draggable={false} />
+                                        </span>
                                     )
                                 )}
                             </span>

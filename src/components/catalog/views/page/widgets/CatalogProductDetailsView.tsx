@@ -1,7 +1,8 @@
 import { FC } from 'react';
-import { IPurchasableOffer, LocalizeText, ProductTypeEnum } from '../../../../../api';
+import { IPurchasableOffer, LocalizeText, Offer, ProductTypeEnum } from '../../../../../api';
 import noRecycleIcon from '../../../../../assets/images/catalog/air/inventory-furni-no-recycle.png';
 import noTradeIcon from '../../../../../assets/images/catalog/air/inventory-furni-no-trade.png';
+import { NativeText } from '../../../../../common/native-text/NativeText';
 import { useCatalogProductMetadata, useCatalogUiState } from '../../../../../hooks';
 
 export const CatalogProductDetailsView: FC<{ offer: IPurchasableOffer }> = ({ offer }) => {
@@ -26,11 +27,34 @@ export const CatalogProductDetailsView: FC<{ offer: IPurchasableOffer }> = ({ of
     const showNoRecycle = hasMetadata && (!recyclable || !tradeable);
     const tradeableLabel = LocalizeText('shop.marketplace.item.not.tradeable');
     const recyclableLabel = LocalizeText('recycler.alert.non.recyclable');
+    // ProductViewCatalogWidget: the texts turn black when no room canvas is shown (deals and badges).
+    const textColor = offer.pricingModel === Offer.PRICING_MODEL_BUNDLE || product?.productType === ProductTypeEnum.BADGE ? 0x000000 : 0xffffff;
 
     return (
         <div aria-label={name} className="volt-catalog-product-details" role="group">
-            <strong className="volt-catalog-product-details-name">{name}</strong>
-            <span className="volt-catalog-product-details-description">{description}</span>
+            {/* ctlg_product_name (u_bold) and ctlg_description (u_small italic), 280px wide: white over the room canvas, black when it is hidden. */}
+            <NativeText
+                nativeResolution
+                transparent
+                background={textColor ^ 0xffffff}
+                className="volt-catalog-product-details-name"
+                maxWidth={280}
+                overrides={{ color: textColor }}
+                text={name}
+                textStyle="u_bold"
+            />
+            {!!description && (
+                <NativeText
+                    nativeResolution
+                    transparent
+                    background={textColor ^ 0xffffff}
+                    className="volt-catalog-product-details-description"
+                    maxWidth={280}
+                    overrides={{ color: textColor, italic: true }}
+                    text={description}
+                    textStyle="u_small"
+                />
+            )}
             {(showNoTrade || showNoRecycle) && (
                 <div className="volt-catalog-product-details-badges" role="list">
                     {showNoTrade && (

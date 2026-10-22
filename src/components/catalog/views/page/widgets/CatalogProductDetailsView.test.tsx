@@ -5,6 +5,7 @@ import { CatalogProductDetailsView } from './CatalogProductDetailsView';
 
 vi.mock('../../../../../api', () => ({
     LocalizeText: (key: string) => key,
+    Offer: { PRICING_MODEL_BUNDLE: 'pricing_model_bundle' },
     ProductTypeEnum: { FLOOR: 's', WALL: 'i' }
 }));
 

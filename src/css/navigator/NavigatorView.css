@@ -224,8 +224,8 @@
         url("@/assets/images/habbo-skin/slices/tab-3-default-right.png"),
         url("@/assets/images/habbo-skin/slices/tab-3-default-mid.png") !important;
     background-repeat: no-repeat, no-repeat, no-repeat !important;
-    background-position: left top, right top, 7px top !important;
-    background-size: 9px 32px, 9px 32px, calc(100% - 14px) 32px !important;
+    background-position: left top, right top, 9px top !important;
+    background-size: 9px 32px, 9px 32px, calc(100% - 18px) 32px !important;
     box-shadow: none !important;
     color: #111 !important;
     font-family: HabboAirUbuntu, UbuntuRegular, Ubuntu, sans-serif;

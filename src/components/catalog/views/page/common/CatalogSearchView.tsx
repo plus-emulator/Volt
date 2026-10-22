@@ -10,6 +10,7 @@ import {
     PageLocalization,
     SearchResult
 } from '../../../../../api';
+import { NativeText } from '../../../../../common/native-text/NativeText';
 import { useCatalogActions, useCatalogData, useCatalogUiState } from '../../../../../hooks';
 import { useCatalogStore } from '../../../../../hooks/catalog/catalogStore';
 import { getNodesByOfferIdFromMap } from '../../../../../hooks/catalog/useCatalog.helpers';
@@ -134,11 +135,21 @@ export const CatalogSearchView: FC<{}> = () => {
 
     return (
         <div className="volt-catalog-search">
+            {/* search.helper: ${catalog.search} in 0x666666 at blend 0.5 (0xb2b2b2 on the white field) until something is typed. */}
+            {!hasQuery && (
+                <NativeText
+                    nativeResolution
+                    background={0xffffff}
+                    className="volt-catalog-search-helper"
+                    overrides={{ color: 0xb2b2b2 }}
+                    text={LocalizeText('catalog.search')}
+                    textStyle="u_regular"
+                />
+            )}
             <input
                 ref={inputRef}
                 aria-label={LocalizeText('catalog.search')}
                 className="volt-catalog-search-input"
-                placeholder={LocalizeText('catalog.search')}
                 type="text"
                 value={searchValue}
                 onChange={onSearchChange}
