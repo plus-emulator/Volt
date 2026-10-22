@@ -1,6 +1,8 @@
+import { NftStoreOfferData } from '@volt/renderer';
 import { FC } from 'react';
 import { CollectiblesPurchase, GetCollectibleProductName, LocalizeText } from '../../api';
 import stampSmall from '../../assets/images/collectibles/collectables-icon-curator-stamp-small.png';
+import lockClosed from '../../assets/images/collectibles/collectables-lock-closed.png';
 import emeraldTiny from '../../assets/images/collectibles/pursearea-tiny-emerald-icon.png';
 import { LayoutActivityPointIcon } from '../../common/layout/LayoutActivityPointIcon';
 import { useCollectiblesShop } from '../../hooks/collectibles/useCollectiblesShop';
@@ -15,15 +17,18 @@ const EMERALD = 1001;
 interface CollectiblesShopTabViewProps {
     visible: boolean;
     activeWallet: string;
+    level: number | null;
     onPurchase: (purchase: CollectiblesPurchase) => void;
     onNotEnoughEmeralds: (type: number) => void;
 }
 
 /** ShopTab in shopContainer (-5,125 490x428). */
-export const CollectiblesShopTabView: FC<CollectiblesShopTabViewProps> = ({ visible, activeWallet, onPurchase, onNotEnoughEmeralds }) => {
+export const CollectiblesShopTabView: FC<CollectiblesShopTabViewProps> = ({ visible, activeWallet, level, onPurchase, onNotEnoughEmeralds }) => {
     const { ready, categories, activeCategory, activateCategory, offers, selectedIndex, setSelectedIndex, selected } = useCollectiblesShop();
     const { getCurrencyAmount } = usePurse();
-    const canBuy = selected ? selected.mintedCount < selected.mintLimit || selected.mintLimit === -1 : false;
+    const isLocked = (offer: NftStoreOfferData) => level !== null && offer.minLevel > level;
+    const locked = selected ? isLocked(selected) : false;
+    const canBuy = selected ? (selected.mintedCount < selected.mintLimit || selected.mintLimit === -1) && !locked : false;
 
     // ShopTab.onClickBuy
     const buy = () => {
@@ -35,7 +40,7 @@ export const CollectiblesShopTabView: FC<CollectiblesShopTabViewProps> = ({ visi
             return;
         }
 
-        onPurchase({ kind: 'nft_store', offer: selected, wallet: activeWallet });
+        onPurchase({ offer: selected, wallet: activeWallet });
     };
 
     return (
@@ -72,6 +77,13 @@ export const CollectiblesShopTabView: FC<CollectiblesShopTabViewProps> = ({ visi
                                     </div>
                                     <ShinyButton caption={LocalizeText('generic.buy')} color={0x01a101} disabled={!canBuy} style={at(84, 0, 88, 30)} onClick={buy} />
                                 </div>
+                                {locked && (
+                                    <div className="volt-collectibles-shade-aa" style={at(0, 176, 290, 20)}>
+                                        <div className="volt-collectibles-text is-small is-center is-white" style={at(0, 3, 290, 14)}>
+                                            {LocalizeText('collectibles.shop.level_required', ['level'], [String(selected.minLevel)])}
+                                        </div>
+                                    </div>
+                                )}
                                 {selected && selected.mintLimit > 0 && (
                                     <div className="volt-collectibles-abs" style={at(184, 196, 102, 30)}>
                                         <div className="volt-collectibles-text is-price is-right is-white" style={at(0, 5, 80, 25)}>{`${selected.mintedCount}/${selected.mintLimit}`}</div>
@@ -94,6 +106,7 @@ export const CollectiblesShopTabView: FC<CollectiblesShopTabViewProps> = ({ visi
                                         <div className="volt-collectibles-text is-bold is-right" style={at(0, 0, 34, 17)}>{String(offer.emeraldPrice)}</div>
                                         <img alt="" className="volt-collectibles-abs" draggable={false} src={emeraldTiny} style={at(34, 3, 12, 12)} />
                                     </div>
+                                    {isLocked(offer) && <img alt="" className="volt-collectibles-abs" draggable={false} src={lockClosed} style={at(31, 3, 16, 14)} />}
                                 </CollectibleGridItemView>
                             ))}
                         </div>

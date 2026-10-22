@@ -1,21 +1,19 @@
 import { CollectibleMintableItemData } from '@volt/renderer';
 import { FC, useEffect, useState } from 'react';
-import { CollectiblesPurchase, FriendlyTime, GetCollectibleProductName, GetConfigurationValue, LocalizeText, OpenUrl } from '../../api';
-import stampLarge from '../../assets/images/collectibles/collectables-icon-curator-stamp-large.png';
-import stampSmall from '../../assets/images/collectibles/collectables-icon-curator-stamp-small.png';
+import { FriendlyTime, GetCollectibleProductName, LocalizeText } from '../../api';
 import lockClosed from '../../assets/images/collectibles/collectables-lock-closed.png';
 import lockOpen from '../../assets/images/collectibles/collectables-lock-open.png';
-import connectionProblem from '../../assets/images/collectibles/image-connection-problem.png';
-import silverIcon from '../../assets/images/collectibles/pursearea-mid-silver-icon.png';
-import { HabboDropMenuView } from '../../common/dropmenu/HabboDropMenuView';
+import emeraldTiny from '../../assets/images/collectibles/pursearea-tiny-emerald-icon.png';
 import { CollectiblesWalletActivation } from '../../hooks/collectibles/useCollectiblesHub';
 import { GetMintableProduct, useCollectiblesMinting } from '../../hooks/collectibles/useCollectiblesMinting';
+import { usePurse } from '../../hooks/purse';
 import { CollectibleGridItemView } from './CollectibleGridItemView';
 import { CollectibleProductPreviewView } from './CollectibleProductImageView';
 import { CollectiblesHtmlText, CollectiblesPreviewBackground } from './CollectiblesSharedView';
 import { at, HubLoadingView, ShinyButton, SlotBorder } from './CollectiblesSkinView';
 
 const TIME_BAR_WIDTH = 220;
+const EMERALD = 1001;
 
 interface TimeBar {
     width: number;
@@ -41,13 +39,13 @@ const getTimeBar = (item: CollectibleMintableItemData, now: number): TimeBar | n
 interface CollectiblesMintingTabViewProps {
     visible: boolean;
     activation: CollectiblesWalletActivation;
-    onPurchase: (purchase: CollectiblesPurchase) => void;
+    onNotEnoughEmeralds: (type: number) => void;
 }
 
 /** MintInventoryListTab in mintingContainer (0,125 490x430). */
-export const CollectiblesMintingTabView: FC<CollectiblesMintingTabViewProps> = ({ visible, activation, onPurchase }) => {
-    const { ready, tokens, mintingEnabled, tokenOffers, selectedOffer, selectOffer, canBuyTokens, items, amounts, selectedIndex, setSelectedIndex, selected, isMinting, isConfirming, mint } =
-        useCollectiblesMinting(activation);
+export const CollectiblesMintingTabView: FC<CollectiblesMintingTabViewProps> = ({ visible, activation, onNotEnoughEmeralds }) => {
+    const { ready, mintingEnabled, items, amounts, selectedIndex, setSelectedIndex, selected, isMinting, isConfirming, mint } = useCollectiblesMinting(activation);
+    const { getCurrencyAmount } = usePurse();
     const [timeBar, setTimeBar] = useState<TimeBar>(() => ({ width: 120, text: LocalizeText('collectibles.preview.time_left') }));
     const [now, setNow] = useState(() => Date.now());
     const hasWallet = activation.wallet !== null;
@@ -71,8 +69,19 @@ export const CollectiblesMintingTabView: FC<CollectiblesMintingTabViewProps> = (
 
     // isMintPeriodExpired compares endTime * 1000 with now, so an item without an end time never mints.
     const expired = !selected || selected.endTime * 1000 < now;
-    const canMint = hasWallet && amount > 0 && tokens >= (selected?.price ?? 0) && !expired && mintingEnabled && !isMinting && !isConfirming;
-    const offer = selectedOffer >= 0 ? tokenOffers[selectedOffer] : null;
+    const canMint = hasWallet && amount > 0 && !expired && mintingEnabled && !isMinting && !isConfirming;
+
+    const collect = () => {
+        if (!selected) return;
+
+        if (getCurrencyAmount(EMERALD) < selected.price) {
+            onNotEnoughEmeralds(EMERALD);
+
+            return;
+        }
+
+        mint();
+    };
 
     return (
         <div className="volt-collectibles-abs" style={at(0, 125, 490, 430, { display: visible ? undefined : 'none' })}>
@@ -107,9 +116,9 @@ export const CollectiblesMintingTabView: FC<CollectiblesMintingTabViewProps> = (
                                 <div className="volt-collectibles-mint-collect" style={at(182, 180, 100, 30)}>
                                     <div className="volt-collectibles-text is-white">{String(selected?.price ?? 0)}</div>
                                     <span className="volt-collectibles-spacer" style={{ width: 3 }} />
-                                    <img alt="" className="volt-collectibles-row-icon" draggable={false} src={stampSmall} />
+                                    <img alt="" className="volt-collectibles-row-icon" draggable={false} src={emeraldTiny} />
                                     <span className="volt-collectibles-spacer" style={{ width: 7 }} />
-                                    <ShinyButton caption={LocalizeText('collectibles.collect')} color={0x01a101} disabled={!canMint} style={{ position: 'relative', width: 62, height: 30 }} onClick={mint} />
+                                    <ShinyButton caption={LocalizeText('collectibles.collect')} color={0x01a101} disabled={!canMint} style={{ position: 'relative', width: 62, height: 30 }} onClick={collect} />
                                 </div>
                                 {amount === 0 && (
                                     <SlotBorder blend={0.82} color={0x5a1003} style={at(4, 30, 282, 50)}>
@@ -137,58 +146,6 @@ export const CollectiblesMintingTabView: FC<CollectiblesMintingTabViewProps> = (
                         </div>
                     )}
                 </div>
-                <SlotBorder color={0xbac3cd} style={at(0, 330, 488, 100)}>
-                    {hasWallet ? (
-                        <>
-                            <SlotBorder color={0xd6dbe1} style={at(42, 14, 200, 72)}>
-                                <img alt="" className="volt-collectibles-abs" draggable={false} src={stampLarge} style={at(12, 12, 48, 48)} />
-                                <div className="volt-collectibles-text is-medium is-bold" style={at(68, 12, 122, 18)}>{LocalizeText('shop.minting.tokens')}</div>
-                                <div className="volt-collectibles-text is-huge is-bold" style={at(67, 26, 122, 37)}>{String(tokens)}</div>
-                            </SlotBorder>
-                            <SlotBorder color={0xd6dbe1} style={at(246, 14, 200, 72)}>
-                                <div className="volt-collectibles-text is-bold" style={at(42, 12, 100, 17)}>{LocalizeText('collectibles.buy.mint.tokens')}</div>
-                                <HabboDropMenuView
-                                    className="volt-collectibles-dropmenu"
-                                    label={LocalizeText('collectibles.buy.mint.tokens')}
-                                    options={tokenOffers.map((entry, index) => ({ value: index, label: String(entry.amountTokens) }))}
-                                    style={at(148, 9, 48, 21)}
-                                    value={selectedOffer >= 0 ? selectedOffer : null}
-                                    onSelect={(index: number) => selectOffer(index)}
-                                />
-                                <div className="volt-collectibles-token-cost" style={at(49, 36, 147, 30)}>
-                                    <div className="volt-collectibles-text is-cost is-bold">{offer ? String(offer.silverPrice) : '1'}</div>
-                                    <span className="volt-collectibles-spacer" style={{ width: 4 }} />
-                                    <img alt="" className="volt-collectibles-row-icon" draggable={false} src={silverIcon} />
-                                    <span className="volt-collectibles-spacer" style={{ width: 6 }} />
-                                    <ShinyButton
-                                        caption={LocalizeText('generic.buy')}
-                                        color={0x2095d4}
-                                        disabled={!canBuyTokens}
-                                        style={{ position: 'relative', width: 100, height: 30 }}
-                                        onClick={() => offer && onPurchase({ kind: 'mint_tokens', offer, wallet: activation.wallet })}
-                                    />
-                                </div>
-                            </SlotBorder>
-                        </>
-                    ) : (
-                        <>
-                            <div className="volt-collectibles-text is-wrap" style={at(10, 0, 360, 60)}>{LocalizeText('shop.minting.no_wallet.description')}</div>
-                            <img alt="" className="volt-collectibles-abs" draggable={false} src={connectionProblem} style={at(380, 5, 92, 90)} />
-                            <ShinyButton
-                                caption={LocalizeText('shop.minting.create.wallet')}
-                                color={0x2095d4}
-                                style={at(10, 62, 170, 30)}
-                                onClick={() => OpenUrl(GetConfigurationValue<string>('nft.wallet.create.url', ''))}
-                            />
-                            <ShinyButton
-                                caption={LocalizeText('shop.minting.link.wallet')}
-                                color={0x2095d4}
-                                style={at(192, 62, 170, 30)}
-                                onClick={() => OpenUrl(GetConfigurationValue<string>('web.settings.wallet.relativeUrl', ''))}
-                            />
-                        </>
-                    )}
-                </SlotBorder>
             </div>
             {!ready && <HubLoadingView style={at(0, 0, 485, 429)} />}
         </div>

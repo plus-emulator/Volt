@@ -92,7 +92,6 @@
     white-space: nowrap;
 }
 
-/* A word-wrapped text window grows to fit its lines. */
 .volt-collectibles-text.is-wrap {
     overflow: visible;
     white-space: normal;
@@ -128,32 +127,15 @@
     line-height: 14px;
 }
 
-.volt-collectibles-text.is-medium {
-    font-size: 13px;
-    line-height: 16px;
-}
-
 .volt-collectibles-text.is-large {
     font-size: 16px;
     line-height: 19px;
-}
-
-.volt-collectibles-text.is-huge {
-    font-size: 30px;
-    line-height: 35px;
 }
 
 .volt-collectibles-text.is-price {
     font-size: 14px;
     font-weight: 700;
     line-height: 18px;
-}
-
-.volt-collectibles-text.is-cost {
-    position: relative;
-    padding-top: 4px;
-    font-size: 16px;
-    line-height: 19px;
 }
 
 .volt-collectibles-text.is-gold {
@@ -422,10 +404,9 @@
     height: 50px;
 }
 
-/* Horizontal item lists: items in a row, spacing windows as spacers. Their params hold ON_RESIZE_ALIGN_RIGHT,
-   so a wider item grows the list to the left and its right edge stays put. */
-.volt-collectibles-mint-collect,
-.volt-collectibles-token-cost {
+/* The Collect row is a horizontal item list: items in a row, spacing windows as spacers. Its params hold
+   ON_RESIZE_ALIGN_RIGHT, so a wider item grows the list to the left and its right edge stays put. */
+.volt-collectibles-mint-collect {
     position: absolute;
     display: flex;
     align-items: flex-start;
@@ -433,8 +414,7 @@
 }
 
 /* scale_to_fit_items: the list grows with its items instead of squeezing them. */
-.volt-collectibles-mint-collect > *,
-.volt-collectibles-token-cost > * {
+.volt-collectibles-mint-collect > * {
     flex: 0 0 auto;
 }
 

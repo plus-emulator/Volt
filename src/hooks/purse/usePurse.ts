@@ -1,7 +1,6 @@
 import {
     ActivityPointNotificationMessageEvent,
     EmeraldBalanceMessageEvent,
-    SilverBalanceMessageEvent,
     UserCreditsEvent,
     UserCurrencyComposer,
     UserCurrencyEvent,
@@ -89,7 +88,7 @@ const usePurseState = () => {
         });
     });
 
-    // HabboCatalog keeps silver and emerald in the purse as activity point types 1000 and 1001 (AIR purse/class_1960.as:33-35).
+    // HabboCatalog keeps emeralds in the purse as activity point type 1001 (AIR purse/class_1960.as:33-35).
     const setActivityPoints = (type: number, amount: number) => {
         setPurse((prevValue) => {
             const newValue = CloneObject(prevValue);
@@ -100,8 +99,6 @@ const usePurseState = () => {
             return newValue;
         });
     };
-
-    useMessageEvent<SilverBalanceMessageEvent>(SilverBalanceMessageEvent, (event) => setActivityPoints(1000, event.getParser().silverBalance));
 
     useMessageEvent<EmeraldBalanceMessageEvent>(EmeraldBalanceMessageEvent, (event) => setActivityPoints(1001, event.getParser().emeraldBalance));
 
