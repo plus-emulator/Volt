@@ -39,6 +39,8 @@ interface NativeTextProps {
      * field's does (AIR WIN63-202610201032: the frame caption matches the black raster in white).
      */
     tinted?: boolean;
+    /** Hide the text from assistive technology, for an extra copy drawn for another state of the same label. */
+    ariaHidden?: boolean;
 }
 
 /** Recolours a black retained raster in place: the coverage stays, the premultiplied colour becomes the tint. */
@@ -119,7 +121,8 @@ export const NativeText: FC<NativeTextProps> = ({
     onRaster,
     transparent = false,
     width: fixedWidth,
-    tinted: tintedProp
+    tinted: tintedProp,
+    ariaHidden = false
 }) =>
 {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -261,6 +264,7 @@ export const NativeText: FC<NativeTextProps> = ({
 
     return (
         <span
+            aria-hidden={ariaHidden || undefined}
             className={className}
             data-native-text={size ? textStyle : 'fallback'}
             style={{ display: 'inline-block', verticalAlign: 'top', position: 'relative', ...size, ...(align ? { textAlign: align } : {}), ...style }}

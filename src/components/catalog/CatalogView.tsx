@@ -47,6 +47,7 @@ const CatalogTabLabel: FC<{ text: string; width: number }> = ({ text, width }) =
         ).map(([state, background]) => (
             <NativeText
                 key={state}
+                ariaHidden={state !== 'default'}
                 nativeResolution
                 background={background}
                 className={`volt-catalog-tab-label-${state}`}

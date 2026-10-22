@@ -77,6 +77,7 @@ export const CatalogNavigationItemView: FC<CatalogNavigationItemViewProps> = (pr
                         textStyle={child ? 'u_bold_italic' : 'u_bold'}
                     />
                     <NativeText
+                        ariaHidden
                         nativeResolution
                         background={isBuilder ? 0xff8d00 : 0x63c5e9}
                         className="volt-catalog-navigation-label-selected"

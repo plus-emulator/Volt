@@ -51,8 +51,10 @@ describe('catalog offer tile', () => {
         expect(screen.getByLabelText('Habbo Club')).toBeInTheDocument();
         expect(container.querySelector('.volt-catalog-grid-price')).toHaveClass('is-multi-price');
         expect(container.querySelectorAll('.volt-catalog-grid-price-entry')).toHaveLength(2);
-        expect(screen.getByText('5')).toBeInTheDocument();
-        expect(screen.getByText('200')).toBeInTheDocument();
-        expect(screen.getByText('+')).toBeInTheDocument();
+        // Each price is drawn twice (list and selected surface); only the first copy is exposed.
+        const exposed = { ignore: '[aria-hidden="true"] *' };
+        expect(screen.getByText('5', exposed)).toBeInTheDocument();
+        expect(screen.getByText('200', exposed)).toBeInTheDocument();
+        expect(screen.getByText('+', exposed)).toBeInTheDocument();
     });
 });

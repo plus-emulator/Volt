@@ -24,7 +24,7 @@ import { isAirBaseCatalogOffer } from './catalogAirGrid.helpers';
 const CatalogPriceText: FC<{ text: string }> = ({ text }) => (
     <>
         <SubpixelText background={0xd2d1cb} className="volt-catalog-grid-price-text-normal" text={text} textStyle="u_bold" />
-        <SubpixelText background={0xffffff} className="volt-catalog-grid-price-text-selected" text={text} textStyle="u_bold" />
+        <SubpixelText ariaHidden background={0xffffff} className="volt-catalog-grid-price-text-selected" text={text} textStyle="u_bold" />
     </>
 );
 

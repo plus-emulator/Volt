@@ -102,9 +102,11 @@ interface SubpixelTextProps {
     width?: number;
     className?: string;
     style?: CSSProperties;
+    /** Hide the text from assistive technology, for an extra copy drawn for another state of the same label. */
+    ariaHidden?: boolean;
 }
 
-export const SubpixelText: FC<SubpixelTextProps> = ({ text, textStyle, color = 0, background, transparent = false, align = 'left', width, className, style }) => {
+export const SubpixelText: FC<SubpixelTextProps> = ({ text, textStyle, color = 0, background, transparent = false, align = 'left', width, className, style, ariaHidden = false }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [size, setSize] = useState<{ width: number; height: number }>(null);
     const [fallback, setFallback] = useState(false);
@@ -178,6 +180,7 @@ export const SubpixelText: FC<SubpixelTextProps> = ({ text, textStyle, color = 0
             <NativeText
                 nativeResolution
                 align={align}
+                ariaHidden={ariaHidden}
                 background={background}
                 className={className}
                 overrides={{ color }}
@@ -190,7 +193,7 @@ export const SubpixelText: FC<SubpixelTextProps> = ({ text, textStyle, color = 0
         );
 
     return (
-        <span className={className} style={{ display: 'inline-block', verticalAlign: 'top', position: 'relative', ...size, ...style }}>
+        <span aria-hidden={ariaHidden || undefined} className={className} style={{ display: 'inline-block', verticalAlign: 'top', position: 'relative', ...size, ...style }}>
             <canvas ref={canvasRef} aria-hidden="true" style={{ display: size ? 'block' : 'none', width: size?.width, height: size?.height, imageRendering: 'pixelated' }} />
             <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clipPath: 'inset(50%)', whiteSpace: 'pre' }}>{text}</span>
         </span>
