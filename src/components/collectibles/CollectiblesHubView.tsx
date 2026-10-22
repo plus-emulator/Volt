@@ -88,7 +88,7 @@ export const CollectiblesHubView: FC<{}> = () => {
                             </div>
                             <SlotBorder color={0xa99490} style={at(419, 18, 70, 22)}>
                                 <SlotBorder color={0x3a2f29} style={at(1, 1, 68, 20)}>
-                                    <div className="volt-collectibles-text is-center is-white" style={at(2, 1, 45, 17)}>{String(getCurrencyAmount(1001))}</div>
+                                    <div className="volt-collectibles-text is-center is-white is-counter" style={at(2, 0, 45, 20)}>{String(getCurrencyAmount(1001))}</div>
                                 </SlotBorder>
                             </SlotBorder>
                             <img alt="" className="volt-collectibles-abs" draggable={false} src={emeraldIcon} style={at(466, 17, 24, 24)} />
