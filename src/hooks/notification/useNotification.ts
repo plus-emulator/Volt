@@ -338,7 +338,7 @@ const useNotificationStore = () => {
             return;
         }
 
-        simpleAlert(raw, null, null, LocalizeText('notifications.broadcast.title'));
+        simpleAlert(raw);
     });
 
     useMessageEvent<AchievementNotificationMessageEvent>(AchievementNotificationMessageEvent, (event) => {
