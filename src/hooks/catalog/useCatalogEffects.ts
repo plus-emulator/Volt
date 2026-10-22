@@ -7,10 +7,7 @@ import {
     FurnitureListAddOrUpdateEvent,
     FurnitureListEvent,
     FurnitureListInvalidateEvent,
-    GetConfiguration,
-    GetRoomContentLoader,
     GetRoomEngine,
-    GetSessionDataManager,
     LegacyDataType,
     LimitedEditionSoldOutEvent,
     MarketplaceMakeOfferResult,
@@ -87,34 +84,12 @@ const scheduleWhenIdle = (run: () => void): void => {
     else setTimeout(run, 1000);
 };
 
-const refreshImportedFurnidata = (mergedRef: { current: boolean }, force: boolean = false) => {
-    if (!force && mergedRef.current) return;
-
-    try {
-        const base = GetConfiguration().getValue<string>('furnidata.url');
-
-        if (!base || !base.length) return;
-
-        const importedUrl = base.replace(/\/+$/, '') + '/custom/imported.jsonc';
-
-        GetSessionDataManager()
-            .mergeFurnitureDataFromUrl(importedUrl)
-            .then((added) => {
-                mergedRef.current = true;
-
-                if (added && added.length) GetRoomContentLoader().processFurnitureData(added);
-            })
-            .catch(() => {});
-    } catch {}
-};
-
 export const useCatalogEffects = (): void => {
     const queryClient = useQueryClient();
     const connectionState = useConnectionState();
     const { simpleAlert = null, showConfirm = null } = useNotification();
     const [catalogSkipPurchaseConfirmation] = useCatalogSkipPurchaseConfirmation();
     const [catalogPlaceMultipleObjects, setCatalogPlaceMultipleObjectsPreference] = useCatalogPlaceMultipleItems();
-    const importedFurnidataMerged = useRef(false);
     const wasAuthenticated = useRef(connectionState.authenticated);
 
     const isVisible = useCatalogStore((state) => state.isVisible);
@@ -187,13 +162,6 @@ export const useCatalogEffects = (): void => {
         dropCatalogCache();
         resetPlacedPurchaseSession();
     }, [connectionState.authenticated]);
-
-    // Opening the catalog: imported furnidata.
-    useEffect(() => {
-        if (!isVisible) return;
-
-        refreshImportedFurnidata(importedFurnidataMerged);
-    }, [isVisible, currentType]);
 
     // Pending deep link and default first page, once the index is in cache.
     useEffect(() => {
@@ -377,8 +345,6 @@ export const useCatalogEffects = (): void => {
     });
 
     useMessageEvent<CatalogPublishedMessageEvent>(CatalogPublishedMessageEvent, () => {
-        importedFurnidataMerged.current = false;
-
         if (!connectionState.authenticated) return;
 
         invalidateCatalogIndex(useCatalogStore.getState().currentType);
