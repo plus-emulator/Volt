@@ -1,6 +1,8 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { PerkEnum } from '@volt/renderer';
 import { useNavigatorUiStore } from '../../../../hooks';
+import { usePerkAllowancesStore } from '../../../../state/perkAllowancesStore';
 import { NavigatorSearchResultView } from './NavigatorSearchResultView';
 
 vi.mock('@volt/renderer', async () => {
@@ -65,6 +67,7 @@ describe('AIR navigator result blocks', () => {
     });
 
     it('uses the persisted tile mode and switches only that result block back to a list', () => {
+        usePerkAllowancesStore.setState({ allowed: new Set([PerkEnum.NAVIGATOR_ROOM_THUMBNAIL_CAMERA]) });
         useNavigatorUiStore.setState({ collapsedResultCodes: [], resultViewModes: { popular: 1, newest: 1 } });
 
         render(<NavigatorSearchResultView searchResult={result} />);
