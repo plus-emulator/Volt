@@ -1,4 +1,4 @@
-import { NavigatorSearchResultList, NavigatorSearchSaveComposer } from '@volt/renderer';
+import { NavigatorSearchResultList, NavigatorSearchSaveComposer, PerkEnum } from '@volt/renderer';
 import { FC } from 'react';
 import { LocalizeText, localizeWithFallback, NavigatorSearchResultViewDisplayMode, SendMessageComposer } from '../../../../api';
 import categoryCollapse from '../../../../assets/images/navigator/air/category-collapse.png';
@@ -9,6 +9,7 @@ import navViewRow from '../../../../assets/images/navigator/air/nav-view-row.png
 import navViewThumbs from '../../../../assets/images/navigator/air/nav-view-thumbs.png';
 import quicklinkAdd from '../../../../assets/images/navigator/air/quicklink-add.png';
 import { useNavigatorUiStore } from '../../../../hooks';
+import { usePerkAllowed } from '../../../../state/perkAllowancesStore';
 import { NavigatorSearchResultItemView } from './NavigatorSearchResultItemView';
 
 export interface NavigatorSearchResultViewProps {
@@ -27,7 +28,10 @@ export const NavigatorSearchResultView: FC<NavigatorSearchResultViewProps> = (pr
 
         return state.expandedResultCodes.includes(searchResult.code) || (!state.collapsedResultCodes.includes(searchResult.code) && !searchResult.closed);
     });
-    const displayMode = useNavigatorUiStore((state) => state.resultViewModes[searchResult.code] ?? searchResult.mode);
+    const canToggleViewMode = usePerkAllowed(PerkEnum.NAVIGATOR_ROOM_THUMBNAIL_CAMERA);
+    const chosenMode = useNavigatorUiStore((state) => state.resultViewModes[searchResult.code] ?? searchResult.mode);
+    // AIR BlockResultsView.as:201: without the thumbnail camera perk only the official view keeps the server's mode.
+    const displayMode = canToggleViewMode ? chosenMode : parentCode === 'official_view' ? searchResult.mode : NavigatorSearchResultViewDisplayMode.LIST;
 
     const getResultTitle = () => {
         const name = searchResult.code;
@@ -77,7 +81,7 @@ export const NavigatorSearchResultView: FC<NavigatorSearchResultViewProps> = (pr
                     <span>{resultTitle}</span>
                 </button>
                 <div className="volt-navigator-air__category-controls">
-                    {isExtended && displayMode === NavigatorSearchResultViewDisplayMode.LIST && (
+                    {isExtended && canToggleViewMode && displayMode === NavigatorSearchResultViewDisplayMode.LIST && (
                         <button
                             type="button"
                             className="volt-navigator-air__icon-button"
@@ -88,7 +92,7 @@ export const NavigatorSearchResultView: FC<NavigatorSearchResultViewProps> = (pr
                             <img src={navViewThumbs} alt="" />
                         </button>
                     )}
-                    {isExtended && isTileMode && (
+                    {isExtended && canToggleViewMode && isTileMode && (
                         <button
                             type="button"
                             className="volt-navigator-air__icon-button"

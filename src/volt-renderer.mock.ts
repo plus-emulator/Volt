@@ -117,6 +117,7 @@ export const RoomObjectType = makeEnumProxy('RoomObjectType');
 export const RoomObjectVariable = makeEnumProxy('RoomObjectVariable');
 export const RoomTradingLevelEnum = makeEnumProxy('RoomTradingLevelEnum');
 export const HabboClubLevelEnum = makeEnumProxy('HabboClubLevelEnum');
+export const PerkEnum = makeEnumProxy('PerkEnum');
 export const FurnitureType = makeEnumProxy('FurnitureType');
 export const PetType = makeEnumProxy('PetType');
 export const AvatarFigurePartType = makeEnumProxy('AvatarFigurePartType');
