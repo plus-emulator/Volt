@@ -1,10 +1,12 @@
 import { AddLinkEventTracker, ILinkEventTracker, RemoveLinkEventTracker } from '@volt/renderer';
 import { FC, useCallback, useEffect } from 'react';
-import { CatalogType, GetConfigurationValue, LocalizeShortNumber, LocalizeText, SanitizeHtml } from '../../api';
+import { CatalogType, GetConfigurationValue, LocalizeShortNumber, LocalizeText } from '../../api';
 import { LayoutCurrencyIcon, VoltCardContentView, VoltCardHeaderView, VoltCardTabsItemView, VoltCardTabsView, VoltCardView } from '../../common';
+import { NativeCenteredField } from '../../common/native-text/NativeCenteredField';
+import { NativeText } from '../../common/native-text/NativeText';
 import { CatalogEffectsHost, useCatalogActions, useCatalogData, useCatalogUiState, usePurse } from '../../hooks';
 import { useCatalogPageQuery } from '../../hooks/catalog/useCatalogQueries';
-import { getCatalogHeaderDescription } from './catalogLocalization.helpers';
+import { getCatalogHeaderDescription, getCatalogPlainText } from './catalogLocalization.helpers';
 import { parseCatalogTabLabel } from './catalogTabLabel';
 import { CatalogLoadingStateView } from './views/CatalogLoadingStateView';
 import { CatalogBuilderHeaderView } from './views/catalog-header/CatalogBuilderHeaderView';
@@ -26,6 +28,34 @@ const BUILDER_HEADER_IMAGE = 'catalog_header_roombuilder';
 
 /** AIR HabboCatalog.toggleCatalog: the Builders Club catalogue is only there while builders.club.enabled is on. */
 const isBuildersClubEnabled = () => GetConfigurationValue<boolean>('builders.club.enabled', true);
+
+/** catalog.header.description is a 475px window; its TextField wraps like a 479px field (the AIR wrap matches from 478 up). */
+const HEADER_DESCRIPTION_FIELD_WIDTH = 479;
+
+const TAB_WIDTH = 110;
+const TAB_STRIP_WIDTH = 560;
+
+/** The tab caption (u_regular, black), centred on the tab and drawn for the inactive, hovered and selected skins it can sit on. */
+const CatalogTabLabel: FC<{ text: string; width: number }> = ({ text, width }) => (
+    <NativeCenteredField className="volt-catalog-tab-label" width={width}>
+        {(
+            [
+                ['default', 0xc3c2b8],
+                ['hover', 0xf6f5f0],
+                ['selected', 0xeceae0]
+            ] as const
+        ).map(([state, background]) => (
+            <NativeText
+                key={state}
+                nativeResolution
+                background={background}
+                className={`volt-catalog-tab-label-${state}`}
+                text={text}
+                textStyle="u_regular"
+            />
+        ))}
+    </NativeCenteredField>
+);
 
 const getCatalogTypeFromLink = (type?: string) => {
     switch ((type || '').toLowerCase()) {
@@ -78,6 +108,10 @@ const CatalogViewInner: FC<{}> = () => {
     const getSwfTabLabel = (label: string) => stripSwfTabSuffix(parseCatalogTabLabel(label).name);
 
     const hideCatalogNavigation = useCallback(() => setNavigationHidden(true), [setNavigationHidden]);
+
+    const visibleTabs = rootNode?.children.filter((child) => child.isVisible) ?? [];
+    // tab_button is 110px; when more tabs than fit the 560px strip they share it on whole pixels.
+    const tabWidth = Math.min(TAB_WIDTH, Math.floor(TAB_STRIP_WIDTH / Math.max(1, visibleTabs.length)));
 
     // Search draws into the page already open. The result page is synthetic, so the pane follows the page that stayed open.
     const searchKeepsOpenPane = !!searchResult && currentPage?.pageId === -1;
@@ -173,12 +207,18 @@ const CatalogViewInner: FC<{}> = () => {
                     resizeAxis="vertical"
                     uniqueKey="catalog"
                 >
-                    <VoltCardHeaderView
-                        headerText={
-                            isBusy ? LocalizeText('generic.loading') || 'Loading...' : LocalizeText(isBuilder ? 'builder.catalog.title' : 'catalog.title')
-                        }
-                        onCloseClick={() => setIsVisible(false)}
-                    />
+                    <VoltCardHeaderView headerText="" onCloseClick={() => setIsVisible(false)}>
+                        {/* header_3 caption: u_frame_title in white, centred over the title bar (frame_3 leaves 6px left and 8px right: 556px). */}
+                        <NativeCenteredField className="volt-catalog-title" width={556}>
+                            <NativeText
+                                nativeResolution
+                                background={isBuilder ? 0xd79c34 : 0x377998}
+                                overrides={{ color: 0xffffff }}
+                                text={isBusy ? LocalizeText('generic.loading') || 'Loading...' : LocalizeText(isBuilder ? 'builder.catalog.title' : 'catalog.title')}
+                                textStyle="u_frame_title"
+                            />
+                        </NativeCenteredField>
+                    </VoltCardHeaderView>
                     <div className="volt-catalog-mobile-header">
                         <div className="volt-catalog-mobile-currency">
                             <div className="volt-catalog-coin">
@@ -196,27 +236,21 @@ const CatalogViewInner: FC<{}> = () => {
                     {/* HabboCatalog.useNonTabbedCatalog: the Builders Club catalogue (catalog_ubuntu) has no tabs. */}
                     {!isBuilder && (
                         <VoltCardTabsView classNames={['volt-catalog-tabs-shell']} justifyContent="start">
-                            {rootNode &&
-                                rootNode.children.length > 0 &&
-                                rootNode.children.map((child) => {
-                                    if (!child.isVisible) return null;
-                                    return (
-                                        <VoltCardTabsItemView
-                                            key={child.id}
-                                            isActive={child === currentTab}
-                                            title={child.localization}
-                                            onClick={() => {
-                                                if (searchResult) setSearchResult(null);
+                            {visibleTabs.map((child) => (
+                                <VoltCardTabsItemView
+                                    key={child.id}
+                                    isActive={child === currentTab}
+                                    style={{ width: tabWidth, flexBasis: tabWidth }}
+                                    title={child.localization}
+                                    onClick={() => {
+                                        if (searchResult) setSearchResult(null);
 
-                                                showTab(child);
-                                            }}
-                                        >
-                                            <div className="flex items-center gap-1">
-                                                <span className="volt-catalog-tab-label">{getSwfTabLabel(child.localization)}</span>
-                                            </div>
-                                        </VoltCardTabsItemView>
-                                    );
-                                })}
+                                        showTab(child);
+                                    }}
+                                >
+                                    <CatalogTabLabel text={getSwfTabLabel(child.localization)} width={tabWidth} />
+                                </VoltCardTabsItemView>
+                            ))}
                         </VoltCardTabsView>
                     )}
                     <div className={`volt-catalog-standard-header ${isBuilder ? 'is-builder' : ''}`}>
@@ -232,24 +266,33 @@ const CatalogViewInner: FC<{}> = () => {
                                 <CatalogBuilderHeaderView />
                             ) : (
                                 <>
-                                    <div className="volt-catalog-standard-header-title">
-                                        {searchResult
-                                            ? LocalizeText('catalog.search.header')
-                                            : getSwfTabLabel(activeCatalogNode?.localization ?? LocalizeText('catalog.title'))}
-                                    </div>
-                                    <div
+                                    {/* catalog.header.title (80, 11) u_headline_big and catalog.header.description (80, 34), white over the header picture. */}
+                                    <NativeText
+                                        nativeResolution
+                                        transparent
+                                        background={0x0e3f52}
+                                        className="volt-catalog-standard-header-title"
+                                        overrides={{ color: 0xffffff }}
+                                        text={
+                                            searchResult
+                                                ? LocalizeText('catalog.search.header')
+                                                : getSwfTabLabel(activeCatalogNode?.localization ?? LocalizeText('catalog.title'))
+                                        }
+                                        textStyle="u_headline_big"
+                                    />
+                                    <NativeText
+                                        nativeResolution
+                                        transparent
+                                        background={0x0e3f52}
                                         className="volt-catalog-standard-header-description"
-                                        dangerouslySetInnerHTML={{
-                                            __html: SanitizeHtml(
-                                                searchResult
-                                                    ? LocalizeText(
-                                                          'catalog.search.results',
-                                                          ['count', 'needle'],
-                                                          [String(searchResult.offers.length), searchResult.searchValue]
-                                                      )
-                                                    : getCatalogHeaderDescription(currentPage?.layoutCode, currentPage?.localization)
-                                            )
-                                        }}
+                                        maxWidth={HEADER_DESCRIPTION_FIELD_WIDTH}
+                                        overrides={{ color: 0xffffff }}
+                                        text={getCatalogPlainText(
+                                            searchResult
+                                                ? LocalizeText('catalog.search.results', ['count', 'needle'], [String(searchResult.offers.length), searchResult.searchValue])
+                                                : getCatalogHeaderDescription(currentPage?.layoutCode, currentPage?.localization)
+                                        )}
+                                        textStyle="u_regular"
                                     />
                                 </>
                             )}

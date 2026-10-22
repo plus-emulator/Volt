@@ -27,3 +27,12 @@ export const getCatalogHeaderDescription = (layoutCode: string, localization: IP
 
     return localization.getText(0) || '';
 };
+
+/** The text a TextField shows for a localization's html: line breaks kept, tags dropped, entities decoded. */
+export const getCatalogPlainText = (html: string): string => {
+    if (!html) return '';
+
+    const withBreaks = html.replace(/\r\n?/g, '\n').replace(/<br\s*\/?>/gi, '\n');
+
+    return new DOMParser().parseFromString(withBreaks, 'text/html').body.textContent ?? '';
+};

@@ -23,43 +23,9 @@
     min-width: 0;
 }
 
-.volt-catalog-product-details-name {
-    font-size: 12px;
-    line-height: 17px;
-    overflow-wrap: anywhere;
-}
-
-.volt-catalog-product-details-description {
-    display: block;
-    color: inherit;
-    font-size: 10px;
-    font-style: italic;
-    line-height: 15px;
-    overflow-wrap: anywhere;
-}
-
-.volt-catalog-product-details-description:empty {
-    height: 4px;
-    min-height: 4px;
-    line-height: 4px;
-}
-
-/* standard switches both fields to solid white whenever the 3D room canvas is
-   visible. Keep explicit specificity here so generic muted-text utilities
-   cannot make the description disappear over the black preview stage. */
-.volt-catalog-offer-preview:not(.is-badge) .volt-catalog-product-details-name,
-.volt-catalog-offer-preview:not(.is-badge) .volt-catalog-product-details-description {
-    color: #fff !important;
-    opacity: 1 !important;
-    text-shadow: none !important;
-}
-
-/* A deal hides the room canvas, so the name and description go back to black. */
-.volt-catalog-offer-preview.is-bundle .volt-catalog-product-details-name,
-.volt-catalog-offer-preview.is-bundle .volt-catalog-product-details-description,
-.volt-catalog-badge-preview.is-bundle .volt-catalog-product-details-name,
-.volt-catalog-badge-preview.is-bundle .volt-catalog-product-details-description {
-    color: #000 !important;
+/* The itemlist stacks the text fields: the name, then the description right under it. */
+.volt-catalog-product-details > :is(.volt-catalog-product-details-name, .volt-catalog-product-details-description) {
+    display: block !important;
 }
 
 .volt-catalog-bundle-preview {
@@ -240,9 +206,6 @@
     width: 360px;
     height: 91px;
     padding: 2px 4px 4px 2px;
-    border: 1px solid #b4b4ae;
-    border-radius: 5px;
-    background: var(--catalog-standard-panel);
 }
 
 /* `scrollable_itemgrid_vertical` with spacing 2 of `color_chooser_cell`s. */

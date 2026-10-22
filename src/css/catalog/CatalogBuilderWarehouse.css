@@ -5,6 +5,7 @@
     /* builders_club_topitem_template / builders_club_subitem_template */
     --catalog-standard-select: #ff8d00;
     --catalog-standard-select-outer: #ffb53c;
+    --catalog-standard-etching: #cf7200;
 }
 
 /* catalog_ubuntu is 570x640 with height_min 540; observed on AIR the frame opens 15px taller than the layout to fit the
@@ -26,7 +27,6 @@
 /* catalog.header.background.border (1, 0, 568x90) runs from edge to edge right under the title bar and covers the frame
    border. The 2px border is drawn inside, so the header image (blend 0.1) also tints it as in AIR. */
 .volt-catalog-standard-header.is-builder {
-    margin-top: -3px;
     background: #2d2724;
     box-shadow: inset 0 0 0 2px #4e4844;
 }
@@ -73,144 +73,9 @@
     font-weight: 700;
 }
 
-/* The body is the frame colour; search at (8, 96), navigationContainer at (8, 124) down to 8px above the bottom, and the
-   page 2px inside layoutContainer (200, 96). */
-.volt-catalog-window.is-builder .volt-catalog-content-shell {
-    padding: 6px 4px 7px 5px !important;
-    background: #e9e9e1 !important;
-}
-
-.volt-catalog-window.is-builder .volt-catalog-stage {
-    gap: 10px;
-}
-
-/* search border style 105 (illumina_light_skin_border_input), 184x24; search.helper at (4, 3) blend 0.5. */
-.volt-catalog-window.is-builder .volt-catalog-search-shell {
-    border: 0;
-    border-radius: 0;
-    background: none;
-    box-shadow: none;
-}
-
-.volt-catalog-window.is-builder .volt-catalog-search-shell::before,
-.volt-catalog-window.is-builder .volt-catalog-navigation-shell::before,
-.volt-catalog-window.is-builder :is(.volt-catalog-grid-shell, .volt-catalog-colour-grid-shell)::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-}
-
-.volt-catalog-window.is-builder .volt-catalog-search-shell::before {
-    border: 6px solid transparent;
-    border-image: url("../../assets/images/catalog/air/skin/border-input.png") 6 fill / 6px stretch;
-}
-
-.volt-catalog-window.is-builder .volt-catalog-search {
-    z-index: 1;
-}
-
-/* search.input at (4, 3), 18px high, text 2px inside. */
-.volt-catalog-window.is-builder .volt-catalog-search-shell .volt-catalog-search-input {
-    display: block;
-    margin-top: 3px;
-    padding-left: 6px !important;
-    font-size: 12px !important;
-}
-
-.volt-catalog-window.is-builder .volt-catalog-search-input::placeholder {
-    color: #b2b2b2;
-}
-
-/* clear_search_button (160, 2, 20x20), the icon centred on whole pixels. */
-.volt-catalog-window.is-builder .volt-catalog-search-pen {
-    top: 2px;
-    right: auto;
-    left: 160px;
-    background-position: calc(50% - 0.5px) calc(50% - 0.5px);
-}
-
-/* navigationContainer, itemGridWidget and the palette: border style 6 at blend 0.5 over the body. */
-.volt-catalog-window.is-builder :is(.volt-catalog-navigation-shell, .volt-catalog-grid-shell, .volt-catalog-colour-grid-shell) {
-    border: 0;
-    border-radius: 0;
-    background: none;
-    box-shadow: none;
-}
-
-.volt-catalog-window.is-builder .volt-catalog-navigation-shell {
-    position: relative;
-    padding: 5px 3px;
-}
-
-.volt-catalog-window.is-builder .volt-catalog-navigation-shell::before,
-.volt-catalog-window.is-builder :is(.volt-catalog-grid-shell, .volt-catalog-colour-grid-shell)::before {
-    border: 8px solid transparent;
-    border-image: url("../../assets/images/catalog/air/skin/border-6-blend-50.png") 8 fill / 8px stretch;
-}
-
-.volt-catalog-window.is-builder :is(.volt-catalog-navigation-shell, .volt-catalog-grid-shell, .volt-catalog-colour-grid-shell) > * {
-    position: relative;
-    z-index: 1;
-}
-
-/* builders_club_topitem_template: icon at (0, 1), title at (26, 2) u_bold 0x666666 without etching; the selected and
-   hovered item is white with the 0xcf7200 etching over the highlight (178x20 0xffb53c, 0xff8d00 at y 2, then 0xb4b4ae). */
-.volt-catalog-navigation-list.is-builders-club .volt-catalog-navigation-item {
-    gap: 8px;
-    padding: 0;
-    font-size: 12px;
-    text-shadow: none;
-}
-
-/* A long title runs under drop_button and is cut at the item's edge, without an ellipsis. */
-.volt-catalog-navigation-list.is-builders-club .volt-catalog-navigation-label {
-    color: #666;
-    letter-spacing: -0.15px;
-    text-overflow: clip;
-}
-
-.volt-catalog-navigation-list.is-builders-club .volt-catalog-navigation-item::before {
-    inset: 0 0 0 1px;
-    border: 0;
-    background: linear-gradient(180deg, #ffb53c 0 2px, #ff8d00 2px 18px, #ffb53c 18px 20px, #b4b4ae 20px);
-}
-
-/* builders_club_subitem_template: icon at (15, 0), title at (42, 1), italic 0xb77734. */
+/* builders_club_subitem_template: the sub-item title is italic 0xb77734; the selected item keeps the 0xcf7200 etching. */
 .volt-catalog-navigation-list.is-builders-club .volt-catalog-navigation-node.is-child .volt-catalog-navigation-item {
-    gap: 9px;
-    padding-left: calc(15px + var(--volt-catalog-navigation-indent, 0px));
     color: #b77734;
-}
-
-.volt-catalog-navigation-list.is-builders-club .volt-catalog-navigation-node.is-child .volt-catalog-navigation-label {
-    color: #b77734;
-}
-
-/* After the sub-item colour: selected and hovered items of every depth turn white. */
-.volt-catalog-navigation-list.is-builders-club .volt-catalog-navigation-item:is(:hover, .is-active) .volt-catalog-navigation-label {
-    color: #fff;
-    text-shadow: 0 -1px 0 #cf7200;
-}
-
-/* drop_button: icon style 5 (triangle right) while closed, 7 (triangle down) while open, tinted 0x999999, at (145, 6). */
-.volt-catalog-navigation-list.is-builders-club .volt-catalog-navigation-caret {
-    top: 6px;
-    right: auto;
-    left: 145px;
-    width: 15px;
-    height: 15px;
-    background-color: #999;
-    mask: url("../../assets/images/catalog/air/skin/icon-triangle-right.png") 0 0 no-repeat;
-}
-
-.volt-catalog-navigation-list.is-builders-club .volt-catalog-navigation-item.is-open .volt-catalog-navigation-caret {
-    mask-image: url("../../assets/images/catalog/air/skin/icon-triangle-down.png");
-}
-
-.volt-catalog-navigation-list.is-builders-club .volt-catalog-navigation-caret > svg {
-    display: none;
 }
 
 /* The selected grid item takes the window colour: a 2px 0xffb43b frame with stepped corners. */
@@ -220,19 +85,6 @@
     border-radius: 0;
     background: none;
     box-shadow: none;
-}
-
-/* itemGridWidget: the grid and its scrollbar 4px inside the border. */
-.volt-catalog-window.is-builder .volt-catalog-grid-shell {
-    padding: 4px;
-}
-
-.volt-catalog-window.is-builder .volt-catalog-preview-details {
-    left: 12px;
-}
-
-.volt-catalog-window.is-builder .volt-catalog-product-details-name {
-    letter-spacing: -0.15px;
 }
 
 /* builderWidget: 360x60 at the bottom of the page; the u_small hint at (5, 3) plus the 2px text gutter. */

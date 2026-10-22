@@ -211,8 +211,8 @@
     background-image: url("../../assets/images/habbo-skin/slices/tab-3-default-left.png"), url("../../assets/images/habbo-skin/slices/tab-3-default-right.png"),
         url("../../assets/images/habbo-skin/slices/tab-3-default-mid.png");
     background-repeat: no-repeat;
-    background-position: left top, right top, 7px top;
-    background-size: 9px 32px, 9px 32px, calc(100% - 14px) 32px;
+    background-position: left top, right top, 9px top;
+    background-size: 9px 32px, 9px 32px, calc(100% - 18px) 32px;
     color: #000000;
     font: 12px/17px HabboAirUbuntu, UbuntuRegular, sans-serif;
     text-align: center;

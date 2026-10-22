@@ -33,6 +33,8 @@ export interface NativeFontStyle {
     kerning?: boolean;
     /** Pixels between glyphs. Non-zero text is drawn like the official client's canvas fallback (CanvasSpacedText); zero keeps the native glyph renderer. */
     letterSpacing?: number;
+    /** Drawn black and tinted like a label (LabelRenderer), so the coverage does not depend on the colour. */
+    tinted?: boolean;
 }
 
 export async function loadNativeFont(style: NativeFontStyle): Promise<LoadedFont> {

@@ -1,5 +1,6 @@
 import { FC, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { GetConfigurationValue, LocalizeText } from '../../../../../api';
+import { NativeText } from '../../../../../common/native-text/NativeText';
 import { getCatalogBundleDiscountFlatPriceSteps, getCatalogBundleDiscountItemCount } from '../../../../../api/catalog/CatalogBundleDiscount';
 import { useCatalogBundleDiscountRuleset, useCatalogData, useCatalogUiState } from '../../../../../hooks';
 
@@ -110,7 +111,7 @@ export const CatalogSpinnerWidgetView: FC<{}> = () => {
     return (
         <div className="volt-catalog-standard-spinner">
             <label className="volt-catalog-standard-spinner-label" htmlFor={quantityInputId}>
-                {LocalizeText('catalog.bundlewidget.quantity')}
+                <NativeText nativeResolution background={0xe9e9e1} overrides={{ color: 0x666666 }} text={LocalizeText('catalog.bundlewidget.quantity')} textStyle="u_regular" />
             </label>
             {freeItemCount > 0 && (
                 <div className="volt-catalog-standard-spinner-discount">

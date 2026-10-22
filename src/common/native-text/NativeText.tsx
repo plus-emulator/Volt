@@ -1,5 +1,5 @@
 import { CSSProperties, FC, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { compositeAir32RetainedToOpaque, resolveLineMetrics } from './Air32NativeTextRenderer';
+import { compositeAir32RetainedToOpaque, resolveLineMetrics, roundTiesEven } from './Air32NativeTextRenderer';
 import { renderCanvasSpacedText, supportsCanvasSpacedText } from './CanvasSpacedText';
 import { loadNativeFont, measureNativeText, NativeFontStyle, supportsNativeText } from './NativeFont';
 import { useNativeTextSampling, useNativeTextScale } from './NativeTextScale';
@@ -30,10 +30,40 @@ interface NativeTextProps {
     nativeResolution?: boolean;
     /** Told when a raster is drawn and, with null, when it is dropped (text change, fallback). Default texts pass nothing. */
     onRaster?: (raster: NativeTextRaster | null) => void;
+    /** Keep the raster transparent (straight alpha) for text over a picture or gradient; background is then only the fallback colour. */
+    transparent?: boolean;
+    /** A fixed text field width (gutters included), as a layout's text window: align then places each line inside it on whole pixels. */
+    width?: number;
+    /**
+     * A label (LabelRenderer) draws its text black and tints it, so its coverage does not follow the text colour the way a text
+     * field's does (AIR WIN63-202610201032: the frame caption matches the black raster in white).
+     */
+    tinted?: boolean;
 }
 
-// TextField.wrapText preserves whitespace and splits a long token only when a
-// whole empty line cannot hold it. Widths come from DefineFont3, never DOM text.
+/** Recolours a black retained raster in place: the coverage stays, the premultiplied colour becomes the tint. */
+function tintRetained(retained: Uint8ClampedArray, color: number) {
+    const tint = [(color >>> 16) & 255, (color >>> 8) & 255, color & 255];
+    for (let offset = 0; offset < retained.length; offset += 4) {
+        const alpha = retained[offset + 3];
+        for (let channel = 0; channel < 3; channel++) retained[offset + channel] = Math.round((tint[channel] * alpha) / 255);
+    }
+}
+
+/** The retained raster is premultiplied; a canvas wants straight alpha. */
+function unpremultiplyRetained(retained: Uint8ClampedArray) {
+    const pixels = new Uint8ClampedArray(retained);
+    for (let offset = 0; offset < pixels.length; offset += 4) {
+        const alpha = pixels[offset + 3];
+        if (alpha === 0 || alpha === 255) continue;
+        for (let channel = 0; channel < 3; channel++) pixels[offset + channel] = Math.min(255, Math.round((pixels[offset + channel] * 255) / alpha));
+    }
+    return pixels;
+}
+
+// TextField.wrapText keeps whitespace: a run that does not fit hangs at the end of the line it follows (AIR WIN63-202610201032
+// starts the next line with the next word). A long token is split only when a whole empty line cannot hold it. Widths come from
+// DefineFont3, never DOM text.
 function wrapNativeParagraph(text: string, width: number, measure: (text: string) => number): string[] {
     if (!text) return [''];
     const lines: string[] = [];
@@ -57,9 +87,9 @@ function wrapNativeParagraph(text: string, width: number, measure: (text: string
             }
             if (line) {
                 if (/^\s+$/.test(token)) {
-                    const count = fitCharacters(line, remaining);
-                    line += remaining.slice(0, count);
-                    remaining = remaining.slice(count);
+                    lines.push(line + remaining);
+                    line = '';
+                    break;
                 }
                 lines.push(line);
                 line = '';
@@ -86,12 +116,16 @@ export const NativeText: FC<NativeTextProps> = ({
     className,
     style,
     nativeResolution = false,
-    onRaster
+    onRaster,
+    transparent = false,
+    width: fixedWidth,
+    tinted: tintedProp
 }) =>
 {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [size, setSize] = useState<{ width: number; height: number }>(null);
     const fontStyle = { ...nativeTextStyles[textStyle], ...overrides, background };
+    const tinted = tintedProp ?? fontStyle.tinted ?? false;
     const styleKey = JSON.stringify(fontStyle);
     const displayScale = useNativeTextScale();
     const sampling = useNativeTextSampling(nativeResolution);
@@ -158,22 +192,27 @@ export const NativeText: FC<NativeTextProps> = ({
             const lines = text.split(/\r\n|\r|\n/).flatMap((paragraph) => wrapNativeParagraph(paragraph, width, measure));
             const metrics = resolveLineMetrics(loaded.font.swfFont, fontStyle.size, fontStyle.antiAliasType === 'normal');
             const lineHeight = metrics.textHeight + leading;
+            // TextField puts every line's baseline on a whole pixel: round(2 + ascent + index * lineHeight) (AIR WIN63-202610201032).
+            const lineOffset = (index: number) => roundTiesEven(2 + metrics.ascent + index * lineHeight) - roundTiesEven(2 + metrics.ascent);
             let textWidth = 0;
             for (const line of lines) textWidth = Math.max(textWidth, measure(line));
-            const fieldWidth = Math.ceil(textWidth) + 4;
+            const fieldWidth = fixedWidth ?? Math.ceil(textWidth) + 4;
             const fieldHeight = Math.ceil(lines.length * lineHeight) + 4;
             // Keep the native text fallback for unsupported or excessively large fields.
             if (fieldWidth * fieldHeight > 2 * 1024 * 1024) return;
             // Layout stays in CSS pixels; the raster is drawn at the display scale (see NativeTextScale),
             // as wide as the lines measure at that size.
             const scaledStyle = { ...fontStyle, size: fontStyle.size * scale };
-            const pixelWidth = Math.max(fieldWidth * scale, ...lines.map((line) => Math.ceil(measureNativeText(loaded.font, line, scaledStyle)) + 4 * scale));
+            const pixelWidth =
+                fixedWidth === undefined
+                    ? Math.max(fieldWidth * scale, ...lines.map((line) => Math.ceil(measureNativeText(loaded.font, line, scaledStyle)) + 4 * scale))
+                    : fieldWidth * scale;
             const pixelHeight = fieldHeight * scale;
             const pixels = new Uint8ClampedArray(pixelWidth * pixelHeight * 4);
             lines.forEach((line, index) =>
                 loaded.renderer.render(line, {
                     size: fontStyle.size * scale,
-                    color: fontStyle.color ?? 0,
+                    color: tinted ? 0 : (fontStyle.color ?? 0),
                     antiAliasType: fontStyle.antiAliasType ?? 'advanced',
                     gridFitType: 'pixel',
                     thickness: fontStyle.thickness ?? 0,
@@ -188,9 +227,9 @@ export const NativeText: FC<NativeTextProps> = ({
                     // Each line gets a local surface view: the native renderer's
                     // etching pass is relative to that surface, not target.offsetY.
                     target: {
-                        pixels: pixels.subarray(Math.round(index * lineHeight) * scale * pixelWidth * 4),
+                        pixels: pixels.subarray(lineOffset(index) * scale * pixelWidth * 4),
                         width: pixelWidth,
-                        height: pixelHeight - Math.round(index * lineHeight) * scale,
+                        height: pixelHeight - lineOffset(index) * scale,
                         offsetX:
                             align === 'center'
                                 ? Math.round((pixelWidth - 4 * scale - measureNativeText(loaded.font, line, scaledStyle)) / 2)
@@ -204,7 +243,10 @@ export const NativeText: FC<NativeTextProps> = ({
             const canvas = canvasRef.current;
             canvas.width = pixelWidth;
             canvas.height = pixelHeight;
-            const composited = compositeAir32RetainedToOpaque(pixels, [(background >>> 16) & 255, (background >>> 8) & 255, background & 255, 255]);
+            if (tinted) tintRetained(pixels, fontStyle.color ?? 0);
+            const composited = transparent
+                ? unpremultiplyRetained(pixels)
+                : compositeAir32RetainedToOpaque(pixels, [(background >>> 16) & 255, (background >>> 8) & 255, background & 255, 255]);
             canvas.getContext('2d').putImageData(new ImageData(composited, pixelWidth, pixelHeight), 0, 0);
             setSize({ width: pixelWidth / scale, height: fieldHeight });
             onRasterRef.current?.({ canvas, text, background });
@@ -215,7 +257,7 @@ export const NativeText: FC<NativeTextProps> = ({
         return () => {
             disposed = true;
         };
-    }, [text, textStyle, styleKey, maxWidth, leading, align, scale]);
+    }, [text, textStyle, styleKey, maxWidth, leading, align, scale, transparent, fixedWidth, tinted]);
 
     return (
         <span

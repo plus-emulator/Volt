@@ -34,6 +34,9 @@ import {
     usePurse,
     useUiEvent
 } from '../../../../../hooks';
+import { NativeCenteredField } from '../../../../../common/native-text/NativeCenteredField';
+import { NativeText } from '../../../../../common/native-text/NativeText';
+import { SubpixelText } from '../../../../../common/native-text/SubpixelText';
 import { CatalogPurchaseConfirmView } from '../../CatalogPurchaseConfirmView';
 import { CatalogBuilderWidgetView } from './CatalogBuilderWidgetView';
 import { CatalogClubUpgradeButton } from './CatalogClubUpgradeButton';
@@ -44,6 +47,11 @@ interface CatalogPurchaseWidgetViewProps {
     noGiftOption?: boolean;
     purchaseCallback?: () => void;
 }
+
+/** buy_button's purchase_label: bold white text centred in a 160px field at (0, 3), so on sub-pixel pens. */
+const BuyCaption: FC<{ text: string }> = ({ text }) => (
+    <SubpixelText transparent align="center" background={0x00aa00} className="volt-catalog-buy-caption" color={0xffffff} text={text} textStyle="u_bold" width={160} />
+);
 
 export const CatalogPurchaseWidgetView: FC<CatalogPurchaseWidgetViewProps> = (props) => {
     const { disabled = false, noGiftOption = false, purchaseCallback = null } = props;
@@ -311,21 +319,23 @@ export const CatalogPurchaseWidgetView: FC<CatalogPurchaseWidgetViewProps> = (pr
         if (habbiconOwned)
             return (
                 <button type="button" className={purchaseButtonClassNames.join(' ')} disabled>
-                    {localizeWithFallback('generic.owned', 'Owned')}
+                    <BuyCaption text={localizeWithFallback('generic.owned', 'Owned')} />
                 </button>
             );
 
         if (isOfferUnavailable)
             return (
                 <button type="button" className={purchaseButtonClassNames.join(' ')} disabled>
-                    {currentOffer.isLazy ? LocalizeText('generic.loading') : LocalizeText('catalog.purchase_confirmation.' + (currentOffer.isRentOffer ? 'rent' : 'buy'))}
+                    <BuyCaption
+                        text={currentOffer.isLazy ? LocalizeText('generic.loading') : LocalizeText('catalog.purchase_confirmation.' + (currentOffer.isRentOffer ? 'rent' : 'buy'))}
+                    />
                 </button>
             );
 
         if (isLimitedSoldOut)
             return (
                 <button type="button" className={purchaseButtonClassNames.join(' ')} disabled>
-                    {LocalizeText('catalog.alert.limited_edition_sold_out.title')}
+                    <BuyCaption text={LocalizeText('catalog.alert.limited_edition_sold_out.title')} />
                 </button>
             );
 
@@ -333,7 +343,7 @@ export const CatalogPurchaseWidgetView: FC<CatalogPurchaseWidgetViewProps> = (pr
             case CatalogPurchaseState.CONFIRM:
                 return (
                     <button type="button" className={`${purchaseButtonClassNames.join(' ')} pointer-events-none`}>
-                        {LocalizeText('catalog.purchase_confirmation.' + (currentOffer.isRentOffer ? 'rent' : 'buy'))}
+                        <BuyCaption text={LocalizeText('catalog.purchase_confirmation.' + (currentOffer.isRentOffer ? 'rent' : 'buy'))} />
                     </button>
                 );
             case CatalogPurchaseState.PURCHASE:
@@ -345,13 +355,13 @@ export const CatalogPurchaseWidgetView: FC<CatalogPurchaseWidgetViewProps> = (pr
             case CatalogPurchaseState.FAILED:
                 return (
                     <button type="button" className={purchaseButtonClassNames.join(' ')}>
-                        {LocalizeText('generic.failed')}
+                        <BuyCaption text={LocalizeText('generic.failed')} />
                     </button>
                 );
             case CatalogPurchaseState.SOLD_OUT:
                 return (
                     <button type="button" className={purchaseButtonClassNames.join(' ')}>
-                        {LocalizeText('generic.failed') + ' - ' + LocalizeText('catalog.alert.limited_edition_sold_out.title')}
+                        <BuyCaption text={LocalizeText('generic.failed') + ' - ' + LocalizeText('catalog.alert.limited_edition_sold_out.title')} />
                     </button>
                 );
             case CatalogPurchaseState.NONE:
@@ -377,7 +387,7 @@ export const CatalogPurchaseWidgetView: FC<CatalogPurchaseWidgetViewProps> = (pr
                             }
                         }}
                     >
-                        {LocalizeText('catalog.purchase_confirmation.' + (currentOffer.isRentOffer ? 'rent' : 'buy'))}
+                        <BuyCaption text={LocalizeText('catalog.purchase_confirmation.' + (currentOffer.isRentOffer ? 'rent' : 'buy'))} />
                     </button>
                 );
         }
@@ -407,7 +417,10 @@ export const CatalogPurchaseWidgetView: FC<CatalogPurchaseWidgetViewProps> = (pr
                         setPurchaseState(CatalogPurchaseState.CONFIRM);
                     }}
                 >
-                    {LocalizeText('catalog.purchase_confirmation.gift')}
+                    {/* gift_button: button style 3, a button_shiny_regular label centred on the 170px button. */}
+                    <NativeCenteredField className="volt-catalog-gift-caption" width={170}>
+                        <NativeText nativeResolution transparent background={0xdddddd} text={LocalizeText('catalog.purchase_confirmation.gift')} textStyle="u_regular" />
+                    </NativeCenteredField>
                 </button>
             )}
             {!isClubLocked && <PurchaseButton />}
