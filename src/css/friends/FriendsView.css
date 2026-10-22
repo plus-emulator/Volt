@@ -1036,12 +1036,6 @@
     font-size: 11px !important;
 }
 
-.volt-friends-category-manager :where(input:focus, select:focus, textarea:focus) {
-    border-color: #4a7d8c !important;
-    box-shadow: 0 0 0 2px rgba(74, 125, 140, 0.24), inset 0 1px 0 rgba(0, 0, 0, 0.14) !important;
-    outline: none !important;
-}
-
 .volt-friends-category-manager :where(.text-muted, .text-dark) {
     color: #565656 !important;
 }

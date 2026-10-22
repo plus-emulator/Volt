@@ -104,11 +104,6 @@
     font-size: 11px !important;
 }
 
-.volt-catalog-window :where(input:focus, select:focus, textarea:focus) {
-    border-color: var(--catalog-standard-blue) !important;
-    box-shadow: 0 0 0 2px rgba(99, 197, 233, 0.32), inset 0 1px 0 rgba(0, 0, 0, 0.16) !important;
-}
-
 .volt-catalog-window :where(input[type="checkbox"], input[type="radio"]) {
     min-height: 0;
     accent-color: var(--catalog-standard-blue);
