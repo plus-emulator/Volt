@@ -32,10 +32,11 @@ export const NavigatorSearchResultView: FC<NavigatorSearchResultViewProps> = (pr
     const getResultTitle = () => {
         const name = searchResult.code;
 
-        if (!name || !name.length) return searchResult.data;
+        if (searchResult.data) return searchResult.data;
+        if (!name || !name.length) return '';
         if (name.startsWith('${')) return name.slice(2, name.length - 1);
 
-        return localizeWithFallback('navigator.searchcode.title.' + name, searchResult.data || name);
+        return localizeWithFallback('navigator.searchcode.title.' + name, name);
     };
 
     const toggleDisplayMode = () => {
