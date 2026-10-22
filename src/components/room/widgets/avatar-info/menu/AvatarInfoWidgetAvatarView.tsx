@@ -16,6 +16,7 @@ import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import {
     AvatarInfoUser,
     DispatchUiEvent,
+    GetConfigurationValue,
     GetOwnRoomObject,
     GetUserProfile,
     LocalizeText,
@@ -53,6 +54,13 @@ export const AvatarInfoWidgetAvatarView: FC<AvatarInfoWidgetAvatarViewProps> = (
     const { roomSession = null } = useRoom();
     // AIR AvatarMenuView: the pass hand item button is hidden while the room blocks hand item control.
     const isHandItemBlocked = GetRoomEngine().activeRoomHasHanditemControlBlocked;
+    // AIR AvatarMenuView.as:111-123: the trade button shows only when trading is allowed, and its tooltip names the reason.
+    const tradeTooltip =
+        avatarInfo?.canTradeReason === AvatarInfoUser.TRADE_REASON_SHUTDOWN
+            ? LocalizeText('infostand.button.trade.tooltip.shutdown')
+            : avatarInfo?.canTradeReason === AvatarInfoUser.TRADE_REASON_NO_TRADING
+              ? LocalizeText('infostand.button.trade.tooltip.tradingroom')
+              : undefined;
     const { userRespectRemaining = 0, respectUser = null } = useSessionInfo();
     const { openInspectionForUser, showInspectButton } = useWiredTools();
     // Reactive: the menu auto-flips Ignore <-> Unignore if the state
@@ -282,7 +290,11 @@ export const AvatarInfoWidgetAvatarView: FC<AvatarInfoWidgetAvatarViewProps> = (
                                 {LocalizeText('infostand.button.friend')}
                             </ContextMenuListItemView>
                         )}
-                        <ContextMenuListItemView onClick={(event) => processAction('trade')}>{LocalizeText('infostand.button.trade')}</ContextMenuListItemView>
+                        {(avatarInfo.canTrade || GetConfigurationValue<boolean>('talent.track.citizenship.enabled', false)) && (
+                            <ContextMenuListItemView title={tradeTooltip} onClick={(event) => processAction('trade')}>
+                                {LocalizeText('infostand.button.trade')}
+                            </ContextMenuListItemView>
+                        )}
                         <ContextMenuListItemView onClick={(event) => processAction('whisper')}>{LocalizeText('infostand.button.whisper')}</ContextMenuListItemView>
                         {userRespectRemaining > 0 && (
                             <ContextMenuListItemView onClick={(event) => processAction('respect')}>
