@@ -56,12 +56,6 @@
     font-size: 11px !important;
 }
 
-.volt-inventory-window :where(input:focus, select:focus, textarea:focus) {
-    border-color: var(--inv-accent) !important;
-    box-shadow: 0 0 0 2px rgba(74, 125, 140, 0.28), inset 0 1px 0 rgba(0, 0, 0, 0.16) !important;
-    outline: none !important;
-}
-
 
 .volt-inventory-window .volt-inventory-tabs-shell {
     flex: 0 0 35px !important;

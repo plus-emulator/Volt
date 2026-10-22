@@ -902,7 +902,6 @@
 .notification-command-search {
     --notification-command-search-bg: #fff;
     --notification-command-search-border: #a8a8a8;
-    --notification-command-search-border-focus: #4a72b8;
 
     position: sticky;
     top: 0;
@@ -917,11 +916,6 @@
     color: inherit;
     font-family: inherit;
     font-size: 11px;
-}
-
-.notification-command-search:focus {
-    border-color: var(--notification-command-search-border-focus);
-    outline: none;
 }
 
 .notification-command-copy {

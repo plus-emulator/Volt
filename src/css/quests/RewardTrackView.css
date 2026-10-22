@@ -2391,12 +2391,6 @@
 }
 
 .volt-reward-track-admin input:not([type="checkbox"]):focus,
-.volt-reward-track-admin select:focus {
-    outline: none;
-    border-color: var(--rta-blue);
-    box-shadow: 0 0 0 2px rgba(99, 197, 233, 0.35);
-}
-
 .volt-reward-track-admin input:disabled {
     background: var(--rta-panel-alt);
     color: var(--rta-muted);
