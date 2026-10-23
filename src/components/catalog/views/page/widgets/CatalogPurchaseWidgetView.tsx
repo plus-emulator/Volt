@@ -46,6 +46,8 @@ interface CatalogPurchaseWidgetViewProps {
     disabled?: boolean;
     noGiftOption?: boolean;
     purchaseCallback?: () => void;
+    /** Checked when Buy is pressed, before the confirmation opens; false stops the purchase (the room ad checks in PurchaseCatalogWidget.onPurchase). */
+    canStartPurchase?: () => boolean;
 }
 
 /** buy_button's purchase_label: bold white text centred in a 160px field at (0, 3), so on sub-pixel pens. */
@@ -54,7 +56,7 @@ const BuyCaption: FC<{ text: string }> = ({ text }) => (
 );
 
 export const CatalogPurchaseWidgetView: FC<CatalogPurchaseWidgetViewProps> = (props) => {
-    const { disabled = false, noGiftOption = false, purchaseCallback = null } = props;
+    const { disabled = false, noGiftOption = false, purchaseCallback = null, canStartPurchase = null } = props;
     const habbicons = useHabbiconCatalog();
     const [purchaseWillBeGift, setPurchaseWillBeGift] = useState(false);
     const [purchaseState, setPurchaseState] = useState(CatalogPurchaseState.NONE);
@@ -372,6 +374,8 @@ export const CatalogPurchaseWidgetView: FC<CatalogPurchaseWidgetViewProps> = (pr
                         className={purchaseButtonClassNames.join(' ')}
                         disabled={disabled || (purchaseOptions.extraParamRequired && (!purchaseOptions.extraData || !purchaseOptions.extraData.length))}
                         onClick={() => {
+                            if (canStartPurchase && !canStartPurchase()) return;
+
                             if (catalogSkipPurchaseConfirmation && !isLimitedEditionOffer) {
                                 confirmationOpenRef.current = false;
                                 setPurchaseWillBeGift(false);

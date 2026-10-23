@@ -165,6 +165,8 @@
     font: 400 12px/14px HabboAirUbuntu, UbuntuRegular, sans-serif !important;
     font-kerning: normal;
 }
+/* The native caption is the label's own text field (2px gutter included), so it sits at _DROPLIST_TITLETEXT (6,4). */
+.habbo-dropmenu--ubuntu .habbo-dropmenu-caption.is-native { left: 6px; top: 4px; height: 18px; }
 /* dropmenu_frame_3 arrow entity: the 22x20 cell at (16,2) of the 40px layout, moved with the right edge (2px from it). */
 .habbo-dropmenu--ubuntu .habbo-dropmenu-arrow { top: 2px; right: 2px; width: 22px; height: 20px; }
 .habbo-dropmenu--ubuntu .habbo-dropmenu-list { left: 2px; right: 2px; }

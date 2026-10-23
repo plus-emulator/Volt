@@ -32,6 +32,8 @@ interface HabboDropMenuViewProps<T> {
     advancedCaption?: string;
     /** AIR window-manager skin: Volter (0), Ubuntu (3), or Illumina (100). */
     skinStyle?: 0 | 3 | 100;
+    /** Style 3: draw the closed caption (the u_regular _DROPLIST_TITLETEXT label at 6,4) with the AIR text renderer. */
+    nativeCaption?: boolean;
     className?: string;
     popupClassName?: string;
     style?: CSSProperties;
@@ -84,7 +86,7 @@ const ThumbSkin = ({ pressed, patternId }: { pressed: boolean; patternId: string
 };
 
 /** Native style-0 dropmenu; feature adapters own preference/domain values and saves. */
-export const HabboDropMenuView = <T extends string | number,>({ label, options: allOptions, value, onSelect, disabled = false, caption = '', displayCaption, advancedCaption, skinStyle = 0, className = '', popupClassName = '', style, menuRef }: HabboDropMenuViewProps<T>): ReactNode => {
+export const HabboDropMenuView = <T extends string | number,>({ label, options: allOptions, value, onSelect, disabled = false, caption = '', displayCaption, advancedCaption, skinStyle = 0, nativeCaption = false, className = '', popupClassName = '', style, menuRef }: HabboDropMenuViewProps<T>): ReactNode => {
     const id = useId();
     const [advancedExpanded, setAdvancedExpanded] = useState(false);
     const expandingRef = useRef(false);
@@ -95,6 +97,7 @@ export const HabboDropMenuView = <T extends string | number,>({ label, options: 
         : allOptions;
     const itemHeight = skinStyle === 100 ? 19 : skinStyle === 3 ? 23 : VOLTER_ITEM_HEIGHT;
     const skinClass = skinStyle === 100 ? ' habbo-dropmenu--illumina' : skinStyle === 3 ? ' habbo-dropmenu--ubuntu' : '';
+    const isNativeUbuntuCaption = nativeCaption && skinStyle === 3;
     const triggerRef = useRef<HTMLButtonElement>(null);
     const popupRef = useRef<HTMLDivElement>(null);
     const viewportRef = useRef<HTMLDivElement>(null);
@@ -314,8 +317,8 @@ export const HabboDropMenuView = <T extends string | number,>({ label, options: 
                 }}
                 onClick={(event) => { if (event.detail === 0 && !isOpen) open(); }}
             >
-                <span className="habbo-dropmenu-caption">{skinStyle === 100
-                    ? <NativeText text={displayCaption ?? options[selectedIndex]?.label ?? caption} textStyle="il_regular" background={0xffffff} />
+                <span className={'habbo-dropmenu-caption' + (isNativeUbuntuCaption ? ' is-native' : '')}>{skinStyle === 100 || isNativeUbuntuCaption
+                    ? <NativeText text={displayCaption ?? options[selectedIndex]?.label ?? caption} textStyle={isNativeUbuntuCaption ? 'u_regular' : 'il_regular'} background={0xffffff} />
                     : displayCaption ?? options[selectedIndex]?.label ?? caption}</span>
                 {skinStyle !== 100 && <img className="habbo-dropmenu-arrow" src={skinStyle === 3 ? ubuntuArrow : arrow} alt="" />}
             </button>
