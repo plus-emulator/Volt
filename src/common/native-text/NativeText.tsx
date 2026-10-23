@@ -233,11 +233,12 @@ export const NativeText: FC<NativeTextProps> = ({
                         pixels: pixels.subarray(lineOffset(index) * scale * pixelWidth * 4),
                         width: pixelWidth,
                         height: pixelHeight - lineOffset(index) * scale,
+                        // The space a wrapped line hangs at its end does not count for alignment (AIR WIN63-202610201032).
                         offsetX:
                             align === 'center'
-                                ? Math.round((pixelWidth - 4 * scale - measureNativeText(loaded.font, line, scaledStyle)) / 2)
+                                ? Math.round((pixelWidth - 4 * scale - measureNativeText(loaded.font, line.trimEnd(), scaledStyle)) / 2)
                                 : align === 'right'
-                                    ? Math.round(pixelWidth - 4 * scale - measureNativeText(loaded.font, line, scaledStyle))
+                                    ? Math.round(pixelWidth - 4 * scale - measureNativeText(loaded.font, line.trimEnd(), scaledStyle))
                                     : 0
                     }
                 })

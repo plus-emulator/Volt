@@ -26,6 +26,12 @@ import './css/catalog/CatalogExperience.css';
 import './css/catalog/CatalogVipBuyView.css';
 import './css/catalog/CatalogBuildersClubView.css';
 import './css/catalog/CatalogBuilderWarehouse.css';
+import './css/catalog/CatalogAirPets.css';
+import './css/catalog/CatalogAirGuild.css';
+import './css/catalog/CatalogAirClub.css';
+import './css/catalog/CatalogAirBc.css';
+import './css/catalog/CatalogAirMarket.css';
+import './css/catalog/CatalogAirInfo.css';
 import './css/floorplan-editor/FloorplanEditorView.css';
 
 import './css/chat/Chats.css';

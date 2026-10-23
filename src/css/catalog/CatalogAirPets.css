@@ -1,0 +1,344 @@
+/* AIR catalog layouts (Pets group). */
+
+/*
+ * AIR layout_pets2 and layout_pets3 (360x460): border style 2 (habbo_skin_border_colorless, colour 0xff8899a2) at
+ * (10, 10, 340x440), the 57x57 ctlg_teaserimg_1 at (30, 20) and three white text fields.
+ */
+.volt-catalog-pets-info-layout {
+    position: relative;
+    width: 360px;
+    height: 460px;
+    overflow: hidden;
+}
+
+.volt-catalog-pets-info-layout > * {
+    position: absolute !important;
+}
+
+.volt-catalog-pets-info-panel {
+    top: 10px;
+    left: 10px;
+    box-sizing: border-box;
+    width: 340px;
+    height: 440px;
+    border: 6px solid transparent;
+    border-image: url('../../assets/images/habbo-skin/slices/border-colorless-8899a2.png') 6 fill / 6px stretch;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+/* static_bitmap with pivot center and no stretching: the image keeps its size, centred on the 57x57 box. */
+.volt-catalog-pets-info-image {
+    top: 20px;
+    left: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 57px;
+    height: 57px;
+}
+
+.volt-catalog-pets-info-image > img {
+    flex: none;
+    max-width: none;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+/*
+ * AIR layout_pets (360x460). petsWidget (pet types 0 to 7) and newPetsWidget (the others) share the image, colour grid,
+ * name box and purchase row; the labels, the breed menu and the add-on badge differ.
+ */
+.volt-catalog-pet-layout {
+    position: relative;
+    width: 360px;
+    height: 460px;
+    overflow: hidden;
+}
+
+.volt-catalog-pet-layout > * {
+    position: absolute !important;
+}
+
+/* ctlg_teaserimg_1 (0, 0, 360x240): the pet image centred. */
+.volt-catalog-pet-preview {
+    top: 0;
+    left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 360px;
+    height: 240px;
+}
+
+.volt-catalog-pet-preview > .pet-image {
+    flex: none;
+    transform-origin: center;
+}
+
+/* newPetsWidget pet_breed_text (10, 16): u_bold. */
+.volt-catalog-pet-breed-text {
+    top: 16px;
+    left: 10px;
+}
+
+/* addOnBadgeViewWidget: petsWidget (307, 178), newPetsWidget (13, 177), 40x40. */
+.volt-catalog-pet-badge {
+    width: 40px;
+    height: 40px;
+}
+
+.volt-catalog-pet-layout.is-legacy > .volt-catalog-pet-badge {
+    top: 178px;
+    left: 307px;
+}
+
+.volt-catalog-pet-layout.is-new > .volt-catalog-pet-badge {
+    top: 177px;
+    left: 13px;
+}
+
+/* showPriceOnProduct(..., -6, false, 6): 6px in from the right and bottom of the 360x240 image. */
+.volt-catalog-pet-layout > .volt-catalog-pet-layout-price {
+    top: 205px;
+    right: 6px;
+}
+
+/* The u_small labels: petsWidget ctlg_text_2 (10, 225), ctlg_text_3 (10, 326), ctlg_text_1 (10, 380);
+   newPetsWidget ctlg_text_3 (12, 326), ctlg_text_2 (12, 363). */
+.volt-catalog-pet-layout.is-legacy > .volt-catalog-pet-colour-label {
+    top: 225px;
+    left: 10px;
+}
+
+.volt-catalog-pet-layout.is-new > .volt-catalog-pet-colour-label {
+    top: 326px;
+    left: 12px;
+}
+
+.volt-catalog-pet-breed-label {
+    top: 326px;
+    left: 10px;
+}
+
+.volt-catalog-pet-layout.is-legacy > .volt-catalog-pet-name-label {
+    top: 380px;
+    left: 10px;
+}
+
+.volt-catalog-pet-layout.is-new > .volt-catalog-pet-name-label {
+    top: 363px;
+    left: 12px;
+}
+
+/* colourGridWidget (0, 245, 360x80): border style 6 at blend 0.5, the item grid at (2, 2) cut to 354x74. */
+.volt-catalog-pet-colour-grid-shell {
+    top: 245px;
+    left: 0;
+    box-sizing: border-box;
+    width: 360px;
+    height: 80px;
+    padding: 2px 4px 4px 2px;
+}
+
+.volt-catalog-pet-colour-grid-shell::before {
+    position: absolute;
+    inset: 0;
+    border: 8px solid transparent;
+    border-image: url('../../assets/images/catalog/air/skin/border-6-blend-50.png') 8 fill / 8px stretch;
+    content: '';
+    pointer-events: none;
+}
+
+.volt-catalog-pet-colour-grid-shell > * {
+    position: relative;
+}
+
+/* petsWidget's colourGridWidget has blend 0: AIR draws it at alpha 0, but it still takes clicks. */
+.volt-catalog-pet-layout.is-legacy > .volt-catalog-pet-colour-grid-shell {
+    opacity: 0;
+}
+
+.volt-catalog-colour-swatch.is-locked {
+    cursor: not-allowed;
+}
+
+.volt-catalog-colour-swatch.is-locked::after {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    content: '';
+}
+
+.volt-catalog-pet-swatch-lock {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 1;
+    color: #ffd24a;
+    font-size: 10px;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+/* petsWidget type_drop_menu (10, 344, 340x25): dropmenu style 3, only with more than one breed. */
+.volt-catalog-pet-layout > .volt-catalog-pet-breed-menu {
+    top: 344px;
+    left: 10px;
+    width: 340px;
+}
+
+/* Border style 4 tinted 0xcccccc (10, 398 or 10, 385, 340x25) with name_input_text at (4, 4, 325x17), u_regular. */
+.volt-catalog-pet-name-box {
+    left: 10px;
+    box-sizing: border-box;
+    width: 340px;
+    height: 25px;
+    border: 6px solid transparent;
+    border-image: url('../../assets/images/habbo-skin/slices/border-4-cccccc.png') 6 fill / 6px stretch;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-catalog-pet-layout.is-legacy > .volt-catalog-pet-name-box {
+    top: 398px;
+}
+
+.volt-catalog-pet-layout.is-new > .volt-catalog-pet-name-box {
+    top: 385px;
+}
+
+.volt-catalog-window .volt-catalog-pet-name-box > input {
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    box-sizing: border-box;
+    width: 325px;
+    height: 17px !important;
+    min-height: 0 !important;
+    margin: 0;
+    padding: 0 2px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    outline: none;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #000 !important;
+    font-family: Ubuntu, sans-serif !important;
+    font-size: 12px !important;
+    line-height: 17px !important;
+}
+
+/* purchaseWidget (0, 429, 360x30). */
+.volt-catalog-pet-purchase {
+    top: 429px;
+    left: 0;
+    width: 360px;
+    height: 30px;
+}
+
+.volt-catalog-pet-purchase > .volt-catalog-offer-actions > .volt-catalog-standard-buy-button {
+    margin-left: auto !important;
+}
+
+/* AIR priceDisplayWidget (showPriceOnProduct): border style 6, 29 high, tinted by the currency; price_box_new at (3, 4). */
+.volt-catalog-pet-price {
+    position: absolute;
+    box-sizing: border-box;
+    width: max-content;
+    min-width: 20px;
+    height: 29px;
+    padding: 4px 3px 0;
+}
+
+.volt-catalog-pet-price::before {
+    position: absolute;
+    inset: 0;
+    box-sizing: border-box;
+    border: 8px solid transparent;
+    border-image: url('../../assets/images/habbo-skin/slices/border-6.png') 8 fill / 8px stretch;
+    content: '';
+    pointer-events: none;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-catalog-pet-price.is-credits::before {
+    border-image-source: url('../../assets/images/habbo-skin/slices/border-6-e4c57d.png');
+}
+
+.volt-catalog-pet-price.is-duckets::before {
+    border-image-source: url('../../assets/images/habbo-skin/slices/border-6-abc6d7.png');
+}
+
+.volt-catalog-pet-price.is-points::before {
+    border-image-source: url('../../assets/images/habbo-skin/slices/border-6-89d3c8.png');
+}
+
+.volt-catalog-pet-price > .volt-catalog-price-box {
+    position: relative;
+}
+
+/*
+ * AIR layout_petcustomization (360x460): itemGridWidget (0, 245, 360x180), petPreviewWidget (0, 0, 360x240) and
+ * purchaseWidget (0, 430, 360x30).
+ */
+.volt-catalog-pet-customization-layout {
+    position: relative;
+    width: 360px;
+    height: 460px;
+    overflow: hidden;
+}
+
+.volt-catalog-pet-customization-layout > * {
+    position: absolute !important;
+}
+
+/* ctlg_teaserimg_1: the pet image or the page image, unscaled and centred. */
+.volt-catalog-pet-customization-preview {
+    top: 0;
+    left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 360px;
+    height: 240px;
+    overflow: hidden;
+}
+
+.volt-catalog-pet-customization-preview > img {
+    flex: none;
+    max-width: none;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+/* ctlg_product_name (8, 12) and ctlg_description 5px below the auto-sized name (18 high in AIR). */
+.volt-catalog-pet-customization-name {
+    top: 12px;
+    left: 8px;
+}
+
+.volt-catalog-pet-customization-description {
+    top: 35px;
+    left: 8px;
+}
+
+/* showPriceOnProduct(..., -6, true, 6): 6px in from the right edge and 6px down from the top of the image. */
+.volt-catalog-pet-customization-layout > .volt-catalog-pet-customization-price {
+    top: 6px;
+    right: 6px;
+}
+
+.volt-catalog-pet-customization-grid {
+    top: 245px;
+    left: 0;
+    width: 360px;
+    height: 180px;
+}
+
+.volt-catalog-pet-customization-purchase {
+    top: 430px;
+    left: 0;
+    width: 360px;
+    height: 30px;
+}
+
+.volt-catalog-pet-customization-purchase > .volt-catalog-offer-actions > .volt-catalog-standard-buy-button {
+    margin-left: auto !important;
+}

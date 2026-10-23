@@ -3,8 +3,11 @@ import { IPurchasableOffer } from '../../../../../api';
 import { LayoutActivityPointIcon } from '../../../../../common';
 import { NativeText } from '../../../../../common/native-text/NativeText';
 
+/** The price fields getPriceArray reads, so club offers can use the same box. */
+export type CatalogPriceBoxOffer = Pick<IPurchasableOffer, 'priceInCredits' | 'priceInActivityPoints' | 'activityPointType'>;
+
 interface CatalogPriceBoxViewProps {
-    offer: IPurchasableOffer;
+    offer: CatalogPriceBoxOffer;
     /** The surface colour under the amount texts. */
     background: number;
     className?: string;

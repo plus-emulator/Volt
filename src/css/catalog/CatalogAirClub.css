@@ -1,0 +1,529 @@
+/* AIR catalog layouts (Club group). */
+
+/*
+ * AIR layout_vip_buy, layout_loyalty_vip_buy and layout_club_buy (360x460). The root container paints white at alpha 0x21
+ * (color 0x2121ffffff) over the page, which gives 0xecece5. Every element sits at its layout position; the text rasters carry
+ * Flash's 2px gutter, so they go at the text window's own x,y.
+ */
+.volt-air-club {
+    position: relative;
+    width: 360px;
+    height: 460px;
+    overflow: hidden;
+    background: rgb(255 255 255 / 12.94%);
+    color: #000;
+    font-family: HabboAirUbuntu, UbuntuRegular, sans-serif;
+    font-size: 12px;
+}
+
+.volt-air-club button {
+    font: inherit;
+}
+
+/* border style 2 (habbo_skin_border_colorless) pre-tinted 13x13 nine-slices. */
+.volt-air-club-header,
+.volt-air-club-remaining,
+.volt-air-club-item,
+.volt-air-club-item::after,
+.volt-air-club-item-header,
+.volt-air-club-info-item,
+.volt-air-club-info-item::after,
+.volt-air-club-vip-item,
+.volt-air-club-vip-item::after,
+.volt-air-club-vip-item-header {
+    border: 6px solid transparent;
+    border-image: url("../../assets/images/catalog/air/hc/habbo-border-colorless-dfdfdf-13.png") 6 fill / 6px stretch;
+    box-sizing: border-box;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+/* Children of a framed box are placed from its outer corner, not from inside the 6px border. */
+.volt-air-club-header > *,
+.volt-air-club-remaining > *,
+.volt-air-club-item > *,
+.volt-air-club-item-header > *,
+.volt-air-club-info-item > *,
+.volt-air-club-vip-item > *,
+.volt-air-club-vip-item-header > * {
+    position: absolute !important;
+    z-index: 1;
+    margin: -6px 0 0 -6px;
+}
+
+.volt-air-club-item::after,
+.volt-air-club-info-item::after,
+.volt-air-club-vip-item::after {
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    content: "";
+    pointer-events: none;
+}
+
+/* ctlg_teaserimg_1 at 3,3, 152 wide; layout_vip_buy is 291 high with pivot "top center", the loyalty layout 161 with "center". */
+.volt-air-club .volt-club-teaser {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 152px;
+    overflow: hidden;
+}
+
+.volt-air-club .volt-club-teaser > img {
+    position: absolute;
+    display: block;
+    max-width: none;
+}
+
+/* The text itemlist_vertical at 161,3 (198 wide, the loyalty layout 188) with 4px between vip_title and vip_info. */
+.volt-air-club .volt-club-vip-copy {
+    position: absolute;
+    top: 3px;
+    left: 161px;
+    display: flex;
+    width: 198px;
+    height: 165px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.volt-air-club.is-loyalty .volt-club-vip-copy {
+    width: 188px;
+}
+
+/* vip_title is one 17px line in the layout, so vip_info starts at y 21. */
+.volt-air-club .volt-club-vip-title {
+    height: 17px !important;
+    overflow: visible;
+}
+
+/* item_list_vip at 19,170 (336x257, the loyalty layout 316 wide), items 4px apart. */
+.volt-air-club .volt-club-vip-offers {
+    position: absolute;
+    top: 170px;
+    left: 19px;
+    display: flex;
+    width: 336px;
+    height: 257px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    overflow: hidden;
+}
+
+.volt-air-club.is-loyalty .volt-club-vip-offers {
+    width: 316px;
+}
+
+/* vip_buy_item: outer frame 0x969696 (320x75) with the 0xdfdfdf fill at 1,1 (320x73, clipped on the right). */
+.volt-air-club-vip-item {
+    position: relative;
+    flex: 0 0 auto;
+    width: 320px;
+    height: 75px;
+    border-image-source: url("../../assets/images/catalog/air/hc/habbo-border-colorless-969696-13.png");
+}
+
+/* overflow: hidden would clip at the inner edge of the 6px border, so the fill is cut to the item's 320px here. */
+.volt-air-club-vip-item::after {
+    width: 319px;
+    height: 73px;
+}
+
+.volt-air-club-vip-item-header {
+    top: 5px;
+    left: 5px;
+    width: 310px;
+    height: 25px;
+    border-image-source: url("../../assets/images/catalog/air/hc/habbo-border-colorless-969696-13.png");
+}
+
+.volt-air-club-vip-item .volt-club-vip-medium-mark {
+    top: 4px;
+    left: 6px;
+    display: block;
+    width: 33px;
+    height: 17px;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-air-club-vip-item-title {
+    top: 2px;
+    left: 60px;
+}
+
+/* item_price container at 5,41 holding price_display. */
+.volt-air-club-vip-item-price {
+    top: 41px;
+    left: 5px;
+}
+
+/* item_gift at 130,37 and item_buy at 225,37: button_thick style 5, 90x30, tinted 0x00aa00. */
+.volt-air-club-vip-item > .volt-club-offer-action {
+    top: 37px;
+}
+
+.volt-air-club-vip-item > .volt-club-offer-action.is-gift {
+    left: 130px;
+}
+
+.volt-air-club-vip-item > .volt-club-offer-action.is-buy {
+    left: 225px;
+}
+
+/* hccenter_link: html text at 59,421 (container 19,434 plus -13 offset), 236x30, centred, black, links underlined. */
+.volt-air-club .volt-club-center-link {
+    position: absolute;
+    top: 421px;
+    left: 59px;
+    box-sizing: border-box;
+    width: 236px;
+    height: 30px;
+    padding: 2px 2px 0;
+    color: #000;
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 13.464px;
+    text-align: center;
+}
+
+.volt-air-club .volt-club-center-link a {
+    color: #000;
+    text-decoration: underline;
+}
+
+.volt-air-club-vip-link,
+.volt-air-club-link {
+    position: absolute;
+    display: block;
+    height: 17px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+}
+
+/* layout_loyalty_vip_buy vip_link: 39,433, 286x17, centred, 0x038ef4, underlined. */
+.volt-air-club-vip-link {
+    top: 433px;
+    left: 39px;
+    width: 286px;
+}
+
+/* layout_club_buy club_link: 10,440, 340x17, centred, underlined. */
+.volt-air-club-link {
+    top: 440px;
+    left: 10px;
+    width: 340px;
+}
+
+/* club header border at 10,0 (340x22, 0xdfdfdf) with club_header (u_headline_small) at 0,2, 307 wide. */
+.volt-air-club-header {
+    position: absolute;
+    top: 0;
+    left: 10px;
+    width: 340px;
+    height: 22px;
+    margin: 0;
+}
+
+.volt-air-club-header > * {
+    top: 2px;
+    left: 0;
+}
+
+.volt-air-club-info {
+    position: absolute !important;
+    top: 30px;
+    left: 7px;
+}
+
+/* icon_vip: icon style 18 (icon_18, 85x41) in an 85x40 window at 40,104, so its last row is cut. */
+.volt-air-club .volt-club-emblem {
+    position: absolute;
+    top: 104px;
+    left: 40px;
+    display: block;
+    width: 85px;
+    height: 40px;
+    background: url("../../assets/images/catalog/air/habbo-icons.png") -177px -49px no-repeat;
+}
+
+/* item_list_hc at 0,155 and item_list_vip at 180,155, both 171x250, items 4px apart. */
+.volt-air-club .volt-club-columns {
+    position: absolute;
+    top: 155px;
+    left: 0;
+    display: grid;
+    width: 351px;
+    height: 250px;
+    grid-template-columns: 171px 171px;
+    column-gap: 9px;
+}
+
+.volt-air-club .volt-club-hc-column,
+.volt-air-club .volt-club-vip-column {
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    overflow: hidden;
+}
+
+/* club_buy_hc_item frames 0x9b9448 over 0xebeada; club_buy_vip_item 0x969696 over 0xdfdfdf. 151x67, fill at 1,1. */
+.volt-air-club-item,
+.volt-air-club-info-item {
+    position: relative;
+    flex: 0 0 auto;
+    width: 151px;
+    height: 67px;
+    border-image-source: url("../../assets/images/catalog/air/hc/habbo-border-colorless-9b9448-13.png");
+}
+
+.volt-air-club-item::after,
+.volt-air-club-info-item::after {
+    width: 149px;
+    height: 65px;
+    border-image-source: url("../../assets/images/catalog/air/hc/habbo-border-colorless-ebeada-13.png");
+}
+
+.volt-air-club-item.is-vip {
+    border-image-source: url("../../assets/images/catalog/air/hc/habbo-border-colorless-969696-13.png");
+}
+
+.volt-air-club-item.is-vip::after {
+    border-image-source: url("../../assets/images/catalog/air/hc/habbo-border-colorless-dfdfdf-13.png");
+}
+
+.volt-air-club-item-header {
+    top: 5px;
+    left: 5px;
+    width: 141px;
+    height: 25px;
+    border-image-source: url("../../assets/images/catalog/air/hc/habbo-border-colorless-9b9448-13.png");
+}
+
+.volt-air-club-item.is-vip .volt-air-club-item-header {
+    border-image-source: url("../../assets/images/catalog/air/hc/habbo-border-colorless-969696-13.png");
+}
+
+/* item_header: -4,5 (141 wide, centred) on the HC item, 46,5 (90 wide) on the VIP item. */
+.volt-air-club-item.is-hc .volt-air-club-item-title {
+    top: 5px;
+    left: -4px;
+}
+
+.volt-air-club-item.is-vip .volt-air-club-item-title {
+    top: 5px;
+    left: 46px;
+}
+
+.volt-air-club-item-price {
+    top: 44px;
+    left: 9px;
+}
+
+/* Icon styles 11 and 12 (20x20 at 5,5): the icon16 skin draws icon_11 / icon_12 at the window's top left. */
+.volt-air-club .volt-club-compact-mark,
+.volt-catalog-club-gift .volt-club-compact-mark {
+    top: 5px;
+    left: 5px;
+    display: block;
+    width: 20px;
+    height: 20px;
+    background-image: url("../../assets/images/catalog/air/habbo-icons.png");
+    background-repeat: no-repeat;
+}
+
+.volt-air-club .volt-club-compact-mark.is-hc {
+    background-position: -96px 0;
+    clip-path: inset(0 4px 10px 0);
+}
+
+.volt-air-club .volt-club-compact-mark.is-vip,
+.volt-catalog-club-gift .volt-club-compact-mark.is-vip {
+    background-position: -113px 0;
+    clip-path: inset(0 1px 10px 0);
+}
+
+/* item_buy: button style 3 (button_shiny), 22 high, sized to its caption (8px margins plus the 2px gutter), right edge at 143. */
+.volt-air-club-item-buy,
+.volt-catalog-club-gift-select {
+    position: absolute;
+    box-sizing: border-box;
+    height: 22px;
+    margin: 0;
+    padding: 0 10px 3px;
+    border: 0;
+    border-image: var(--habbo-skin-shiny) 5 fill / 5px stretch;
+    border-radius: 0;
+    background: transparent;
+    color: #000;
+    cursor: pointer;
+    font-family: HabboAirUbuntu, UbuntuRegular, sans-serif !important;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 15px !important;
+    white-space: nowrap;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-air-club-item > .volt-air-club-item-buy {
+    top: 38px;
+    right: 8px;
+    left: auto;
+    margin: -6px -6px 0 0;
+}
+
+.volt-air-club-item-buy:hover:not(:disabled),
+.volt-catalog-club-gift-select:hover:not(:disabled) {
+    border-image-source: var(--habbo-skin-shiny-hover);
+}
+
+.volt-air-club-item-buy:active:not(:disabled),
+.volt-catalog-club-gift-select:active:not(:disabled) {
+    border-image-source: var(--habbo-skin-shiny-pressed);
+}
+
+.volt-air-club-item-buy:disabled,
+.volt-catalog-club-gift-select:disabled {
+    border-image-source: var(--habbo-skin-shiny-disabled);
+    color: rgb(0 0 0 / 50%);
+    cursor: default;
+}
+
+/* club_buy_info_item: 151x139, header text centred at 0,5 and info_content wrapped at 9,44 (134 wide). */
+.volt-air-club-info-item {
+    height: 139px;
+}
+
+.volt-air-club-info-item::after {
+    height: 137px;
+}
+
+.volt-air-club-info-item-title {
+    top: 5px;
+    left: 0;
+}
+
+.volt-air-club-info-item-content {
+    top: 44px;
+    left: 9px;
+}
+
+/* club_remaining_bg at 10,410 (340x25, 0xdfdfdf) with club_remaining at 6,5. */
+.volt-air-club-remaining {
+    position: absolute;
+    top: 410px;
+    left: 10px;
+    width: 340px;
+    height: 25px;
+}
+
+.volt-air-club-remaining > * {
+    top: 5px;
+    left: 6px;
+}
+
+/*
+ * AIR layout_club_gifts (360x460, no background): info_text (u_italic) at 0,0, gift_list at 0,35 (360x409, items 1px apart,
+ * scrollbar in its right 17px) and past_club_days (u_small, centred) at 0,445. Rows follow club_gift_list_item: a 320x58 border
+ * style 0 (habbo_skin_border_white tinted 0xe3e3e3), the 52x46 image at 7,6, gift_name (u_bold) at 58,8, months_required
+ * (u_small) at 58,36, the caption-sized shiny select_button with its right edge at 315 and vip_icon at 5,5.
+ */
+.volt-catalog-club-gifts {
+    position: relative;
+    width: 360px;
+    height: 460px;
+    color: #000;
+    font-family: HabboAirUbuntu, UbuntuRegular, sans-serif;
+}
+
+.volt-catalog-club-gifts-info {
+    position: absolute !important;
+    top: 0;
+    left: 0;
+    max-height: 35px;
+    overflow: hidden;
+}
+
+.volt-catalog-club-gifts-list {
+    position: absolute;
+    top: 35px;
+    left: 0;
+    width: 360px;
+    height: 409px;
+}
+
+.volt-catalog-club-gifts-list-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.volt-catalog-club-gifts-past {
+    position: absolute !important;
+    top: 445px;
+    left: 0;
+}
+
+.volt-catalog-club-gift {
+    position: relative;
+    flex: 0 0 58px;
+    box-sizing: border-box;
+    width: 320px;
+    height: 58px;
+    overflow: hidden;
+}
+
+.volt-catalog-club-gift::before {
+    position: absolute;
+    inset: 0;
+    box-sizing: border-box;
+    border: 6px solid transparent;
+    border-image: url("../../assets/images/catalog/air/gift/club-gift-item.png") 6 fill / 6px stretch;
+    content: "";
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-catalog-club-gift-image {
+    position: absolute;
+    top: 6px;
+    left: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 46px;
+    overflow: hidden;
+}
+
+.volt-catalog-club-gift-image > img {
+    max-width: 52px;
+    max-height: 46px;
+    image-rendering: pixelated;
+}
+
+.volt-catalog-club-gift .volt-club-compact-mark {
+    position: absolute;
+}
+
+.volt-catalog-club-gift-name {
+    position: absolute !important;
+    top: 8px;
+    left: 58px;
+}
+
+.volt-catalog-club-gift-requirement {
+    position: absolute !important;
+    top: 36px;
+    left: 58px;
+}
+
+.volt-catalog-club-gift-select {
+    top: 32px;
+    right: 5px;
+}

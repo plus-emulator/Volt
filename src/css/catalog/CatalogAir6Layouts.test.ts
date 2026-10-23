@@ -56,7 +56,7 @@ describe('current catalog layout geometry', () => {
     });
 
     it('leaves a full 70 pixel offer column beside the classic scrollbar', () => {
-        expect(styleFor('volt-catalog-badge-product-picker')).toMatchObject({ padding: '3px' });
+        expect(styleFor('volt-catalog-badge-product-picker')).toMatchObject({ padding: '4px' });
         expect(styleFor('volt-classic-scroll-area-viewport', 'volt-catalog-badge-product-picker')).toMatchObject({ width: '87px' });
     });
 

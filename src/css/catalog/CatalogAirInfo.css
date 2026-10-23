@@ -1,0 +1,493 @@
+/* AIR catalog layouts (Info group). */
+
+/* A field of CatalogAirHtmlTextView: the html window cuts its text at its own height. */
+.volt-catalog-air-html {
+    position: absolute;
+    overflow: hidden;
+}
+
+/* An html field with links or mixed formatting, as DOM text: Ubuntu 12 inside the 2px gutter, with the
+   LocalizationCatalogWidget.setLinkStyle colours. */
+.volt-catalog-air-html.is-dom {
+    box-sizing: border-box;
+    padding: 2px;
+    font-family: Ubuntu, sans-serif;
+    font-size: 12px;
+    line-height: 14px;
+    overflow-wrap: break-word;
+}
+
+.volt-catalog-air-html.is-dom a {
+    color: #333333;
+    text-decoration: underline;
+}
+
+.volt-catalog-air-html.is-dom a:hover {
+    color: #336a95;
+}
+
+.volt-catalog-air-html.is-dom a:active {
+    color: #41b7d9;
+}
+
+/* AIR priceDisplayWidget: border style 6, 29 high, price_box_new at (3, 4). */
+.volt-catalog-air-price-display {
+    position: relative;
+    box-sizing: border-box;
+    flex: none;
+    width: max-content;
+    min-width: 20px;
+    height: 29px;
+    padding: 4px 3px 0;
+    border: 0;
+}
+
+.volt-catalog-air-price-display::before {
+    position: absolute;
+    inset: 0;
+    box-sizing: border-box;
+    border: 8px solid transparent;
+    border-image: url('../../assets/images/habbo-skin/slices/border-6.png') 8 fill / 8px stretch;
+    content: '';
+    pointer-events: none;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-catalog-air-price-display.is-credits::before {
+    border-image-source: url('../../assets/images/habbo-skin/slices/border-6-e4c57d.png');
+}
+
+.volt-catalog-air-price-display.is-duckets::before {
+    border-image-source: url('../../assets/images/habbo-skin/slices/border-6-abc6d7.png');
+}
+
+.volt-catalog-air-price-display.is-points::before {
+    border-image-source: url('../../assets/images/habbo-skin/slices/border-6-89d3c8.png');
+}
+
+.volt-catalog-air-price-display > .volt-catalog-price-box {
+    position: relative;
+}
+
+/* ---- layout_info_duckets, layout_info_loyalty, layout_info_rentables, layout_recycler_info, layout_monkey (360x460) ---- */
+.volt-air-info-layout {
+    position: relative;
+    width: 360px;
+    height: 460px;
+    overflow: hidden;
+}
+
+/* layout_info_rentables: a #d8d8d8 border style 2 (17, 20, 328x425); the itemlist_vertical at 10,9 (309x407), spacing 3. */
+.volt-air-info-rentables {
+    position: absolute;
+    top: 20px;
+    left: 17px;
+    width: 328px;
+    height: 425px;
+}
+
+.volt-air-info-rentables::before,
+.volt-air-info-recycler::before {
+    position: absolute;
+    inset: 0;
+    box-sizing: border-box;
+    border: 6px solid transparent;
+    border-image: url('../../assets/images/habbo-skin/slices/border-colorless-d8d8d8.png') 6 fill / 6px stretch;
+    content: '';
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-air-info-rentables-list {
+    position: absolute;
+    top: 9px;
+    left: 10px;
+    display: flex;
+    width: 309px;
+    height: 407px;
+    flex-direction: column;
+    gap: 3px;
+    overflow: hidden;
+}
+
+.volt-air-info-rentables-row {
+    position: relative;
+    flex: none;
+    width: 306px;
+}
+
+/* toolbar_duckat_icon_0 at 1,3 with zoom_x -1: drawn mirrored. */
+.volt-air-info-rentables-icon {
+    position: absolute;
+    top: 3px;
+    left: 1px;
+    width: 23px;
+    height: 22px;
+    transform: scaleX(-1);
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-air-info-rentables-row > .volt-air-info-rentables-text {
+    position: relative;
+    margin: 3px 0 0 31px;
+}
+
+/* layout_recycler_info: a #fbc362 border style 2 (10, 10, 340x440). */
+.volt-air-info-recycler {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 340px;
+    height: 440px;
+}
+
+.volt-air-info-recycler::before {
+    border-image-source: url('../../assets/images/habbo-skin/slices/border-colorless-fbc362.png');
+}
+
+/* layout_monkey: the two link regions. */
+.volt-air-info-monkey-region {
+    position: absolute;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+}
+
+/* ---- layout_spaces_new (360x460) ---- */
+.volt-air-spaces-layout {
+    position: relative;
+    width: 360px;
+    height: 460px;
+    overflow: hidden;
+}
+
+.volt-air-spaces-preview {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 360px;
+    height: 240px;
+    overflow: hidden;
+}
+
+/* The itemlist at 5,12 holding ctlg_product_name and ctlg_description at x 5. */
+.volt-air-spaces-details {
+    position: absolute;
+    top: 12px;
+    left: 10px;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.volt-air-spaces-price {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    z-index: 2;
+}
+
+.volt-air-spaces-widget {
+    position: absolute;
+    top: 245px;
+    left: 0;
+    width: 360px;
+    height: 180px;
+}
+
+/* groups: button_group_left/center/right (style 100, 21 high, at least 50 wide); the il_button caption has margins 13/3/13/3. */
+.volt-air-spaces-groups {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    height: 22px;
+}
+
+.volt-catalog-window .volt-air-spaces-group {
+    position: relative;
+    display: flex;
+    box-sizing: border-box;
+    justify-content: center;
+    min-width: 50px;
+    height: 21px;
+    margin: 0;
+    padding: 3px 13px;
+    border: 3px solid transparent;
+    border-image: url('../../assets/images/habbo-skin/slices/button-group-center-default.png') 3 fill / 3px stretch;
+    border-radius: 0;
+    background: none;
+    cursor: pointer;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-air-spaces-group > span {
+    margin: -3px 0;
+}
+
+.volt-catalog-window .volt-air-spaces-group.is-left {
+    border-image-source: url('../../assets/images/habbo-skin/slices/button-group-left-default.png');
+}
+
+.volt-catalog-window .volt-air-spaces-group.is-right {
+    border-image-source: url('../../assets/images/habbo-skin/slices/button-group-right-default.png');
+}
+
+.volt-catalog-window .volt-air-spaces-group:hover {
+    border-image-source: url('../../assets/images/habbo-skin/slices/button-group-center-hover.png');
+}
+
+.volt-catalog-window .volt-air-spaces-group.is-left:hover {
+    border-image-source: url('../../assets/images/habbo-skin/slices/button-group-left-hover.png');
+}
+
+.volt-catalog-window .volt-air-spaces-group.is-right:hover {
+    border-image-source: url('../../assets/images/habbo-skin/slices/button-group-right-hover.png');
+}
+
+.volt-catalog-window .volt-air-spaces-group.is-selected {
+    border-image-source: url('../../assets/images/habbo-skin/slices/button-group-center-selected.png');
+}
+
+.volt-catalog-window .volt-air-spaces-group.is-left.is-selected {
+    border-image-source: url('../../assets/images/habbo-skin/slices/button-group-left-selected.png');
+}
+
+.volt-catalog-window .volt-air-spaces-group.is-right.is-selected {
+    border-image-source: url('../../assets/images/habbo-skin/slices/button-group-right-selected.png');
+}
+
+/* A border style 6 at blend 0.5 (0, 25, 360x155) and the grid at 2,27 (356x151). */
+.volt-air-spaces-widget > .volt-air-spaces-grid {
+    top: 25px;
+    bottom: auto;
+    height: 155px;
+    padding: 2px;
+}
+
+.volt-air-spaces-layout .volt-catalog-offer-actions > .volt-catalog-standard-buy-button {
+    margin-left: auto !important;
+}
+
+/* ---- layout_single_bundle (360x460) ---- */
+.volt-air-bundle-layout {
+    position: relative;
+    width: 360px;
+    height: 460px;
+    overflow: hidden;
+}
+
+.volt-air-bundle-description {
+    top: 13px;
+    left: 15px;
+}
+
+.volt-air-bundle-special-text {
+    top: 92px;
+    left: 159px;
+}
+
+/* bundleGridScrollWidget: border style 6 (164, 117, 186x247), bundleGrid at (4, 3, 178x238). */
+.volt-air-bundle-grid-border {
+    position: absolute;
+    top: 117px;
+    left: 164px;
+    box-sizing: border-box;
+    width: 186px;
+    height: 247px;
+    border: 8px solid transparent;
+    border-image: url('../../assets/images/habbo-skin/slices/border-6.png') 8 fill / 8px stretch;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-air-bundle-grid-scroll {
+    position: absolute !important;
+    top: -5px;
+    left: -4px;
+    width: 178px;
+    height: 238px;
+}
+
+.volt-air-bundle-grid {
+    position: relative;
+    width: 144px;
+}
+
+.volt-air-bundle-item {
+    position: absolute;
+    width: 36px;
+    height: 36px;
+}
+
+/* multiContainer at (18, 21): the #ff3300 border style 2 grows around multiCounter at (3, 0). */
+.volt-air-bundle-item-count {
+    position: absolute;
+    top: 21px;
+    left: 18px;
+    box-sizing: border-box;
+    display: flex;
+    min-width: 17px;
+    height: 13px;
+    padding-left: 3px;
+}
+
+.volt-air-bundle-item-count::before {
+    position: absolute;
+    inset: 0;
+    box-sizing: border-box;
+    border: 6px solid transparent;
+    border-image: url('../../assets/images/habbo-skin/slices/border-colorless-ff3300.png') 6 fill / 6px stretch;
+    content: '';
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-air-bundle-item-count > * {
+    position: relative;
+}
+
+.volt-air-bundle-teaser {
+    top: 119px;
+    left: 6px;
+}
+
+/* A #e0e0e0 border style 3 (17, 385, 324x40). */
+.volt-air-bundle-info {
+    position: absolute;
+    top: 385px;
+    left: 17px;
+    box-sizing: border-box;
+    width: 324px;
+    height: 40px;
+    border: 3px solid transparent;
+    border-image: url('../../assets/images/habbo-skin/slices/border-slot-e0e0e0.png') 3 fill / 3px stretch;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-air-bundle-special-image {
+    top: 2px;
+    left: 7px;
+}
+
+.volt-air-bundle-info-text {
+    top: 7px;
+    left: 48px;
+}
+
+/* addOnBadgeViewWidget (12, 125, 40x40): the badge_image widget. */
+.volt-air-bundle-badge {
+    position: absolute;
+    top: 125px;
+    left: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+}
+
+/* simplePriceWidget (74, 125, 83x30). */
+.volt-air-bundle-price {
+    position: absolute;
+    top: 125px;
+    left: 74px;
+    display: flex;
+    justify-content: flex-end;
+    width: 83px;
+}
+
+.volt-air-bundle-layout .volt-catalog-offer-actions > .volt-catalog-standard-buy-button {
+    margin-left: auto !important;
+}
+
+/* ---- layout_frontpage_featured (552x460) ---- */
+/* CatalogViewer.showCatalogPage: page.x = 570 - 552 - 8 = 10, 2px right of the layout container. */
+.volt-catalog-layout-container > .volt-cfp {
+    left: 2px;
+}
+
+/* The title raster carries Flash's 2px gutter, so it sits at the text window's own offset in the border. */
+.volt-cfp .volt-cfp-item-title > span {
+    display: block;
+}
+
+/* voucher_code (4, 4) in its border: a block input so no line box pushes it down. */
+.volt-cfp-voucher-input input {
+    display: block;
+}
+
+/* ---- layout_soundmachine (360x460) ---- */
+.volt-catalog-sound-layout .volt-catalog-sound-title,
+.volt-catalog-sound-layout .volt-catalog-sound-description,
+.volt-catalog-sound-layout .volt-catalog-sound-length {
+    max-width: none;
+    overflow: visible;
+}
+
+/* priceDisplayWidget: showPriceOnProduct(offer, widget, ..., ctlg_teaserimg_1, -6, false, 6) puts it 6px in from the bottom right. */
+.volt-catalog-sound-layout .volt-catalog-sound-price {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+}
+
+/* playPreviewContainer (7, 195, 175x36): border style 2 in #cccccc at blend 0.5, play_preview_text (u_small) at 9,11. */
+.volt-catalog-sound-layout .volt-catalog-sound-listen-panel {
+    border: 0;
+    background: none;
+}
+
+.volt-catalog-sound-layout .volt-catalog-sound-listen-panel::before {
+    position: absolute;
+    inset: 0;
+    box-sizing: border-box;
+    border: 6px solid transparent;
+    border-image: url('../../assets/images/habbo-skin/slices/border-colorless-cccccc.png') 6 fill / 6px stretch;
+    content: '';
+    opacity: 0.5;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-catalog-sound-layout .volt-catalog-sound-listen-text {
+    position: absolute;
+    top: 11px;
+    left: 9px;
+}
+
+/* specialInfoWidget (110, 28, 142x73): ctlg_special_img centred, ctlg_special_txt (italic 11, #333333, centred) at 2,28. */
+.volt-catalog-sound-special-info {
+    position: absolute;
+    top: 28px;
+    left: 110px;
+    width: 142px;
+    height: 73px;
+}
+
+.volt-catalog-sound-special-text {
+    position: absolute;
+    top: 28px;
+    left: 2px;
+}
+
+/* itemGridWidget (0, 245, 360x180): border style 6 at blend 0.5, the grid 4px inside. */
+.volt-catalog-sound-layout .volt-catalog-sound-grid {
+    bottom: auto;
+    height: 180px;
+    padding: 4px;
+    border: 0;
+    border-radius: 0;
+    background: none;
+}
+
+.volt-catalog-sound-layout .volt-catalog-sound-grid .volt-classic-scroll-area-viewport {
+    padding-right: 0;
+}
+
+.volt-catalog-sound-layout .volt-catalog-sound-purchase {
+    display: block;
+}
+
+.volt-catalog-sound-layout .volt-catalog-offer-actions > .volt-catalog-standard-buy-button {
+    margin-left: auto !important;
+}

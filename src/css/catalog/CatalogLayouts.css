@@ -67,17 +67,6 @@
     );
 }
 
-/* ubuntu_condensed_title: UbuntuCondensed 18, #ffffff. The card shell styles every
-   span, so this needs the extra class to keep the AIR colour and face. */
-.volt-cfp .volt-cfp-item-title span {
-    display: block;
-    color: #fff;
-    font-family: UbuntuCondensed, Ubuntu, sans-serif;
-    font-size: 18px;
-    line-height: 20px;
-    overflow-wrap: break-word;
-}
-
 /* firstitem: the border ends at y 428 + 29 = 457 of 460 and is capped at 174 wide;
    its item_title starts at (5, 0). */
 .volt-cfp-item.is-first .volt-cfp-item-title {
@@ -322,11 +311,11 @@
     justify-content: flex-end;
 }
 
-/* AIR price_display: amounts at y 1, the 24px icon windows at y 0, 1px apart after a 1px spacer. */
+/* AIR price_display: amounts at y 1, the 24px icon windows at y 0, 1px apart between a 1px and a 2px spacer. */
 .volt-catalog-price-box {
     display: flex;
     gap: 1px;
-    padding-left: 2px;
+    padding: 0 3px 0 2px;
 }
 
 .volt-catalog-price-box-item {
