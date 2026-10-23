@@ -121,7 +121,8 @@ export const GetActivityPointIconStyle = (type: number, big: boolean, combo: boo
     if (type === ActivityPointType.DUCKET) return big ? 32 : 33;
     if (type === ActivityPointType.SUBSCRIPTION_POINT) return big ? 36 : 37;
     if (type === ActivityPointType.DIAMOND) {
-        if (GetConfigurationValue<boolean>('diamonds.enabled', false)) return big ? 41 : 42;
+        // Habbo sets diamonds.enabled, and PlusEMU always uses type 5 for diamonds, so the diamond is the default.
+        if (GetConfigurationValue<boolean>('diamonds.enabled', true)) return big ? 41 : 42;
 
         return big ? 53 : 54;
     }
