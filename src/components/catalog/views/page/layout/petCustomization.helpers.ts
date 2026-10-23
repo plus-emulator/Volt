@@ -1,6 +1,18 @@
 import { IFurnitureData } from '@volt/renderer';
 import { FurniCategory } from '../../../../../api';
 
+/** PetPreviewCatalogWidget draws pets on palette 2 unless a shampoo picks the palette. */
+const DEFAULT_PALETTE_ID = 2;
+
+/** One custom part: layer id, part id and palette id. */
+export type PetCustomPartData = [number, number, number];
+
+export interface PetCustomizationPreview {
+    typeId: number;
+    paletteId: number;
+    parts: PetCustomPartData[];
+}
+
 const parseNumberList = (value: string | undefined): number[] | null => {
     if (!value?.length) return null;
 
@@ -9,20 +21,29 @@ const parseNumberList = (value: string | undefined): number[] | null => {
     return values.length && values.every(Number.isInteger) ? values : null;
 };
 
-export const buildPetCustomizationPreviewFigure = (furnitureData: IFurnitureData | null | undefined): string | null => {
+/**
+ * PetPreviewCatalogWidget.onPreviewProduct: the pet image for a pet customization product, read from its custom params
+ * ("<pet type> ..."). A shampoo looks up the palette of its colour tag with breed 1 through `getShampooPaletteId`.
+ */
+export const buildPetCustomizationPreview = (
+    furnitureData: IFurnitureData | null | undefined,
+    getShampooPaletteId: (petType: number, tag: string) => number | null
+): PetCustomizationPreview | null => {
     if (!furnitureData?.customParams?.length) return null;
 
     const params = furnitureData.customParams.trim().split(/\s+/);
-    const petType = Number.parseInt(params[0], 10);
+    const typeId = Number.parseInt(params[0], 10);
 
-    if (!Number.isInteger(petType) || petType < 0) return null;
+    if (!Number.isInteger(typeId) || typeId < 0) return null;
 
-    const parts: Array<[number, number, number]> = [];
+    const parts: PetCustomPartData[] = [];
 
     switch (furnitureData.specialType) {
-        case FurniCategory.PET_SHAMPOO:
+        case FurniCategory.PET_SHAMPOO: {
             if (params.length < 2) return null;
-            break;
+
+            return { typeId, paletteId: getShampooPaletteId(typeId, params[1]) ?? 0, parts };
+        }
         case FurniCategory.PET_CUSTOM_PART:
         case FurniCategory.PET_SADDLE: {
             if (params.length < 4) return null;
@@ -51,5 +72,5 @@ export const buildPetCustomizationPreviewFigure = (furnitureData: IFurnitureData
             return null;
     }
 
-    return [petType, 2, 0xffffff, parts.length, ...parts.flat()].join(' ');
+    return { typeId, paletteId: DEFAULT_PALETTE_ID, parts };
 };

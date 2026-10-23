@@ -1,93 +1,76 @@
-import {
-    ApproveNameMessageComposer,
-    ApproveNameMessageEvent,
-    ColorConverter,
-    GetRoomContentLoader,
-    GetRoomEngine,
-    PurchaseFromCatalogComposer,
-    RoomContentLoadedEvent,
-    SellablePetPaletteData
-} from '@volt/renderer';
+import { ApproveNameMessageComposer, ApproveNameMessageEvent, GetRoomContentLoader, GetRoomEngine, RoomContentLoadedEvent, SellablePetPaletteData } from '@volt/renderer';
 import { CSSProperties, FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FaCheck, FaLock, FaTimes } from 'react-icons/fa';
-import { DispatchUiEvent, GetPetAvailableColors, GetPetIndexFromLocalization, LocalizeText, localizeWithFallback, SendMessageComposer } from '../../../../../../api';
-import { LayoutPetImageView } from '../../../../../../common';
-import { CatalogPurchasedEvent, CatalogPurchaseFailureEvent } from '../../../../../../events';
-import { useCatalogData, useCatalogUiState, useMessageEvent, useVoltEvent, useSellablePetPalette, useUiEvent, useUserDataSnapshot } from '../../../../../../hooks';
-import { CatalogScrollAreaView } from '../../common/CatalogScrollAreaView';
+import { FaLock } from 'react-icons/fa';
+import { GetPetAvailableColors, GetPetIndexFromLocalization, LocalizeText, localizeWithFallback, SendMessageComposer } from '../../../../../../api';
+import { ClassicScrollAreaView, LayoutPetImageView } from '../../../../../../common';
+import { HabboDropMenuView } from '../../../../../../common/dropmenu/HabboDropMenuView';
+import { NativeText } from '../../../../../../common/native-text/NativeText';
+import { useCatalogData, useCatalogUiState, useMessageEvent, useNotification, useSellablePetPalette, useUserDataSnapshot, useVoltEvent } from '../../../../../../hooks';
 import { CatalogAddOnBadgeWidgetView } from '../../widgets/CatalogAddOnBadgeWidgetView';
-import { CatalogTotalPriceWidget } from '../../widgets/CatalogTotalPriceWidget';
+import { CatalogPurchaseWidgetView } from '../../widgets/CatalogPurchaseWidgetView';
 import { CatalogLayoutProps } from '../CatalogLayout.types';
-import {
-    buildNewPetPaletteChoices,
-    buildPetPurchaseExtraData,
-    filterPetPalettes,
-    getPetNameMaxLength,
-    isLegacyPetType,
-    PetPaletteLike,
-} from './petCatalog.helpers';
+import { buildNewPetPaletteChoices, buildPetPurchaseExtraData, filterPetPalettes, getPetNameMaxLength, isLegacyPetType, PetPaletteLike } from './petCatalog.helpers';
+import { CatalogPetPriceDisplayView } from './CatalogPetPriceDisplayView';
 
-interface PendingPetPurchase {
-    extraData: string;
-    offerId: number;
-    pageId: number;
-}
+/** The catalog page colour behind the AIR text rasters. */
+const PAGE_BACKGROUND = 0xe9e9e1;
+/** PetsCatalogWidget / NewPetsCatalogWidget.onApproveNameResult: results 1 to 4 name an alert text. */
+const NAME_ERROR_KEYS: Record<number, string> = { 1: 'long', 2: 'short', 3: 'chars', 4: 'bobba' };
 
+const toCssColour = (colour: number) => `#${(colour & 0xffffff).toString(16).padStart(6, '0')}`;
+
+/** ColourGridCatalogWidget.createColorContainer: a second colour covers the right half of the swatch from x 13. */
+const swatchColour = (colours: number[]): CSSProperties =>
+    ({
+        '--volt-swatch-colour':
+            colours.length > 1 ? `linear-gradient(to right, ${toCssColour(colours[0])} 0 13px, ${toCssColour(colours[1])} 13px)` : toCssColour(colours[0])
+    }) as CSSProperties;
+
+/**
+ * AIR layout_pets (360x460) holds petsWidget for pet types 0 to 7 and newPetsWidget for the others; the other widget fails to
+ * init and is removed. Both put the pet image in ctlg_teaserimg_1 (0, 0, 360x240) with the price at its bottom right,
+ * colourGridWidget at 0,245 (360x80), the name input in a border style 4 box and purchaseWidget at 0,429.
+ */
 export const CatalogLayoutPetView: FC<CatalogLayoutProps> = ({ page = null }) => {
     const [petIndex, setPetIndex] = useState(-1);
     const [selectedPaletteIndex, setSelectedPaletteIndex] = useState(-1);
     const [selectedColorIndex, setSelectedColorIndex] = useState(-1);
     const [petName, setPetName] = useState('');
-    const [approvalPending, setApprovalPending] = useState(false);
-    const [purchasePending, setPurchasePending] = useState(false);
-    const [approvalResult, setApprovalResult] = useState(-1);
-    const pendingPurchaseRef = useRef<PendingPetPurchase | null>(null);
-    const purchasePendingRef = useRef(false);
-    const activePageIdRef = useRef(page?.pageId ?? -1);
-    activePageIdRef.current = page?.pageId ?? -1;
+    const [petAssetRefreshKey, setPetAssetRefreshKey] = useState(0);
+    const pendingApprovalRef = useRef<(() => void) | null>(null);
     const { currentOffer = null } = useCatalogData();
-    const { setCurrentOffer = null } = useCatalogUiState();
+    const { setCurrentOffer = null, setPurchaseOptions = null } = useCatalogUiState();
+    const { simpleAlert = null } = useNotification();
     const breed = (currentOffer?.product?.productData?.type as unknown as string) ?? '';
     const { data: petPalette = null } = useSellablePetPalette(breed);
     const legacyPet = isLegacyPetType(petIndex);
-    const clubLevel = useUserDataSnapshot().clubLevel;
-    const isHc = clubLevel > 0;
-    // A club_only breed is shown to everyone but only selectable/buyable by HC members.
+    const isHc = useUserDataSnapshot().clubLevel > 0;
+    // A club_only breed is shown to everyone but only HC members can buy it.
     const isBreedLocked = (palette: { clubOnly?: boolean } | null | undefined) => !!palette?.clubOnly && !isHc;
     const hcOnlyLabel = localizeWithFallback('catalog.pets.breed.hc_only', 'Habbo Club only');
-    const [petAssetRefreshKey, setPetAssetRefreshKey] = useState(0);
     const petTypeName = petIndex >= 0 ? (GetRoomContentLoader().getPetNameForType(petIndex) ?? null) : null;
 
-    const sellablePalettes = useMemo(
-        () => filterPetPalettes(petIndex, petPalette?.palettes ?? []),
-        [petIndex, petPalette]
-    );
+    const sellablePalettes = useMemo(() => filterPetPalettes(petIndex, petPalette?.palettes ?? []), [petIndex, petPalette]);
 
     const legacyBreeds = useMemo(() => {
         if (!legacyPet) return [];
 
-        // re-run once the pet asset finishes downloading and its palettes are known
+        // Read again once the pet asset has loaded and its palettes are known.
         void petAssetRefreshKey;
 
-        const existing = sellablePalettes.filter(
-            (palette) => !!GetRoomEngine().getPetColorResult(petIndex, palette.paletteId)
-        );
+        const existing = sellablePalettes.filter((palette) => !!GetRoomEngine().getPetColorResult(petIndex, palette.paletteId));
 
         return existing.length ? existing : sellablePalettes;
     }, [legacyPet, petAssetRefreshKey, petIndex, sellablePalettes]);
 
     useEffect(() => {
-        if (!petTypeName) return;
-
-        GetRoomContentLoader().downloadAsset(petTypeName);
+        if (petTypeName) GetRoomContentLoader().downloadAsset(petTypeName);
     }, [petTypeName]);
 
     useVoltEvent<RoomContentLoadedEvent>(
         RoomContentLoadedEvent.RCLE_SUCCESS,
         (event) => {
-            if (event.contentType !== petTypeName) return;
-
-            setPetAssetRefreshKey((key) => key + 1);
+            if (event.contentType === petTypeName) setPetAssetRefreshKey((key) => key + 1);
         },
         !!petTypeName
     );
@@ -125,80 +108,71 @@ export const CatalogLayoutPetView: FC<CatalogLayoutProps> = ({ page = null }) =>
     );
 
     const selectedPalette = selectedPaletteIndex >= 0 ? selectablePalettes[selectedPaletteIndex] : null;
-    const selectedColor = legacyPet
-        ? (legacyColors[selectedColorIndex]?.[0] ?? 0xffffff)
-        : (newPetChoices[selectedPaletteIndex]?.colors[0] ?? 0xffffff);
+    const selectedColor = legacyPet ? (legacyColors[selectedColorIndex]?.[0] ?? 0xffffff) : 0xffffff;
+    const selectedPaletteLocked = isBreedLocked(selectedPalette);
 
     const purchaseExtraData = useMemo(() => {
         if (!petName || !selectedPalette) return '';
         if (legacyPet && selectedColorIndex < 0) return '';
-        if ((selectedPalette as { clubOnly?: boolean }).clubOnly && !isHc) return '';
 
         return buildPetPurchaseExtraData(petName, petIndex, selectedPalette, selectedColor);
-    }, [isHc, legacyPet, petIndex, petName, selectedColor, selectedColorIndex, selectedPalette]);
+    }, [legacyPet, petIndex, petName, selectedColor, selectedColorIndex, selectedPalette]);
 
-    const validationErrorMessage = useMemo(() => {
-        const errorKeys: Record<number, string> = {
-            1: 'catalog.alert.petname.long',
-            2: 'catalog.alert.petname.short',
-            3: 'catalog.alert.petname.chars',
-            4: 'catalog.alert.petname.bobba'
-        };
-        const key = errorKeys[approvalResult];
+    // The purchase widget sends and gifts with purchaseOptions.extraData.
+    useEffect(() => {
+        setPurchaseOptions?.((previous) => ({ ...previous, extraData: purchaseExtraData }));
+    }, [purchaseExtraData, setPurchaseOptions]);
 
-        return key ? LocalizeText(key) : '';
-    }, [approvalResult]);
+    const showPurchaseError = useCallback(
+        (message: string) => simpleAlert?.(message, null, null, null, LocalizeText('catalog.alert.purchaseerror.title')),
+        [simpleAlert]
+    );
 
-    const requestPurchase = useCallback(() => {
-        if (approvalPending || purchasePendingRef.current || !page || !currentOffer || !purchaseExtraData) return;
+    /** PURCHASE_OVERRIDE (onPurchase): an empty name alerts, otherwise the name is approved before the confirmation opens. */
+    const approveNameThenConfirm = useCallback(
+        (_isGift: boolean, openConfirmation: () => void) => {
+            if (pendingApprovalRef.current) return;
 
-        pendingPurchaseRef.current = {
-            extraData: purchaseExtraData,
-            offerId: currentOffer.offerId,
-            pageId: page.pageId
-        };
-        setApprovalPending(true);
-        setApprovalResult(-1);
-        SendMessageComposer(new ApproveNameMessageComposer(petName, 1));
-    }, [approvalPending, currentOffer, page, petName, purchaseExtraData]);
+            if (!petName.length) {
+                showPurchaseError(LocalizeText('catalog.alert.petname.empty'));
+                return;
+            }
+
+            if (!purchaseExtraData) return;
+
+            if (selectedPaletteLocked) {
+                showPurchaseError(hcOnlyLabel);
+                return;
+            }
+
+            pendingApprovalRef.current = openConfirmation;
+            SendMessageComposer(new ApproveNameMessageComposer(petName, 1));
+        },
+        [hcOnlyLabel, petName, purchaseExtraData, selectedPaletteLocked, showPurchaseError]
+    );
 
     useMessageEvent<ApproveNameMessageEvent>(ApproveNameMessageEvent, (event) => {
-        const pendingPurchase = pendingPurchaseRef.current;
+        const openConfirmation = pendingApprovalRef.current;
 
-        if (!pendingPurchase) return;
+        if (!openConfirmation) return;
 
-        if (pendingPurchase.pageId !== activePageIdRef.current) {
-            pendingPurchaseRef.current = null;
-            setApprovalPending(false);
-            return;
-        }
+        pendingApprovalRef.current = null;
 
         const parser = event.getParser();
 
-        pendingPurchaseRef.current = null;
-        setApprovalPending(false);
-        setApprovalResult(parser.result);
-
         if (parser.result === 0) {
-            purchasePendingRef.current = true;
-            setPurchasePending(true);
-            SendMessageComposer(
-                new PurchaseFromCatalogComposer(pendingPurchase.pageId, pendingPurchase.offerId, pendingPurchase.extraData, 1)
-            );
-        } else {
-            DispatchUiEvent(new CatalogPurchaseFailureEvent(-1));
+            openConfirmation();
+            return;
         }
+
+        // constructErrorMessage: the ".additionalInfo" text, with the server's validation info, when both exist.
+        const key = `catalog.alert.petname.${NAME_ERROR_KEYS[parser.result] ?? 'bobba'}`;
+        const additional = parser.validationInfo
+            ? localizeWithFallback(`${key}.additionalInfo`, '', ['additional_info'], [parser.validationInfo])
+            : '';
+
+        showPurchaseError(additional || LocalizeText(key));
     });
-
-    const finishPurchase = useCallback(() => {
-        if (!purchasePendingRef.current) return;
-
-        purchasePendingRef.current = false;
-        setPurchasePending(false);
-    }, []);
-
-    useUiEvent(CatalogPurchasedEvent.PURCHASE_SUCCESS, finishPurchase);
-    useUiEvent(CatalogPurchaseFailureEvent.PURCHASE_FAILED, finishPurchase);
 
     useEffect(() => {
         if (!page?.offers.length) return;
@@ -210,11 +184,7 @@ export const CatalogLayoutPetView: FC<CatalogLayoutProps> = ({ page = null }) =>
     }, [page, setCurrentOffer]);
 
     useEffect(() => {
-        pendingPurchaseRef.current = null;
-        purchasePendingRef.current = false;
-        setApprovalPending(false);
-        setPurchasePending(false);
-        setApprovalResult(-1);
+        pendingApprovalRef.current = null;
         setPetName('');
     }, [page?.pageId]);
 
@@ -226,168 +196,112 @@ export const CatalogLayoutPetView: FC<CatalogLayoutProps> = ({ page = null }) =>
         setSelectedColorIndex(legacyColors.length ? 0 : -1);
     }, [legacyColors]);
 
-    useEffect(() => {
-        if (approvalPending) return;
-
-        setApprovalResult(-1);
-    }, [approvalPending, petName]);
-
     if (!currentOffer) return null;
 
-    const controlsDisabled = approvalPending || purchasePending;
-    // pets text fields: 1 = ctlg_text_1, 2 = ctlg_text_2, 3 = ctlg_text_3. Legacy uses those as name, colour, breed.
-    // The new layout puts the name on ctlg_text_2 and the colour caption on ctlg_text_3. pet_breed_text is the selected breed.
-    const pageText = (index: number, fallbackKey: string) => page?.localization?.getText(index) || LocalizeText(fallbackKey);
+    // Page texts 1, 2 and 3 fill ctlg_text_1, ctlg_text_2 and ctlg_text_3. petsWidget: name, colour and breed labels.
+    // newPetsWidget: the name label is ctlg_text_2 and ctlg_text_3 sits under the colour grid.
+    const pageText = (index: number, fallbackKey: string) =>
+        (page?.localization?.getText(index) ?? '').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>/g, '') || LocalizeText(fallbackKey);
     const colorLabel = pageText(legacyPet ? 2 : 3, 'catalog.pets.choose.color');
     const breedLabel = pageText(3, 'catalog.pets.choose.breed');
     const nameLabel = pageText(legacyPet ? 1 : 2, 'widgets.petpackage.name.title');
-    const swatchFill = (colors: string[]): CSSProperties => ({
-        background: colors.length > 1 ? `linear-gradient(to right, ${colors[0]} 0 50%, ${colors[1]} 50% 100%)` : colors[0]
-    });
+    const breedOptions = selectablePalettes.map((palette, index) => ({
+        value: index,
+        label: localizeWithFallback(`pet.breed.${petIndex}.${palette.breedId}`, `pet.breed.${petIndex}.${palette.breedId}`) + (isBreedLocked(palette) ? ` (${hcOnlyLabel})` : '')
+    }));
 
     return (
-        <div
-            className={`volt-catalog-pet-layout ${legacyPet ? 'volt-catalog-pet-layout--legacy' : 'volt-catalog-pet-layout--new'}`}
-        >
-            <div className="volt-catalog-pet-preview relative h-[240px] min-h-[240px] overflow-hidden">
+        <div className={`volt-catalog-pet-layout ${legacyPet ? 'is-legacy' : 'is-new'}`}>
+            <div className="volt-catalog-pet-preview">
                 {selectedPalette && (
-                    <div className="volt-catalog-pet-preview-image">
-                        <LayoutPetImageView
-                            direction={legacyPet || petIndex === 15 ? 2 : 3}
-                            paletteId={selectedPalette.paletteId}
-                            petColor={legacyPet ? selectedColor : 0xffffff}
-                            scale={petIndex === 15 ? 1 : 2}
-                            typeId={petIndex}
-                        />
-                    </div>
+                    <LayoutPetImageView
+                        direction={legacyPet || petIndex === 15 ? 2 : 3}
+                        paletteId={selectedPalette.paletteId}
+                        petColor={selectedColor}
+                        scale={petIndex === 15 ? 1 : 2}
+                        typeId={petIndex}
+                    />
                 )}
-                {!legacyPet && (
-                    <div className="volt-catalog-pet-breed-title">
-                        {selectedPalette
-                            ? localizeWithFallback(`pet.breed.${petIndex}.${selectedPalette.breedId}`, currentOffer.localizationName || '')
-                            : currentOffer.localizationName || ''}
+            </div>
+            {!legacyPet && selectedPalette && (
+                <NativeText
+                    background={PAGE_BACKGROUND}
+                    className="volt-catalog-pet-breed-text"
+                    text={localizeWithFallback(`pet.breed.${petIndex}.${selectedPalette.breedId}`, `pet.breed.${petIndex}.${selectedPalette.breedId}`)}
+                    textStyle="u_bold"
+                />
+            )}
+            <CatalogAddOnBadgeWidgetView className="volt-catalog-pet-badge" />
+            <CatalogPetPriceDisplayView className="volt-catalog-pet-layout-price" offer={currentOffer} />
+
+            <NativeText background={PAGE_BACKGROUND} className="volt-catalog-pet-colour-label" text={colorLabel} textStyle="u_small" />
+            <div className="volt-catalog-pet-colour-grid-shell">
+                <ClassicScrollAreaView className="h-full min-h-0">
+                    <div aria-label={colorLabel} className="volt-catalog-colour-grid" role="radiogroup">
+                        {legacyPet
+                            ? legacyColors.map((colours, index) => (
+                                  <button
+                                      key={`${colours[0]}-${index}`}
+                                      aria-checked={selectedColorIndex === index}
+                                      aria-label={`${colorLabel} ${index + 1}`}
+                                      className={`volt-catalog-colour-swatch ${selectedColorIndex === index ? 'is-chosen' : ''}`}
+                                      role="radio"
+                                      style={swatchColour(colours)}
+                                      type="button"
+                                      onClick={() => setSelectedColorIndex(index)}
+                                  />
+                              ))
+                            : newPetChoices.map((choice, index) => {
+                                  const locked = isBreedLocked(choice.palette);
+
+                                  return (
+                                      <button
+                                          key={choice.palette.paletteId}
+                                          aria-checked={selectedPaletteIndex === index}
+                                          aria-label={locked ? `${colorLabel} ${index + 1} - ${hcOnlyLabel}` : `${colorLabel} ${index + 1}`}
+                                          className={`volt-catalog-colour-swatch ${selectedPaletteIndex === index ? 'is-chosen' : ''} ${locked ? 'is-locked' : ''}`}
+                                          disabled={locked}
+                                          role="radio"
+                                          style={swatchColour(choice.colors)}
+                                          title={locked ? hcOnlyLabel : undefined}
+                                          type="button"
+                                          onClick={() => setSelectedPaletteIndex(index)}
+                                      >
+                                          {locked && <FaLock className="volt-catalog-pet-swatch-lock" />}
+                                      </button>
+                                  );
+                              })}
                     </div>
-                )}
-                <CatalogAddOnBadgeWidgetView className="volt-catalog-pet-preview-badge" />
-                <div className="volt-catalog-pet-preview-price">
-                    <CatalogTotalPriceWidget />
-                </div>
+                </ClassicScrollAreaView>
             </div>
 
-            <div className="volt-catalog-pet-editor">
-                {legacyPet ? (
-                    <>
-                        <div className="volt-catalog-pet-field">
-                            <span>{colorLabel}</span>
-                            <CatalogScrollAreaView
-                                className="volt-catalog-pet-color-grid"
-                                contentClassName="volt-catalog-pet-color-grid-content"
-                                aria-label={colorLabel}
-                                role="group"
-                            >
-                                {legacyColors.map((colors, index) => (
-                                    <button
-                                        key={`${colors[0]}-${index}`}
-                                        aria-label={`${colorLabel} ${index + 1}`}
-                                        aria-pressed={selectedColorIndex === index}
-                                        className="volt-catalog-pet-color-swatch"
-                                        disabled={controlsDisabled}
-                                        style={swatchFill([ColorConverter.int2rgb(colors[0])])}
-                                        type="button"
-                                        onClick={() => setSelectedColorIndex(index)}
-                                    >
-                                        {selectedColorIndex === index && <span className="volt-catalog-pet-swatch-chosen" />}
-                                    </button>
-                                ))}
-                            </CatalogScrollAreaView>
-                        </div>
-                        {selectablePalettes.length > 1 && (
-                            <label className="volt-catalog-pet-breed-selector">
-                                <span>{breedLabel}</span>
-                                <select
-                                    value={selectedPaletteIndex}
-                                    disabled={controlsDisabled}
-                                    onChange={(event) => setSelectedPaletteIndex(Number(event.target.value))}
-                                >
-                                    {selectablePalettes.map((palette, index) => {
-                                        const locked = isBreedLocked(palette);
+            {legacyPet && <NativeText background={PAGE_BACKGROUND} className="volt-catalog-pet-breed-label" text={breedLabel} textStyle="u_small" />}
+            {legacyPet && breedOptions.length > 1 && (
+                <HabboDropMenuView<number>
+                    nativeCaption
+                    className="volt-catalog-pet-breed-menu"
+                    label={breedLabel}
+                    options={breedOptions}
+                    skinStyle={3}
+                    value={selectedPaletteIndex}
+                    onSelect={setSelectedPaletteIndex}
+                />
+            )}
 
-                                        return (
-                                            <option key={palette.paletteId} disabled={locked} value={index}>
-                                                {LocalizeText(`pet.breed.${petIndex}.${palette.breedId}`)}
-                                                {locked ? ` (${hcOnlyLabel})` : ''}
-                                            </option>
-                                        );
-                                    })}
-                                </select>
-                            </label>
-                        )}
-                    </>
-                ) : (
-                    <div className="volt-catalog-pet-field">
-                        <span>{colorLabel}</span>
-                        <CatalogScrollAreaView
-                            className="volt-catalog-pet-color-grid"
-                            contentClassName="volt-catalog-pet-color-grid-content"
-                            aria-label={colorLabel}
-                            role="group"
-                        >
-                            {newPetChoices.map((choice, index) => {
-                                const colors = choice.colors.map((color) => ColorConverter.int2rgb(color));
-                                const style = swatchFill(colors);
-                                const locked = isBreedLocked(choice.palette);
+            <NativeText background={PAGE_BACKGROUND} className="volt-catalog-pet-name-label" text={nameLabel} textStyle="u_small" />
+            <div className="volt-catalog-pet-name-box">
+                <input
+                    aria-label={nameLabel}
+                    maxLength={getPetNameMaxLength(petIndex)}
+                    type="text"
+                    value={petName}
+                    onChange={(event) => setPetName(event.target.value)}
+                />
+            </div>
 
-                                return (
-                                    <button
-                                        key={choice.palette.paletteId}
-                                        aria-label={locked ? `${colorLabel} ${index + 1} — ${hcOnlyLabel}` : `${colorLabel} ${index + 1}`}
-                                        aria-pressed={selectedPaletteIndex === index}
-                                        className={`volt-catalog-pet-color-swatch${locked ? ' volt-catalog-pet-color-swatch--locked' : ''}`}
-                                        disabled={controlsDisabled || locked}
-                                        style={style}
-                                        title={locked ? hcOnlyLabel : undefined}
-                                        type="button"
-                                        onClick={() => setSelectedPaletteIndex(index)}
-                                    >
-                                        {selectedPaletteIndex === index && <span className="volt-catalog-pet-swatch-chosen" />}
-                                        {locked && <FaLock className="volt-catalog-pet-swatch-lock" />}
-                                    </button>
-                                );
-                            })}
-                        </CatalogScrollAreaView>
-                    </div>
-                )}
-
-                <div className="volt-catalog-pet-purchase mt-auto">
-                    <label className="volt-catalog-pet-name-field">
-                        <span>{nameLabel}</span>
-                        <span className="relative flex-1">
-                            <input
-                                disabled={controlsDisabled}
-                                maxLength={getPetNameMaxLength(petIndex)}
-                                type="text"
-                                value={petName}
-                                onChange={(event) => setPetName(event.target.value)}
-                            />
-                            {approvalResult === 0 && <FaCheck className="volt-catalog-pet-name-status text-success" />}
-                            {approvalResult > 0 && <FaTimes className="volt-catalog-pet-name-status text-danger" />}
-                        </span>
-                    </label>
-                    {approvalResult > 0 && <span className="volt-catalog-pet-name-error">{validationErrorMessage}</span>}
-                    {isBreedLocked(selectedPalette) && (
-                        <span className="volt-catalog-pet-hc-note">
-                            <FaLock /> {hcOnlyLabel}
-                        </span>
-                    )}
-                    <div className="volt-catalog-pet-purchase-row">
-                        <button
-                            className="volt-catalog-standard-button volt-catalog-standard-buy-button"
-                            disabled={controlsDisabled || !purchaseExtraData}
-                            onClick={requestPurchase}
-                        >
-                            {LocalizeText('catalog.purchase_confirmation.buy')}
-                        </button>
-                    </div>
+            <div className="volt-catalog-pet-purchase">
+                <div className="volt-catalog-offer-actions">
+                    <CatalogPurchaseWidgetView purchaseOverride={approveNameThenConfirm} />
                 </div>
             </div>
         </div>
