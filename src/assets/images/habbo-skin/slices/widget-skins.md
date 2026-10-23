@@ -36,3 +36,42 @@ caps and a 4px center (`2727_habbo_skin_border_6_xml`), multiplied by the
 Me menu window color #79756e. `class_4233.as:171` defaults a missing colorize
 attribute to true. RGB multiplication truncates channel values and preserves
 alpha; no CSS tint or rounded rectangle is layered over these bitmaps.
+
+Catalog info group slices, rendered from the AIR skins with `/tmp/catlay/tools/skinpng.py` and checked as nine-slices:
+- `border-6.png`: 17x17 `habbo_skin_border_6_xml` (border style 6, 8px caps), untinted, for the opaque grid borders
+  of layout_single_bundle and the AIR priceDisplayWidget.
+- `border-colorless-{cccccc,d8d8d8,fbc362,ff3300}.png`: 13x13 `habbo_skin_border_colorless_xml` (border style 2,
+  6px caps) tinted for layout_soundmachine, layout_info_rentables, layout_recycler_info and the gridItem multiContainer.
+- `border-slot-e0e0e0.png`: 7x7 `habbo_skin_border_slot_xml` (border style 3, 3px caps) tinted #e0e0e0 for
+  layout_single_bundle.
+- `button-group-{left,center,right}-{default,selected,hover}.png`: 7x21 `habbo_skin_button_group_*_xml` templates
+  (3px caps) for the layout_spaces_new tabs.
+
+Catalog Bc group slices, rendered with `/tmp/catlay/tools/skinpng.py` and checked as nine-slices:
+- `border-colorless-d7d7cf.png`: 13x13 `habbo_skin_border_colorless_xml` (border style 2, 6px caps) tinted #d7d7cf for
+  the layout_builders_club_loyalty / layout_builders_club_addons rows.
+- `border-slot-afafa9.png`: 7x7 `habbo_skin_border_slot_xml` (border style 3, 3px caps) tinted #afafa9 for the headers
+  of those rows.
+
+Catalog Pets group slices, rendered with `/tmp/catlay/tools/skinpng.py` and checked as nine-slices:
+- `border-colorless-8899a2.png`: 13x13 `habbo_skin_border_colorless_xml` (border style 2, 6px caps) tinted #8899a2 for
+  the layout_pets2 and layout_pets3 panel.
+- `border-4-cccccc.png`: 13x13 `habbo_skin_border_4_xml` (border style 4, 6px caps) tinted #cccccc for the layout_pets
+  name box.
+- `border-6-{e4c57d,abc6d7,89d3c8}.png`: 17x17 `habbo_skin_border_6_xml` (8px caps) tinted like
+  HabboCatalogUtils.showPriceOnProduct colours the priceDisplayWidget: credits only, duckets only, other points only.
+- `droplist-frame.png`: 7x7 nine-slice (3px caps) of `habbo_skin_droplist_xml` template `droplist_frame_default` on
+  `habbo_blue_skin_png` (corners at (164,0), (185,0), (164,19), centre (167,3)). Droplist style 3 has no registry entry,
+  so it falls back to style 0 (SkinContainer). Used by the catalog guild selector.
+- `droplist-arrow.png`: the 16x16 droplist `arrow` entity, atlas (168,1), drawn at (width - 21, 2).
+- `border-colorless-5ea1ab.png`: 13x13 `habbo_skin_border_colorless_xml` (border style 2, 6px caps) tinted #5ea1ab for
+  the guildSelectorWidget members_only box.
+
+Catalog market group slices (marketplace and recycler pages):
+- `illumina-border-etched.png`: the 9x9 `illumina_light_border_etched_png` atlas itself. `illumina_light_skin_border_xml`
+  (border style 100) maps its 3px pieces 1:1 and draws no centre, so it is a 3px border-image without `fill`.
+- `button-shiny-{default,hover,pressed,disabled}-h{24,25,30}.png` and `button-shiny-green-*-h30.png`: 11px wide
+  `habbo_skin_button_shiny_default_xml` renders at 24, 25 and 30px (green: 0x00aa00, button style 6). The 22px skins
+  stretch their 12px middle rows; a skin at the button's own height keeps every row as AIR draws it.
+- `border-slot-888888.png`: 7x7 `habbo_skin_border_slot_xml` (border style 3, 3px caps) tinted #888888 for the recycler
+  disabled_border.

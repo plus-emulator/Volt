@@ -1,0 +1,278 @@
+/* AIR catalog layouts (Bc group). */
+
+/*
+ * ---- layout_recolorable_furniture (360x515) ----
+ * The page window takes the container height, so on the 460px page everything below the preview follows the XML params:
+ * itemGridWidget (params 2064) stretches and recolorableFurnitureWidget (params 1040) moves by 460 - 515 = -55.
+ * Anchoring both to the bottom keeps the XML positions on a 515px page and the shifted ones on a 460px page.
+ */
+.volt-catalog-default-layout.is-recolorable .volt-catalog-product-view {
+    height: 150px;
+}
+
+/* productViewWidget is 150px high, so the room preview must not stretch to the default 240px. */
+.volt-catalog-default-layout.is-recolorable .volt-catalog-offer-preview > .shadow-room-previewer {
+    height: 150px !important;
+    min-height: 150px !important;
+    max-height: 150px !important;
+}
+
+/* itemGridWidget (0, 155, 360x116 on 515): ends 244px above the page bottom. */
+.volt-catalog-default-layout.is-recolorable.has-colour-grid .volt-catalog-grid-shell {
+    top: 155px;
+    bottom: 244px;
+    height: auto;
+}
+
+/* recolorableFurnitureWidget (0, 275, 360x174 on 515): ends 66px above the page bottom, so y 220 on 460. */
+.volt-catalog-recolorable-palette {
+    position: absolute;
+    bottom: 66px;
+    left: 0;
+    width: 360px;
+    height: 174px;
+}
+
+/* The caption text window (0, 0, 182x17): u_small in black. */
+.volt-catalog-recolorable-palette-caption {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+/* palette (0, 22, 360x152): border style 6 at blend 0.5, colourGrid at (3, 3) 354x146. */
+.volt-catalog-recolorable-palette .volt-catalog-colour-grid-shell {
+    top: 22px;
+    left: 0;
+    width: 360px;
+    height: 152px;
+    padding: 3px;
+}
+
+/* ---- layout_builders_club_frontpage / _loyalty / _addons (360x508) ----
+ * The page window takes the container height (460 in the tabbed catalogue, 515 in the Builders Club one), so the parts
+ * with params 1040 / 2064 are anchored to the page bottom. */
+.volt-bc-layout {
+    position: relative;
+    width: 360px;
+    height: 460px;
+    overflow: hidden;
+    color: #000;
+    font-family: HabboAirUbuntu, Ubuntu, sans-serif;
+    font-size: 12px;
+}
+
+/* catalog_ubuntu layoutContainer (500 high) in a window HabboCatalog makes 15px taller for the Builders Club. */
+.volt-catalog-window.is-builder .volt-bc-layout {
+    height: 515px;
+}
+
+.volt-bc-layout > * {
+    position: absolute !important;
+}
+
+/* ctlg_description: html, style 3 (u_regular, black), no mouse wheel. */
+.volt-bc-description {
+    top: 28px;
+    left: 15px;
+    width: 276px;
+    height: 80px;
+    overflow: hidden;
+    line-height: 15px;
+    overflow-wrap: break-word;
+}
+
+.volt-bc-description.is-frontpage {
+    top: 10px;
+    width: 330px;
+    height: 380px;
+}
+
+/* builderSubscriptionWidget (0, 408, 360x100 on 508): params 1040, so it sits on the page bottom. */
+.volt-bc-subscription {
+    bottom: 0;
+    left: 0;
+    width: 360px;
+    height: 100px;
+}
+
+.volt-bc-subscription > .volt-bc-button.is-big {
+    top: 40px;
+    left: 90px;
+}
+
+.volt-bc-subscription > .volt-bc-button.is-try {
+    top: 60px;
+    left: 25px;
+}
+
+.volt-bc-subscription > .volt-bc-button.is-sms {
+    top: 20px;
+    left: 195px;
+}
+
+/* updateSubscriptionInfo: without try_button the sms button takes its place. */
+.volt-bc-subscription > .volt-bc-button.is-sms.is-moved {
+    top: 60px;
+    left: 25px;
+}
+
+/* static_bitmaps bc_bottom (290, 316) under the list and bc_top (249, 21) over everything, at their own size. */
+.volt-bc-art {
+    pointer-events: none;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-bc-art.is-top {
+    top: 21px;
+    left: 249px;
+}
+
+.volt-bc-art.is-bottom {
+    top: 316px;
+    left: 290px;
+}
+
+/* The widget container (14, 108) and its list (287x360 on 508, params 2064): ends 40px above the page bottom. */
+.volt-bc-offers {
+    top: 108px;
+    bottom: 40px;
+    left: 14px;
+    width: 287px;
+}
+
+/* scrollable_itemlist_vertical, spacing 12. */
+.volt-bc-offer-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Row border at x 1: border style 2 (habbo_skin_border_colorless) tinted 0xd7d7cf, 269x77. Children are placed from
+   inside its 6px border. */
+.volt-bc-offer {
+    position: relative;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    width: 269px;
+    height: 77px;
+    margin-left: 1px;
+    border: 6px solid transparent;
+    border-image: url("../../assets/images/habbo-skin/slices/border-colorless-d7d7cf.png") 6 fill / 6px stretch;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-bc-offer > * {
+    position: absolute !important;
+}
+
+/* Header (5, 5, 260x25): border style 3 (habbo_skin_border_slot) tinted 0xafafa9, 3px caps. */
+.volt-bc-offer-header {
+    top: -1px;
+    left: -1px;
+    box-sizing: border-box;
+    width: 260px;
+    height: 25px;
+    border: 3px solid transparent;
+    border-image: url("../../assets/images/habbo-skin/slices/border-slot-afafa9.png") 3 fill / 3px stretch;
+}
+
+.volt-bc-offer-header > * {
+    position: absolute !important;
+}
+
+/* static_bitmap icon_193 at (8, 5) of the header. */
+.volt-bc-offer-icon {
+    top: 2px;
+    left: 5px;
+    width: 15px;
+    height: 15px;
+}
+
+/* item_header (33, 2): u_headline_medium in white, auto size left. */
+.volt-bc-offer-name {
+    top: -1px;
+    left: 30px;
+}
+
+/* item_cost_box / the price itemlist_horizontal at (9, 45). */
+.volt-bc-offer-price {
+    top: 39px;
+    left: 3px;
+}
+
+/* Addons: item_price (u_headline_small), the 15x15 pursearea icon at y 3, then the diamond pair, spacing 3. */
+.volt-bc-offer-price.is-addons {
+    display: flex;
+    align-items: flex-start;
+    gap: 3px;
+}
+
+.volt-bc-offer-currency {
+    width: 15px;
+    height: 15px;
+    margin-top: 3px;
+}
+
+/* item_buy (123, 37, 142x35). */
+.volt-bc-offer > .volt-bc-offer-buy {
+    top: 31px;
+    left: 117px;
+}
+
+/* trial_warning (0, 360 of the widget on 508): u_bold, 0xcc0000, 40px above the page bottom. */
+.volt-bc-trial-warning {
+    top: calc(100% - 40px);
+    left: 14px;
+}
+
+/* button_thick style 5 (habbo_skin_button_shiny_thick, 5px caps) multiplied by the window colour. */
+.volt-catalog-window .volt-bc-button {
+    position: absolute !important;
+    box-sizing: border-box;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    border: 5px solid transparent;
+    border-image: var(--bc-button-default) 5 fill / 5px stretch;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    cursor: pointer;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-catalog-window .volt-bc-button:hover:not(:disabled) {
+    border-image-source: var(--bc-button-hover);
+}
+
+.volt-catalog-window .volt-bc-button:active:not(:disabled) {
+    border-image-source: var(--bc-button-pressed);
+}
+
+.volt-catalog-window .volt-bc-button:disabled {
+    border-image-source: var(--bc-button-disabled);
+    cursor: default;
+}
+
+.volt-bc-button.is-blue {
+    --bc-button-default: url("../../assets/images/catalog/air/builder/button-shiny-thick-0a9bc5-default.png");
+    --bc-button-hover: url("../../assets/images/catalog/air/builder/button-shiny-thick-0a9bc5-hover.png");
+    --bc-button-pressed: url("../../assets/images/catalog/air/builder/button-shiny-thick-0a9bc5-pressed.png");
+    --bc-button-disabled: url("../../assets/images/catalog/air/builder/button-shiny-thick-0a9bc5-disabled.png");
+}
+
+.volt-bc-button.is-yellow {
+    --bc-button-default: url("../../assets/images/catalog/air/builder/button-shiny-thick-dda100-default.png");
+    --bc-button-hover: url("../../assets/images/catalog/air/builder/button-shiny-thick-dda100-hover.png");
+    --bc-button-pressed: url("../../assets/images/catalog/air/builder/button-shiny-thick-dda100-pressed.png");
+    --bc-button-disabled: url("../../assets/images/catalog/air/builder/button-shiny-thick-dda100-disabled.png");
+}
+
+/* The caption field spans the button; its inline top is measured from the button's outer edge. */
+.volt-bc-button > .volt-bc-button-caption {
+    position: absolute !important;
+    left: -5px;
+    margin-top: -5px;
+}

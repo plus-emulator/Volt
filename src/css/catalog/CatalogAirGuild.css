@@ -1,0 +1,357 @@
+/* AIR catalog layouts (Guild group). */
+
+/* AIR button style 3 (habbo_skin_button_shiny_xml): 5px caps, caption button_shiny_regular with 8/2/8/3 margins, centred. */
+.volt-catalog-window .volt-catalog-guild-shiny-button {
+    position: absolute;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    margin: 0;
+    padding: 0 3px;
+    border: 5px solid transparent;
+    border-image: var(--habbo-skin-shiny) 5 fill / 5px stretch;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    cursor: pointer;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-catalog-window .volt-catalog-guild-shiny-button:hover {
+    border-image-source: var(--habbo-skin-shiny-hover);
+}
+
+.volt-catalog-window .volt-catalog-guild-shiny-button:active {
+    border-image-source: var(--habbo-skin-shiny-pressed);
+}
+
+/*
+ * AIR layout_guild_frontpage (360x460). Text rasters carry Flash's 2px gutter, so they sit at the text window's own x,y.
+ */
+.volt-catalog-guild-frontpage {
+    position: relative;
+    width: 360px;
+    height: 460px;
+    overflow: hidden;
+}
+
+.volt-catalog-guild-frontpage > * {
+    position: absolute !important;
+}
+
+/* ctlg_special_txt (15, 32): u_headline_medium, auto size left. */
+.volt-catalog-guild-frontpage-title {
+    top: 32px;
+    left: 15px;
+}
+
+/* ctlg_description (15, 76, 335 wide): u_regular, word wrap, auto size left. */
+.volt-catalog-guild-frontpage-description {
+    top: 76px;
+    left: 15px;
+}
+
+/* ctlg_teaserimg_1 (0, 288, 359x163): the image keeps its size, centred and clipped. */
+.volt-catalog-guild-frontpage-image {
+    top: 288px;
+    left: 0;
+    width: 359px;
+    height: 163px;
+    overflow: hidden;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+/* guildSelectorWidget (170x85), shared by layout_guild_custom_furni and layout_guild_forum. */
+.volt-catalog-guild-selector {
+    position: absolute;
+    width: 170px;
+    height: 85px;
+}
+
+/* members_only: border style 2 (habbo_skin_border_colorless_xml) in 0x5ea1ab, 6px caps. Children sit inside the border. */
+.volt-catalog-guild-members-only {
+    position: absolute;
+    inset: 0;
+    border: 6px solid transparent;
+    border-image: url('../../assets/images/habbo-skin/slices/border-colorless-5ea1ab.png') 6 fill / 6px stretch;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+/* The text at (7, 7), 147 wide, word wrap. */
+.volt-catalog-guild-members-only-text {
+    position: absolute !important;
+    top: 1px;
+    left: 1px;
+}
+
+/* find_groups_button (-23, 55, 210x25): button style 3, wider than the box on both sides. */
+.volt-catalog-window .volt-catalog-guild-find-groups {
+    top: 49px;
+    left: -29px;
+    width: 210px;
+    height: 25px;
+}
+
+/* guild_selector droplist (0, 0, 170x26): droplist_frame, 3px caps, the arrow at (width - 21, 2). */
+.volt-catalog-guild-droplist {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 170px;
+    height: 26px;
+}
+
+.volt-catalog-guild-droplist-frame {
+    position: absolute;
+    top: 0;
+    left: 0;
+    box-sizing: border-box;
+    width: 170px;
+    height: 26px;
+    border: 3px solid transparent;
+    border-image: url('../../assets/images/habbo-skin/slices/droplist-frame.png') 3 fill / 3px stretch;
+    cursor: pointer;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-catalog-guild-droplist-frame::after {
+    content: '';
+    position: absolute;
+    top: -1px;
+    right: 2px;
+    width: 16px;
+    height: 16px;
+    background: url('../../assets/images/habbo-skin/slices/droplist-arrow.png') no-repeat;
+}
+
+.volt-catalog-guild-droplist-frame.is-open {
+    z-index: 10;
+}
+
+/* _DROPLIST_ITEMLIST (6, 2): the selected item when closed, every item when open (each in a 158px droplist_item). */
+.volt-catalog-guild-droplist-value,
+.volt-catalog-guild-droplist-list {
+    position: absolute;
+    top: -1px;
+    left: 3px;
+}
+
+/* The listed items are drawn over the frame's arrow. */
+.volt-catalog-guild-droplist-list {
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.volt-catalog-guild-droplist-option {
+    position: relative;
+    display: block;
+    width: 158px;
+    height: 22px;
+}
+
+/* guild_selector_widget_item (133x22): guild_name at (0, 4). */
+.volt-catalog-guild-droplist-item {
+    position: relative;
+    display: block;
+    width: 133px;
+    height: 22px;
+}
+
+.volt-catalog-guild-droplist-name {
+    position: absolute !important;
+    top: 4px;
+    left: 0;
+    max-width: 110px;
+    overflow: hidden;
+}
+
+/* guild_colors (112, 4, 21x14): black, colour A in x 1-10 and colour B in x 11-19, rows 1-12. */
+.volt-catalog-guild-colors {
+    position: absolute;
+    top: 4px;
+    left: 112px;
+    display: flex;
+    box-sizing: border-box;
+    width: 21px;
+    height: 14px;
+    padding: 1px;
+    background: #000;
+}
+
+.volt-catalog-guild-colors > span {
+    display: block;
+    width: 10px;
+    height: 12px;
+}
+
+.volt-catalog-guild-colors > span + span {
+    width: 9px;
+}
+
+/* buyGuildWidget (49, 231) holds start_guild_purchase at (19, 2): 28px high, sized to its caption, at least 190px wide. */
+.volt-catalog-window .volt-catalog-guild-frontpage-button {
+    top: 233px;
+    left: 68px;
+    min-width: 190px;
+    height: 28px;
+}
+
+/*
+ * AIR layout_guild_forum, laid out at the page's 460px height: params 1024 moves a window up by 202, params 2049 shrinks it.
+ */
+.volt-catalog-guild-forum {
+    position: relative;
+    width: 360px;
+    height: 460px;
+    overflow: hidden;
+}
+
+.volt-catalog-guild-forum > * {
+    position: absolute !important;
+}
+
+/* ctlg_description (0, 10, 260x326): html, u_regular, word wrap, no scrolling. */
+.volt-catalog-guild-forum-text {
+    top: 10px;
+    left: 0;
+    width: 260px;
+    height: 326px;
+    overflow: hidden;
+}
+
+/* The fixed teaser static_bitmap (254, 35, 106x200). */
+.volt-catalog-guild-forum-teaser {
+    top: 35px;
+    left: 254px;
+    max-width: none;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+/*
+ * simplePriceWidget (48, 341, 47x28) clips the priceDisplayWidget, which SimplePriceCatalogWidget leaves at its own (12, 9)
+ * because the widget has no product image to align to.
+ */
+.volt-catalog-guild-forum-price {
+    top: 341px;
+    left: 48px;
+    width: 47px;
+    height: 28px;
+    overflow: hidden;
+}
+
+.volt-catalog-guild-forum-price > .volt-catalog-price-frame {
+    position: absolute;
+    top: 9px;
+    left: 12px;
+}
+
+/* guildBadgeViewWidget (271, 350, 40x40). */
+.volt-catalog-guild-forum-badge {
+    top: 350px;
+    left: 271px;
+    width: 40px;
+    height: 40px;
+}
+
+/* guildForumSelectorWidget (90, 350). */
+.volt-catalog-guild-forum > .volt-catalog-guild-forum-selector {
+    top: 350px;
+    left: 90px;
+}
+
+/* warningWidget (0, 398, 360x32): warning_text in 0x6f0000, word wrap, clipped by the widget. */
+.volt-catalog-guild-forum-warning {
+    top: 398px;
+    left: 0;
+    width: 360px;
+    height: 32px;
+    overflow: hidden;
+}
+
+/* purchaseWidget (0, 430, 360x30): NO_GIFT_OPTION, so only the buy button. */
+.volt-catalog-guild-forum-purchase {
+    top: 430px;
+    left: 0;
+    width: 360px;
+    height: 30px;
+}
+
+.volt-catalog-guild-forum-purchase > .volt-catalog-offer-actions {
+    justify-content: flex-end;
+}
+
+/* AIR layout_guild_custom_furni (360x460). */
+.volt-catalog-guild-furni {
+    position: relative;
+    width: 360px;
+    height: 460px;
+    overflow: hidden;
+}
+
+/* productViewWidget (0, 0, 360x240): the shared product view; the teaser image centred until an offer is selected. */
+.volt-catalog-guild-furni-product {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 360px;
+    height: 240px;
+    overflow: hidden;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-catalog-guild-furni-product > .volt-catalog-offer-preview {
+    width: 360px;
+    height: 240px;
+}
+
+/* HabboCatalogUtils.showPriceOnProduct: the price display 6px in from the right and bottom of the room canvas. */
+.volt-catalog-guild-furni-price {
+    position: absolute;
+    right: 6px;
+    bottom: 7px;
+    z-index: 4;
+}
+
+/* specialInfoWidget (94, 18, 142x73): ctlg_special_img pivoted bottom centre, ctlg_special_txt at (2, 28, 139 wide). */
+.volt-catalog-guild-furni-special {
+    position: absolute;
+    top: 18px;
+    left: 94px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    width: 142px;
+    height: 73px;
+    overflow: hidden;
+}
+
+.volt-catalog-guild-furni-special-text {
+    position: absolute !important;
+    top: 28px;
+    left: 2px;
+}
+
+/* guildBadgeViewWidget (307, 138, 40x40), over the product view. */
+.volt-catalog-guild-furni-badge {
+    position: absolute !important;
+    top: 138px;
+    left: 307px;
+    z-index: 5;
+    width: 40px;
+    height: 40px;
+}
+
+/* itemGridWidget (0, 245, 360x125). */
+.volt-catalog-guild-furni > .volt-catalog-guild-furni-grid {
+    bottom: auto;
+    height: 125px;
+}
+
+/* guildSelectorWidget (90, 375). */
+.volt-catalog-guild-furni > .volt-catalog-guild-furni-selector {
+    top: 375px;
+    left: 90px;
+}

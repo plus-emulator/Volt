@@ -1,7 +1,7 @@
 import { CreateLinkEvent } from '@volt/renderer';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DispatchUiEvent, SendMessageComposer } from '../../../../../api';
+import { DispatchUiEvent, GetConfigurationValue, OpenUrl, SendMessageComposer } from '../../../../../api';
 import {
     useCatalogActions,
     useCatalogData,
@@ -54,6 +54,7 @@ vi.mock('../../../../../common', () => ({
     Column: ({ children, ...props }: any) => <div {...props}>{children}</div>,
     Flex: ({ alignItems: _alignItems, children, ...props }: any) => <div {...props}>{children}</div>,
     Grid: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+    LayoutActivityPointIcon: () => <span />,
     LayoutCurrencyIcon: () => <span />,
     LayoutLoadingSpinnerView: () => <span />,
     VoltCardContentView: ({ children, classNames = [], overflow: _overflow, ...props }: any) => (
@@ -199,13 +200,15 @@ describe('club purchase layout', () => {
         expect(screen.getByText('catalog.club.buy.header.none')).toBeInTheDocument();
     });
 
-    it('opens the club center through the existing plain-text link', () => {
+    it('opens the link.format.club page from the club link', () => {
         setCurrentPage('club_buy');
+        vi.mocked(GetConfigurationValue).mockImplementation(((key: string, fallback: string) => (key === 'link.format.club' ? 'https://club.example' : fallback)) as any);
         renderLayout('club_buy');
 
         fireEvent.click(screen.getByRole('button', { name: 'catalog.club.buy.link' }));
 
-        expect(CreateLinkEvent).toHaveBeenCalledWith('habboUI/open/hccenter');
+        expect(OpenUrl).toHaveBeenCalledWith('https://club.example');
+        expect(CreateLinkEvent).not.toHaveBeenCalled();
     });
 
     it('submits an offer from its own buy button once', async () => {

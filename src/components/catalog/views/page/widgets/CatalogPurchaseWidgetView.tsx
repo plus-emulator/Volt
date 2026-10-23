@@ -46,6 +46,10 @@ interface CatalogPurchaseWidgetViewProps {
     disabled?: boolean;
     noGiftOption?: boolean;
     purchaseCallback?: () => void;
+    /** Checked when Buy is pressed, before the confirmation opens; false stops the purchase (the room ad checks in PurchaseCatalogWidget.onPurchase). */
+    canStartPurchase?: () => boolean;
+    /** AIR PURCHASE_OVERRIDE: Buy and Gift call this instead of opening the confirmation; `openConfirmation` carries on (pet name approval). */
+    purchaseOverride?: (isGift: boolean, openConfirmation: () => void) => void;
 }
 
 /** buy_button's purchase_label: bold white text centred in a 160px field at (0, 3), so on sub-pixel pens. */
@@ -54,7 +58,7 @@ const BuyCaption: FC<{ text: string }> = ({ text }) => (
 );
 
 export const CatalogPurchaseWidgetView: FC<CatalogPurchaseWidgetViewProps> = (props) => {
-    const { disabled = false, noGiftOption = false, purchaseCallback = null } = props;
+    const { disabled = false, noGiftOption = false, purchaseCallback = null, canStartPurchase = null, purchaseOverride = null } = props;
     const habbicons = useHabbiconCatalog();
     const [purchaseWillBeGift, setPurchaseWillBeGift] = useState(false);
     const [purchaseState, setPurchaseState] = useState(CatalogPurchaseState.NONE);
@@ -372,19 +376,26 @@ export const CatalogPurchaseWidgetView: FC<CatalogPurchaseWidgetViewProps> = (pr
                         className={purchaseButtonClassNames.join(' ')}
                         disabled={disabled || (purchaseOptions.extraParamRequired && (!purchaseOptions.extraData || !purchaseOptions.extraData.length))}
                         onClick={() => {
-                            if (catalogSkipPurchaseConfirmation && !isLimitedEditionOffer) {
-                                confirmationOpenRef.current = false;
-                                setPurchaseWillBeGift(false);
-                                purchase();
+                            if (canStartPurchase && !canStartPurchase()) return;
 
-                                return;
-                            }
+                            const openConfirmation = () => {
+                                if (catalogSkipPurchaseConfirmation && !isLimitedEditionOffer) {
+                                    confirmationOpenRef.current = false;
+                                    setPurchaseWillBeGift(false);
+                                    purchase();
 
-                            if (!showInsufficientBalanceAlert()) {
-                                confirmationOpenRef.current = true;
-                                setPurchaseWillBeGift(false);
-                                setPurchaseState(CatalogPurchaseState.CONFIRM);
-                            }
+                                    return;
+                                }
+
+                                if (!showInsufficientBalanceAlert()) {
+                                    confirmationOpenRef.current = true;
+                                    setPurchaseWillBeGift(false);
+                                    setPurchaseState(CatalogPurchaseState.CONFIRM);
+                                }
+                            };
+
+                            if (purchaseOverride) purchaseOverride(false, openConfirmation);
+                            else openConfirmation();
                         }}
                     >
                         <BuyCaption text={LocalizeText('catalog.purchase_confirmation.' + (currentOffer.isRentOffer ? 'rent' : 'buy'))} />
@@ -410,11 +421,16 @@ export const CatalogPurchaseWidgetView: FC<CatalogPurchaseWidgetViewProps> = (pr
                         (purchaseOptions.extraParamRequired && (!purchaseOptions.extraData || !purchaseOptions.extraData.length))
                     }
                     onClick={() => {
-                        if (showInsufficientBalanceAlert()) return;
+                        const openConfirmation = () => {
+                            if (showInsufficientBalanceAlert()) return;
 
-                        confirmationOpenRef.current = true;
-                        setPurchaseWillBeGift(true);
-                        setPurchaseState(CatalogPurchaseState.CONFIRM);
+                            confirmationOpenRef.current = true;
+                            setPurchaseWillBeGift(true);
+                            setPurchaseState(CatalogPurchaseState.CONFIRM);
+                        };
+
+                        if (purchaseOverride) purchaseOverride(true, openConfirmation);
+                        else openConfirmation();
                     }}
                 >
                     {/* gift_button: button style 3, a button_shiny_regular label centred on the 170px button. */}

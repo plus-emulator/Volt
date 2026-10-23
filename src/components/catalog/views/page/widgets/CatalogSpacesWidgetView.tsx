@@ -1,115 +1,106 @@
-import { FC, useEffect, useRef, useState } from 'react';
+import { FC, useEffect, useMemo, useState } from 'react';
 import { IPurchasableOffer, LocalizeText, Offer, ProductTypeEnum } from '../../../../../api';
-import { AutoGrid, AutoGridProps, Button } from '../../../../../common';
-import { useCatalogData, useCatalogUiState } from '../../../../../hooks';
-import { CatalogGridOfferView } from '../common/CatalogGridOfferView';
+import { NativeText } from '../../../../../common/native-text/NativeText';
+import { getCatalogGridMetrics, useCatalogData, useCatalogDisplayPreferences, useCatalogUiState } from '../../../../../hooks';
+import { CatalogItemGridWidgetView } from './CatalogItemGridWidgetView';
 
-interface CatalogSpacesWidgetViewProps extends AutoGridProps {}
+/** SpacesNewCatalogWidget: the groups in tab order (group.walls, group.floors, group.views) and their furniture class names. */
+const SPACES_GROUPS = [
+    { tab: 'walls', className: 'wallpaper', side: 'left' },
+    { tab: 'floors', className: 'floor', side: 'center' },
+    { tab: 'views', className: 'landscape', side: 'right' }
+] as const;
 
-const SPACES_GROUP_NAMES = ['floors', 'walls', 'views'];
-
-export const CatalogSpacesWidgetView: FC<CatalogSpacesWidgetViewProps> = (props) => {
-    const { columnCount = 5, children = null, ...rest } = props;
-    const [groupedOffers, setGroupedOffers] = useState<IPurchasableOffer[][]>(null);
-    const [selectedGroupIndex, setSelectedGroupIndex] = useState(-1);
-    const [selectedOfferForGroup, setSelectedOfferForGroup] = useState<IPurchasableOffer[]>(null);
+/**
+ * AIR spacesNewWidget (embedded at 0,245 360x180 in layout_spaces_new): the "groups" selector (button_group_left/center/right,
+ * style 100, 21 high, il_button captions), a border style 6 at blend 0.5 (0,25 360x155) and the item grid at 2,27.
+ * Each group keeps its own selected offer; the first group (walls) is shown first.
+ */
+export const CatalogSpacesWidgetView: FC<{}> = () => {
+    const [selectedGroupIndex, setSelectedGroupIndex] = useState(0);
+    const [selectedOfferForGroup, setSelectedOfferForGroup] = useState<IPurchasableOffer[]>([null, null, null]);
     const { currentPage = null, currentOffer = null } = useCatalogData();
     const { setCurrentOffer = null, setPurchaseOptions = null } = useCatalogUiState();
-    const elementRef = useRef<HTMLDivElement>(null);
+    const { density = 'standard', showTilePrices = true } = useCatalogDisplayPreferences();
+    const gridMetrics = getCatalogGridMetrics(density);
 
-    const setSelectedOffer = (offer: IPurchasableOffer) => {
-        if (!offer) return;
+    // createOfferGroups: single and multi offers of wall or floor items, grouped by furniture class name.
+    const groupedOffers = useMemo(() => {
+        const groups: IPurchasableOffer[][] = SPACES_GROUPS.map(() => []);
 
-        setSelectedOfferForGroup((prevValue) => {
-            const newValue = [...prevValue];
-
-            newValue[selectedGroupIndex] = offer;
-
-            return newValue;
-        });
-    };
-
-    useEffect(() => {
-        if (!currentPage) return;
-
-        const groupedOffers: IPurchasableOffer[][] = [[], [], []];
-
-        for (const offer of currentPage.offers) {
+        for (const offer of currentPage?.offers ?? []) {
             if (offer.pricingModel !== Offer.PRICING_MODEL_SINGLE && offer.pricingModel !== Offer.PRICING_MODEL_MULTI) continue;
 
             const product = offer.product;
 
-            if (!product || (product.productType !== ProductTypeEnum.WALL && product.productType !== ProductTypeEnum.FLOOR) || !product.furnitureData) continue;
+            if (!product?.furnitureData || (product.productType !== ProductTypeEnum.WALL && product.productType !== ProductTypeEnum.FLOOR)) continue;
 
-            const className = product.furnitureData.className;
+            const index = SPACES_GROUPS.findIndex((group) => group.className === product.furnitureData.className);
 
-            switch (className) {
-                case 'floor':
-                    groupedOffers[0].push(offer);
-                    break;
-                case 'wallpaper':
-                    groupedOffers[1].push(offer);
-                    break;
-                case 'landscape':
-                    groupedOffers[2].push(offer);
-                    break;
-            }
+            if (index >= 0) groups[index].push(offer);
         }
 
-        setGroupedOffers(groupedOffers);
-        setSelectedGroupIndex(0);
-        setSelectedOfferForGroup([groupedOffers[0][0], groupedOffers[1][0], groupedOffers[2][0]]);
+        return groups;
     }, [currentPage]);
 
     useEffect(() => {
-        if (selectedGroupIndex === -1 || !selectedOfferForGroup) return;
+        setSelectedGroupIndex(0);
+        setSelectedOfferForGroup(groupedOffers.map((offers) => offers[0] ?? null));
+    }, [groupedOffers]);
 
-        setCurrentOffer(selectedOfferForGroup[selectedGroupIndex]);
+    // switchCategory and selectIndex: showing a group selects its remembered offer.
+    useEffect(() => {
+        const offer = selectedOfferForGroup[selectedGroupIndex];
+
+        if (offer) setCurrentOffer(offer);
     }, [selectedGroupIndex, selectedOfferForGroup, setCurrentOffer]);
 
+    // A pick in the grid becomes the remembered offer of the shown group.
     useEffect(() => {
-        if (selectedGroupIndex === -1 || !selectedOfferForGroup || !currentOffer) return;
+        if (!currentOffer || !groupedOffers[selectedGroupIndex].includes(currentOffer)) return;
 
-        setPurchaseOptions((prevValue) => {
-            const newValue = { ...prevValue };
+        setSelectedOfferForGroup((previous) => {
+            if (previous[selectedGroupIndex] === currentOffer) return previous;
 
-            newValue.extraData = selectedOfferForGroup[selectedGroupIndex].product.extraParam;
-            newValue.extraParamRequired = true;
+            const next = [...previous];
 
-            return newValue;
+            next[selectedGroupIndex] = currentOffer;
+
+            return next;
         });
-    }, [currentOffer, selectedGroupIndex, selectedOfferForGroup, setPurchaseOptions]);
+    }, [currentOffer, groupedOffers, selectedGroupIndex]);
 
+    // select: SetExtraPurchaseParameterEvent with the product's extra parameter.
     useEffect(() => {
-        if (elementRef && elementRef.current) elementRef.current.scrollTop = 0;
-    }, [selectedGroupIndex]);
+        if (!currentOffer) return;
 
-    if (!groupedOffers || selectedGroupIndex === -1) return null;
-
-    const offers = groupedOffers[selectedGroupIndex];
+        setPurchaseOptions((previous) => ({ ...previous, extraData: currentOffer.product.extraParam, extraParamRequired: true }));
+    }, [currentOffer, setPurchaseOptions]);
 
     return (
-        <>
-            <div className="relative inline-flex align-middle">
-                {SPACES_GROUP_NAMES.map((name, index) => (
-                    <Button key={index} active={selectedGroupIndex === index} onClick={(event) => setSelectedGroupIndex(index)}>
-                        {LocalizeText(`catalog.spaces.tab.${name}`)}
-                    </Button>
+        <div className="volt-air-spaces-widget">
+            <div className="volt-air-spaces-groups" role="tablist">
+                {SPACES_GROUPS.map((group, index) => (
+                    <button
+                        key={group.tab}
+                        aria-selected={selectedGroupIndex === index}
+                        className={`volt-air-spaces-group is-${group.side} ${selectedGroupIndex === index ? 'is-selected' : ''}`}
+                        role="tab"
+                        type="button"
+                        onClick={() => setSelectedGroupIndex(index)}
+                    >
+                        <NativeText transparent background={0xffffff} text={LocalizeText(`catalog.spaces.tab.${group.tab}`)} textStyle="il_button" />
+                    </button>
                 ))}
             </div>
-            <AutoGrid columnCount={columnCount} innerRef={elementRef} {...rest}>
-                {offers &&
-                    offers.length > 0 &&
-                    offers.map((offer, index) => (
-                        <CatalogGridOfferView
-                            key={index}
-                            itemActive={currentOffer && currentOffer === offer}
-                            offer={offer}
-                            selectOffer={(offer) => setSelectedOffer(offer)}
-                        />
-                    ))}
-                {children}
-            </AutoGrid>
-        </>
+            <div className="volt-air-spaces-grid volt-catalog-grid-shell">
+                <CatalogItemGridWidgetView
+                    className={`volt-catalog-grid volt-catalog-grid-density-${density}`}
+                    offers={groupedOffers[selectedGroupIndex]}
+                    showPrices={showTilePrices}
+                    {...gridMetrics}
+                />
+            </div>
+        </div>
     );
 };

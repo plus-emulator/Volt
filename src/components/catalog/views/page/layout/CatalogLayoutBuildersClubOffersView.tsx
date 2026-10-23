@@ -1,7 +1,10 @@
 import { NotEnoughBalanceMessageEvent, PurchaseFromCatalogComposer } from '@volt/renderer';
 import { FC, useCallback, useRef, useState } from 'react';
 import { CatalogPurchaseState, GetConfigurationValue, LocalizeText, OpenUrl, SanitizeHtml, SendMessageComposer } from '../../../../../api';
-import { LayoutCurrencyIcon, LayoutLoadingSpinnerView } from '../../../../../common';
+import creditsIcon from '../../../../../assets/images/catalog/air/builder/pursearea-credits-icon.png';
+import diamondIcon from '../../../../../assets/images/catalog/air/builder/pursearea-diamond-icon.png';
+import { ClassicScrollAreaView } from '../../../../../common';
+import { NativeText } from '../../../../../common/native-text/NativeText';
 import { CatalogEvent, CatalogPurchasedEvent, CatalogPurchaseFailureEvent } from '../../../../../events';
 import {
     useCatalogActions,
@@ -13,13 +16,21 @@ import {
     useUiEvent
 } from '../../../../../hooks';
 import { CatalogProductlessOffer } from '../../../../../hooks/catalog/useCatalogQueries';
-import { CatalogClubPriceFieldView } from './CatalogClubPriceFieldView';
 import { CatalogClubPurchaseConfirmView } from './CatalogClubPurchaseConfirmView';
 import { CatalogLayoutProps } from './CatalogLayout.types';
-import { BUILDERS_CLUB_ADDONS_LAYOUT, CatalogBuildersClubStatusView, getBuildersClubOfferName, useBuildersClubSecondsLeft } from './buildersClub.helpers';
+import { CatalogPriceBoxView } from '../widgets/CatalogPriceBoxView';
+import { BUILDERS_CLUB_ADDONS_LAYOUT, BuildersClubButton, getBuildersClubOfferName, useBuildersClubSecondsLeft } from './buildersClub.helpers';
 
-// layout_builders_club_loyalty / layout_builders_club_addons (AIR WIN63-202610151745-318700621): ctlg_description, then one
-// row per page offer with item_header, the price and item_buy. BuilderLoyaltyCatalogWidget.as:20-58, BuilderAddonsCatalogWidget.as:22-70.
+/** The page colour, the row fill (border style 2 tinted 0xd7d7cf) and the row header (border style 3 tinted 0xafafa9). */
+const PAGE_COLOR = 0xe9e9e1;
+const ROW_COLOR = 0xd7d7cf;
+const HEADER_COLOR = 0xafafa9;
+
+/**
+ * AIR layout_builders_club_loyalty / layout_builders_club_addons (360x508): ctlg_description (page text 0) at (15, 28, 276x80),
+ * bc_bottom at (290, 316), the offer list at (14, 108) whose height follows the page (params 2064), and bc_top at (249, 21)
+ * drawn over everything. One 269x77 row per offer (BuilderLoyaltyCatalogWidget, BuilderAddonsCatalogWidget).
+ */
 export const CatalogLayoutBuildersClubOffersView: FC<CatalogLayoutProps> = ({ page = null }) => {
     const [pendingOffer, setPendingOffer] = useState<CatalogProductlessOffer | null>(null);
     const [purchaseState, setPurchaseState] = useState(CatalogPurchaseState.NONE);
@@ -170,59 +181,80 @@ export const CatalogLayoutBuildersClubOffersView: FC<CatalogLayoutProps> = ({ pa
         [addonsLocked, catalogSkipPurchaseConfirmation, showInsufficientBalanceAlert, submitPurchase]
     );
 
-    const renderPrice = (offer: CatalogProductlessOffer) => (
-        <span className="volt-club-offer-prices">
-            {(isAddonsPage || offer.priceCredits > 0 || offer.priceActivityPoints <= 0) && (
-                <span className="volt-club-offer-price" data-currency-type="-1">
-                    <CatalogClubPriceFieldView value={offer.priceCredits} />
-                    <LayoutCurrencyIcon type={-1} />
-                </span>
-            )}
-            {offer.priceActivityPoints > 0 && (
-                <span className="volt-club-offer-price" data-currency-type={offer.priceActivityPointsType}>
-                    <CatalogClubPriceFieldView value={`${offer.priceCredits > 0 || isAddonsPage ? '+ ' : ''}${offer.priceActivityPoints}`} />
-                    <LayoutCurrencyIcon type={offer.priceActivityPointsType} />
-                </span>
-            )}
-        </span>
-    );
+    const renderPrice = (offer: CatalogProductlessOffer) => {
+        // BuilderLoyaltyCatalogWidget: item_cost_box gets the AIR price_display.
+        if (!isAddonsPage)
+            return (
+                <CatalogPriceBoxView
+                    background={ROW_COLOR}
+                    className="volt-bc-offer-price"
+                    offer={{ priceInCredits: offer.priceCredits, priceInActivityPoints: offer.priceActivityPoints, activityPointType: offer.priceActivityPointsType }}
+                />
+            );
+
+        // BuilderAddonsCatalogWidget: item_price and the credits icon, then diamonds_price and its icon when there are activity points.
+        return (
+            <div className="volt-bc-offer-price is-addons">
+                <NativeText background={ROW_COLOR} text={String(offer.priceCredits)} textStyle="u_headline_small" />
+                <img alt="" className="volt-bc-offer-currency" draggable={false} src={creditsIcon} />
+                {offer.priceActivityPoints > 0 && (
+                    <>
+                        <NativeText background={ROW_COLOR} text={String(offer.priceActivityPoints)} textStyle="u_headline_small" />
+                        <img alt="" className="volt-bc-offer-currency" draggable={false} src={diamondIcon} />
+                    </>
+                )}
+            </div>
+        );
+    };
 
     const description = pageData?.localization?.getText(0) ?? '';
 
     return (
-        <div className={`volt-club-purchase-layout volt-builders-club-layout ${isAddonsPage ? 'is-addons-page' : 'is-loyalty-page'}`}>
-            <div className="volt-builders-club-description" dangerouslySetInnerHTML={{ __html: SanitizeHtml(description) }} />
-            {!!libraryUrl && <img alt="" aria-hidden="true" className="volt-builders-club-art is-top" draggable={false} src={`${libraryUrl}catalogue/bc_top.png`} />}
-            {!!libraryUrl && <img alt="" aria-hidden="true" className="volt-builders-club-art is-bottom" draggable={false} src={`${libraryUrl}catalogue/bc_bottom.png`} />}
-            <div className="volt-builders-club-offers" data-widget={isAddonsPage ? 'builderAddonsWidget' : 'builderLoyaltyWidget'}>
-                {productlessOffers.map((offer) => {
-                    const isPending = pendingOffer?.offerId === offer.offerId;
-
-                    return (
-                        <article key={offer.offerId} className="volt-club-offer is-wide volt-builders-club-offer" data-offer-id={offer.offerId}>
-                            <header className="volt-club-offer-header">
-                                {!!iconUrl && <img alt="" aria-hidden="true" className="volt-builders-club-offer-icon" draggable={false} src={iconUrl} />}
-                                <strong>{getBuildersClubOfferName(offer.localizationId)}</strong>
-                            </header>
-                            <div className="volt-club-offer-footer">
+        <div className={`volt-bc-layout is-offers ${isAddonsPage ? 'is-addons-page' : 'is-loyalty-page'}`}>
+            <div className="volt-bc-description" dangerouslySetInnerHTML={{ __html: SanitizeHtml(description) }} />
+            {!!libraryUrl && <img alt="" aria-hidden="true" className="volt-bc-art is-bottom" draggable={false} src={`${libraryUrl}catalogue/bc_bottom.png`} />}
+            <div className="volt-bc-offers" data-widget={isAddonsPage ? 'builderAddonsWidget' : 'builderLoyaltyWidget'}>
+                <ClassicScrollAreaView className="h-full min-h-0">
+                    <div className="volt-bc-offer-list">
+                        {productlessOffers.map((offer) => (
+                            <article key={offer.offerId} className="volt-bc-offer" data-offer-id={offer.offerId}>
+                                <header className="volt-bc-offer-header">
+                                    {!!iconUrl && <img alt="" aria-hidden="true" className="volt-bc-offer-icon" draggable={false} src={iconUrl} />}
+                                    <NativeText
+                                        background={HEADER_COLOR}
+                                        className="volt-bc-offer-name"
+                                        overrides={{ color: 0xffffff }}
+                                        text={getBuildersClubOfferName(offer.localizationId)}
+                                        textStyle="u_headline_medium"
+                                    />
+                                </header>
                                 {renderPrice(offer)}
-                                <div className="volt-club-offer-actions">
-                                    <button
-                                        className="volt-club-offer-action is-buy"
-                                        disabled={purchaseState === CatalogPurchaseState.PURCHASE || addonsLocked}
-                                        type="button"
-                                        onClick={() => startPurchase(offer)}
-                                    >
-                                        {isPending && purchaseState === CatalogPurchaseState.PURCHASE ? <LayoutLoadingSpinnerView /> : LocalizeText('buy')}
-                                    </button>
-                                </div>
-                            </div>
-                        </article>
-                    );
-                })}
+                                <BuildersClubButton
+                                    caption={LocalizeText('buy')}
+                                    className="volt-bc-offer-buy"
+                                    disabled={purchaseState === CatalogPurchaseState.PURCHASE || addonsLocked}
+                                    height={35}
+                                    name="item_buy"
+                                    tint="blue"
+                                    width={142}
+                                    onClick={() => startPurchase(offer)}
+                                />
+                            </article>
+                        ))}
+                    </div>
+                </ClassicScrollAreaView>
             </div>
-            {isAddonsPage && addonsLocked && <div className="volt-builders-club-trial-warning">{LocalizeText('builder.addon_page.warning.trial')}</div>}
-            <CatalogBuildersClubStatusView />
+            {addonsLocked && (
+                <NativeText
+                    tinted
+                    background={PAGE_COLOR}
+                    className="volt-bc-trial-warning"
+                    overrides={{ color: 0xcc0000 }}
+                    text={LocalizeText('builder.addon_page.warning.trial')}
+                    textStyle="u_bold"
+                />
+            )}
+            {!!libraryUrl && <img alt="" aria-hidden="true" className="volt-bc-art is-top" draggable={false} src={`${libraryUrl}catalogue/bc_top.png`} />}
 
             {pendingOffer && purchaseState === CatalogPurchaseState.CONFIRM && (
                 <CatalogClubPurchaseConfirmView

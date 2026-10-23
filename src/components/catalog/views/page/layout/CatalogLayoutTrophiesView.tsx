@@ -1,12 +1,16 @@
 import { CSSProperties, FC, useEffect, useMemo, useState } from 'react';
-import { IPurchasableOffer, SanitizeHtml } from '../../../../../api';
+import { IPurchasableOffer } from '../../../../../api';
 import previewArrowLeft from '../../../../../assets/images/catalog/air/preview-arrow-left.png';
 import previewArrowRight from '../../../../../assets/images/catalog/air/preview-arrow-right.png';
 import { LayoutFurniImageView } from '../../../../../common';
 import { useCatalogActions, useCatalogData, useCatalogUiState } from '../../../../../hooks';
 import { CatalogPurchaseWidgetView } from '../widgets/CatalogPurchaseWidgetView';
-import { CatalogTotalPriceWidget } from '../widgets/CatalogTotalPriceWidget';
+import { CatalogAirHtmlTextView } from './CatalogAirHtmlTextView';
+import { CatalogAirPriceDisplayView } from './CatalogAirPriceDisplayView';
 import { CatalogLayoutProps } from './CatalogLayout.types';
+
+/** The catalog page colour behind the AIR text rasters. */
+const PAGE_BACKGROUND = 0xe9e9e1;
 
 type TrophyMetal = 'g' | 's' | 'b';
 
@@ -59,6 +63,8 @@ export const CatalogLayoutTrophiesView: FC<CatalogLayoutProps> = (props) => {
     const { page = null } = props;
     const [trophyText, setTrophyText] = useState('');
     const [metal, setMetal] = useState<TrophyMetal>('g');
+    // ColourGridCatalogWidget shows the chosen frame only after a click.
+    const [metalChosen, setMetalChosen] = useState(false);
     const { currentOffer = null } = useCatalogData();
     const { setPurchaseOptions = null } = useCatalogUiState();
     const { selectCatalogOffer = null } = useCatalogActions();
@@ -91,6 +97,7 @@ export const CatalogLayoutTrophiesView: FC<CatalogLayoutProps> = (props) => {
 
     const selectMetal = (nextMetal: TrophyMetal) => {
         setMetal(nextMetal);
+        setMetalChosen(true);
 
         const offer = pickTrophyOffer(models[Math.max(modelIndex, 0)], nextMetal);
 
@@ -99,7 +106,14 @@ export const CatalogLayoutTrophiesView: FC<CatalogLayoutProps> = (props) => {
 
     return (
         <div className="volt-catalog-trophy-layout">
-            <div className="volt-catalog-trophy-description" dangerouslySetInnerHTML={{ __html: SanitizeHtml(page.localization.getText(0)) }} />
+            {/* PageLocalization trophies: text 0 goes to trophy.description, text 1 to trophy.enscription. */}
+            <CatalogAirHtmlTextView
+                background={PAGE_BACKGROUND}
+                className="volt-catalog-trophy-description"
+                height={190}
+                html={page.localization.getText(0)}
+                width={360}
+            />
 
             <div className="volt-catalog-trophy-widget">
                 {product && (
@@ -112,9 +126,7 @@ export const CatalogLayoutTrophiesView: FC<CatalogLayoutProps> = (props) => {
                                 productType={product.productType}
                             />
                         </div>
-                        <div className="volt-catalog-trophy-price volt-catalog-preview-price volt-catalog-price-frame">
-                            <CatalogTotalPriceWidget alignItems="end" />
-                        </div>
+                        <CatalogAirPriceDisplayView className="volt-catalog-trophy-price" offer={currentOffer} />
                     </>
                 )}
                 {showModelButtons && (
@@ -146,7 +158,7 @@ export const CatalogLayoutTrophiesView: FC<CatalogLayoutProps> = (props) => {
                             <button
                                 key={entry.metal}
                                 aria-checked={metal === entry.metal}
-                                className={`volt-catalog-colour-swatch ${metal === entry.metal ? 'is-chosen' : ''}`}
+                                className={`volt-catalog-colour-swatch ${metalChosen && metal === entry.metal ? 'is-chosen' : ''}`}
                                 role="radio"
                                 style={{ '--volt-swatch-colour': toCssColour(entry.colour) } as CSSProperties}
                                 type="button"
@@ -157,7 +169,13 @@ export const CatalogLayoutTrophiesView: FC<CatalogLayoutProps> = (props) => {
                 </div>
             )}
 
-            <div className="volt-catalog-trophy-inscription-label" dangerouslySetInnerHTML={{ __html: SanitizeHtml(page.localization.getText(1)) }} />
+            <CatalogAirHtmlTextView
+                background={PAGE_BACKGROUND}
+                className="volt-catalog-trophy-inscription-label"
+                html={page.localization.getText(1)}
+                textStyle="u_small"
+                width={355}
+            />
 
             <div className="volt-catalog-trophy-inscription">
                 <textarea maxLength={300} value={trophyText} onChange={(event) => setTrophyText(event.target.value)} />

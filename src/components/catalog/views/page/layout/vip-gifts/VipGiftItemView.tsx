@@ -2,6 +2,10 @@ import { CatalogPageMessageOfferData } from '@volt/renderer';
 import { FC, useCallback } from 'react';
 import { GetProductDataForLocalization, LocalizeText, ProductImageUtility } from '../../../../../../api';
 import { LayoutImage } from '../../../../../../common';
+import { NativeText } from '../../../../../../common/native-text/NativeText';
+
+/** club_gift_list_item: border style 0 tinted 0xe3e3e3, the colour behind its texts. */
+const ROW_BACKGROUND = 0xe3e3e3;
 
 export interface VipGiftItemViewProps {
     offer: CatalogPageMessageOfferData;
@@ -48,8 +52,10 @@ export const VipGiftItem: FC<VipGiftItemViewProps> = (props) => {
                 <LayoutImage imageUrl={getImageUrlForOffer()} />
             </div>
             {isVip && <span aria-hidden="true" className="volt-club-compact-mark is-vip volt-catalog-club-gift-vip" />}
-            <div className="volt-catalog-club-gift-name">{getItemTitle()}</div>
-            {!!requirementText && <div className="volt-catalog-club-gift-requirement">{requirementText}</div>}
+            <NativeText tinted className="volt-catalog-club-gift-name" background={ROW_BACKGROUND} text={getItemTitle()} textStyle="u_bold" />
+            {!!requirementText && (
+                <NativeText className="volt-catalog-club-gift-requirement" background={ROW_BACKGROUND} maxWidth={236} text={requirementText} textStyle="u_small" />
+            )}
             <button
                 aria-disabled={!isAvailable}
                 className="volt-catalog-club-gift-select"

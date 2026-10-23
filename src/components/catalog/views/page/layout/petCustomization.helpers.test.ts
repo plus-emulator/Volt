@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { FurniCategory } from '../../../../../api';
-import { buildPetCustomizationPreviewFigure } from './petCustomization.helpers';
+import { buildPetCustomizationPreview } from './petCustomization.helpers';
+
+const noShampooPalette = () => null;
 
 describe('standard pet customization catalog preview', () => {
     it('builds a complete default-pet figure for saddle custom parts', () => {
@@ -9,7 +11,14 @@ describe('standard pet customization catalog preview', () => {
             customParams: '15 1,2 3,4 5,6'
         } as any;
 
-        expect(buildPetCustomizationPreviewFigure(furniture)).toBe('15 2 16777215 2 1 3 5 2 4 6');
+        expect(buildPetCustomizationPreview(furniture, noShampooPalette)).toEqual({
+            typeId: 15,
+            paletteId: 2,
+            parts: [
+                [1, 3, 5],
+                [2, 4, 6]
+            ]
+        });
     });
 
     it('builds palette-only previews for shampoo offers', () => {
@@ -18,10 +27,10 @@ describe('standard pet customization catalog preview', () => {
             customParams: '15 hair'
         } as any;
 
-        expect(buildPetCustomizationPreviewFigure(furniture)).toBe('15 2 16777215 0');
+        expect(buildPetCustomizationPreview(furniture, () => 7)).toEqual({ typeId: 15, paletteId: 7, parts: [] });
     });
 
     it('rejects malformed customization parameters instead of rendering a broken pet', () => {
-        expect(buildPetCustomizationPreviewFigure({ specialType: FurniCategory.PET_SADDLE, customParams: '15 1,2' } as any)).toBeNull();
+        expect(buildPetCustomizationPreview({ specialType: FurniCategory.PET_SADDLE, customParams: '15 1,2' } as any, noShampooPalette)).toBeNull();
     });
 });

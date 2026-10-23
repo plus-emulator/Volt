@@ -67,17 +67,6 @@
     );
 }
 
-/* ubuntu_condensed_title: UbuntuCondensed 18, #ffffff. The card shell styles every
-   span, so this needs the extra class to keep the AIR colour and face. */
-.volt-cfp .volt-cfp-item-title span {
-    display: block;
-    color: #fff;
-    font-family: UbuntuCondensed, Ubuntu, sans-serif;
-    font-size: 18px;
-    line-height: 20px;
-    overflow-wrap: break-word;
-}
-
 /* firstitem: the border ends at y 428 + 29 = 457 of 460 and is capped at 174 wide;
    its item_title starts at (5, 0). */
 .volt-cfp-item.is-first .volt-cfp-item-title {
@@ -196,4 +185,153 @@
 
 .volt-cfp-voucher-button:active {
     border-image-source: var(--habbo-skin-shiny-pressed);
+}
+
+/*
+ * AIR layout_roomads (360x460). Every element sits at its layout position; the text rasters carry Flash's 2px gutter, so
+ * they go at the text window's own x,y.
+ */
+.volt-catalog-roomads-layout {
+    position: relative;
+    width: 360px;
+    height: 460px;
+    overflow: hidden;
+}
+
+.volt-catalog-roomads-layout > * {
+    position: absolute !important;
+}
+
+/* ctlg_text_1 (10, 14): u_headline_small, auto size left. */
+.volt-catalog-roomads-text {
+    top: 14px;
+    left: 10px;
+}
+
+/* categories_list (10, 44, 329x24) and room_drop_menu (10, 345, 330x24): dropmenu style 3. */
+.volt-catalog-roomads-layout > .volt-catalog-roomads-categories {
+    top: 44px;
+    left: 10px;
+    width: 329px;
+}
+
+.volt-catalog-roomads-layout > .volt-catalog-roomads-rooms {
+    top: 345px;
+    left: 10px;
+    width: 330px;
+}
+
+/* The u_small labels at (10, 83), (10, 149) and (10, 326). */
+.volt-catalog-roomads-label {
+    left: 10px;
+}
+
+.volt-catalog-roomads-label.is-name {
+    top: 83px;
+}
+
+.volt-catalog-roomads-label.is-description {
+    top: 149px;
+}
+
+.volt-catalog-roomads-label.is-room {
+    top: 326px;
+}
+
+/* Border style 105 (illumina_light_border_input): 8px top, 5px side and bottom caps around a flat centre. */
+.volt-catalog-roomads-input {
+    left: 10px;
+    box-sizing: border-box;
+    width: 330px;
+    border-style: solid;
+    border-color: transparent;
+    border-width: 8px 5px 5px;
+    border-image: url('../../assets/images/catalog/air/skin/illumina-input-184x24.png') 8 5 5 fill / 8px 5px 5px stretch;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-catalog-roomads-input.is-name {
+    top: 102px;
+    height: 33px;
+}
+
+.volt-catalog-roomads-input.is-description {
+    top: 168px;
+    height: 144px;
+}
+
+/* name_input_text (5, 5, 318x22) and desc_input_text (5, 4, 320x134): u_regular in black, Flash's 2px gutter. */
+.volt-catalog-window .volt-catalog-roomads-input :is(input, textarea) {
+    position: absolute;
+    box-sizing: border-box;
+    min-height: 0 !important;
+    margin: 0;
+    padding: 2px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    outline: none;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #000 !important;
+    font-family: Ubuntu, sans-serif !important;
+    font-size: 12px !important;
+    line-height: 14px !important;
+    resize: none;
+}
+
+.volt-catalog-window .volt-catalog-roomads-input input {
+    top: -3px;
+    left: 0;
+    width: 318px;
+    height: 22px !important;
+}
+
+.volt-catalog-window .volt-catalog-roomads-input textarea {
+    top: -4px;
+    left: 0;
+    width: 320px;
+    height: 134px !important;
+}
+
+/* price_container (158, 384): the price_display list grows to the right from its left edge. */
+.volt-catalog-roomads-price {
+    top: 384px;
+    left: 158px;
+}
+
+/* purchaseWidget (0, 416, 360x30): the buy button at (185, 3); NO_GIFT_OPTION hides the gift button. */
+.volt-catalog-roomads-purchase {
+    top: 416px;
+    left: 0;
+    width: 360px;
+    height: 30px;
+}
+
+.volt-catalog-roomads-purchase > .volt-catalog-offer-actions {
+    justify-content: flex-end;
+}
+
+/* AIR price_display: amounts at y 1, the 24px icon windows at y 0, 1px apart between a 1px and a 2px spacer. */
+.volt-catalog-price-box {
+    display: flex;
+    gap: 1px;
+    padding: 0 3px 0 2px;
+}
+
+.volt-catalog-price-box-item {
+    display: flex;
+    gap: 1px;
+}
+
+.volt-catalog-price-box-amount {
+    margin-top: 1px;
+}
+
+.volt-catalog-price-box-unit {
+    width: 24px;
+    height: 24px;
+}
+
+.volt-catalog-price-box-unit > .volt-activity-point-icon {
+    display: block !important;
 }

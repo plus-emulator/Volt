@@ -1,5 +1,6 @@
 import { FC } from 'react';
-import { FriendlyTime, GetProductDataForLocalization, LocalizeText } from '../../../../../api';
+import { GetProductDataForLocalization, LocalizeText } from '../../../../../api';
+import { SubpixelText } from '../../../../../common/native-text/SubpixelText';
 import { useBuildersClubStore } from '../../../../../state/buildersClubStore';
 
 export const BUILDERS_CLUB_ADDONS_LAYOUT = 'builders_club_addons';
@@ -15,24 +16,44 @@ export const getBuildersClubOfferName = (localizationId: string): string =>
 
 export const useBuildersClubSecondsLeft = () => useBuildersClubStore((state) => state.secondsLeft);
 
-// Builders Club header texts: builder.header.title with the member / grace / trial status, days left and the furni limit.
-export const CatalogBuildersClubStatusView: FC = () =>
-{
-    const received = useBuildersClubStore((state) => state.received);
-    const secondsLeft = useBuildersClubStore((state) => state.secondsLeft);
-    const secondsLeftWithGrace = useBuildersClubStore((state) => state.secondsLeftWithGrace);
-    const furniLimit = useBuildersClubStore((state) => state.furniLimit);
-    const furniCount = useBuildersClubStore((state) => state.furniCount);
+interface BuildersClubButtonProps {
+    caption: string;
+    /** The window colour of the button_thick: 0x0a9bc5 (blue) or 0xdda100 (yellow). */
+    tint: 'blue' | 'yellow';
+    width: number;
+    height: number;
+    className?: string;
+    disabled?: boolean;
+    name?: string;
+    onClick?: () => void;
+}
 
-    if (!received) return null;
+const TINT_COLOR = { blue: 0x0a9bc5, yellow: 0xdda100 };
 
-    const statusKey = secondsLeft > 0 ? 'builder.header.status.member' : secondsLeftWithGrace > 0 ? 'builder.header.status.grace' : 'builder.header.status.trial';
-
-    return (
-        <div className="volt-builders-club-status" data-member={secondsLeft > 0}>
-            <strong>{LocalizeText('builder.header.title', ['BCSTATUS'], [LocalizeText(statusKey)])}</strong>
-            {secondsLeft > 0 && <span>{LocalizeText('builder.header.status.membership', ['DURATION'], [FriendlyTime.format(secondsLeft)])}</span>}
-            <span>{LocalizeText('builder.header.status.limit', ['COUNT', 'LIMIT'], [furniCount.toString(), furniLimit.toString()])}</span>
-        </div>
-    );
-};
+/**
+ * button_thick style 5 (habbo_skin_button_shiny_thick, 5px caps) multiplied by the window colour. The caption is the
+ * _BTN_TEXT label of habbo_window_layout_button_shiny_thick_black: button_shiny_bold (u_bold) in white, margins 10/5/10/6,
+ * centred on the button, so the 18px text field sits 5px below the top of a centred 29px label.
+ */
+export const BuildersClubButton: FC<BuildersClubButtonProps> = ({ caption, tint, width, height, className = '', disabled = false, name, onClick }) => (
+    <button
+        className={`volt-bc-button is-${tint} ${className}`.trim()}
+        data-name={name}
+        disabled={disabled}
+        style={{ width, height }}
+        type="button"
+        onClick={onClick}
+    >
+        <SubpixelText
+            transparent
+            align="center"
+            background={TINT_COLOR[tint]}
+            className="volt-bc-button-caption"
+            color={0xffffff}
+            style={{ top: Math.floor((height - 29) / 2) + 5 }}
+            text={caption}
+            textStyle="u_bold"
+            width={width}
+        />
+    </button>
+);

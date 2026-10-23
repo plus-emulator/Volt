@@ -85,7 +85,8 @@ export const CATALOG_LAYOUT_REGISTRY = [
     { runtimeCodes: ['productpage1'], renderer: 'default', availability: 'ready' },
     { runtimeCodes: ['collectibles'], renderer: 'default', availability: 'ready' },
     { runtimeCodes: ['default_3x3_extrainfo'], renderer: 'default', availability: 'ready' },
-    { runtimeCodes: ['pixeleffects'], renderer: 'info', availability: 'ready' }
+    // AIR layout_pixeleffects is a reference to layout_default_3x3.
+    { runtimeCodes: ['pixeleffects'], renderer: 'default', availability: 'ready' }
 ] as const satisfies readonly CatalogLayoutDefinition[];
 
 const runtimeDefinitions = new Map<string, CatalogLayoutDefinition>();
