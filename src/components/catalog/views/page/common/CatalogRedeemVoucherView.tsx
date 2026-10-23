@@ -1,7 +1,8 @@
 import { RedeemVoucherMessageComposer, VoucherRedeemErrorMessageEvent, VoucherRedeemOkMessageEvent } from '@volt/renderer';
 import { FC, KeyboardEvent, useState } from 'react';
-import { LocalizeText, SanitizeHtml, SendMessageComposer } from '../../../../../api';
+import { LocalizeText, SendMessageComposer } from '../../../../../api';
 import { useMessageEvent, useNotification } from '../../../../../hooks';
+import { CatalogAirHtmlTextView } from '../layout/CatalogAirHtmlTextView';
 
 export interface CatalogRedeemVoucherViewProps {
     text: string;
@@ -60,7 +61,8 @@ export const CatalogRedeemVoucherView: FC<CatalogRedeemVoucherViewProps> = (prop
 
     return (
         <div className="volt-cfp-voucher">
-            <div className="volt-cfp-voucher-text" dangerouslySetInnerHTML={{ __html: SanitizeHtml(text ?? '') }} />
+            {/* ctlg_txt2 (10, 6): formatted_text in u_regular over the #51bbee border. */}
+            <CatalogAirHtmlTextView transparent background={0x51bbee} className="volt-cfp-voucher-text" html={text ?? ''} width={272} />
             <div className="volt-cfp-voucher-input">
                 <input
                     name="voucher_code"

@@ -35,7 +35,7 @@ vi.mock('../../../../../api', () => ({
     SendMessageComposer: vi.fn()
 }));
 
-vi.mock('../../../../../common', () => ({ LayoutFurniImageView: () => <div data-testid="furni-image" /> }));
+vi.mock('../../../../../common', () => ({ LayoutActivityPointIcon: () => <span />, LayoutFurniImageView: () => <div data-testid="furni-image" /> }));
 
 vi.mock('../../../../../hooks', () => ({
     getCatalogGridMetrics: () => ({ columnCount: 6, columnMinHeight: 70, columnMinWidth: 53 }),

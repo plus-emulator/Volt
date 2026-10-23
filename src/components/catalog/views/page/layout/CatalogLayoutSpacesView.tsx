@@ -1,50 +1,56 @@
 import { FC, useEffect } from 'react';
-import { SanitizeHtml } from '../../../../../api';
-import { Column, Grid, Text } from '../../../../../common';
+import { NativeText } from '../../../../../common/native-text/NativeText';
 import { useCatalogData } from '../../../../../hooks';
 import { CatalogPurchaseWidgetView } from '../widgets/CatalogPurchaseWidgetView';
 import { CatalogSpacesWidgetView } from '../widgets/CatalogSpacesWidgetView';
-import { CatalogTotalPriceWidget } from '../widgets/CatalogTotalPriceWidget';
 import { CatalogViewProductWidgetView } from '../widgets/CatalogViewProductWidgetView';
+import { CatalogAirPriceDisplayView } from './CatalogAirPriceDisplayView';
 import { CatalogLayoutProps } from './CatalogLayout.types';
 
-export const CatalogLayoutSpacesView: FC<CatalogLayoutProps> = (props) => {
-    const { page = null } = props;
+/** The catalog page colour behind the AIR text rasters. */
+const PAGE_BACKGROUND = 0xe9e9e1;
+
+/**
+ * AIR layout_spaces_new (360x460): productViewWidget (0, 0, 360x240, NO_ROOM_CANVAS) with ctlg_product_name (u_bold) and
+ * ctlg_description (u_small italic) stacked at 10,12 in black and the price 6px in from its bottom right, roomPreviewWidget
+ * over it, spacesNewWidget (0, 245, 360x180) and purchaseWidget (0, 430).
+ */
+export const CatalogLayoutSpacesView: FC<CatalogLayoutProps> = () => {
     const { currentOffer = null, roomPreviewer = null } = useCatalogData();
 
     useEffect(() => {
-        roomPreviewer.updatePreviewObjectBoundingRectangle();
+        roomPreviewer?.updatePreviewObjectBoundingRectangle();
     }, [roomPreviewer]);
 
     return (
-        <Grid>
-            <Column overflow="hidden" size={7}>
-                <CatalogSpacesWidgetView />
-            </Column>
-            <Column center={!currentOffer} overflow="hidden" size={5}>
-                {!currentOffer && (
-                    <>
-                        {!!page.localization.getImage(1) && <img alt="" src={page.localization.getImage(1)} />}
-                        <Text center dangerouslySetInnerHTML={{ __html: SanitizeHtml(page.localization.getText(0)) }} />
-                    </>
-                )}
+        <div className="volt-air-spaces-layout">
+            <div className="volt-air-spaces-preview">
+                {/* roomPreviewWidget draws a still room image (RoomEngine.getRoomImage); Volt shows the live room preview instead. */}
+                {currentOffer && <CatalogViewProductWidgetView height={240} />}
                 {currentOffer && (
-                    <>
-                        <div className="relative overflow-hidden">
-                            <CatalogViewProductWidgetView />
-                        </div>
-                        <Column grow gap={1}>
-                            <Text grow truncate>
-                                {currentOffer.localizationName}
-                            </Text>
-                            <div className="flex justify-end">
-                                <CatalogTotalPriceWidget alignItems="end" />
-                            </div>
-                            <CatalogPurchaseWidgetView />
-                        </Column>
-                    </>
+                    <div className="volt-air-spaces-details">
+                        <NativeText background={PAGE_BACKGROUND} maxWidth={280} overrides={{ color: 0x000000 }} text={currentOffer.localizationName} textStyle="u_bold" />
+                        {!!currentOffer.localizationDescription && (
+                            <NativeText
+                                background={PAGE_BACKGROUND}
+                                maxWidth={280}
+                                overrides={{ color: 0x000000, italic: true }}
+                                text={currentOffer.localizationDescription}
+                                textStyle="u_small"
+                            />
+                        )}
+                    </div>
                 )}
-            </Column>
-        </Grid>
+                {currentOffer && <CatalogAirPriceDisplayView className="volt-air-spaces-price" offer={currentOffer} />}
+            </div>
+            <CatalogSpacesWidgetView />
+            <div className="volt-catalog-purchase-row">
+                {currentOffer && (
+                    <div className="volt-catalog-offer-actions">
+                        <CatalogPurchaseWidgetView />
+                    </div>
+                )}
+            </div>
+        </div>
     );
 };
