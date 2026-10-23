@@ -11,20 +11,33 @@ import { FC, useCallback, useMemo, useRef, useState } from 'react';
 import {
     IMarketplaceSearchOptions,
     LocalizeText,
+    localizeWithFallback,
     MarketplaceOfferData,
     MarketplaceSearchType,
     NotificationAlertType,
     SendMessageComposer
 } from '../../../../../../api';
-import { Button, Column, Text } from '../../../../../../common';
+import { ClassicScrollAreaView } from '../../../../../../common';
+import { NativeCenteredField } from '../../../../../../common/native-text/NativeCenteredField';
+import { NativeText } from '../../../../../../common/native-text/NativeText';
 import { useMessageEvent, useNotification, useVoltEvent, usePurse } from '../../../../../../hooks';
 import { CatalogLayoutProps } from '../CatalogLayout.types';
 import { CatalogLayoutMarketplaceItemView, PUBLIC_OFFER } from './CatalogLayoutMarketplaceItemView';
-import { SearchFormView } from './CatalogLayoutMarketplaceSearchFormView';
+import { MARKETPLACE_PAGE_BACKGROUND, SearchFormView } from './CatalogLayoutMarketplaceSearchFormView';
 
 const SORT_TYPES_VALUE = [1, 2];
 const SORT_TYPES_ACTIVITY = [3, 4, 5, 6];
 const SORT_TYPES_ADVANCED = [1, 2, 3, 4, 5, 6];
+
+/** search_selector: button_group_left/center/right style 100 at x 0, 107 and 213 (107, 106 and 107 wide, 25 high). */
+const SEARCH_TABS = [
+    { type: MarketplaceSearchType.BY_ACTIVITY, key: 'catalog.marketplace.search_by_activity', part: 'left', x: 0, width: 107 },
+    { type: MarketplaceSearchType.BY_VALUE, key: 'catalog.marketplace.search_by_value', part: 'center', x: 107, width: 106 },
+    { type: MarketplaceSearchType.ADVANCED, key: 'catalog.marketplace.search_advanced', part: 'right', x: 213, width: 107 }
+] as const;
+
+/** The flat colour of each button_group template behind its il_button caption. */
+const TAB_SURFACE = { default: 0xffffff, selected: 0x989898 };
 export interface CatalogLayoutMarketplacePublicItemsViewProps extends CatalogLayoutProps {}
 
 export const CatalogLayoutMarketplacePublicItemsView: FC<CatalogLayoutMarketplacePublicItemsViewProps> = (props) => {
@@ -32,6 +45,8 @@ export const CatalogLayoutMarketplacePublicItemsView: FC<CatalogLayoutMarketplac
     const [totalItemsFound, setTotalItemsFound] = useState(0);
     const [offers, setOffers] = useState(new Map<number, MarketplaceOfferData>());
     const [lastSearch, setLastSearch] = useState<IMarketplaceSearchOptions>({ minPrice: -1, maxPrice: -1, query: '', type: 3 });
+    const [searching, setSearching] = useState(true);
+    const [combineUniques, setCombineUniques] = useState(true);
     const { getCurrencyAmount = null } = usePurse();
     const { simpleAlert = null, showConfirm = null } = useNotification();
     const pendingOfferIdRef = useRef<number>(null);
@@ -54,6 +69,7 @@ export const CatalogLayoutMarketplacePublicItemsView: FC<CatalogLayoutMarketplac
 
     const requestOffers = useCallback((options: IMarketplaceSearchOptions) => {
         setLastSearch(options);
+        setSearching(true);
         SendMessageComposer(new GetMarketplaceOffersMessageComposer(options.minPrice, options.maxPrice, options.query, options.type));
     }, []);
 
@@ -124,6 +140,7 @@ export const CatalogLayoutMarketplacePublicItemsView: FC<CatalogLayoutMarketplac
 
         setTotalItemsFound(parser.totalItemsFound);
         setOffers(latestOffers);
+        setSearching(false);
     });
 
     useMessageEvent<MarketplaceBuyOfferResultEvent>(MarketplaceBuyOfferResultEvent, (event) => {
@@ -205,30 +222,56 @@ export const CatalogLayoutMarketplacePublicItemsView: FC<CatalogLayoutMarketplac
         }
     });
 
+    // MarketPlaceCatalogWidget.updateStatusDisplay: the server's total, with the shown count when the list is cut.
+    let statusText = localizeWithFallback('catalog.marketplace.searching', '');
+
+    if (!searching) {
+        if (totalItemsFound > 0) {
+            statusText = LocalizeText('catalog.marketplace.items_found', ['count'], [totalItemsFound.toString()]);
+
+            if (offers.size > 0 && offers.size < totalItemsFound)
+                statusText += '. ' + LocalizeText('catalog.marketplace.items_shown', ['count'], [offers.size.toString()]) + '.';
+        } else {
+            statusText = LocalizeText('catalog.marketplace.no_items');
+        }
+    }
+
     return (
-        <>
-            <div className="relative inline-flex align-middle">
-                <Button active={searchType === MarketplaceSearchType.BY_ACTIVITY} onClick={() => setSearchType(MarketplaceSearchType.BY_ACTIVITY)}>
-                    {LocalizeText('catalog.marketplace.search_by_activity')}
-                </Button>
-                <Button active={searchType === MarketplaceSearchType.BY_VALUE} onClick={() => setSearchType(MarketplaceSearchType.BY_VALUE)}>
-                    {LocalizeText('catalog.marketplace.search_by_value')}
-                </Button>
-                <Button active={searchType === MarketplaceSearchType.ADVANCED} onClick={() => setSearchType(MarketplaceSearchType.ADVANCED)}>
-                    {LocalizeText('catalog.marketplace.search_advanced')}
-                </Button>
+        <div className="volt-catalog-market-layout">
+            {SEARCH_TABS.map((tab) => {
+                const selected = tab.type === searchType;
+
+                return (
+                    <button
+                        key={tab.type}
+                        className={`volt-catalog-market-tab is-${tab.part} ${selected ? 'is-selected' : ''}`.trim()}
+                        style={{ left: tab.x, width: tab.width }}
+                        type="button"
+                        onClick={() => setSearchType(tab.type)}
+                    >
+                        <span className="volt-catalog-market-tab-caption">
+                            <NativeCenteredField width={tab.width}>
+                                <NativeText transparent background={selected ? TAB_SURFACE.selected : TAB_SURFACE.default} text={LocalizeText(tab.key)} textStyle="il_button" />
+                            </NativeCenteredField>
+                        </span>
+                    </button>
+                );
+            })}
+            <div className="volt-catalog-market-search">
+                <SearchFormView
+                    combineUniques={combineUniques}
+                    searchType={searchType}
+                    sortTypes={getSortTypes}
+                    onCombineUniquesChange={setCombineUniques}
+                    onSearch={requestOffers}
+                />
             </div>
-            <SearchFormView searchType={searchType} sortTypes={getSortTypes} onSearch={requestOffers} />
-            <Column gap={1} overflow="hidden">
-                <Text shrink truncate fontWeight="bold">
-                    {LocalizeText('catalog.marketplace.items_found', ['count'], [offers.size.toString()])}
-                </Text>
-                <Column className="volt-catalog-layout-marketplace-grid" overflow="auto">
-                    {Array.from(offers.values()).map((entry, index) => (
-                        <CatalogLayoutMarketplaceItemView key={index} offerData={entry} type={PUBLIC_OFFER} onClick={purchaseItem} />
-                    ))}
-                </Column>
-            </Column>
-        </>
+            <NativeText background={MARKETPLACE_PAGE_BACKGROUND} className="volt-catalog-market-status is-offers" text={statusText} textStyle="u_small" />
+            <ClassicScrollAreaView className="volt-catalog-market-list is-offers">
+                {Array.from(offers.values()).map((entry) => (
+                    <CatalogLayoutMarketplaceItemView key={entry.offerId} offerData={entry} type={PUBLIC_OFFER} onClick={purchaseItem} />
+                ))}
+            </ClassicScrollAreaView>
+        </div>
     );
 };

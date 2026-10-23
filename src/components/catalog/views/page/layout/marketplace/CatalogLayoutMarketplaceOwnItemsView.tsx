@@ -6,11 +6,24 @@ import {
     RedeemMarketplaceOfferCreditsMessageComposer
 } from '@volt/renderer';
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { LocalizeText, MarketPlaceOfferState, MarketplaceOfferData, NotificationAlertType, SendMessageComposer } from '../../../../../../api';
-import { Button, Column, Text } from '../../../../../../common';
+import { LocalizeText, localizeWithFallback, MarketPlaceOfferState, MarketplaceOfferData, NotificationAlertType, SendMessageComposer } from '../../../../../../api';
+import { ClassicScrollAreaView } from '../../../../../../common';
+import { HabboDropMenuView } from '../../../../../../common/dropmenu/HabboDropMenuView';
+import { NativeText } from '../../../../../../common/native-text/NativeText';
 import { useMessageEvent, useNotification } from '../../../../../../hooks';
 import { CatalogLayoutProps } from '../CatalogLayout.types';
+import { CatalogAirShinyButton } from '../CatalogAirShinyButton';
 import { CatalogLayoutMarketplaceItemView, OWN_OFFER } from './CatalogLayoutMarketplaceItemView';
+import { MARKETPLACE_PAGE_BACKGROUND } from './CatalogLayoutMarketplaceSearchFormView';
+
+const MAX_SEARCH_LENGTH = 40;
+
+/** offer_category_dropmenu: OPEN, SOLD and EXPIRED map to the offer states 1, 2 and 3. */
+const CATEGORIES = [
+    { value: MarketPlaceOfferState.ONGOING, key: 'shop.marketplace.own.offers.category.open', fallback: 'OPEN' },
+    { value: MarketPlaceOfferState.SOLD, key: 'shop.marketplace.own.offers.category.sold', fallback: 'SOLD' },
+    { value: MarketPlaceOfferState.EXPIRED, key: 'shop.marketplace.own.offers.category.expired', fallback: 'EXPIRED' }
+];
 
 export const CatalogLayoutMarketplaceOwnItemsView: FC<CatalogLayoutProps> = (props) => {
     const [creditsWaiting, setCreditsWaiting] = useState(0);
@@ -18,6 +31,10 @@ export const CatalogLayoutMarketplaceOwnItemsView: FC<CatalogLayoutProps> = (pro
     const { simpleAlert = null } = useNotification();
     const isRedeemingRef = useRef<boolean>(false);
     const pendingCancelsRef = useRef<Set<number>>(new Set());
+    const [category, setCategory] = useState<number>(MarketPlaceOfferState.ONGOING);
+    const [searchInput, setSearchInput] = useState('');
+    const [searchText, setSearchText] = useState('');
+    const [loaded, setLoaded] = useState(false);
 
     useMessageEvent<MarketplaceOwnOffersEvent>(MarketplaceOwnOffersEvent, (event) => {
         const parser = event.getParser();
@@ -44,6 +61,7 @@ export const CatalogLayoutMarketplaceOwnItemsView: FC<CatalogLayoutProps> = (pro
 
         setCreditsWaiting(parser.creditsWaiting);
         setOffers(offers);
+        setLoaded(true);
     });
 
     useMessageEvent<MarketplaceCancelOfferResultEvent>(MarketplaceCancelOfferResultEvent, (event) => {
@@ -104,38 +122,96 @@ export const CatalogLayoutMarketplaceOwnItemsView: FC<CatalogLayoutProps> = (pro
         SendMessageComposer(new GetMarketplaceOwnOffersMessageComposer());
     }, []);
 
+    const categoryOptions = useMemo(() => CATEGORIES.map((entry) => ({ value: entry.value, label: localizeWithFallback(entry.key, entry.fallback) })), []);
+
+    // The own offers request has no category, so the category menu and the name search filter the full list on the client
+    // (MarketPlaceOwnItemsCatalogWidget.matchesSearch: lowercased name and description).
+    const visibleOffers = useMemo(() => {
+        const query = searchText.toLowerCase();
+
+        return offers.filter((offer) => {
+            if (offer.status !== category) return false;
+            if (!query) return true;
+
+            const prefix = offer.furniType === MarketplaceOfferData.TYPE_WALL ? 'wallItem' : 'roomItem';
+            const text = (LocalizeText(`${prefix}.name.${offer.furniId}`) + ' ' + LocalizeText(`${prefix}.desc.${offer.furniId}`)).toLowerCase();
+
+            return text.indexOf(query) >= 0;
+        });
+    }, [category, offers, searchText]);
+
+    // updateStatusDisplay: searching until the list arrives, then the count or no_items.
+    let statusText = localizeWithFallback('catalog.marketplace.searching', '');
+
+    if (loaded) {
+        statusText = visibleOffers.length > 0
+            ? LocalizeText('catalog.marketplace.items_found', ['count'], [visibleOffers.length.toString()])
+            : LocalizeText('catalog.marketplace.no_items');
+    }
+
     return (
-        <Column overflow="hidden">
-            {creditsWaiting <= 0 && (
-                <Text center className="bg-muted rounded p-1">
-                    {LocalizeText('catalog.marketplace.redeem.no_sold_items')}
-                </Text>
+        <div className="volt-catalog-market-layout">
+            <NativeText
+                background={MARKETPLACE_PAGE_BACKGROUND}
+                className="volt-catalog-market-own-info"
+                maxWidth={340}
+                text={LocalizeText('catalog.marketplace.own_info')}
+                textStyle="u_italic"
+            />
+            <HabboDropMenuView<number>
+                nativeCaption
+                className="volt-catalog-market-category"
+                label={localizeWithFallback('shop.marketplace.own.offers.category.open', 'OPEN')}
+                options={categoryOptions}
+                skinStyle={3}
+                value={category}
+                onSelect={setCategory}
+            />
+            <div className="volt-catalog-market-own-search">
+                <input
+                    maxLength={MAX_SEARCH_LENGTH}
+                    type="text"
+                    value={searchInput}
+                    onChange={(event) => setSearchInput(event.target.value)}
+                    onKeyDown={(event) => event.key === 'Enter' && setSearchText(searchInput)}
+                />
+                {!searchInput.length && (
+                    <NativeText
+                        background={0xffffff}
+                        className="volt-catalog-market-own-placeholder"
+                        overrides={{ color: 0x666666 }}
+                        text={LocalizeText('catalog.search')}
+                        textStyle="u_regular"
+                    />
+                )}
+                {!!searchInput.length && (
+                    <button
+                        aria-label={LocalizeText('generic.cancel')}
+                        className="volt-catalog-market-own-clear"
+                        type="button"
+                        onClick={() => {
+                            setSearchInput('');
+                            setSearchText('');
+                        }}
+                    />
+                )}
+            </div>
+            <CatalogAirShinyButton caption={LocalizeText('generic.search')} rect={[270, 39, 69, 25]} onClick={() => setSearchText(searchInput)} />
+            <ClassicScrollAreaView className="volt-catalog-market-list is-own">
+                {visibleOffers.map((offer) => (
+                    <CatalogLayoutMarketplaceItemView key={offer.offerId} offerData={offer} type={OWN_OFFER} onClick={takeItemBack} />
+                ))}
+            </ClassicScrollAreaView>
+            <NativeText background={MARKETPLACE_PAGE_BACKGROUND} className="volt-catalog-market-status is-own" text={statusText} textStyle="u_small" />
+            {/* recall_all_button / mark_as_seen_button need the recall-all and clear-history requests; until then the sold
+                credits are still redeemed from here, in the bottom button slot. */}
+            {category === MarketPlaceOfferState.SOLD && creditsWaiting > 0 && (
+                <CatalogAirShinyButton
+                    caption={LocalizeText('catalog.marketplace.offer.redeem')}
+                    rect={[249, 434, 90, 24]}
+                    onClick={redeemSoldOffers}
+                />
             )}
-            {creditsWaiting > 0 && (
-                <Column center className="bg-muted rounded p-2" gap={1}>
-                    <Text>
-                        {LocalizeText(
-                            'catalog.marketplace.redeem.get_credits',
-                            ['count', 'credits'],
-                            [soldOffers.length.toString(), creditsWaiting.toString()]
-                        )}
-                    </Text>
-                    <Button className="mt-1" onClick={redeemSoldOffers}>
-                        {LocalizeText('catalog.marketplace.offer.redeem')}
-                    </Button>
-                </Column>
-            )}
-            <Column gap={1} overflow="hidden">
-                <Text shrink truncate fontWeight="bold">
-                    {LocalizeText('catalog.marketplace.items_found', ['count'], [offers.length.toString()])}
-                </Text>
-                <Column className="volt-catalog-layout-marketplace-grid" overflow="auto">
-                    {offers.length > 0 &&
-                        offers.map((offer) => (
-                            <CatalogLayoutMarketplaceItemView key={offer.offerId} offerData={offer} type={OWN_OFFER} onClick={takeItemBack} />
-                        ))}
-                </Column>
-            </Column>
-        </Column>
+        </div>
     );
 };
