@@ -4,6 +4,7 @@ import { useCatalogData, useCatalogUiState, useUserGroups } from '../../../../..
 import { CatalogLayouGuildForumView } from './CatalogLayoutGuildForumView';
 
 vi.mock('../../../../../api', () => ({
+    GetConfigurationValue: () => '',
     LocalizeText: (key: string) => key,
     SanitizeHtml: (value: string) => value
 }));

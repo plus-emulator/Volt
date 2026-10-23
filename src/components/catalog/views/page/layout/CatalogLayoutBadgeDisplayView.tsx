@@ -1,6 +1,8 @@
 import { FC } from 'react';
-import { SanitizeHtml } from '../../../../../api';
+import { NativeText } from '../../../../../common/native-text/NativeText';
 import { useCatalogData } from '../../../../../hooks';
+import { getCatalogPlainText } from '../../../catalogLocalization.helpers';
+import { CatalogCentredImageView } from '../widgets/CatalogCentredImageView';
 import { CatalogBadgeSelectorWidgetView } from '../widgets/CatalogBadgeSelectorWidgetView';
 import { CatalogFirstProductSelectorWidgetView } from '../widgets/CatalogFirstProductSelectorWidgetView';
 import { CatalogItemGridWidgetView } from '../widgets/CatalogItemGridWidgetView';
@@ -16,16 +18,29 @@ export const CatalogLayoutBadgeDisplayView: FC<CatalogLayoutProps> = (props) => 
     const { page = null } = props;
     const { currentOffer = null, roomPreviewer = null } = useCatalogData();
     const isBundleOffer = currentOffer?.pricingModel === 'pricing_model_bundle';
+    const teaserImage = page.localization.getImage(1);
+    const teaserText = getCatalogPlainText(page.localization.getText(1));
 
     return (
         <div className="volt-catalog-badge-display-layout">
             <CatalogFirstProductSelectorWidgetView />
             <section className={`volt-catalog-badge-preview ${currentOffer ? '' : 'is-empty'} ${isBundleOffer ? 'is-bundle' : ''}`.trim()}>
+                {/* Before UserBadgeSelectorCatalogWidget selects offer 0, the product view shows image 1 centred and text 1. */}
                 {!currentOffer && (
-                    <div className="volt-catalog-badge-intro">
-                        {!!page.localization.getImage(1) && <img alt="" src={page.localization.getImage(1)} />}
-                        <span dangerouslySetInnerHTML={{ __html: SanitizeHtml(page.localization.getText(0)) }} />
-                    </div>
+                    <>
+                        {!!teaserImage && <CatalogCentredImageView key={teaserImage} src={teaserImage} />}
+                        {!!teaserText && (
+                            <NativeText
+                                nativeResolution
+                                background={0xe9e9e1}
+                                className="volt-catalog-welcome-description"
+                                maxWidth={280}
+                                overrides={{ italic: true }}
+                                text={teaserText}
+                                textStyle="u_small"
+                            />
+                        )}
+                    </>
                 )}
                 {currentOffer && (
                     <>

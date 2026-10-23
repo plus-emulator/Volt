@@ -1,15 +1,18 @@
 import { StringDataType } from '@volt/renderer';
 import { FC, useEffect, useMemo, useState } from 'react';
 import { GetConfigurationValue, LocalizeBadgeDescription, LocalizeBadgeName, LocalizeText, localizeWithFallback } from '../../../../../api';
-import { AutoGrid, AutoGridProps, ClassicScrollAreaView, LayoutBadgeImageView, LayoutGridItem } from '../../../../../common';
+import { ClassicScrollAreaView, LayoutBadgeImageView } from '../../../../../common';
+import { NativeText } from '../../../../../common/native-text/NativeText';
 import { useCatalogData, useCatalogUiState, useInventoryBadges } from '../../../../../hooks';
 
-interface CatalogBadgeSelectorWidgetViewProps extends AutoGridProps {}
+interface CatalogBadgeSelectorWidgetViewProps {
+    className?: string;
+}
 
 const MAX_SEARCH_LENGTH = 40;
 
 export const CatalogBadgeSelectorWidgetView: FC<CatalogBadgeSelectorWidgetViewProps> = (props) => {
-    const { columnCount = 0, className = '', ...rest } = props;
+    const { className = '' } = props;
     const [currentBadgeCode, setCurrentBadgeCode] = useState<string>(null);
     const [searchText, setSearchText] = useState('');
     const { currentOffer = null } = useCatalogData();
@@ -84,11 +87,11 @@ export const CatalogBadgeSelectorWidgetView: FC<CatalogBadgeSelectorWidgetViewPr
 
     return (
         <div className={`volt-catalog-badge-selector ${className}`.trim()}>
+            {/* search_input_border (0, 0, 255x26): border style 105 with the input, its placeholder and cancel_search_btn. */}
             <div className="volt-catalog-badge-search">
                 <input
                     aria-label={LocalizeText('generic.search')}
                     maxLength={MAX_SEARCH_LENGTH}
-                    placeholder={LocalizeText('generic.search')}
                     role="searchbox"
                     type="text"
                     value={searchText}
@@ -100,44 +103,42 @@ export const CatalogBadgeSelectorWidgetView: FC<CatalogBadgeSelectorWidgetViewPr
                         setSearchText('');
                     }}
                 />
+                {!searchText.length && (
+                    <NativeText
+                        ariaHidden
+                        transparent
+                        background={0xffffff}
+                        className="volt-catalog-badge-search-placeholder"
+                        overrides={{ color: 0x666666 }}
+                        text={LocalizeText('generic.search')}
+                        textStyle="u_regular"
+                    />
+                )}
                 {!!searchText.length && (
                     <button
                         aria-label={localizeWithFallback('generic.clear', 'Clear')}
                         className="volt-catalog-badge-search-clear"
                         type="button"
                         onClick={() => setSearchText('')}
-                    >
-                        ×
-                    </button>
+                    />
                 )}
             </div>
+            {/* badgeGrid (0, 30, 255x145): badgeGridItem tiles, 1px apart; an empty list shows an empty grid. */}
             <ClassicScrollAreaView className="volt-catalog-badge-scroll-area" scrollStep={45}>
-                <AutoGrid
-                    aria-label={LocalizeText('catalog_selectbadge')}
-                    className="volt-catalog-badge-grid"
-                    columnCount={columnCount}
-                    columnMinHeight={44}
-                    columnMinWidth={44}
-                    overflow="visible"
-                    role="listbox"
-                    {...rest}
-                >
+                <div aria-label={LocalizeText('catalog_selectbadge')} className="volt-catalog-badge-grid" role="listbox">
                     {filteredBadgeCodes.map((badgeCode) => (
-                        <LayoutGridItem
+                        <div
                             key={badgeCode}
                             aria-label={badgeCode}
                             aria-selected={currentBadgeCode === badgeCode}
-                            className="volt-catalog-badge-tile"
-                            itemActive={currentBadgeCode === badgeCode}
+                            className={`volt-catalog-badge-tile ${currentBadgeCode === badgeCode ? 'is-selected' : ''}`.trim()}
                             role="option"
-                            title={LocalizeBadgeName(badgeCode)}
                             onClick={() => setCurrentBadgeCode(badgeCode)}
                         >
-                            <LayoutBadgeImageView badgeCode={badgeCode} showInfo />
-                        </LayoutGridItem>
+                            <LayoutBadgeImageView badgeCode={badgeCode} />
+                        </div>
                     ))}
-                </AutoGrid>
-                {!filteredBadgeCodes.length && <div className="volt-catalog-badge-empty">{LocalizeText('inventory.empty.title')}</div>}
+                </div>
             </ClassicScrollAreaView>
         </div>
     );

@@ -1,26 +1,39 @@
 import { CreateLinkEvent } from '@volt/renderer';
 import { FC } from 'react';
-import { LocalizeText, SanitizeHtml } from '../../../../../api';
-import { Button } from '../../../../../common/Button';
-import { Column } from '../../../../../common/Column';
-import { Grid } from '../../../../../common/Grid';
-import { LayoutImage } from '../../../../../common/layout/LayoutImage';
+import { LocalizeText } from '../../../../../api';
+import { NativeText } from '../../../../../common/native-text/NativeText';
+import { getCatalogPlainText } from '../../../catalogLocalization.helpers';
+import { CatalogCentredImageView } from '../widgets/CatalogCentredImageView';
 import { CatalogLayoutProps } from './CatalogLayout.types';
 
+const PAGE_BACKGROUND = 0xe9e9e1;
+
+/**
+ * AIR layout_guild_frontpage (360x460). Page text 0 only fills the catalog header, text 1 is ctlg_description, text 2 is
+ * ctlg_special_txt and image 1 is ctlg_teaserimg_1.
+ */
 export const CatalogLayouGuildFrontpageView: FC<CatalogLayoutProps> = (props) => {
     const { page = null } = props;
+    const title = getCatalogPlainText(page.localization.getText(2));
+    const description = getCatalogPlainText(page.localization.getText(1));
+    const teaserImage = page.localization.getImage(1);
+
+    // BuyGuildWidget.onButtonClicked: start the group purchase and close the catalog.
+    const startGuildPurchase = () => {
+        CreateLinkEvent('groups/create');
+        CreateLinkEvent('catalog/hide');
+    };
 
     return (
-        <Grid>
-            <Column className="bg-muted rounded p-2 text-black" overflow="hidden" size={7}>
-                <div dangerouslySetInnerHTML={{ __html: SanitizeHtml(page.localization.getText(2)) }} />
-                <div className="overflow-auto" dangerouslySetInnerHTML={{ __html: SanitizeHtml(page.localization.getText(0)) }} />
-                <div dangerouslySetInnerHTML={{ __html: SanitizeHtml(page.localization.getText(1)) }} />
-            </Column>
-            <Column center overflow="hidden" size={5}>
-                <LayoutImage imageUrl={page.localization.getImage(1)} />
-                <Button onClick={() => CreateLinkEvent('groups/create')}>{LocalizeText('catalog.start.guild.purchase.button')}</Button>
-            </Column>
-        </Grid>
+        <div className="volt-catalog-guild-frontpage">
+            <div className="volt-catalog-guild-frontpage-image">{!!teaserImage && <CatalogCentredImageView key={teaserImage} src={teaserImage} />}</div>
+            {!!title && <NativeText background={PAGE_BACKGROUND} className="volt-catalog-guild-frontpage-title" text={title} textStyle="u_headline_medium" />}
+            {!!description && (
+                <NativeText background={PAGE_BACKGROUND} className="volt-catalog-guild-frontpage-description" maxWidth={335} text={description} textStyle="u_regular" />
+            )}
+            <button className="volt-catalog-guild-shiny-button volt-catalog-guild-frontpage-button" type="button" onClick={startGuildPurchase}>
+                <NativeText transparent background={0xffffff} text={LocalizeText('catalog.start.guild.purchase.button')} textStyle="button_shiny_regular" />
+            </button>
+        </div>
     );
 };
