@@ -2,10 +2,14 @@ import { SelectClubGiftComposer } from '@volt/renderer';
 import { FC, useCallback, useMemo } from 'react';
 import { LocalizeText, SendMessageComposer } from '../../../../../../api';
 import { ClassicScrollAreaView } from '../../../../../../common';
+import { NativeText } from '../../../../../../common/native-text/NativeText';
 import { useClubGifts, useNotification, usePurse } from '../../../../../../hooks';
 import { CatalogLayoutProps } from '../CatalogLayout.types';
 import { ClubGiftText, getGiftRequirementText, getPastClubDaysText } from './clubGifts.helpers';
 import { VipGiftItem } from './VipGiftItemView';
+
+/** The catalog page colour behind the AIR text rasters (ctlg_presents paints no background). */
+const PAGE_BACKGROUND = 0xe9e9e1;
 
 let isSelectingGift = false;
 
@@ -36,7 +40,8 @@ export const CatalogLayoutVipGiftsView: FC<CatalogLayoutProps> = (props) => {
 
         if (clubGifts.daysUntilNextGift > 0) return LocalizeText('catalog.club_gift.days_until_next', ['days'], [clubGifts.daysUntilNextGift.toString()]);
 
-        if (purse?.isVip) return LocalizeText('catalog.club_gift.not_available');
+        // ClubGiftController.hasClub: the user has club days left.
+        if (purse?.clubDays > 0) return LocalizeText('catalog.club_gift.not_available');
 
         return LocalizeText('catalog.club_gift.no_club');
     }, [clubGifts, purse]);
@@ -74,10 +79,14 @@ export const CatalogLayoutVipGiftsView: FC<CatalogLayoutProps> = (props) => {
         return [...clubGifts.offers].sort((a, b) => clubGifts.getOfferExtraData(a.offerId).daysRequired - clubGifts.getOfferExtraData(b.offerId).daysRequired);
     }, [clubGifts]);
 
-    // Official clubGiftWidget: wrapped info line, the gift list, then the past HC length centred below it.
+    const infoText = giftsAvailable();
+
+    // AIR layout_club_gifts: info_text (u_italic) at 0,0, gift_list at 0,35 and past_club_days (u_small, centred) at 0,445.
     return (
         <div className="volt-catalog-club-gifts">
-            <div className="volt-catalog-club-gifts-info">{giftsAvailable()}</div>
+            {!!infoText && (
+                <NativeText className="volt-catalog-club-gifts-info" background={PAGE_BACKGROUND} maxWidth={360} text={infoText} textStyle="u_italic" />
+            )}
             <ClassicScrollAreaView className="volt-catalog-club-gifts-list" contentClassName="volt-catalog-club-gifts-list-content" scrollStep={59}>
                 {clubGifts &&
                     clubGifts.offers.length > 0 &&
@@ -96,7 +105,16 @@ export const CatalogLayoutVipGiftsView: FC<CatalogLayoutProps> = (props) => {
                         );
                     })}
             </ClassicScrollAreaView>
-            {!!pastClubDaysText && <div className="volt-catalog-club-gifts-past">{pastClubDaysText}</div>}
+            {!!pastClubDaysText && (
+                <NativeText
+                    align="center"
+                    className="volt-catalog-club-gifts-past"
+                    background={PAGE_BACKGROUND}
+                    text={pastClubDaysText}
+                    textStyle="u_small"
+                    width={360}
+                />
+            )}
         </div>
     );
 };
