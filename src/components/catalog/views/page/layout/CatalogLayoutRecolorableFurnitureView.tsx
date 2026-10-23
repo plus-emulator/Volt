@@ -2,6 +2,7 @@ import { GetRecolorableFurnitureColors, MapDataType } from '@volt/renderer';
 import { CSSProperties, FC, useEffect, useMemo, useState } from 'react';
 import { ApplyRecolorableColorToPage, CreateRecolorableStuffData, GetRecolorableColorParam, LocalizeText } from '../../../../../api';
 import { ClassicScrollAreaView } from '../../../../../common';
+import { NativeText } from '../../../../../common/native-text/NativeText';
 import { useCatalogActions, useCatalogData, useCatalogUiState } from '../../../../../hooks';
 import { CatalogLayoutProps } from './CatalogLayout.types';
 import { CatalogLayoutDefaultView } from './CatalogLayoutDefaultView';
@@ -12,8 +13,9 @@ const DEFAULT_COLOR = 0xffffff;
 const toCssColour = (colour: number) => `#${(colour & 0xffffff).toString(16).padStart(6, '0')}`;
 
 /**
- * AIR `recolorable_furniture` (RecolorableFurnitureCatalogWidget.as:18-151, layout_recolorable_furniture): the default page with a
- * 150px preview, a 116px item grid and the class palette under it. The chosen colour becomes the "r,g,b" extra parameter of the
+ * AIR `recolorable_furniture` (layout_recolorable_furniture, 360x515): the default page with a 150px preview, the item grid
+ * and the class palette under it. On the 460px page the grid is 61px high and the palette starts at y 220 (XML params).
+ * The AS3 here has no recolorableFurnitureWidget handler, so the palette and purchase behaviour stay as before. The chosen colour becomes the "r,g,b" extra parameter of the
  * page's offers, so purchase, gift and placement all carry it.
  */
 export const CatalogLayoutRecolorableFurnitureView: FC<CatalogLayoutProps> = (props) =>
@@ -78,7 +80,12 @@ export const CatalogLayoutRecolorableFurnitureView: FC<CatalogLayoutProps> = (pr
             {...props}
             colourGrid={
                 <div className="volt-catalog-recolorable-palette">
-                    <span className="volt-catalog-recolorable-palette-caption">{LocalizeText('catalog.recolorable.palette')}</span>
+                    <NativeText
+                        background={0xe9e9e1}
+                        className="volt-catalog-recolorable-palette-caption"
+                        text={LocalizeText('catalog.recolorable.palette')}
+                        textStyle="u_small"
+                    />
                     <div className="volt-catalog-colour-grid-shell">
                         <ClassicScrollAreaView className="h-full min-h-0">
                             <div aria-label={LocalizeText('catalog.recolorable.palette')} className="volt-catalog-colour-grid" role="radiogroup">
