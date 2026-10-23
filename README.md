@@ -1,16 +1,14 @@
 # Volt
 
-Volt is the web client of a Habbo Hotel: the screen where players walk, chat and decorate. It is written in React 19 and TypeScript and built on [Volt-Renderer](https://github.com/plus-emulator/Volt-Renderer). It works with the [PlusEMU](https://github.com/plus-emulator/PlusEMU) server.
+Volt is a web client for Habbo Hotel servers, written in React 19 and TypeScript on top of [Volt-Renderer](https://github.com/plus-emulator/Volt-Renderer). It is the client for [PlusEMU](https://github.com/plus-emulator/PlusEMU). Volt began as a fork of Nitro React and is now developed independently.
 
-Volt started as a fork of Nitro React and is developed on its own.
-
-Full guides are on the documentation site: <https://docs.plusemu.dev/getting-started/volt-client/>
+Documentation: <https://docs.plusemu.dev/getting-started/volt-client/>
 
 ## Setup
 
-The easiest way is the PlusEMU [installer](https://docs.plusemu.dev/getting-started/installation/). It installs Volt for you.
+Use the PlusEMU [installer](https://docs.plusemu.dev/getting-started/installation/), or install a release manually.
 
-To install Volt by hand:
+Manual installation:
 
 1. Download `volt-client.zip` from [Releases](https://github.com/plus-emulator/Volt/releases) and unzip it into your web server folder.
 2. In the `configuration/` folder, copy these files:
@@ -18,7 +16,7 @@ To install Volt by hand:
    - `ui-config.example` to `ui-config.json`
    - `client-mode.example` to `client-mode.json`
 3. In `renderer-config.json`, set `socket.url` to your PlusEMU WebSocket address, for example `ws://127.0.0.1:2096`. Use `wss://` on a live server.
-4. Open the client with a login ticket: `index.html?sso=TICKET`. Your website normally does this.
+4. Open the client with a login ticket: `index.html?sso=<ticket>`. The website issues the ticket.
 
 See [Set up the Volt client](https://docs.plusemu.dev/getting-started/volt-client/) for all settings and for building from source.
 
@@ -26,7 +24,7 @@ See [Set up the Volt client](https://docs.plusemu.dev/getting-started/volt-clien
 
 If you used the installer, run `sudo plusemu-update` (Linux) or `plusemu-update` (Windows).
 
-To update by hand:
+Manual update:
 
 1. Back up your `configuration/` folder.
 2. Download the new `volt-client.zip` and replace the old files. Keep your own configuration files.
