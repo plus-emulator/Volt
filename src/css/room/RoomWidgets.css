@@ -998,8 +998,10 @@
 :is(.volt-avatar-action-menu--classic, .volt-avatar-action-menu--own)::after {
     position: absolute;
     bottom: 0;
-    left: calc(50% - 6px);
+    right: 0;
+    left: 0;
     width: 13px;
+    margin: 0 auto;
     height: 9px;
     content: '';
     background: url('../../assets/images/avatar-menu/air/bubble-pointer-down.png') no-repeat;
@@ -1520,6 +1522,7 @@
 }
 
 .volt-avatar-action-menu--decorate .air-avatar-menu-buttons > .volt-context-menu-item {
+    padding: 0;
     width: 101px;
     min-width: 101px;
     max-width: 101px;
@@ -1527,6 +1530,11 @@
 
 .volt-avatar-action-menu--decorate .air-avatar-menu-buttons > .volt-context-menu-item::before {
     width: 107px;
+}
+
+/* The label is an auto_size center field at (3,9) of the 107x35 button, which sits at (-3,-4) of the row. */
+.air-avatar-menu-decorate-label {
+    top: 5px;
 }
 
 /* use_product_menu: own_avatar_menu geometry with a 104px list and 102x26 rows on 108x35 buttons. */
@@ -1577,8 +1585,10 @@
 .air-friend-request::after {
     position: absolute;
     bottom: 0;
-    left: calc(50% - 6px);
+    right: 0;
+    left: 0;
     width: 13px;
+    margin: 0 auto;
     height: 9px;
     content: '';
     background: url('../../assets/images/avatar-menu/air/bubble-pointer-down-friend-request.png') no-repeat;
@@ -1591,7 +1601,7 @@
     left: 7px;
     width: 15px;
     height: 15px;
-    background: url('../../assets/images/avatar-menu/air/icon-profile.png') 1px 2px no-repeat;
+    background: url('../../assets/images/avatar-menu/air/icon-profile.png') no-repeat;
     cursor: pointer;
 }
 
@@ -1606,15 +1616,7 @@
     width: 142px;
     height: 32px;
     overflow: hidden;
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 15px;
-    overflow-wrap: break-word;
     cursor: pointer;
-}
-
-.air-friend-request__text:hover {
-    text-decoration: underline;
 }
 
 .air-friend-request__decline {
@@ -1623,9 +1625,6 @@
     left: 10px;
     width: 152px;
     height: 16px;
-    font-size: 11px;
-    line-height: 16px;
-    text-decoration: underline;
     cursor: pointer;
 }
 
@@ -1668,11 +1667,8 @@
     left: 18px;
     width: 65px;
     height: 16px;
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 16px;
+    display: block;
     text-align: left;
-    white-space: nowrap;
 }
 
 .air-friend-request__close {
@@ -1731,8 +1727,10 @@
 .volt-context-menu.air-name-bubble::after {
     position: absolute;
     bottom: 0;
-    left: calc(50% - 6px);
+    right: 0;
+    left: 0;
     width: 13px;
+    margin: 0 auto;
     height: 9px;
     content: '';
     background: url('../../assets/images/avatar-menu/air/bubble-pointer-down-name.png') no-repeat;

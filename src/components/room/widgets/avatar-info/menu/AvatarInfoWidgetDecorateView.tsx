@@ -1,6 +1,8 @@
 import { RoomObjectCategory } from '@volt/renderer';
 import { Dispatch, FC, SetStateAction } from 'react';
 import { LocalizeText } from '../../../../../api';
+import { NativeCenteredField } from '../../../../../common/native-text/NativeCenteredField';
+import { NativeText } from '../../../../../common/native-text/NativeText';
 import { ContextMenuListItemView } from '../../context-menu/ContextMenuListItemView';
 import { ContextMenuView } from '../../context-menu/ContextMenuView';
 
@@ -30,7 +32,11 @@ export const AvatarInfoWidgetDecorateView: FC<AvatarInfoWidgetDecorateViewProps>
             onClose={null}
         >
             <div className="air-avatar-menu-buttons">
-                <ContextMenuListItemView onClick={(event) => setIsDecorating(false)}>{LocalizeText('widget.avatar.stop_decorating')}</ContextMenuListItemView>
+                <ContextMenuListItemView onClick={(event) => setIsDecorating(false)}>
+                    <NativeCenteredField className="air-avatar-menu-decorate-label" width={101}>
+                        <NativeText transparent background={0x2a2825} overrides={{ size: 11, color: 0xffffff }} text={LocalizeText('widget.avatar.stop_decorating')} textStyle="u_regular" />
+                    </NativeCenteredField>
+                </ContextMenuListItemView>
             </div>
         </ContextMenuView>
     );
