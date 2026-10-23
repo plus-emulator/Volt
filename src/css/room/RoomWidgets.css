@@ -998,8 +998,10 @@
 :is(.volt-avatar-action-menu--classic, .volt-avatar-action-menu--own)::after {
     position: absolute;
     bottom: 0;
-    left: calc(50% - 6px);
+    right: 0;
+    left: 0;
     width: 13px;
+    margin: 0 auto;
     height: 9px;
     content: '';
     background: url('../../assets/images/avatar-menu/air/bubble-pointer-down.png') no-repeat;
@@ -1509,6 +1511,184 @@
     height: 11px;
 }
 
+/* own_avatar_decorating: a 115x49 bubble with no name row. The button list sits at (2,7) inside 4px margins, so the 101x26 row starts at (7,11). */
+.volt-avatar-action-menu--decorate {
+    padding: 11px 0 12px;
+}
+
+.volt-avatar-action-menu--decorate .air-avatar-menu-buttons {
+    width: 103px;
+    margin-left: 6px;
+}
+
+.volt-avatar-action-menu--decorate .air-avatar-menu-buttons > .volt-context-menu-item {
+    padding: 0;
+    width: 101px;
+    min-width: 101px;
+    max-width: 101px;
+}
+
+.volt-avatar-action-menu--decorate .air-avatar-menu-buttons > .volt-context-menu-item::before {
+    width: 107px;
+}
+
+/* The label is an auto_size center field at (3,9) of the 107x35 button, which sits at (-3,-4) of the row. */
+.air-avatar-menu-decorate-label {
+    top: 5px;
+}
+
+/* use_product_menu: own_avatar_menu geometry with a 104px list and 102x26 rows on 108x35 buttons. */
+.volt-avatar-action-menu--use-product .air-avatar-menu-buttons {
+    width: 104px;
+}
+
+.volt-avatar-action-menu--use-product .air-avatar-menu-buttons > .volt-context-menu-item {
+    width: 102px;
+    min-width: 102px;
+    max-width: 102px;
+}
+
+.volt-avatar-action-menu--use-product .air-avatar-menu-buttons > .volt-context-menu-item::before {
+    width: 108px;
+}
+
+/* instant_friend_request: a 197x83 window with the bubble at (-6,-6) 209x89, tinted #fac919. The bubble body sits 6px inside that box and
+   its content area 8px inside, so every child below is the layout position + 2. */
+.air-friend-request {
+    position: relative;
+    isolation: isolate;
+    box-sizing: border-box;
+    width: 197px;
+    height: 83px;
+    color: #ffffff;
+    font-family: AirAvatarMenuUbuntu, UbuntuRegular, sans-serif;
+    pointer-events: auto;
+    image-rendering: var(--volt-pixel-art, pixelated);
+    -webkit-font-smoothing: antialiased;
+}
+
+.air-friend-request::before {
+    position: absolute;
+    inset: 0 0 6px;
+    z-index: -2;
+    box-sizing: border-box;
+    content: '';
+    border: solid transparent;
+    border-width: 5px 5px 6px;
+    border-image-source: url('../../assets/images/avatar-menu/air/bubble-friend-request.png');
+    border-image-slice: 20 20 24 20 fill;
+    border-image-width: 5px 5px 6px;
+    border-image-repeat: stretch;
+    pointer-events: none;
+}
+
+.air-friend-request::after {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    width: 13px;
+    margin: 0 auto;
+    height: 9px;
+    content: '';
+    background: url('../../assets/images/avatar-menu/air/bubble-pointer-down-friend-request.png') no-repeat;
+    pointer-events: none;
+}
+
+.air-friend-request__profile-icon {
+    position: absolute;
+    top: 12px;
+    left: 7px;
+    width: 15px;
+    height: 15px;
+    background: url('../../assets/images/avatar-menu/air/icon-profile.png') no-repeat;
+    cursor: pointer;
+}
+
+.air-friend-request__profile-icon:hover {
+    background-image: url('../../assets/images/avatar-menu/air/icon-profile-hover.png');
+}
+
+.air-friend-request__text {
+    position: absolute;
+    top: 7px;
+    left: 27px;
+    width: 142px;
+    height: 32px;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.air-friend-request__decline {
+    position: absolute;
+    top: 48px;
+    left: 10px;
+    width: 152px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.air-friend-request__accept {
+    position: absolute;
+    top: 44px;
+    left: 101px;
+    box-sizing: border-box;
+    width: 90px;
+    height: 24px;
+    padding: 0;
+    border: 5px solid transparent;
+    border-image: url('../../assets/images/habbo-skin/slices/button-shiny-thick-default.png') 5 fill / 5px stretch;
+    background: transparent;
+    color: #000000;
+    font: inherit;
+    cursor: pointer;
+}
+
+.air-friend-request__accept:hover {
+    border-image-source: url('../../assets/images/habbo-skin/slices/button-shiny-thick-hover.png');
+}
+
+.air-friend-request__accept:active {
+    border-image-source: url('../../assets/images/habbo-skin/slices/button-shiny-thick-pressed.png');
+}
+
+.air-friend-request__accept-icon {
+    position: absolute;
+    top: 0;
+    left: 1px;
+    width: 16px;
+    height: 13px;
+    background: url('../../assets/images/avatar-menu/air/icon-accept.png') no-repeat;
+}
+
+.air-friend-request__accept-label {
+    position: absolute;
+    top: -2px;
+    left: 18px;
+    width: 65px;
+    height: 16px;
+    display: block;
+    text-align: left;
+}
+
+.air-friend-request__close {
+    position: absolute;
+    top: 5px;
+    left: 173px;
+    width: 19px;
+    height: 20px;
+    background: url('../../assets/images/habbo-skin/slices/close-3-default.png') no-repeat;
+    cursor: pointer;
+}
+
+.air-friend-request__close:hover {
+    background-image: url('../../assets/images/habbo-skin/slices/close-3-hover.png');
+}
+
+.air-friend-request__close:active {
+    background-image: url('../../assets/images/habbo-skin/slices/close-3-pressed.png');
+}
+
 /* avatar_info_widget: the 129x39 AIR bubble. The skin body sits 6px inside the window and the 13x9 pointer is bottom centred; the relationship icon (16x14 at 2,4) paints at 10,12.
    Native auto_size keeps the name field at x=16 with a 32px remainder. The name view's 24/24 (left 24px, width raster+48) is Dennis's requested centering; the +48 total stays supported. */
 .volt-context-menu.air-name-bubble {
@@ -1547,8 +1727,10 @@
 .volt-context-menu.air-name-bubble::after {
     position: absolute;
     bottom: 0;
-    left: calc(50% - 6px);
+    right: 0;
+    left: 0;
     width: 13px;
+    margin: 0 auto;
     height: 9px;
     content: '';
     background: url('../../assets/images/avatar-menu/air/bubble-pointer-down-name.png') no-repeat;

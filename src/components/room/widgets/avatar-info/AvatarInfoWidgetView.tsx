@@ -31,7 +31,6 @@ import { InfoStandWidgetRentableBotView } from './infostand/InfoStandWidgetRenta
 import { InfoStandWidgetUserView } from './infostand/InfoStandWidgetUserView';
 import { AvatarInfoWidgetAvatarView } from './menu/AvatarInfoWidgetAvatarView';
 import { AvatarInfoWidgetDecorateView } from './menu/AvatarInfoWidgetDecorateView';
-import { AvatarInfoWidgetFurniView } from './menu/AvatarInfoWidgetFurniView';
 import { AvatarInfoWidgetNameView } from './menu/AvatarInfoWidgetNameView';
 import { AvatarInfoWidgetOwnAvatarView } from './menu/AvatarInfoWidgetOwnAvatarView';
 import { AvatarInfoWidgetOwnPetView } from './menu/AvatarInfoWidgetOwnPetView';
@@ -161,13 +160,9 @@ export const AvatarInfoWidgetView: FC<{}> = (props) => {
 
         if (avatarInfo) {
             switch (avatarInfo.type) {
-                case AvatarInfoFurni.FURNI: {
-                    const info = avatarInfo as AvatarInfoFurni;
-
-                    if (!isDecorating) return null;
-
-                    return <AvatarInfoWidgetFurniView avatarInfo={info} onClose={() => setAvatarInfo(null)} />;
-                }
+                // AIR AvatarInfoWidget drops its view on RWFIUE_FURNI: furni actions live in the infostand, not in a bubble.
+                case AvatarInfoFurni.FURNI:
+                    return null;
                 case AvatarInfoUser.OWN_USER:
                 case AvatarInfoUser.PEER: {
                     const info = avatarInfo as AvatarInfoUser;

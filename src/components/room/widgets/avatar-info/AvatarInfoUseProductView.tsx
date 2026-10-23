@@ -81,57 +81,68 @@ export const AvatarInfoUseProductView: FC<AvatarInfoUseProductViewProps> = (prop
     }, [roomSession, item]);
 
     return (
-        <ContextMenuView category={RoomObjectCategory.UNIT} collapsable={true} objectId={item.id} userType={RoomObjectType.PET} onClose={onClose}>
+        <ContextMenuView
+            category={RoomObjectCategory.UNIT}
+            classNames={['volt-avatar-action-menu', 'volt-avatar-action-menu--own', 'volt-avatar-action-menu--use-product']}
+            collapsable={true}
+            freezePositionOnHover={true}
+            objectId={item.id}
+            showCaretIcon={false}
+            userType={RoomObjectType.PET}
+            onClose={onClose}
+        >
             <ContextMenuHeaderView>{item.name}</ContextMenuHeaderView>
-            {mode === PRODUCT_PAGE_UKNOWN && (
-                <ContextMenuListItemView onClick={(event) => processAction('use_product')}>
-                    {LocalizeText('infostand.button.useproduct')}
-                </ContextMenuListItemView>
-            )}
-            {mode === PRODUCT_PAGE_SHAMPOO && (
-                <ContextMenuListItemView onClick={(event) => processAction('use_product_shampoo')}>
-                    {LocalizeText('infostand.button.useproduct_shampoo')}
-                </ContextMenuListItemView>
-            )}
-            {mode === PRODUCT_PAGE_CUSTOM_PART && (
-                <ContextMenuListItemView onClick={(event) => processAction('use_product_custom_part')}>
-                    {LocalizeText('infostand.button.useproduct_custom_part')}
-                </ContextMenuListItemView>
-            )}
-            {mode === PRODUCT_PAGE_CUSTOM_PART_SHAMPOO && (
-                <ContextMenuListItemView onClick={(event) => processAction('use_product_custom_part_shampoo')}>
-                    {LocalizeText('infostand.button.useproduct_custom_part_shampoo')}
-                </ContextMenuListItemView>
-            )}
-            {mode === PRODUCT_PAGE_SADDLE && (
-                <>
-                    {item.replace && (
-                        <ContextMenuListItemView onClick={(event) => processAction('replace_product_saddle')}>
-                            {LocalizeText('infostand.button.replaceproduct_saddle')}
-                        </ContextMenuListItemView>
-                    )}
-                    {!item.replace && (
-                        <ContextMenuListItemView onClick={(event) => processAction('use_product_saddle')}>
-                            {LocalizeText('infostand.button.useproduct_saddle')}
-                        </ContextMenuListItemView>
-                    )}
-                </>
-            )}
-            {mode === PRODUCT_PAGE_REVIVE && (
-                <ContextMenuListItemView onClick={(event) => processAction('revive_monsterplant')}>
-                    {LocalizeText('infostand.button.revive_monsterplant')}
-                </ContextMenuListItemView>
-            )}
-            {mode === PRODUCT_PAGE_REBREED && (
-                <ContextMenuListItemView onClick={(event) => processAction('rebreed_monsterplant')}>
-                    {LocalizeText('infostand.button.rebreed_monsterplant')}
-                </ContextMenuListItemView>
-            )}
-            {mode === PRODUCT_PAGE_FERTILIZE && (
-                <ContextMenuListItemView onClick={(event) => processAction('fertilize_monsterplant')}>
-                    {LocalizeText('infostand.button.fertilize_monsterplant')}
-                </ContextMenuListItemView>
-            )}
+            <div className="air-avatar-menu-buttons">
+                {mode === PRODUCT_PAGE_UKNOWN && (
+                    <ContextMenuListItemView onClick={(event) => processAction('use_product')}>
+                        {LocalizeText('infostand.button.useproduct')}
+                    </ContextMenuListItemView>
+                )}
+                {mode === PRODUCT_PAGE_SHAMPOO && (
+                    <ContextMenuListItemView onClick={(event) => processAction('use_product_shampoo')}>
+                        {LocalizeText('infostand.button.useproduct_shampoo')}
+                    </ContextMenuListItemView>
+                )}
+                {mode === PRODUCT_PAGE_CUSTOM_PART && (
+                    <ContextMenuListItemView onClick={(event) => processAction('use_product_custom_part')}>
+                        {LocalizeText('infostand.button.useproduct_custom_part')}
+                    </ContextMenuListItemView>
+                )}
+                {mode === PRODUCT_PAGE_CUSTOM_PART_SHAMPOO && (
+                    <ContextMenuListItemView onClick={(event) => processAction('use_product_custom_part_shampoo')}>
+                        {LocalizeText('infostand.button.useproduct_custom_part_shampoo')}
+                    </ContextMenuListItemView>
+                )}
+                {mode === PRODUCT_PAGE_SADDLE && (
+                    <>
+                        {item.replace && (
+                            <ContextMenuListItemView onClick={(event) => processAction('replace_product_saddle')}>
+                                {LocalizeText('infostand.button.replaceproduct_saddle')}
+                            </ContextMenuListItemView>
+                        )}
+                        {!item.replace && (
+                            <ContextMenuListItemView onClick={(event) => processAction('use_product_saddle')}>
+                                {LocalizeText('infostand.button.useproduct_saddle')}
+                            </ContextMenuListItemView>
+                        )}
+                    </>
+                )}
+                {mode === PRODUCT_PAGE_REVIVE && (
+                    <ContextMenuListItemView onClick={(event) => processAction('revive_monsterplant')}>
+                        {LocalizeText('infostand.button.revive_monsterplant')}
+                    </ContextMenuListItemView>
+                )}
+                {mode === PRODUCT_PAGE_REBREED && (
+                    <ContextMenuListItemView onClick={(event) => processAction('rebreed_monsterplant')}>
+                        {LocalizeText('infostand.button.rebreed_monsterplant')}
+                    </ContextMenuListItemView>
+                )}
+                {mode === PRODUCT_PAGE_FERTILIZE && (
+                    <ContextMenuListItemView onClick={(event) => processAction('fertilize_monsterplant')}>
+                        {LocalizeText('infostand.button.fertilize_monsterplant')}
+                    </ContextMenuListItemView>
+                )}
+            </div>
         </ContextMenuView>
     );
 };
