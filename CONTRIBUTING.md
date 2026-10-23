@@ -34,7 +34,9 @@ CI runs the type check, the hooks lint and the tests on every push and pull requ
 
 ## Pull requests
 
-Follow [AGENTS.md](AGENTS.md): Conventional Commit titles, short descriptions, and UI that matches the Habbo AIR client (`docs/air-ui-parity.md`).
+- Use Conventional Commit titles (`type(scope): summary`) and keep the description short.
+- UI must match the Habbo AIR client. Work from the AIR export and compare screenshots with the AIR reference.
+- Do not add new tests. Verify a change by building it and checking it in the running client.
 
 ## Releases
 

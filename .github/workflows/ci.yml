@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # The build/dev/typecheck setup expects the Volt renderer SDK to
-      # live as a sibling of this repo (see CLAUDE.md → Setup walkthrough).
+      # live as a sibling of this repo (see README.md).
       # Mirror that here by checking the client into <workspace>/volt
       # and the renderer into <workspace>/volt-renderer.
       - name: Checkout Volt

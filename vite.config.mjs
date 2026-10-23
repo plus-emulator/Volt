@@ -160,7 +160,7 @@ if(!existsSync(rendererRoot))
         '  Clone Volt Renderer next to Volt and rerun:\n' +
         '    git clone https://github.com/plus-emulator/Volt-Renderer ../Volt-Renderer\n' +
         '    cd ../Volt-Renderer && yarn install\n\n' +
-        '  (See CLAUDE.md "Commands" section for the full setup walkthrough.)\n'
+        '  (See the README for the full setup walkthrough.)\n'
     );
 }
 
