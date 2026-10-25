@@ -1,7 +1,7 @@
 import { UnseenItemsEvent, UnseenResetCategoryComposer, UnseenResetItemsComposer } from '@volt/renderer';
 import { useCallback, useMemo, useState } from 'react';
 import { registerSharedHook, useSharedHook } from '@/state/useSharedHook';
-import { SendMessageComposer } from '../../api';
+import { INVENTORY_ICON_UNSEEN_CATEGORIES, SendMessageComposer } from '../../api';
 import { useMessageEvent } from '../events';
 
 const sendResetCategoryMessage = (category: number) => SendMessageComposer(new UnseenResetCategoryComposer(category));
@@ -15,10 +15,10 @@ const useInventoryUnseenTrackerState = () => {
     const getFullCount = useMemo(() => {
         let count = 0;
 
-        for (const key of unseenItems.keys()) count += getCount(key);
+        for (const category of INVENTORY_ICON_UNSEEN_CATEGORIES) count += getCount(category);
 
         return count;
-    }, [unseenItems, getCount]);
+    }, [getCount]);
 
     const resetCategory = useCallback((category: number) => {
         let didReset = true;
