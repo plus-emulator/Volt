@@ -15,15 +15,11 @@ export interface WiredMonitorTabViewProps {
     canOpenLogs: boolean;
     monitorStats: MonitorStat[];
     monitorLogs: MonitorLog[];
-    /** Unused by the official layout; kept so the custom monitor history window keeps its entry point. */
-    monitorHistoryRows: { id: string }[];
-    onOpenMonitorInfo: () => void;
-    onOpenMonitorHistory: () => void;
     /** Opens the room's paged wired log window. */
     onOpenRoomLogs: () => void;
     onClearMonitorLogs: () => void;
-    /** Opens the error information window for a log type; every row links to it, as officially. */
-    onOpenMonitorErrorInfo: (type: string, category: string) => void;
+    /** Opens the error information window for a row; every row links to it, as officially. */
+    onOpenMonitorErrorInfo: (log: MonitorLog) => void;
 }
 
 /** The "Monitor" tab (monitor_container of wired_menu_view): statistics, the monitor picture and the error log table. */
@@ -69,7 +65,12 @@ export const WiredMonitorTabView = (props: WiredMonitorTabViewProps) => {
                     { key: 'latest', title: localizeWithFallback('wiredmenu.monitor.column.latest', 'Latest occurrence'), factor: 0.3 }
                 ]}
                 h={156}
-                rows={monitorLogs.map((log) => ({ key: log.type, cells: { type: log.type, category: log.category, amount: log.amount, latest: log.latest }, linkColumn: 'type', onLink: () => onOpenMonitorErrorInfo(log.type, log.category) }))}
+                rows={monitorLogs.map((log, index) => ({
+                    key: `${log.errorId}-${index}`,
+                    cells: { type: log.type, category: log.category, amount: log.amount, latest: <span title={log.latestTooltip}>{log.latest}</span> },
+                    linkColumn: 'type',
+                    onLink: () => onOpenMonitorErrorInfo(log)
+                }))}
                 w={472}
                 x={14}
                 y={172}

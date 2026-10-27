@@ -1,4 +1,4 @@
-import { IWiredVariableData, parseWiredInt64 } from '@volt/renderer';
+import { IWiredErrorLogEntry, IWiredVariableData, parseWiredInt64 } from '@volt/renderer';
 import {
     AddLinkEventTracker,
     FigureUpdateEvent,
@@ -14,9 +14,10 @@ import {
     RoomObjectType,
     RoomObjectVariable,
     RoomUnitInfoEvent,
+    WiredClearErrorLogsComposer,
+    WiredErrorLogsEvent,
+    WiredGetErrorLogsComposer,
     WiredGetRoomStatsComposer,
-    WiredMonitorDataEvent,
-    WiredMonitorRequestComposer,
     WiredRoomStatsEvent,
 } from '@volt/renderer';
 import { FC, KeyboardEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -39,7 +40,6 @@ import {
 import wiredErrorIcon from '../../assets/images/wiredtools/icon_wired_error.png';
 import wiredWarningIcon from '../../assets/images/wiredtools/icon_wired_warning.png';
 import wiredGlobalPlaceholderImage from '../../assets/images/wiredtools/wired_global_placeholder.png';
-import wiredMonitorImage from '../../assets/images/wiredtools/wired_monitor.png';
 import {
     Button,
     DraggableWindowPosition,
@@ -57,30 +57,20 @@ import { useMessageEvent, useNotification, useObjectSelectedEvent, useRoom, useW
 import { WiredChestsTabView } from './WiredChestsTabView';
 import {
     INSPECTION_ELEMENTS,
-    MONITOR_COLOR_GREEN,
-    MONITOR_COLOR_ORANGE,
-    MONITOR_ERROR_INFO,
-    MONITOR_STAT_CAPTIONS,
     TABS,
     VARIABLES_ELEMENTS,
     WIRED_CLOCK_REFRESH_MS,
-    WIRED_MONITOR_ACTION_CLEAR_LOGS,
-    WIRED_MONITOR_ACTION_FETCH,
     WIRED_MONITOR_CLEAR_LOCK_MS,
     WIRED_MONITOR_POLL_MS,
     WIRED_VARIABLE_OVERVIEW_POLL_MS,
     WIRED_VARIABLES_POLL_MS
 } from './WiredCreatorTools.constants';
 import {
-    colorizeMonitorStat,
-    formatMonitorHistoryOccurrence,
-    formatMonitorLatestOccurrence,
-    formatMonitorSource,
     buildInspectionGiveDefinitions,
     buildInspectionRows,
+    buildMonitorLogs,
     formatVariableTimestamp,
     getHotelTimeFormatter,
-    normalizeMonitorReason,
     parseInspectionInt,
     buildVariablePickerRows,
     buildVariableProperties,
@@ -147,22 +137,11 @@ export const WiredCreatorToolsView: FC<{}> = () => {
     const selectedUser = useWiredCreatorToolsUiStore((s) => s.selectedUser);
     const setSelectedUser = useWiredCreatorToolsUiStore((s) => s.setSelectedUser);
     const [globalClock, setGlobalClock] = useState(Date.now());
-    const monitorSnapshot = useWiredCreatorToolsUiStore((s) => s.monitorSnapshot);
-    const setMonitorSnapshot = useWiredCreatorToolsUiStore((s) => s.setMonitorSnapshot);
-    const resetMonitorSnapshot = useWiredCreatorToolsUiStore((s) => s.resetMonitorSnapshot);
-    const [selectedMonitorError, setSelectedMonitorError] = useState<{ type: string; category: string }>(null);
-    const isMonitorHistoryOpen = useWiredCreatorToolsUiStore((s) => s.isMonitorHistoryOpen);
-    const setIsMonitorHistoryOpen = useWiredCreatorToolsUiStore((s) => s.setIsMonitorHistoryOpen);
+    const [selectedMonitorError, setSelectedMonitorError] = useState<MonitorLog>(null);
     const isRoomLogsOpen = useWiredCreatorToolsUiStore((s) => s.isRoomLogsOpen);
     const isSelfDonationOpen = useWiredCreatorToolsUiStore((s) => s.isSelfDonationOpen);
     const setIsSelfDonationOpen = useWiredCreatorToolsUiStore((s) => s.setIsSelfDonationOpen);
     const setIsRoomLogsOpen = useWiredCreatorToolsUiStore((s) => s.setIsRoomLogsOpen);
-    const isMonitorInfoOpen = useWiredCreatorToolsUiStore((s) => s.isMonitorInfoOpen);
-    const setIsMonitorInfoOpen = useWiredCreatorToolsUiStore((s) => s.setIsMonitorInfoOpen);
-    const monitorHistorySeverityFilter = useWiredCreatorToolsUiStore((s) => s.monitorHistorySeverityFilter);
-    const setMonitorHistorySeverityFilter = useWiredCreatorToolsUiStore((s) => s.setMonitorHistorySeverityFilter);
-    const monitorHistoryTypeFilter = useWiredCreatorToolsUiStore((s) => s.monitorHistoryTypeFilter);
-    const setMonitorHistoryTypeFilter = useWiredCreatorToolsUiStore((s) => s.setMonitorHistoryTypeFilter);
     const editingVariable = useWiredCreatorToolsUiStore((s) => s.editingVariable);
     const setEditingVariable = useWiredCreatorToolsUiStore((s) => s.setEditingVariable);
     const editingValue = useWiredCreatorToolsUiStore((s) => s.editingValue);
@@ -209,29 +188,28 @@ export const WiredCreatorToolsView: FC<{}> = () => {
     const selectedVariableKeys = useWiredCreatorToolsUiStore((s) => s.selectedVariableKeys);
     const setSelectedVariableKeys = useWiredCreatorToolsUiStore((s) => s.setSelectedVariableKeys);
     const { roomSession = null } = useRoom();
-    // WiredMenuMonitorTab.isDataReady: the tab stays in its loading state until the server answers. The answer is remembered for the room the monitor is
-    // being viewed in; leaving that room, closing the tab or closing the window clears it, so every opening or room change starts in the loading state again.
+    // WiredMenuMonitorTab.isDataReady: the tab stays in its loading state until both the room stats and the error rows arrive. Answers are kept for the
+    // room the monitor is viewed in; leaving that room, closing the tab or closing the window clears them, so every opening starts in the loading state.
     const monitorViewKey = isVisible && activeTab === 'monitor' && roomSession?.roomId ? roomSession.roomId : 0;
-    const [monitorLoadedKey, setMonitorLoadedKey] = useState(0);
     const monitorViewKeyRef = useRef(0);
     const [isMonitorClearLocked, setIsMonitorClearLocked] = useState(false);
     const monitorClearLockTimerRef = useRef<number>(0);
 
     useEffect(() => () => window.clearTimeout(monitorClearLockTimerRef.current), []);
-    const monitorLoaded = monitorViewKey !== 0 && monitorLoadedKey === monitorViewKey;
 
     useLayoutEffect(() =>
     {
         monitorViewKeyRef.current = monitorViewKey;
     });
 
-    // Any change of the viewed room (A -> B -> A included) or closing the tab starts a new view: the loading state returns until an answer arrives for it.
-    if (monitorLoadedKey !== 0 && monitorLoadedKey !== monitorViewKey) setMonitorLoadedKey(0);
-    // WiredRoomStats answers are kept for the view they arrived in, the same way, so a new view never shows the last view's counts.
     const [monitorRoomStatsAnswer, setMonitorRoomStatsAnswer] = useState<{ viewKey: number; stats: MonitorRoomStats } | null>(null);
+    const [monitorErrorsAnswer, setMonitorErrorsAnswer] = useState<{ viewKey: number; errors: IWiredErrorLogEntry[] } | null>(null);
 
     if (monitorRoomStatsAnswer && monitorRoomStatsAnswer.viewKey !== monitorViewKey) setMonitorRoomStatsAnswer(null);
+    if (monitorErrorsAnswer && monitorErrorsAnswer.viewKey !== monitorViewKey) setMonitorErrorsAnswer(null);
     const monitorRoomStats = monitorRoomStatsAnswer?.stats ?? null;
+    const monitorErrors = monitorErrorsAnswer?.errors ?? null;
+    const monitorLoaded = monitorViewKey !== 0 && !!monitorRoomStats && !!monitorErrors;
     const {
         roomSettings,
         clearVariableForAllHolders,
@@ -410,31 +388,12 @@ export const WiredCreatorToolsView: FC<{}> = () => {
         refreshSelectedUser(event.id);
     });
 
-    useMessageEvent<WiredMonitorDataEvent>(WiredMonitorDataEvent, (event) => {
-        const parser = event.getParser();
+    useMessageEvent<WiredErrorLogsEvent>(WiredErrorLogsEvent, (event) => {
+        const viewKey = monitorViewKeyRef.current;
 
-        setMonitorSnapshot({
-            usageCurrentWindow: Number(parser.usageCurrentWindow ?? 0),
-            usageLimitPerWindow: Number(parser.usageLimitPerWindow ?? 0),
-            isHeavy: !!parser.isHeavy,
-            delayedEventsPending: Number(parser.delayedEventsPending ?? 0),
-            delayedEventsLimit: Number(parser.delayedEventsLimit ?? 0),
-            averageExecutionMs: Number(parser.averageExecutionMs ?? 0),
-            peakExecutionMs: Number(parser.peakExecutionMs ?? 0),
-            recursionDepthCurrent: Number(parser.recursionDepthCurrent ?? 0),
-            recursionDepthLimit: Number(parser.recursionDepthLimit ?? 0),
-            killedRemainingSeconds: Number(parser.killedRemainingSeconds ?? 0),
-            usageWindowMs: Number(parser.usageWindowMs ?? 0),
-            overloadAverageThresholdMs: Number(parser.overloadAverageThresholdMs ?? 0),
-            overloadPeakThresholdMs: Number(parser.overloadPeakThresholdMs ?? 0),
-            heavyUsageThresholdPercent: Number(parser.heavyUsageThresholdPercent ?? 0),
-            heavyConsecutiveWindowsThreshold: Number(parser.heavyConsecutiveWindowsThreshold ?? 0),
-            overloadConsecutiveWindowsThreshold: Number(parser.overloadConsecutiveWindowsThreshold ?? 0),
-            heavyDelayedThresholdPercent: Number(parser.heavyDelayedThresholdPercent ?? 0),
-            logs: [...(parser.logs ?? [])],
-            history: [...(parser.history ?? [])]
-        });
-        setMonitorLoadedKey(monitorViewKeyRef.current);
+        if (viewKey === 0) return;
+
+        setMonitorErrorsAnswer({ viewKey, errors: [...event.getParser().errors] });
     });
 
     useMessageEvent<WiredRoomStatsEvent>(WiredRoomStatsEvent, (event) => {
@@ -448,6 +407,9 @@ export const WiredCreatorToolsView: FC<{}> = () => {
         setMonitorRoomStatsAnswer({
             viewKey,
             stats: {
+                executionCost: parser.executionCost,
+                executionCostCap: parser.executionCostCap,
+                isHeavy: parser.isHeavy,
                 floorItemCount: parser.floorItemCount,
                 floorItemCap: parser.floorItemCap,
                 wallItemCount: parser.wallItemCount,
@@ -513,43 +475,36 @@ export const WiredCreatorToolsView: FC<{}> = () => {
     }, [isVisible, activeTab, inspectionType, roomSession?.roomId]);
 
     useEffect(() => {
-        resetMonitorSnapshot();
         setSelectedMonitorError(null);
-        setIsMonitorHistoryOpen(false);
-        setIsMonitorInfoOpen(false);
-        setMonitorHistorySeverityFilter('ALL');
-        setMonitorHistoryTypeFilter('ALL');
     }, [roomSession?.roomId]);
 
     useEffect(() => {
         if (activeTab === 'monitor') return;
 
         setSelectedMonitorError(null);
-        setIsMonitorHistoryOpen(false);
-        setIsMonitorInfoOpen(false);
     }, [activeTab]);
 
     useEffect(() => {
         if (!isVisible) setSelectedMonitorError(null);
     }, [isVisible]);
 
-    const requestMonitorSnapshot = useCallback(() => {
+    const requestMonitorData = useCallback(() => {
         monitorRequestGateRef.current?.request(() => {
-            // WiredMenuMonitorTab.requestData: the room stats are asked for with the monitor data, on opening and every POLL_MONITOR_MS.
-            SendMessageComposer(new WiredMonitorRequestComposer(WIRED_MONITOR_ACTION_FETCH));
+            // WiredMenuMonitorTab.requestData: room stats and error rows, on opening and every POLL_MONITOR_MS.
             SendMessageComposer(new WiredGetRoomStatsComposer());
+            SendMessageComposer(new WiredGetErrorLogsComposer());
         });
     }, []);
 
     useEffect(() => {
         if (!isVisible || activeTab !== 'monitor' || !roomSession?.roomId) return;
 
-        requestMonitorSnapshot();
+        requestMonitorData();
 
-        const interval = window.setInterval(requestMonitorSnapshot, WIRED_MONITOR_POLL_MS);
+        const interval = window.setInterval(requestMonitorData, WIRED_MONITOR_POLL_MS);
 
         return () => window.clearInterval(interval);
-    }, [isVisible, activeTab, roomSession?.roomId, requestMonitorSnapshot]);
+    }, [isVisible, activeTab, roomSession?.roomId, requestMonitorData]);
 
     useEffect(() => {
         // The per-holder panel and the wired editors read the Volt variable snapshot, kept fresh while the menu is open.
@@ -649,18 +604,6 @@ export const WiredCreatorToolsView: FC<{}> = () => {
         setIsVisible(false);
     }, [isVisible, roomSession?.roomId, roomSettings.isLoaded, roomSettings.canInspect]);
 
-    const selectedMonitorErrorInfo = useMemo(() => {
-        if (!selectedMonitorError) return null;
-
-        return MONITOR_ERROR_INFO[selectedMonitorError.type] ?? null;
-    }, [selectedMonitorError]);
-    const monitorHistoryTypeOptions = useMemo(() => {
-        return ['ALL', ...new Set(monitorSnapshot.history.map((entry) => entry.type))];
-    }, [monitorSnapshot.history]);
-    useEffect(() => {
-        // Wait for the first monitor answer, or an empty history while loading would reset a saved filter.
-        if (monitorLoaded && !monitorHistoryTypeOptions.includes(monitorHistoryTypeFilter)) setMonitorHistoryTypeFilter('ALL');
-    }, [monitorLoaded, monitorHistoryTypeOptions, monitorHistoryTypeFilter]);
     const previewPlaceholder = useMemo(() => {
         switch (inspectionType) {
             case 'furni':
@@ -671,112 +614,8 @@ export const WiredCreatorToolsView: FC<{}> = () => {
                 return 'Nothing to display';
         }
     }, [inspectionType]);
-    const monitorStats = useMemo<MonitorStat[]>(() => {
-        // WiredMenuMonitorTab.updateRoomStatsUI rows. Until an answer arrives the html fields keep their layout captions, so the values stay empty.
-        if (!monitorLoaded) return MONITOR_STAT_CAPTIONS.map((label) => ({ label, value: '' }));
-
-        const usageColor = colorizeMonitorStat(monitorSnapshot.usageCurrentWindow, monitorSnapshot.usageLimitPerWindow, 0.3, 0.7);
-
-        return [
-            { label: MONITOR_STAT_CAPTIONS[0], value: `${monitorSnapshot.usageCurrentWindow}/${Math.max(0, monitorSnapshot.usageLimitPerWindow)}`, color: usageColor, alarm: true },
-            {
-                label: MONITOR_STAT_CAPTIONS[1],
-                value: monitorSnapshot.isHeavy ? localizeWithFallback('wiredmenu.bool.yes', 'Yes') : localizeWithFallback('wiredmenu.bool.no', 'No'),
-                color: monitorSnapshot.isHeavy ? MONITOR_COLOR_ORANGE : MONITOR_COLOR_GREEN,
-                alarm: true
-            },
-            ...monitorRoomStatRows(monitorRoomStats),
-            // Volt's executor metrics, not part of the official list: kept after the official rows.
-            { label: 'Delayed events', value: `${monitorSnapshot.delayedEventsPending}/${Math.max(0, monitorSnapshot.delayedEventsLimit)}` },
-            { label: 'Average execution', value: `${monitorSnapshot.averageExecutionMs}ms` },
-            { label: 'Peak execution', value: `${monitorSnapshot.peakExecutionMs}ms` },
-            { label: 'Recursion', value: `${monitorSnapshot.recursionDepthCurrent}/${Math.max(0, monitorSnapshot.recursionDepthLimit)}` },
-            { label: 'Killed remaining', value: `${Math.max(0, monitorSnapshot.killedRemainingSeconds)}s` }
-        ];
-    }, [monitorLoaded, monitorRoomStats, monitorSnapshot]);
-    // ErrorDataTableObject rows: exactly the errors the server lists, none while loading.
-    const monitorLogs = useMemo<MonitorLog[]>(() => {
-        if (!monitorLoaded) return [];
-
-        return monitorSnapshot.logs.map((log) => {
-            const amount = Number(log?.amount ?? 0);
-
-            return {
-                type: log.type,
-                category: log.severity,
-                amount: String(amount),
-                latest: amount > 0 ? formatMonitorLatestOccurrence(Number(log?.latestOccurrenceSeconds ?? 0), globalClock) : '/'
-            };
-        });
-    }, [monitorLoaded, monitorSnapshot.logs, globalClock]);
-    const monitorHistoryRows = useMemo(() => {
-        return monitorSnapshot.history.map((entry, index) => ({
-            id: `${entry.type}-${entry.occurredAtSeconds}-${index}`,
-            type: entry.type,
-            category: entry.severity,
-            occurredAt: formatMonitorHistoryOccurrence(Number(entry.occurredAtSeconds ?? 0)),
-            occurredAtSeconds: Number(entry.occurredAtSeconds ?? 0),
-            reason: normalizeMonitorReason(entry.reason),
-            sourceLabel: String(entry.sourceLabel ?? ''),
-            sourceId: Number(entry.sourceId ?? 0)
-        }));
-    }, [monitorSnapshot.history]);
-    const filteredMonitorHistoryRows = useMemo(() => {
-        return monitorHistoryRows.filter((row) => {
-            if (monitorHistorySeverityFilter !== 'ALL' && row.category !== monitorHistorySeverityFilter) return false;
-            if (monitorHistoryTypeFilter !== 'ALL' && row.type !== monitorHistoryTypeFilter) return false;
-
-            return true;
-        });
-    }, [monitorHistoryRows, monitorHistorySeverityFilter, monitorHistoryTypeFilter]);
-    const monitorInfoSections = useMemo(() => {
-        return [
-            {
-                title: 'Wired usage',
-                lines: [
-                    `Current value: ${monitorSnapshot.usageCurrentWindow}/${Math.max(0, monitorSnapshot.usageLimitPerWindow)}`,
-                    `This is the room execution budget used inside a ${Math.max(0, monitorSnapshot.usageWindowMs)}ms server window.`,
-                    'Each triggered stack consumes cost based on conditions, selectors, effects, delayed effects, and recursion depth.'
-                ]
-            },
-            {
-                title: 'Heavy / overload',
-                lines: [
-                    `Heavy warning starts when usage stays above ${Math.max(0, monitorSnapshot.heavyUsageThresholdPercent)}% for ${Math.max(0, monitorSnapshot.heavyConsecutiveWindowsThreshold)} consecutive window(s).`,
-                    `Delayed pressure also contributes when the queue stays above ${Math.max(0, monitorSnapshot.heavyDelayedThresholdPercent)}% of its limit.`,
-                    `Overload is tracked from execution time and currently trips after ${Math.max(0, monitorSnapshot.overloadConsecutiveWindowsThreshold)} consecutive overloaded window(s).`
-                ]
-            },
-            {
-                title: 'Execution times',
-                lines: [
-                    `Average execution: ${monitorSnapshot.averageExecutionMs}ms (threshold ${Math.max(0, monitorSnapshot.overloadAverageThresholdMs)}ms)`,
-                    `Peak execution: ${monitorSnapshot.peakExecutionMs}ms (threshold ${Math.max(0, monitorSnapshot.overloadPeakThresholdMs)}ms)`,
-                    'These values reset with each server usage window.'
-                ]
-            },
-            {
-                title: 'Other numbers',
-                lines: [
-                    `Delayed events: ${monitorSnapshot.delayedEventsPending}/${Math.max(0, monitorSnapshot.delayedEventsLimit)} pending scheduled execution(s).`,
-                    `Recursion: ${monitorSnapshot.recursionDepthCurrent}/${Math.max(0, monitorSnapshot.recursionDepthLimit)} nested wired call(s).`,
-                    `Killed remaining: ${Math.max(0, monitorSnapshot.killedRemainingSeconds)} second(s) of room cooldown when protection has halted execution.`
-                ]
-            },
-            {
-                title: 'Room counters',
-                lines: monitorRoomStats
-                    ? [
-                          `Floor furni: ${monitorRoomStats.floorItemCount}/${monitorRoomStats.floorItemCap}`,
-                          `Wall furni: ${monitorRoomStats.wallItemCount}/${monitorRoomStats.wallItemCap}`,
-                          `Permanent furni vars: ${monitorRoomStats.permanentFurniVariables}/${monitorRoomStats.maxPermanentFurniVariables}`,
-                          `Permanent user vars: ${monitorRoomStats.permanentUserVariables}/${monitorRoomStats.maxPermanentUserVariables}`,
-                          `Permanent global vars: ${monitorRoomStats.permanentGlobalVariables}/${monitorRoomStats.maxPermanentGlobalVariables}`
-                      ]
-                    : ['Waiting for the server.']
-            }
-        ];
-    }, [monitorSnapshot, monitorRoomStats]);
+    const monitorStats = useMemo<MonitorStat[]>(() => monitorRoomStatRows(monitorLoaded ? monitorRoomStats : null), [monitorLoaded, monitorRoomStats]);
+    const monitorLogs = useMemo<MonitorLog[]>(() => (monitorLoaded ? buildMonitorLogs(monitorErrors, globalClock) : []), [monitorLoaded, monitorErrors, globalClock]);
     const roomVariableAssignmentMap = useMemo(() => {
         return new Map(roomVariableAssignments.map((assignment) => [assignment.variableItemId, assignment]));
     }, [roomVariableAssignments]);
@@ -1426,13 +1265,8 @@ export const WiredCreatorToolsView: FC<{}> = () => {
         setIsMonitorClearLocked(true);
         window.clearTimeout(monitorClearLockTimerRef.current);
         monitorClearLockTimerRef.current = window.setTimeout(() => setIsMonitorClearLocked(false), WIRED_MONITOR_CLEAR_LOCK_MS);
-        setSelectedMonitorError(null);
-        setIsMonitorHistoryOpen(false);
-        setIsMonitorInfoOpen(false);
-        SendMessageComposer(new WiredMonitorRequestComposer(WIRED_MONITOR_ACTION_CLEAR_LOGS));
+        SendMessageComposer(new WiredClearErrorLogsComposer());
     };
-
-    const openMonitorErrorInfo = (type: string, category: string) => setSelectedMonitorError({ type, category });
 
     const beginVariableEdit = (variable: InspectionVariable) => {
         if (!variable.editable) return;
@@ -1596,12 +1430,9 @@ export const WiredCreatorToolsView: FC<{}> = () => {
                         <WiredMonitorTabView loading={!monitorLoaded} canClear={roomSettings.canModify && !isMonitorClearLocked} canOpenLogs={roomSettings.canInspect}
                             monitorStats={monitorStats}
                             monitorLogs={monitorLogs}
-                            monitorHistoryRows={monitorHistoryRows}
-                            onOpenMonitorInfo={() => setIsMonitorInfoOpen(true)}
-                            onOpenMonitorHistory={() => setIsMonitorHistoryOpen(true)}
                             onOpenRoomLogs={() => setIsRoomLogsOpen(true)}
                             onClearMonitorLogs={clearMonitorLogs}
-                            onOpenMonitorErrorInfo={openMonitorErrorInfo}
+                            onOpenMonitorErrorInfo={setSelectedMonitorError}
                         />
                     )}
                     {activeTab === 'inspection' && (
@@ -1663,102 +1494,6 @@ export const WiredCreatorToolsView: FC<{}> = () => {
                     </>
                 )}
             </WiredMenuFrame>
-            {isMonitorHistoryOpen && (
-                <VoltCardView
-                    className="min-w-[760px] max-w-[760px] max-h-[520px]"
-                    theme="primary-slim"
-                    uniqueKey="wired-monitor-history"
-                    windowPosition={DraggableWindowPosition.TOP_LEFT}
-                    offsetLeft={40}
-                    offsetTop={40}
-                >
-                    <VoltCardHeaderView headerText="Wired Monitor Logs" onCloseClick={() => setIsMonitorHistoryOpen(false)} />
-                    <VoltCardContentView className="text-black bg-[#f4efe3] p-3 flex flex-col gap-3" overflow="hidden">
-                        <div className="flex flex-wrap items-center gap-2 text-[12px]">
-                            <span className="text-[#555]">Severity:</span>
-                            {['ALL', 'WARNING', 'ERROR'].map((severity) => (
-                                <button
-                                    key={severity}
-                                    className={`rounded border px-2 py-[2px] ${monitorHistorySeverityFilter === severity ? 'border-[#4d7892] bg-[#dbeaf4] text-[#1a4d68]' : 'border-[#b8b2a4] bg-white text-[#555]'}`}
-                                    type="button"
-                                    onClick={() => setMonitorHistorySeverityFilter(severity as 'ALL' | 'ERROR' | 'WARNING')}
-                                >
-                                    {severity}
-                                </button>
-                            ))}
-                            <span className="ml-2 text-[#555]">Type:</span>
-                            <select
-                                className="rounded border border-[#b8b2a4] bg-white px-2 py-[2px] text-[12px]"
-                                value={monitorHistoryTypeFilter}
-                                onChange={(event) => setMonitorHistoryTypeFilter(event.target.value)}
-                            >
-                                {monitorHistoryTypeOptions.map((type) => (
-                                    <option key={type} value={type}>
-                                        {type}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        <div className="grow overflow-y-auto border border-[#d1ccbf] rounded bg-white">
-                            <table className="w-full text-[12px]">
-                                <thead className="bg-[#efede5] sticky top-0">
-                                    <tr>
-                                        <th className="text-left px-2 py-1">Type</th>
-                                        <th className="text-left px-2 py-1">Severity</th>
-                                        <th className="text-left px-2 py-1">Trigger</th>
-                                        <th className="text-left px-2 py-1">Motivation</th>
-                                        <th className="text-left px-2 py-1">Occurred at</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {!filteredMonitorHistoryRows.length && (
-                                        <tr>
-                                            <td className="px-2 py-3 text-center text-[#8b8678]" colSpan={5}>
-                                                No log history for the current filters
-                                            </td>
-                                        </tr>
-                                    )}
-                                    {filteredMonitorHistoryRows.map((row, index) => (
-                                        <tr
-                                            key={row.id}
-                                            className={`${index % 2 === 0 ? 'bg-white' : 'bg-[#f8f6f0]'} cursor-pointer hover:bg-[#e8eefc]`}
-                                            onClick={() => openMonitorErrorInfo(row.type, row.category)}
-                                        >
-                                            <td className="px-2 py-1 text-[#1b57b2]">{row.type}</td>
-                                            <td className="px-2 py-1">{row.category}</td>
-                                            <td className="px-2 py-1">{formatMonitorSource(row.sourceLabel, row.sourceId)}</td>
-                                            <td className="px-2 py-1 text-[#555]">{row.reason}</td>
-                                            <td className="px-2 py-1">{row.occurredAt}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </VoltCardContentView>
-                </VoltCardView>
-            )}
-            {isMonitorInfoOpen && (
-                <VoltCardView
-                    className="min-w-[560px] max-w-[560px] max-h-[520px]"
-                    theme="primary-slim"
-                    uniqueKey="wired-monitor-info"
-                    windowPosition={DraggableWindowPosition.TOP_LEFT}
-                    offsetLeft={610}
-                    offsetTop={80}
-                >
-                    <VoltCardHeaderView headerText="Wired Monitor Information" onCloseClick={() => setIsMonitorInfoOpen(false)} />
-                    <VoltCardContentView className="text-black bg-[#f4efe3] p-4 flex flex-col gap-4 overflow-y-auto">
-                        {monitorInfoSections.map((section) => (
-                            <div key={section.title} className="flex flex-col gap-1">
-                                <Text bold>{section.title}</Text>
-                                {section.lines.map((line, index) => (
-                                    <Text key={`${section.title}-${index}`}>{line}</Text>
-                                ))}
-                            </div>
-                        ))}
-                    </VoltCardContentView>
-                </VoltCardView>
-            )}
             {isVariableManageOpen && variableManageCanOpen && !!selectedVariable && (
                 <WiredVariableOwnersView
                     variableId={selectedVariable.variableId}
@@ -1849,7 +1584,7 @@ export const WiredCreatorToolsView: FC<{}> = () => {
                     onRemove={() => removeManagedHolderVariable()}
                 />
             )}
-            {!!selectedMonitorErrorInfo && (
+            {!!selectedMonitorError && (
                 // Official error_info_view: 337 wide, frame 3, contents at (8, 3) and height = contents + 48.
                 <VoltCardView
                     className="w-[337px]"
@@ -1866,17 +1601,16 @@ export const WiredCreatorToolsView: FC<{}> = () => {
                         onCloseClick={() => setSelectedMonitorError(null)}
                     />
                     <div className="relative mb-[6px] ml-[5px] mt-[3px] min-h-[100px] w-[320px] text-black">
-                        {!!MONITOR_ERROR_ICONS[selectedMonitorError.category] && (
-                            <img alt="" className="absolute right-0 top-0 size-[40px]" src={MONITOR_ERROR_ICONS[selectedMonitorError.category]} />
+                        {!!MONITOR_ERROR_ICONS[selectedMonitorError.category.toUpperCase()] && (
+                            <img alt="" className="absolute right-0 top-0 size-[40px]" src={MONITOR_ERROR_ICONS[selectedMonitorError.category.toUpperCase()]} />
                         )}
                         <Text bold className="absolute left-[109px] top-[11px] whitespace-nowrap">
-                            {selectedMonitorErrorInfo.title}
+                            {selectedMonitorError.type}
                         </Text>
                         <div className="w-[319px] whitespace-pre-line pt-[46px]">
                             <Text>
-                                {selectedMonitorErrorInfo.errorId === undefined
-                                    ? selectedMonitorErrorInfo.description
-                                    : localizeWithFallback(`wiredmenu.error_info.${selectedMonitorErrorInfo.errorId}`, selectedMonitorErrorInfo.description).replace(/\\n/g, '\n')}
+                                {/* WiredErrorInfoView.initialize: an id without a text shows an empty body. */}
+                                {localizeWithFallback(`wiredmenu.error_info.${selectedMonitorError.errorId}`, '').replace(/\\n/g, '\n')}
                             </Text>
                         </div>
                     </div>

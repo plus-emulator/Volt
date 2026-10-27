@@ -1,19 +1,16 @@
 import { createVoltStore } from '../../state/createVoltStore';
-import { createEmptyMonitorSnapshot } from './WiredCreatorTools.helpers';
 import {
     InspectionElementType,
     InspectionFurniLiveState,
     InspectionFurniSelection,
     InspectionUserLiveState,
     InspectionUserSelection,
-    MonitorSnapshot,
     VariableHighlightOverlay,
     VariableManageEntry,
     VariablesElementType,
     WiredToolsTab
 } from './WiredCreatorTools.types';
 
-type MonitorSeverityFilter = 'ALL' | 'ERROR' | 'WARNING';
 type Updater<T> = T | ((prev: T) => T);
 
 const apply = <T>(prev: T, next: Updater<T>): T => (typeof next === 'function' ? (next as (p: T) => T)(prev) : next);
@@ -21,8 +18,6 @@ const apply = <T>(prev: T, next: Updater<T>): T => (typeof next === 'function' ?
 /** The windows the tools open beside themselves. Like the official menu disposing its error view, they
  * close with the tools and stay closed when the tools open again. */
 const CLOSED_CHILD_WINDOWS = {
-    isMonitorHistoryOpen: false,
-    isMonitorInfoOpen: false,
     isInspectionGiveOpen: false,
     isVariableManageOpen: false,
     isArrayInspectorOpen: false,
@@ -38,26 +33,12 @@ interface WiredCreatorToolsUiState {
     inspectionType: InspectionElementType;
     variablesType: VariablesElementType;
 
-    isMonitorHistoryOpen: boolean;
-    isMonitorInfoOpen: boolean;
     isInspectionGiveOpen: boolean;
     isVariableManageOpen: boolean;
     isArrayInspectorOpen: boolean;
     isManagedGiveOpen: boolean;
     isRoomLogsOpen: boolean;
     isSelfDonationOpen: boolean;
-
-    monitorHistorySeverityFilter: MonitorSeverityFilter;
-    monitorHistoryTypeFilter: string;
-
-    /**
-     * Latest snapshot pushed by the server through `WiredMonitorDataEvent`.
-     * Held in the store (rather than `useState`) so it survives remount
-     * — e.g. closing and reopening the panel between two server pushes
-     * keeps the last-known stats visible instead of flashing back to the
-     * empty snapshot.
-     */
-    monitorSnapshot: MonitorSnapshot;
 
     /**
      * Inspection selection. The room-event listeners
@@ -140,21 +121,12 @@ interface WiredCreatorToolsUiState {
     setInspectionType: (next: InspectionElementType) => void;
     setVariablesType: (next: VariablesElementType) => void;
 
-    setIsMonitorHistoryOpen: (next: boolean) => void;
-    setIsMonitorInfoOpen: (next: boolean) => void;
     setIsInspectionGiveOpen: (next: Updater<boolean>) => void;
     setIsVariableManageOpen: (next: boolean) => void;
     setIsArrayInspectorOpen: (next: boolean) => void;
     setIsManagedGiveOpen: (next: Updater<boolean>) => void;
     setIsRoomLogsOpen: (next: boolean) => void;
     setIsSelfDonationOpen: (next: boolean) => void;
-
-    setMonitorHistorySeverityFilter: (next: MonitorSeverityFilter) => void;
-    setMonitorHistoryTypeFilter: (next: string) => void;
-
-
-    setMonitorSnapshot: (next: MonitorSnapshot) => void;
-    resetMonitorSnapshot: () => void;
 
     setSelectedFurni: (next: InspectionFurniSelection | null) => void;
     setSelectedFurniLiveState: (next: Updater<InspectionFurniLiveState | null>) => void;
@@ -188,19 +160,12 @@ export const useWiredCreatorToolsUiStore = createVoltStore<WiredCreatorToolsUiSt
     inspectionType: 'furni',
     variablesType: 'furni',
 
-    isMonitorHistoryOpen: false,
-    isMonitorInfoOpen: false,
     isInspectionGiveOpen: false,
     isVariableManageOpen: false,
     isArrayInspectorOpen: false,
     isManagedGiveOpen: false,
     isRoomLogsOpen: false,
     isSelfDonationOpen: false,
-
-    monitorHistorySeverityFilter: 'ALL',
-    monitorHistoryTypeFilter: 'ALL',
-
-    monitorSnapshot: createEmptyMonitorSnapshot(),
 
     selectedFurni: null,
     selectedFurniLiveState: null,
@@ -232,21 +197,12 @@ export const useWiredCreatorToolsUiStore = createVoltStore<WiredCreatorToolsUiSt
     setInspectionType: (next) => set({ inspectionType: next }),
     setVariablesType: (next) => set({ variablesType: next }),
 
-    setIsMonitorHistoryOpen: (next) => set({ isMonitorHistoryOpen: next }),
-    setIsMonitorInfoOpen: (next) => set({ isMonitorInfoOpen: next }),
     setIsInspectionGiveOpen: (next) => set((state) => ({ isInspectionGiveOpen: apply(state.isInspectionGiveOpen, next) })),
     setIsVariableManageOpen: (next) => set({ isVariableManageOpen: next }),
     setIsArrayInspectorOpen: (next) => set({ isArrayInspectorOpen: next }),
     setIsRoomLogsOpen: (next) => set({ isRoomLogsOpen: next }),
     setIsSelfDonationOpen: (next) => set({ isSelfDonationOpen: next }),
     setIsManagedGiveOpen: (next) => set((state) => ({ isManagedGiveOpen: apply(state.isManagedGiveOpen, next) })),
-
-    setMonitorHistorySeverityFilter: (next) => set({ monitorHistorySeverityFilter: next }),
-    setMonitorHistoryTypeFilter: (next) => set({ monitorHistoryTypeFilter: next }),
-
-
-    setMonitorSnapshot: (next) => set({ monitorSnapshot: next }),
-    resetMonitorSnapshot: () => set({ monitorSnapshot: createEmptyMonitorSnapshot() }),
 
     setSelectedFurni: (next) => set({ selectedFurni: next }),
     setSelectedFurniLiveState: (next) => set((state) => ({ selectedFurniLiveState: apply(state.selectedFurniLiveState, next) })),
