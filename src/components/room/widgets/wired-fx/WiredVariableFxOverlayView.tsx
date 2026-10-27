@@ -1,4 +1,4 @@
-import { RoomEngineObjectEvent, RoomObjectCategory } from '@volt/renderer';
+import { GetRoomEngine, RoomEngineObjectEvent, RoomObjectCategory, RoomObjectVariable } from '@volt/renderer';
 import { FC, PropsWithChildren, useEffect, useMemo, useRef, useState } from 'react';
 import { AddAnimationTickerCallback, GetRoomObjectBounds } from '../../../../api';
 import { useVoltEvent, useRoom, useWiredVariableFxEvents, useWiredVariableFxStore } from '../../../../hooks';
@@ -31,9 +31,15 @@ const WiredVariableFxEntityView: FC<PropsWithChildren<WiredVariableFxEntityViewP
                 return;
             }
 
-            element.style.visibility = 'visible';
+            const wiredTransparency = GetRoomEngine()
+                .getRoomObject(roomId, entityId, category)
+                ?.model?.getValue<number>(RoomObjectVariable.FURNITURE_WIRED_TRANSPARENCY);
+            const shown = wiredTransparency == null || Number.isNaN(wiredTransparency) ? 1 : 1 - Math.max(0, Math.min(100, wiredTransparency)) / 100;
+
             element.style.left = `${Math.round(bounds.left + bounds.width / 2)}px`;
             element.style.top = `${Math.round(bounds.top - element.offsetHeight - (userEntity ? 14 : 4))}px`;
+            element.style.opacity = `${shown}`;
+            element.style.visibility = shown <= 0 ? 'hidden' : 'visible';
         };
 
         updatePosition();
