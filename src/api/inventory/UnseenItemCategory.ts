@@ -6,3 +6,11 @@ export class UnseenItemCategory {
     public static BOT: number = 5;
     public static GAMES: number = 6;
 }
+
+export const INVENTORY_ICON_UNSEEN_CATEGORIES = [
+    UnseenItemCategory.FURNI,
+    UnseenItemCategory.RENTABLE,
+    UnseenItemCategory.PET,
+    UnseenItemCategory.BADGE,
+    UnseenItemCategory.BOT
+];

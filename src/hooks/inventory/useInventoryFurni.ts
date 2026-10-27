@@ -122,9 +122,10 @@ const useInventoryFurniState = () => {
         if (!isVisible) return;
 
         return () => {
-            if (resetCategory(UnseenItemCategory.FURNI)) {
-                setGroupItems((prev) => clearUnseenFlags(prev));
-            }
+            const clearedOwned = resetCategory(UnseenItemCategory.FURNI);
+            const clearedRented = resetCategory(UnseenItemCategory.RENTABLE);
+
+            if (clearedOwned || clearedRented) setGroupItems((prev) => clearUnseenFlags(prev));
         };
     }, [isVisible, resetCategory]);
 
