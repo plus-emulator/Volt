@@ -87,7 +87,7 @@ export class WiredCatalogProvider {
         if(this.streamHash !== null && this.streamHash !== hash) { this.fail(); return; }
         this.streamHash = hash;
         const staging = this.staging;
-        if(!staging || removed.length > 4096 || changed.length > 100) { this.fail(); return; }
+        if(!staging || removed.length > 4096) { this.fail(); return; }
         for(const id of removed) {
             if(this.seen.has(id)) { this.fail(); return; }
             this.seen.add(id);
