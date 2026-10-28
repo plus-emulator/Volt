@@ -1,15 +1,14 @@
 import { IWiredTransactionInfo, WIRED_TRANSACTION_LIST_CHEST, WiredTransactionGetChestLogsComposer, WiredTransactionGetRoomLogsComposer } from '@volt/renderer';
 import { FC, useEffect, useState } from 'react';
 import { GetUserProfile, localizeWithFallback, SendMessageComposer } from '../../api';
-import triangleLeft from '../../assets/images/wired/native/page_triangle_left.png';
-import triangleRight from '../../assets/images/wired/native/page_triangle_right.png';
+import arrowLeft from '../../assets/images/wired/native/menu_page_arrow_left.png';
+import arrowRight from '../../assets/images/wired/native/menu_page_arrow_right.png';
 import { DraggableWindowPosition, VoltCardHeaderView, VoltCardView } from '../../common';
-import { loadNativeFont, measureNativeText } from '../../common/native-text/NativeFont';
-import { nativeTextStyles } from '../../common/native-text/NativeTextStyles';
 import { WiredMenuLabel } from '../../common/native-text/WiredMenuLabel';
 import { useWiredPageRequests } from '../../hooks/wired-tools/useWiredPageRequests';
 import { summarizeTransactionCounts } from './WiredChestTransactionCounts';
-import { WiredMenuButton, WiredMenuTable, WiredMenuTableColumn } from './WiredMenuParts';
+import { WiredMenuButton, WiredMenuTable, WiredMenuTableColumn, WiredMenuTableRow } from './WiredMenuParts';
+import { resizeCentred, startCentred, useTextWindowWidths } from './nativeTextWindow';
 import { calculateLastPage, clampInputPage, NO_PAGE, parseInputPage, restrictPageInput } from './WiredPaging.helpers';
 
 /** Rows per page of the detailed list. */
@@ -54,47 +53,9 @@ const summarize = (furni: number, coins: number): string =>
             localizeWithFallback('wiredchests.logs.furni_and_coins', `${amount} furni + ${amount2}c`, ['amount', 'amount2'], [String(amount), String(amount2)])
     });
 
-/**
- * WindowController.setRectangle with "on resize align center": each resize moves the window by half the change, truncated
- * toward zero, and keeps the odd pixel for the next resize.
- */
-const centredLeft = (left: number, widths: number[]): number => {
-    let remainder = 0;
-    for (let index = 1; index < widths.length; index++) {
-        const delta = remainder - (widths[index] - widths[index - 1]);
-        const step = Math.trunc(delta / 2);
-        left += step;
-        remainder = delta - step * 2;
-    }
-    return left;
-};
-
-/** The width of an auto sized (left) text window: floor(textWidth + 4). */
-const useFieldWidths = (fields: { text: string; bold?: boolean }[]): number[] | null => {
-    const [widths, setWidths] = useState<number[] | null>(null);
-    const key = JSON.stringify(fields);
-
-    useEffect(() => {
-        let disposed = false;
-        const measured = (JSON.parse(key) as { text: string; bold?: boolean }[]).map(async ({ text, bold }) => {
-            const style = nativeTextStyles[bold ? 'u_bold' : 'u_regular'];
-            const { font } = await loadNativeFont(style);
-            return Math.floor(measureNativeText(font, text, style) + 4);
-        });
-        Promise.all(measured)
-            .then((result) => !disposed && setWidths(result))
-            .catch(() => !disposed && setWidths(null));
-        return () => {
-            disposed = true;
-        };
-    }, [key]);
-
-    return widths;
-};
-
 /** An itemlist_horizontal of a bold key and its value, 2 px apart. */
 const KeyValuePair: FC<{ x: number; y: number; name: string; value: string }> = ({ x, y, name, value }) => {
-    const widths = useFieldWidths([{ text: name, bold: true }]);
+    const widths = useTextWindowWidths([{ text: name, textStyle: 'u_bold' }]);
 
     return (
         <div className="volt-wired-menu__item" style={{ left: x, top: y, visibility: widths ? undefined : 'hidden' }}>
@@ -177,13 +138,18 @@ export const WiredTransactionLogsWindow: FC<WiredTransactionLogsWindowProps> = (
     const [textStart, textEnd = ''] = localizeWithFallback('wiredchests.logs.bottom_text', '%transaction_count% transactions found. Showing page %page% of %page_count%').split('%page%');
     const pageTextStart = textStart.replace('%transaction_count%', String(totalLogs));
     const pageTextEnd = textEnd.replace('%page_count%', String(lastPage === NO_PAGE ? 1 : lastPage));
-    const pagingWidths = useFieldWidths([{ text: PAGING_TEXT.start }, { text: PAGING_TEXT.end }, { text: pageTextStart }, { text: pageTextEnd }]);
+    const pagingWidths = useTextWindowWidths(
+        [PAGING_TEXT.start, PAGING_TEXT.end, pageTextStart, pageTextEnd].map((text) => ({ text, textStyle: 'u_regular' as const }))
+    );
     const [designStart = 0, designEnd = 0, startWidth = 0, endWidth = 0] = pagingWidths ?? [];
     const inputX = startWidth + ITEM_SPACING;
     const endX = inputX + PAGE_INPUT_WIDTH + ITEM_SPACING;
     const listWidth = (start: number, end: number) => start + ITEM_SPACING * 2 + PAGE_INPUT_WIDTH + end;
     // displayNewPage sets the start text first, then the end text.
-    const pagingX = centredLeft(PAGING_TEXT.x, [listWidth(designStart, designEnd), listWidth(startWidth, designEnd), listWidth(startWidth, endWidth)]);
+    const pagingWindow = startCentred(PAGING_TEXT.x, listWidth(designStart, designEnd));
+    resizeCentred(pagingWindow, listWidth(startWidth, designEnd));
+    resizeCentred(pagingWindow, listWidth(startWidth, endWidth));
+    const pagingX = pagingWindow.left;
 
     const isFirst = page <= 1;
     const isLast = page >= lastPage;
@@ -235,7 +201,7 @@ export const WiredTransactionLogsWindow: FC<WiredTransactionLogsWindowProps> = (
                 <WiredMenuTable
                     columns={columns}
                     h={tableHeight}
-                    rows={logs.map((row) => ({
+                    rows={logs.map((row): WiredMenuTableRow => ({
                         key: String(row.transactionId),
                         cells: {
                             type: typeLabel(row.transactionType),
@@ -246,18 +212,17 @@ export const WiredTransactionLogsWindow: FC<WiredTransactionLogsWindowProps> = (
                             chests: String(row.chestCount),
                             details: null
                         },
-                        linkColumn: 'username',
-                        onLink: () => GetUserProfile(row.userId)
+                        links: { username: () => GetUserProfile(row.userId) }
                     }))}
                     w={852}
                     x={14}
                     y={HEADER_HEIGHT}
                 />
                 <div className="volt-wired-txlogs__pagination">
-                    <PageButton disabled={isFirst} icon={triangleLeft} iconX={[18, 27]} title="First page" x={17} onClick={() => requests.requestFirstPage()} />
-                    <PageButton disabled={isFirst} icon={triangleLeft} iconX={[22]} title="Previous page" x={80} onClick={() => requests.requestPreviousPage()} />
-                    <PageButton disabled={isLast} icon={triangleRight} iconX={[23]} title="Next page" x={753} onClick={() => requests.requestNextPage()} />
-                    <PageButton disabled={isLast} icon={triangleRight} iconX={[18, 27]} title="Last page" x={813} onClick={() => requests.requestLastPage()} />
+                    <PageButton disabled={isFirst} icon={arrowLeft} iconX={[18, 27]} title="First page" x={17} onClick={() => requests.requestFirstPage()} />
+                    <PageButton disabled={isFirst} icon={arrowLeft} iconX={[22]} title="Previous page" x={80} onClick={() => requests.requestPreviousPage()} />
+                    <PageButton disabled={isLast} icon={arrowRight} iconX={[23]} title="Next page" x={753} onClick={() => requests.requestNextPage()} />
+                    <PageButton disabled={isLast} icon={arrowRight} iconX={[18, 27]} title="Last page" x={813} onClick={() => requests.requestLastPage()} />
                     <div className="volt-wired-menu__item" style={{ left: pagingX, top: 4, visibility: pagingWidths ? undefined : 'hidden' }}>
                         <WiredMenuLabel className="volt-wired-txlogs__field volt-wired-txlogs__paging-text" text={pageTextStart} />
                         <div className="volt-wired-txlogs__page-input" style={{ left: inputX }}>
