@@ -281,7 +281,7 @@ export const WiredMenuTable: FC<WiredMenuTableProps> = ({ columns, rows, emptyTe
             return (
                 <SubpixelText
                     transparent
-                    align="field"
+                    align="cell"
                     background={0xffffff}
                     style={{ ...textStyle, position: 'absolute', left: CELL_MARGIN, top }}
                     text={text}
