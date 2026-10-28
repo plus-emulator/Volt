@@ -9,7 +9,7 @@ import { CatalogIconView } from '../catalog/views/catalog-icon/CatalogIconView';
 import { LayoutAvatarImageView, LayoutPetImageView, LayoutRoomObjectImageView } from '../../common';
 import { INSPECTION_ELEMENTS } from './WiredCreatorTools.constants';
 import { InspectionFurniSelection, InspectionGiveDefinition, InspectionUserSelection, InspectionVariable } from './WiredCreatorTools.types';
-import { WiredMenuButton, WiredMenuCheckbox, WiredMenuItem, WiredMenuPanel, WiredMenuTable, WiredMenuTitle } from './WiredMenuParts';
+import { WiredMenuButton, WiredMenuButtonIcon, WiredMenuCheckbox, WiredMenuItem, WiredMenuPanel, WiredMenuTable, WiredMenuTitle } from './WiredMenuParts';
 import { useWiredCreatorToolsUiStore } from './wiredCreatorToolsUiStore';
 
 const TYPE_ICONS: Record<string, string> = { furni: furniIcon, user: userIcon, global: globalIcon, context: contextIcon };
@@ -118,7 +118,7 @@ export const WiredInspectionTabView = (props: WiredInspectionTabViewProps) => {
                         y={5}
                         onClick={() => setInspectionType(element.key)}
                     >
-                        <img alt={element.label} className="volt-wired-menu__type-icon" draggable={false} src={TYPE_ICONS[element.key] ?? element.icon} />
+                        <WiredMenuButtonIcon alt={element.label} box={{ w: 37, h: 37 }} className="volt-wired-menu__type-icon" src={TYPE_ICONS[element.key] ?? element.icon} />
                     </WiredMenuButton>
                 ))}
             </WiredMenuPanel>

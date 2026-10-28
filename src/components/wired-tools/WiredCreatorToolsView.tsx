@@ -1392,6 +1392,7 @@ export const WiredCreatorToolsView: FC<{}> = () => {
                             onOpenArrayInspector={() => setIsArrayInspectorOpen(true)}
                             selectedVariableProperties={selectedVariableProperties}
                             selectedVariableTextValues={selectedVariableTextValues}
+                            textValuesDisabled={!selectedVariable || selectedVariable.textConnector === null}
                             onOpenWebApiExplorer={() => openVariablesExplorer({ roomId: roomSession?.roomId })}
                         />
                     )}
