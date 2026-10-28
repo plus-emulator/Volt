@@ -97,7 +97,8 @@ interface SubpixelTextProps {
     /** The surface colour the coverage is blended onto; ignored when transparent. */
     background: number;
     transparent?: boolean;
-    align?: 'left' | 'center';
+    /** `field`: a TextField that centres itself (auto size "center"); it centres the text width rounded to whole pixels, not floored. */
+    align?: 'left' | 'center' | 'field';
     /** A fixed text field width (gutters included); by default the field fits the text. */
     width?: number;
     className?: string;
@@ -129,7 +130,7 @@ export const SubpixelText: FC<SubpixelTextProps> = ({ text, textStyle, color = 0
                 const textHeight = floorToTwips((font.ascent * font.size) / font.emSquare) + floorToTwips((font.descent * font.size) / font.emSquare);
                 const fieldHeight = Math.ceil(textHeight) + 4;
                 // The line starts at the 2px gutter, or centred on the field's own width.
-                const origin = align === 'center' ? Math.round(((fieldWidth - textWidth) / 2) * 20) : 40;
+                const origin = align === 'center' ? Math.round(((fieldWidth - textWidth) / 2) * 20) : align === 'field' ? Math.round(((fieldWidth - Math.round(exact / 20)) / 2) * 20) : 40;
                 const coverage = new Uint8ClampedArray(fieldWidth * fieldHeight);
                 let cumulative = 0;
                 for (const character of text) {
@@ -179,7 +180,7 @@ export const SubpixelText: FC<SubpixelTextProps> = ({ text, textStyle, color = 0
         return (
             <NativeText
                 nativeResolution
-                align={align}
+                align={align === 'field' ? 'center' : align}
                 ariaHidden={ariaHidden}
                 background={background}
                 className={className}
