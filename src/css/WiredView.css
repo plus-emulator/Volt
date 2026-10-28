@@ -3353,3 +3353,57 @@
     caret-color: #000;
     font-size: 12px;
 }
+
+/* error_info_view: contents at (8, 3) under the 36px title; the window is the contents' height + 48. */
+.volt-wired-error-info.volt-card-shell.volt-card-frame-3 {
+    width: 337px;
+    min-width: 337px;
+    min-height: 0;
+    padding: 39px 9px 9px 8px !important;
+}
+
+.volt-card-shell.volt-wired-error-info.volt-card-frame-3 > .volt-card-header-shell .volt-card-close-button {
+    right: 3px !important;
+}
+
+.volt-wired-error-info__caption {
+    position: absolute !important;
+    left: 0;
+    top: 3px;
+}
+
+.volt-wired-error-info__contents {
+    position: relative;
+    width: 320px;
+    min-height: 100px;
+}
+
+.volt-wired-error-info__icon {
+    position: absolute;
+    left: 280px;
+    top: 0;
+    max-width: none;
+    image-rendering: pixelated;
+}
+
+/* The 17px high name field at y 11 grows to 18px and keeps its centre (on_resize_align center), truncated to y 10. */
+.volt-wired-error-info__name {
+    position: absolute !important;
+    left: 109px;
+    top: 10px;
+}
+
+.volt-wired-error-info__text {
+    display: block !important;
+    margin-top: 46px;
+}
+
+.volt-wired-error-info__layout-bounds {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 320px;
+    height: 106px;
+    overflow: hidden;
+    pointer-events: none;
+}

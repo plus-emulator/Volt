@@ -35,24 +35,19 @@ import {
     SendMessageComposer,
     WiredSelectionVisualizer
 } from '../../api';
-import wiredErrorIcon from '../../assets/images/wiredtools/icon_wired_error.png';
-import wiredWarningIcon from '../../assets/images/wiredtools/icon_wired_warning.png';
 import wiredGlobalPlaceholderImage from '../../assets/images/wiredtools/wired_global_placeholder.png';
 import {
     Button,
-    DraggableWindowPosition,
     LayoutAvatarImageView,
     LayoutPetImageView,
     LayoutRoomObjectImageView,
     VoltCardContentView,
-    VoltCardHeaderView,
     VoltCardTabsItemView,
-    VoltCardTabsView,
-    VoltCardView,
-    Text
+    VoltCardTabsView
 } from '../../common';
 import { useMessageEvent, useNotification, useObjectSelectedEvent, useRoom, useWiredCatalogRows, useWiredObjectVariables, useWiredMenuErrors, useWiredTools, useWiredVariableHighlight, WiredObjectHolder, WiredObjectVariableOperation } from '../../hooks';
 import { WiredChestsTabView } from './WiredChestsTabView';
+import { WiredErrorInfoView } from './WiredErrorInfoView';
 import {
     INSPECTION_ELEMENTS,
     TABS,
@@ -106,9 +101,6 @@ import { WiredVariableHighlightBubbles } from './WiredVariableHighlightBubbles';
 import { WiredVariableHolderPanelView } from './WiredVariableHolderPanelView';
 import { WiredVariablesTabView } from './WiredVariablesTabView';
 import { openWiredMenuLink, useWiredCreatorToolsUiStore } from './wiredCreatorToolsUiStore';
-
-/** icon_wired_<category>_png, as the official error view picks it. */
-const MONITOR_ERROR_ICONS: Record<string, string> = { ERROR: wiredErrorIcon, WARNING: wiredWarningIcon };
 
 const MENU_HEADER_TITLES: Record<WiredToolsTab, string> = {
     monitor: 'Monitor',
@@ -1481,38 +1473,7 @@ export const WiredCreatorToolsView: FC<{}> = () => {
                     onRemove={() => removeManagedHolderVariable()}
                 />
             )}
-            {!!selectedMonitorError && (
-                // Official error_info_view: 337 wide, frame 3, contents at (8, 3) and height = contents + 48.
-                <VoltCardView
-                    className="w-[337px]"
-                    frameStyle={3}
-                    isResizable={false}
-                    theme="primary-slim"
-                    uniqueKey="wired-monitor-error-info"
-                    windowPosition={DraggableWindowPosition.TOP_LEFT}
-                    offsetLeft={660}
-                    offsetTop={120}
-                >
-                    <VoltCardHeaderView
-                        headerText={localizeWithFallback('wiredmenu.error_info.title', 'Wired Error Information')}
-                        onCloseClick={() => setSelectedMonitorError(null)}
-                    />
-                    <div className="relative mb-[6px] ml-[5px] mt-[3px] min-h-[100px] w-[320px] text-black">
-                        {!!MONITOR_ERROR_ICONS[selectedMonitorError.category.toUpperCase()] && (
-                            <img alt="" className="absolute right-0 top-0 size-[40px]" src={MONITOR_ERROR_ICONS[selectedMonitorError.category.toUpperCase()]} />
-                        )}
-                        <Text bold className="absolute left-[109px] top-[11px] whitespace-nowrap">
-                            {selectedMonitorError.type}
-                        </Text>
-                        <div className="w-[319px] whitespace-pre-line pt-[46px]">
-                            <Text>
-                                {/* WiredErrorInfoView.initialize: an id without a text shows an empty body. */}
-                                {localizeWithFallback(`wiredmenu.error_info.${selectedMonitorError.errorId}`, '').replace(/\\n/g, '\n')}
-                            </Text>
-                        </div>
-                    </div>
-                </VoltCardView>
-            )}
+            {!!selectedMonitorError && <WiredErrorInfoView log={selectedMonitorError} onClose={() => setSelectedMonitorError(null)} />}
         </>
     );
 };
