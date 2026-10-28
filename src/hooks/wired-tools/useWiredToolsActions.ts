@@ -14,6 +14,7 @@ import { useWiredToolsStore } from './useWiredToolsStore';
 export const useWiredToolsActions = () => {
     const {
         updateAccountPreferences,
+        togglePlayTestMode,
         saveRoomSettings,
         saveRoomTimezone,
         reloadRoomWired,
@@ -33,6 +34,7 @@ export const useWiredToolsActions = () => {
 
     return {
         updateAccountPreferences,
+        togglePlayTestMode,
         saveRoomSettings,
         saveRoomTimezone,
         reloadRoomWired,
