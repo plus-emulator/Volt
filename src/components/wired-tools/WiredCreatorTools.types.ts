@@ -149,9 +149,9 @@ export interface VariableManageEntry {
 
 export interface VariableHighlightTarget {
     category: number;
-    hasValue: boolean;
     objectId: number;
-    value: bigint | null;
+    /** The value bubble text, null when the variable has no value. */
+    label: string | null;
 }
 
 export interface VariableHighlightOverlay extends VariableHighlightTarget {

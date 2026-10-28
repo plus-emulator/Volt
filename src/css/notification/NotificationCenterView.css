@@ -1064,6 +1064,24 @@
     white-space: nowrap;
 }
 
+/* titleBarColor 0xd43d59: the frame's title bar drawn again over itself and turned from the window blue to red. */
+.volt-card-shell.volt-card-frame-3.volt-native-confirm.is-danger::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border: solid transparent;
+    border-width: 33px 10px 10px 10px;
+    border-image-source: var(--volt-card-frame-3);
+    border-image-slice: 33 10 10 10 fill;
+    border-image-width: 33px 10px 10px 10px;
+    border-image-repeat: stretch;
+    image-rendering: pixelated;
+    clip-path: inset(0 0 calc(100% - 33px) 0);
+    filter: hue-rotate(149deg) saturate(1.4) brightness(1.12);
+    pointer-events: none;
+}
+
 /* simple_alert_xml: content origin (1,30); list at (10,8); frame height is list height + 40 */
 .volt-card-shell.volt-card-frame-3.volt-native-alert.is-simple {
     width: 310px;

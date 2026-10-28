@@ -1,5 +1,5 @@
 import { FC } from 'react';
-import { NotificationConfirmItem } from '../../../../api';
+import { NotificationConfirmItem, NotificationConfirmType } from '../../../../api';
 import { LayoutNotificationAlertViewProps } from '../../../../common';
 import { NativeConfirmView } from '../native/NativeConfirmView';
 
@@ -9,7 +9,7 @@ export interface NotificationDefaultConfirmViewProps extends LayoutNotificationA
 
 export const NotificationDefaultConfirmView: FC<NotificationDefaultConfirmViewProps> = (props) => {
     const { item = null, onClose = null } = props;
-    const { message = null, onConfirm = null, onCancel = null, confirmText = null, cancelText = null, title = null } = item;
+    const { confirmType = null, message = null, onConfirm = null, onCancel = null, confirmText = null, cancelText = null, title = null } = item;
 
     const confirm = () => {
         if (onConfirm) onConfirm();
@@ -23,5 +23,15 @@ export const NotificationDefaultConfirmView: FC<NotificationDefaultConfirmViewPr
         onClose();
     };
 
-    return <NativeConfirmView cancelText={cancelText} confirmText={confirmText} message={message} title={title} onCancel={cancel} onConfirm={confirm} />;
+    return (
+        <NativeConfirmView
+            cancelText={cancelText}
+            confirmText={confirmText}
+            danger={confirmType === NotificationConfirmType.DANGER}
+            message={message}
+            title={title}
+            onCancel={cancel}
+            onConfirm={confirm}
+        />
+    );
 };
