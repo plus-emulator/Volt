@@ -33,6 +33,8 @@ export interface WiredPagedTableProps<T> {
     scrollResetKey?: number;
     /** Height class of the scrolling body. */
     bodyClassName?: string;
+    /** Replaces the "N found. Showing page" text in front of the page field. */
+    foundLabel?: string;
 }
 
 const PAGE_BUTTON_CLASS = 'min-w-[36px] rounded border border-[#b8b2a4] bg-white px-2 py-1 text-[12px] disabled:opacity-40';
@@ -43,7 +45,7 @@ const PAGE_BUTTON_CLASS = 'min-w-[36px] rounded border border-[#b8b2a4] bg-white
  * rate limited requests, so the header's own refresh button and filters share the limiter.
  */
 export const WiredPagedTable = <T,>(props: WiredPagedTableProps<T>) => {
-    const { columns, rows, getRowId, getCell, currentPage, totalEntries, lastPage, requests, emptyText, scrollResetKey = 0, bodyClassName = 'max-h-[300px]' } = props;
+    const { columns, rows, getRowId, getCell, currentPage, totalEntries, lastPage, requests, emptyText, scrollResetKey = 0, bodyClassName = 'max-h-[300px]', foundLabel } = props;
     const [pageInput, setPageInput] = useState(currentPage === NO_PAGE ? '1' : String(currentPage));
     const [bodyElement, setBodyElement] = useState<HTMLDivElement | null>(null);
 
@@ -121,12 +123,13 @@ export const WiredPagedTable = <T,>(props: WiredPagedTableProps<T>) => {
                 <div className="flex items-center gap-2 text-[12px] text-[#555]">
                     {currentPage !== NO_PAGE && (
                         <span>
-                            {localizeWithFallback(
-                                'wiredmenu.paged_table.found',
-                                `${totalEntries} found. Showing page`,
-                                ['entries_count'],
-                                [String(totalEntries)]
-                            )}
+                            {foundLabel ??
+                                localizeWithFallback(
+                                    'wiredmenu.paged_table.found',
+                                    `${totalEntries} found. Showing page`,
+                                    ['entries_count'],
+                                    [String(totalEntries)]
+                                )}
                         </span>
                     )}
                     <input
