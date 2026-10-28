@@ -1,68 +1,65 @@
-import { RoomObjectCategory } from '@volt/renderer';
-import { FC } from 'react';
-import { LocalizeText } from '../../../../api';
-import { Column, DraggableWindow, Text } from '../../../../common';
+import { FC, useEffect, useRef } from 'react';
+import { AddAnimationTickerCallback, GetRoomObjectScreenLocation, LocalizeText } from '../../../../api';
 import { useFurnitureHighScoreWidget } from '../../../../hooks';
-import { ContextMenuHeaderView } from '../context-menu/ContextMenuHeaderView';
-import { ContextMenuListView } from '../context-menu/ContextMenuListView';
 
-export const FurnitureHighScoreView: FC<{}> = (props) => {
-    const { stuffDatas = null, getScoreType = null, getClearType = null, isConfigured = null, isTimeScore = null, formatScore = null } = useFurnitureHighScoreWidget();
+// The bubble sits at this offset from the board's screen location and follows it.
+const OFFSET_X = -138;
+const OFFSET_Y = -400;
 
-    if (!stuffDatas || !stuffDatas.size) return null;
+export const FurnitureHighScoreView: FC<{}> = () => {
+    const { display = null, getScoreType = null, getClearType = null, isConfigured = null, isTimeScore = null, formatScore = null } = useFurnitureHighScoreWidget();
+    const elementRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!display) return;
+
+        const updatePosition = () => {
+            const element = elementRef.current;
+            const location = GetRoomObjectScreenLocation(display.roomId, display.objectId, display.category);
+
+            if (!element || !location) return;
+
+            element.style.left = `${ location.x + OFFSET_X }px`;
+            element.style.top = `${ location.y + OFFSET_Y }px`;
+        };
+
+        updatePosition();
+
+        return AddAnimationTickerCallback(updatePosition);
+    }, [ display ]);
+
+    if (!display) return null;
+
+    const { stuffData } = display;
+    const configured = isConfigured(stuffData.scoreType, stuffData.clearType);
+    const timeScore = configured && isTimeScore(stuffData.scoreType);
+    const caption = configured
+        ? LocalizeText('high.score.display.caption', [ 'scoretype', 'cleartype' ], [
+            LocalizeText(`high.score.display.scoretype.${ getScoreType(stuffData.scoreType) }`),
+            LocalizeText(`high.score.display.cleartype.${ getClearType(stuffData.clearType) }`)
+        ])
+        : LocalizeText('high.score.display.caption');
 
     return (
-        <>
-            {Array.from(stuffDatas.entries()).map(([objectId, stuffData], index) => {
-                const configured = isConfigured(stuffData.scoreType, stuffData.clearType);
-                const timeScore = configured && isTimeScore(stuffData.scoreType);
-
-                return (
-                    <DraggableWindow key={index} uniqueKey={`high-score-${objectId}`}>
-                        <Column className="volt-widget-high-score volt-context-menu bg-[#1e1f23] p-2 w-[280px] max-w-[280px] h-[320px]" gap={0}>
-                            <ContextMenuHeaderView classNames={['drag-handler cursor-move']}>
-                                {configured
-                                    ? LocalizeText(
-                                        'high.score.display.caption',
-                                        ['scoretype', 'cleartype'],
-                                        [
-                                            LocalizeText(`high.score.display.scoretype.${getScoreType(stuffData.scoreType)}`),
-                                            LocalizeText(`high.score.display.cleartype.${getClearType(stuffData.clearType)}`)
-                                        ]
-                                    )
-                                    : LocalizeText('high.score.display.users.header')}
-                            </ContextMenuHeaderView>
-                            <ContextMenuListView className="!h-auto" gap={1} overflow="hidden">
-                                <div className="flex flex-col gap-1">
-                                    <div className="flex items-center justify-between">
-                                        <Text bold center className="col-span-8" variant="white">
-                                            {LocalizeText('high.score.display.users.header')}
-                                        </Text>
-                                        <Text bold center className="col-span-4" variant="white">
-                                            {LocalizeText(timeScore ? 'high.score.display.time.header' : 'high.score.display.score.header')}
-                                        </Text>
-                                    </div>
-                                    <hr className="m-0" />
-                                </div>
-                                <Column className="overflow-y-scroll" gap={1} overflow="auto">
-                                    {stuffData.entries.map((entry, index) => {
-                                        return (
-                                            <div key={index} className="flex items-center justify-between">
-                                                <Text center className="col-span-8" variant="white">
-                                                    {entry.users.join(', ')}
-                                                </Text>
-                                                <Text center className="col-span-4" variant="white">
-                                                    {formatScore(entry.score, stuffData.scoreType)}
-                                                </Text>
-                                            </div>
-                                        );
-                                    })}
-                                </Column>
-                            </ContextMenuListView>
-                        </Column>
-                    </DraggableWindow>
-                );
-            })}
-        </>
+        <div ref={ elementRef } className="volt-high-score">
+            <div className="volt-high-score__skin" />
+            <div className="volt-high-score__pointer" />
+            <div className="volt-high-score__title">{ caption }</div>
+            <div className="volt-high-score__header">
+                <div className="volt-high-score__header-users">{ LocalizeText('high.score.display.users.header') }</div>
+                <div className="volt-high-score__header-score">{ LocalizeText(timeScore ? 'high.score.display.time.header' : 'high.score.display.score.header') }</div>
+            </div>
+            <div className="volt-high-score__list" />
+            <div className="volt-high-score__entries">
+                { stuffData.entries.map((entry, index) => (
+                    <div key={ index } className="volt-high-score__entry">
+                        <span className="volt-high-score__users">{ entry.users.join(', ') }</span>
+                        <span className="volt-high-score__score">{ formatScore(entry.score, stuffData.scoreType) }</span>
+                    </div>
+                )) }
+            </div>
+            <div className="volt-high-score__footer">{ LocalizeText('high.score.display.congratulations.footer') }</div>
+            <div className="volt-high-score__cup" />
+        </div>
     );
 };

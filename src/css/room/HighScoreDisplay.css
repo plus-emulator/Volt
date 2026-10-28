@@ -1,0 +1,144 @@
+.volt-high-score {
+    position: absolute;
+    z-index: 70;
+    width: 275px;
+    height: 341px;
+    color: #000;
+    font: 400 12px/16px HabboAirUbuntu, Ubuntu, sans-serif;
+    image-rendering: pixelated;
+}
+
+.volt-high-score__skin {
+    position: absolute;
+    left: 5px;
+    top: 5px;
+    box-sizing: border-box;
+    width: 263px;
+    height: 328px;
+    border: 1px solid #000;
+    border-radius: 4px;
+    background: #bab8b4;
+    box-shadow: inset 0 0 0 1px #fff;
+}
+
+.volt-high-score__pointer {
+    position: absolute;
+    left: 130px;
+    top: 331px;
+    width: 13px;
+    height: 9px;
+    background: url('../../assets/images/room-widgets/highscore-widget/pointer-down.png') no-repeat;
+}
+
+.volt-high-score__title {
+    position: absolute;
+    left: 9px;
+    top: 8px;
+    width: 256px;
+    height: 20px;
+    overflow: hidden;
+    border-radius: 3px 3px 0 0;
+    background: #3f3f3f;
+    color: #fff;
+    font-weight: 700;
+    line-height: 20px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.volt-high-score__header {
+    position: absolute;
+    left: 8px;
+    top: 30px;
+    width: 258px;
+    height: 23px;
+}
+
+.volt-high-score__header-users,
+.volt-high-score__header-score {
+    position: absolute;
+    top: 0;
+    box-sizing: border-box;
+    height: 23px;
+    padding-top: 3px;
+    box-shadow: inset 1px 1px 0 #424240, inset 2px 2px 0 #e4e3e2, inset -1px -1px 0 #e4e3e2, inset -2px -2px 0 #424240;
+    white-space: nowrap;
+}
+
+.volt-high-score__header-users {
+    left: 0;
+    width: 190px;
+    padding-left: 4px;
+}
+
+.volt-high-score__header-score {
+    left: 188px;
+    width: 70px;
+    padding-right: 4px;
+    text-align: right;
+}
+
+.volt-high-score__list {
+    position: absolute;
+    left: 8px;
+    top: 53px;
+    box-sizing: border-box;
+    width: 257px;
+    height: 255px;
+    border: 1px solid #666;
+    border-radius: 0 0 3px 3px;
+    background: #000;
+}
+
+.volt-high-score__entries {
+    position: absolute;
+    left: 8px;
+    top: 53px;
+    width: 256px;
+    height: 253px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: none;
+}
+
+.volt-high-score__entry {
+    position: relative;
+    height: 20px;
+    color: #fff;
+}
+
+.volt-high-score__users {
+    position: absolute;
+    left: 4px;
+    top: 2px;
+    max-width: 180px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.volt-high-score__score {
+    position: absolute;
+    right: 14px;
+    top: 2px;
+    white-space: nowrap;
+}
+
+.volt-high-score__footer {
+    position: absolute;
+    left: 20px;
+    top: 311px;
+    width: 233px;
+    height: 17px;
+    color: #6f6f6f;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.volt-high-score__cup {
+    position: absolute;
+    left: 0;
+    top: 269px;
+    width: 40px;
+    height: 70px;
+    background: url('../../assets/images/room-widgets/highscore-widget/highscore-cup.png') no-repeat;
+}
