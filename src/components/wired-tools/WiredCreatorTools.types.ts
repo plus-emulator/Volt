@@ -59,14 +59,17 @@ export interface InspectionUserLiveState {
 export interface MonitorStat {
     label: string;
     value: string;
-    /** WiredMenuMonitorTab.colorize result (hex without #); Volt-only rows have none. */
+    /** WiredMenuMonitorTab.colorize result (hex without #); rows without an answer have none. */
     color?: string;
     /** WiredMenuMonitorTab.isFrankPanicking reads this row's colour. The permanent variable rows are coloured but do not count. */
     alarm?: boolean;
 }
 
-/** WiredRoomStatsData: the server's furni and permanent variable counts with their caps. */
+/** WiredRoomStatsData: the server's Wired usage, heavy flag, furni and permanent variable counts with their caps. */
 export interface MonitorRoomStats {
+    executionCost: number;
+    executionCostCap: number;
+    isHeavy: boolean;
     floorItemCount: number;
     floorItemCap: number;
     wallItemCount: number;
@@ -80,47 +83,12 @@ export interface MonitorRoomStats {
 }
 
 export interface MonitorLog {
+    errorId: number;
     type: string;
     category: string;
     amount: string;
     latest: string;
-}
-
-export interface MonitorSnapshot {
-    usageCurrentWindow: number;
-    usageLimitPerWindow: number;
-    isHeavy: boolean;
-    delayedEventsPending: number;
-    delayedEventsLimit: number;
-    averageExecutionMs: number;
-    peakExecutionMs: number;
-    recursionDepthCurrent: number;
-    recursionDepthLimit: number;
-    killedRemainingSeconds: number;
-    usageWindowMs: number;
-    overloadAverageThresholdMs: number;
-    overloadPeakThresholdMs: number;
-    heavyUsageThresholdPercent: number;
-    heavyConsecutiveWindowsThreshold: number;
-    overloadConsecutiveWindowsThreshold: number;
-    heavyDelayedThresholdPercent: number;
-    logs: Array<{
-        amount: number;
-        latestOccurrenceSeconds: number;
-        latestReason: string;
-        latestSourceId: number;
-        latestSourceLabel: string;
-        severity: string;
-        type: string;
-    }>;
-    history: Array<{
-        occurredAtSeconds: number;
-        reason: string;
-        sourceId: number;
-        sourceLabel: string;
-        severity: string;
-        type: string;
-    }>;
+    latestTooltip?: string;
 }
 
 /** One Inspection row: a WiredVariablesForObject value joined with its catalogue definition. `key` is the server's variable id. */

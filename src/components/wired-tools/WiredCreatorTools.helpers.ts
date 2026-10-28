@@ -1,31 +1,9 @@
 import { MONITOR_COLOR_GREEN, MONITOR_COLOR_ORANGE, MONITOR_COLOR_RED, MONITOR_STAT_CAPTIONS } from './WiredCreatorTools.constants';
-import type { IWiredVariableData, IWiredVariableDiffEntry } from '@volt/renderer';
-import { localizeWithFallback } from '../../api';
-import type { InspectionGiveDefinition, InspectionVariable, MonitorRoomStats, MonitorSnapshot, MonitorStat, VariablesElementType, VariableTextValue } from './WiredCreatorTools.types';
+import type { IWiredErrorLogEntry, IWiredVariableData, IWiredVariableDiffEntry } from '@volt/renderer';
+import { FriendlyTime, localizeWithFallback } from '../../api';
+import type { InspectionGiveDefinition, InspectionVariable, MonitorLog, MonitorRoomStats, MonitorStat, VariablesElementType, VariableTextValue } from './WiredCreatorTools.types';
 
 const HOTEL_TIME_FORMATTERS: Map<string, Intl.DateTimeFormat> = new Map();
-
-export const createEmptyMonitorSnapshot = (): MonitorSnapshot => ({
-    usageCurrentWindow: 0,
-    usageLimitPerWindow: 0,
-    isHeavy: false,
-    delayedEventsPending: 0,
-    delayedEventsLimit: 0,
-    averageExecutionMs: 0,
-    peakExecutionMs: 0,
-    recursionDepthCurrent: 0,
-    recursionDepthLimit: 0,
-    killedRemainingSeconds: 0,
-    usageWindowMs: 0,
-    overloadAverageThresholdMs: 0,
-    overloadPeakThresholdMs: 0,
-    heavyUsageThresholdPercent: 0,
-    heavyConsecutiveWindowsThreshold: 0,
-    overloadConsecutiveWindowsThreshold: 0,
-    heavyDelayedThresholdPercent: 0,
-    logs: [],
-    history: []
-});
 
 export const getHotelTimeFormatter = (timeZone: string): Intl.DateTimeFormat => {
     const formatterTimeZone = timeZone || 'UTC';
@@ -64,53 +42,10 @@ export const getHotelTimeFormatter = (timeZone: string): Intl.DateTimeFormat => 
     return formatter;
 };
 
-export const formatMonitorLatestOccurrence = (latestOccurrenceSeconds: number, nowMs: number): string => {
-    if (latestOccurrenceSeconds <= 0) return '/';
-
-    const diffMs = Math.max(0, nowMs - latestOccurrenceSeconds * 1000);
-    const diffSeconds = Math.floor(diffMs / 1000);
-
-    if (diffSeconds < 5) return 'Just now';
-    if (diffSeconds < 60) return `${diffSeconds}s ago`;
-
-    const diffMinutes = Math.floor(diffSeconds / 60);
-
-    if (diffMinutes < 60) return `${diffMinutes}m ago`;
-
-    const diffHours = Math.floor(diffMinutes / 60);
-
-    if (diffHours < 24) return `${diffHours}h ago`;
-
-    const diffDays = Math.floor(diffHours / 24);
-
-    return `${diffDays}d ago`;
-};
-
-export const formatMonitorHistoryOccurrence = (occurredAtSeconds: number): string => {
-    if (occurredAtSeconds <= 0) return '/';
-
-    return new Date(occurredAtSeconds * 1000).toLocaleString('en-GB');
-};
-
 export const formatVariableTimestamp = (timestamp: number): string => {
     if (!timestamp || timestamp <= 0) return '/';
 
     return new Date(timestamp * 1000).toLocaleString('en-GB');
-};
-
-export const formatMonitorSource = (sourceLabel: string, sourceId: number): string => {
-    const normalizedLabel = (sourceLabel || '').trim();
-
-    if (!normalizedLabel && !(sourceId > 0)) return 'Room monitor';
-    if (sourceId > 0) return `${normalizedLabel || 'wired'} (#${sourceId})`;
-
-    return normalizedLabel;
-};
-
-export const normalizeMonitorReason = (reason: string): string => {
-    const normalizedReason = (reason || '').trim();
-
-    return normalizedReason || 'No detailed reason was recorded for this entry.';
 };
 
 /** WiredMenuMonitorTab.colorize: share of the cap below t1 is green, below t2 orange, else (including 0/0) red. */
@@ -125,7 +60,7 @@ export const colorizeMonitorStat = (amount: number, cap: number, t1: number, t2:
 };
 
 /**
- * WiredMenuMonitorTab.updateRoomStatsUI rows 3 to 7 from WiredRoomStatsData. Furni turn orange at 60% and red at 85% of the cap,
+ * WiredMenuMonitorTab.updateRoomStatsUI rows from WiredRoomStatsData. Usage turns orange at 30% and red at 70% of its cap, furni at 60% and 85%,
  * permanent variables at 50% and 80%. Without an answer the rows keep their caption only.
  */
 export const monitorRoomStatRows = (stats: MonitorRoomStats | null): MonitorStat[] =>
@@ -137,9 +72,21 @@ export const monitorRoomStatRows = (stats: MonitorRoomStats | null): MonitorStat
         alarm
     });
 
-    if (!stats) return MONITOR_STAT_CAPTIONS.slice(2).map((label) => ({ label, value: '' }));
+    if (!stats) return MONITOR_STAT_CAPTIONS.map((label) => ({ label, value: '' }));
 
     return [
+        {
+            label: MONITOR_STAT_CAPTIONS[0],
+            value: `${stats.executionCost.toFixed(0)}/${stats.executionCostCap.toFixed(0)}`,
+            color: colorizeMonitorStat(Math.trunc(stats.executionCost), Math.trunc(stats.executionCostCap), 0.3, 0.7),
+            alarm: true
+        },
+        {
+            label: MONITOR_STAT_CAPTIONS[1],
+            value: stats.isHeavy ? localizeWithFallback('wiredmenu.bool.yes', 'Yes') : localizeWithFallback('wiredmenu.bool.no', 'No'),
+            color: stats.isHeavy ? MONITOR_COLOR_ORANGE : MONITOR_COLOR_GREEN,
+            alarm: true
+        },
         row(2, stats.floorItemCount, stats.floorItemCap, 0.6, 0.85, true),
         row(3, stats.wallItemCount, stats.wallItemCap, 0.6, 0.85, true),
         row(4, stats.permanentFurniVariables, stats.maxPermanentFurniVariables, 0.5, 0.8, false),
@@ -147,6 +94,28 @@ export const monitorRoomStatRows = (stats: MonitorRoomStats | null): MonitorStat
         row(6, stats.permanentGlobalVariables, stats.maxPermanentGlobalVariables, 0.5, 0.8, false)
     ];
 };
+
+const padTwo = (value: number): string => (value < 10 ? `0${value}` : String(value));
+
+/** ErrorDataTableObject.timestampString: the local time of the last occurrence, cut to whole seconds. */
+const formatMonitorErrorTimestamp = (msSinceLastOccurrence: number, nowMs: number): string =>
+{
+    const time = nowMs - msSinceLastOccurrence;
+    const date = new Date(time - (time % 1000));
+
+    return `${date.getFullYear()}-${padTwo(date.getMonth() + 1)}-${padTwo(date.getDate())} ${padTwo(date.getHours())}:${padTwo(date.getMinutes())}:${padTwo(date.getSeconds())}`;
+};
+
+/** ErrorDataTableObject cells: every row the server sends, in its order. A negative age means the error never happened. */
+export const buildMonitorLogs = (errors: IWiredErrorLogEntry[], nowMs: number): MonitorLog[] =>
+    errors.map((error) => ({
+        errorId: error.errorId,
+        type: error.errorName,
+        category: error.category,
+        amount: String(error.throwCount),
+        latest: error.msSinceLastOccurrence < 0 ? '/' : FriendlyTime.format(error.msSinceLastOccurrence / 1000, '.ago', 3),
+        latestTooltip: error.msSinceLastOccurrence < 0 ? undefined : formatMonitorErrorTimestamp(error.msSinceLastOccurrence, nowMs)
+    }));
 
 // AIR WIN63-202610151745-318700621 class_4039: variableType 0 is created by a user, 1 is a built-in (internal) variable, 3 a smart (~) one.
 export const VARIABLE_TYPE_CUSTOM = 0;

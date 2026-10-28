@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createEmptyMonitorSnapshot } from './WiredCreatorTools.helpers';
 import { openWiredMenuLink, useWiredCreatorToolsUiStore } from './wiredCreatorToolsUiStore';
 
 const INITIAL = {
@@ -7,16 +6,11 @@ const INITIAL = {
     activeTab: 'monitor' as const,
     inspectionType: 'furni' as const,
     variablesType: 'furni' as const,
-    isMonitorHistoryOpen: false,
-    isMonitorInfoOpen: false,
     isInspectionGiveOpen: false,
     isVariableManageOpen: false,
     isManagedGiveOpen: false,
     isRoomLogsOpen: false,
     isSelfDonationOpen: false,
-    monitorHistorySeverityFilter: 'ALL' as const,
-    monitorHistoryTypeFilter: 'ALL',
-    monitorSnapshot: createEmptyMonitorSnapshot(),
     selectedFurni: null,
     selectedFurniLiveState: null,
     selectedUser: null,
@@ -50,16 +44,11 @@ describe('useWiredCreatorToolsUiStore', () => {
         expect(state.activeTab).toBe('monitor');
         expect(state.inspectionType).toBe('furni');
         expect(state.variablesType).toBe('furni');
-        expect(state.isMonitorHistoryOpen).toBe(false);
-        expect(state.isMonitorInfoOpen).toBe(false);
         expect(state.isInspectionGiveOpen).toBe(false);
         expect(state.isVariableManageOpen).toBe(false);
         expect(state.isManagedGiveOpen).toBe(false);
-        expect(state.monitorHistorySeverityFilter).toBe('ALL');
-        expect(state.monitorHistoryTypeFilter).toBe('ALL');
         expect(state.isRoomLogsOpen).toBe(false);
         expect(state.isSelfDonationOpen).toBe(false);
-        expect(state.monitorSnapshot).toEqual(createEmptyMonitorSnapshot());
         expect(state.selectedFurni).toBeNull();
         expect(state.selectedFurniLiveState).toBeNull();
         expect(state.selectedUser).toBeNull();
@@ -119,19 +108,6 @@ describe('useWiredCreatorToolsUiStore', () => {
     });
 
     describe('modal/popover flags', () => {
-        it('setIsMonitorHistoryOpen toggles the history modal flag', () => {
-            useWiredCreatorToolsUiStore.getState().setIsMonitorHistoryOpen(true);
-            expect(useWiredCreatorToolsUiStore.getState().isMonitorHistoryOpen).toBe(true);
-
-            useWiredCreatorToolsUiStore.getState().setIsMonitorHistoryOpen(false);
-            expect(useWiredCreatorToolsUiStore.getState().isMonitorHistoryOpen).toBe(false);
-        });
-
-        it('setIsMonitorInfoOpen toggles the info modal flag', () => {
-            useWiredCreatorToolsUiStore.getState().setIsMonitorInfoOpen(true);
-            expect(useWiredCreatorToolsUiStore.getState().isMonitorInfoOpen).toBe(true);
-        });
-
         it('setIsInspectionGiveOpen accepts a functional updater', () => {
             useWiredCreatorToolsUiStore.getState().setIsInspectionGiveOpen((prev) => !prev);
             expect(useWiredCreatorToolsUiStore.getState().isInspectionGiveOpen).toBe(true);
@@ -151,77 +127,10 @@ describe('useWiredCreatorToolsUiStore', () => {
         });
     });
 
-    describe('monitor history filters', () => {
-        it('setMonitorHistorySeverityFilter narrows to ERROR / WARNING / ALL', () => {
-            useWiredCreatorToolsUiStore.getState().setMonitorHistorySeverityFilter('ERROR');
-            expect(useWiredCreatorToolsUiStore.getState().monitorHistorySeverityFilter).toBe('ERROR');
-
-            useWiredCreatorToolsUiStore.getState().setMonitorHistorySeverityFilter('WARNING');
-            expect(useWiredCreatorToolsUiStore.getState().monitorHistorySeverityFilter).toBe('WARNING');
-
-            useWiredCreatorToolsUiStore.getState().setMonitorHistorySeverityFilter('ALL');
-            expect(useWiredCreatorToolsUiStore.getState().monitorHistorySeverityFilter).toBe('ALL');
-        });
-
-        it('setMonitorHistoryTypeFilter stores an arbitrary type label', () => {
-            useWiredCreatorToolsUiStore.getState().setMonitorHistoryTypeFilter('FurnitureRuntime');
-            expect(useWiredCreatorToolsUiStore.getState().monitorHistoryTypeFilter).toBe('FurnitureRuntime');
-        });
-    });
-
     describe('variable manage UI', () => {
         it('setIsRoomLogsOpen takes a direct boolean', () => {
             useWiredCreatorToolsUiStore.getState().setIsRoomLogsOpen(true);
             expect(useWiredCreatorToolsUiStore.getState().isRoomLogsOpen).toBe(true);
-        });
-    });
-
-    describe('monitorSnapshot', () => {
-        it('setMonitorSnapshot replaces the snapshot with the server payload shape', () => {
-            const next = {
-                ...createEmptyMonitorSnapshot(),
-                usageCurrentWindow: 7,
-                usageLimitPerWindow: 10,
-                isHeavy: true,
-                averageExecutionMs: 42
-            };
-
-            useWiredCreatorToolsUiStore.getState().setMonitorSnapshot(next);
-
-            expect(useWiredCreatorToolsUiStore.getState().monitorSnapshot).toEqual(next);
-            expect(useWiredCreatorToolsUiStore.getState().monitorSnapshot.isHeavy).toBe(true);
-        });
-
-        it('resetMonitorSnapshot returns a fresh empty snapshot (new reference)', () => {
-            const populated = {
-                ...createEmptyMonitorSnapshot(),
-                usageCurrentWindow: 5,
-                logs: [{ amount: 1, latestOccurrenceSeconds: 0, latestReason: '', latestSourceId: 0, latestSourceLabel: '', severity: 'ERROR', type: 'foo' }],
-                history: [{ occurredAtSeconds: 0, reason: '', sourceId: 0, sourceLabel: '', severity: 'ERROR', type: 'foo' }]
-            };
-            useWiredCreatorToolsUiStore.getState().setMonitorSnapshot(populated);
-
-            useWiredCreatorToolsUiStore.getState().resetMonitorSnapshot();
-
-            const cleared = useWiredCreatorToolsUiStore.getState().monitorSnapshot;
-            expect(cleared).toEqual(createEmptyMonitorSnapshot());
-            expect(cleared).not.toBe(populated);
-            expect(cleared.logs).toEqual([]);
-            expect(cleared.history).toEqual([]);
-        });
-
-        it('the snapshot persists across the panel close/reopen lifecycle (UI flag flip)', () => {
-            // Server pushed a non-empty snapshot while the panel was open.
-            const payload = { ...createEmptyMonitorSnapshot(), usageCurrentWindow: 3 };
-            useWiredCreatorToolsUiStore.getState().setMonitorSnapshot(payload);
-
-            // User closes the panel — UI flag flips, snapshot should NOT reset.
-            useWiredCreatorToolsUiStore.getState().setIsVisible(false);
-
-            // User reopens — the last-known stats are still there.
-            useWiredCreatorToolsUiStore.getState().setIsVisible(true);
-
-            expect(useWiredCreatorToolsUiStore.getState().monitorSnapshot.usageCurrentWindow).toBe(3);
         });
     });
 
