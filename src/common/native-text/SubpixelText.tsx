@@ -132,9 +132,18 @@ interface SubpixelTextProps {
     style?: CSSProperties;
     /** Hide the text from assistive technology, for an extra copy drawn for another state of the same label. */
     ariaHidden?: boolean;
+    /** The pen of the first character in px from the field's left edge (whole twips); replaces `align`. */
+    penX?: number;
 }
 
-export const SubpixelText: FC<SubpixelTextProps> = ({ text, textStyle, color = 0, background, transparent = false, align = 'left', width, className, style, ariaHidden = false }) => {
+/** The exact width of a line, in px: the sum of its DefineFont3 advances. */
+export const measureSubpixelText = async (textStyle: SubpixelTextStyle, text: string, color = 0): Promise<number> => {
+    const font = await loadSubpixelFont(textStyle, isLightColor(color));
+
+    return [...text].reduce((sum, character) => sum + ((font.advance[character.charCodeAt(0)] ?? 0) * font.size) / font.emSquare, 0);
+};
+
+export const SubpixelText: FC<SubpixelTextProps> = ({ text, textStyle, color = 0, background, transparent = false, align = 'left', width, className, style, ariaHidden = false, penX }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [size, setSize] = useState<{ width: number; height: number }>(null);
     const [fallback, setFallback] = useState(false);
@@ -157,7 +166,7 @@ export const SubpixelText: FC<SubpixelTextProps> = ({ text, textStyle, color = 0
                 const textHeight = floorToTwips((font.ascent * font.size) / font.emSquare) + floorToTwips((font.descent * font.size) / font.emSquare);
                 const fieldHeight = Math.ceil(textHeight) + 4;
                 const flooredWidth = [...text].reduce((sum, character) => sum + Math.floor(twips(character)), 0);
-                const origin = lineOrigin(align, fieldWidth, exact, flooredWidth);
+                const origin = penX !== undefined ? Math.round(penX * 20) : lineOrigin(align, fieldWidth, exact, flooredWidth);
                 const coverage = new Uint8ClampedArray(fieldWidth * fieldHeight);
                 let cumulative = 0;
                 for (const character of text) {
@@ -201,7 +210,7 @@ export const SubpixelText: FC<SubpixelTextProps> = ({ text, textStyle, color = 0
         return () => {
             disposed = true;
         };
-    }, [text, textStyle, color, background, transparent, align, width]);
+    }, [text, textStyle, color, background, transparent, align, width, penX]);
 
     if (fallback)
         return (

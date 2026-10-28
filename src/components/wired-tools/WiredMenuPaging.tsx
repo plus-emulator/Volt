@@ -1,10 +1,9 @@
 import { FC, useEffect, useRef, useState } from 'react';
 import arrowLeft from '../../assets/images/wired/native/menu_page_arrow_left.png';
 import arrowRight from '../../assets/images/wired/native/menu_page_arrow_right.png';
-import { loadNativeFont, measureNativeText } from '../../common/native-text/NativeFont';
-import { nativeTextStyles } from '../../common/native-text/NativeTextStyles';
 import { WiredMenuLabel } from '../../common/native-text/WiredMenuLabel';
 import { WiredPageRequests } from '../../hooks/wired-tools/useWiredPageRequests';
+import { resizeCentred, startCentred, useTextWindowWidths } from './nativeTextWindow';
 import { clampInputPage, NO_PAGE, parseInputPage, restrictPageInput } from './WiredPaging.helpers';
 
 const BUTTON_BORDER = 5;
@@ -21,48 +20,18 @@ const PageButton: FC<{ x: number; icons: number[]; right?: boolean; disabled: bo
     </button>
 );
 
-/** The widths of the two auto sized pixel-mode text windows: floor(textWidth + 4). */
-const useTextWindowWidths = (start: string, end: string) => {
-    const [widths, setWidths] = useState<number[]>(null);
-
-    useEffect(() => {
-        let disposed = false;
-        const style = nativeTextStyles.u_regular;
-        loadNativeFont(style)
-            .then(({ font }) => !disposed && setWidths([start, end].map((text) => Math.floor(measureNativeText(font, text, style) + 4))))
-            .catch(() => undefined);
-        return () => {
-            disposed = true;
-        };
-    }, [start, end]);
-
-    return widths;
-};
-
-/**
- * The centred item list keeps its centre when it resizes (WindowController.setRectangle, on_resize_align_center): each resize moves it by
- * half the width change, rounded toward zero, and carries the odd pixel to the next one. The start text is set before the end text.
- */
+/** The centred item list keeps its centre when its texts resize; the start text is set before the end text. */
 const useCentredListLeft = (center: WiredMenuPagingFooterProps['center'], widths: number[] | null) => {
-    const state = useRef({ x: center.x, rest: 0, start: center.startWidth, end: center.endWidth });
+    const state = useRef({ window: startCentred(center.x, center.startWidth + center.endWidth), end: center.endWidth });
 
     if (widths) {
         const current = state.current;
-        const resize = (start: number, end: number) => {
-            const change = current.rest - (start + end - current.start - current.end);
-            if (start + end !== current.start + current.end) {
-                const step = Math.trunc(change / 2);
-                current.x += step;
-                current.rest = change - step * 2;
-            }
-            current.start = start;
-            current.end = end;
-        };
-        resize(widths[0], current.end);
-        resize(widths[0], widths[1]);
+        resizeCentred(current.window, widths[0] + current.end);
+        resizeCentred(current.window, widths[0] + widths[1]);
+        current.end = widths[1];
     }
 
-    return state.current.x;
+    return state.current.window.left;
 };
 
 export interface WiredMenuPagingFooterProps {
@@ -89,7 +58,10 @@ export const WiredMenuPagingFooter: FC<WiredMenuPagingFooterProps> = ({ width, c
     const [startTemplate, endTemplate] = template.split('%page%');
     const startText = loaded && endTemplate !== undefined ? startTemplate.replace('%entries_count%', String(totalEntries)) : center.startText;
     const endText = loaded && endTemplate !== undefined ? endTemplate.replace('%page_count%', String(lastPage)) : center.endText;
-    const widths = useTextWindowWidths(startText, endText);
+    const widths = useTextWindowWidths([
+        { text: startText, textStyle: 'u_regular' },
+        { text: endText, textStyle: 'u_regular' }
+    ]);
     const listLeft = useCentredListLeft(center, widths);
     const startWidth = widths?.[0] ?? center.startWidth;
 
@@ -111,7 +83,7 @@ export const WiredMenuPagingFooter: FC<WiredMenuPagingFooterProps> = ({ width, c
     };
 
     return (
-        <div className={`volt-wired-menu__item ${className}`} style={{ left: 0, width, height: 30 }}>
+        <div className={`volt-wired-menu__item volt-wired-menu__paging ${className}`} style={{ left: 0, width, height: 30 }}>
             <PageButton disabled={isFirst} icons={[18, 27]} title="First page" x={17} onClick={() => requests.requestFirstPage()} />
             <PageButton disabled={isFirst} icons={[22]} title="Previous page" x={80} onClick={() => requests.requestPreviousPage()} />
             <PageButton right disabled={isLast} icons={[23]} title="Next page" x={width - 127} onClick={() => requests.requestNextPage()} />

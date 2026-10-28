@@ -139,8 +139,7 @@ export const WiredChestsTabView: FC<{}> = () => {
                         withdraws: summarize(row.withdrawFurniCount, row.withdrawCoinsCount),
                         deposits: summarize(row.depositFurniCount, row.depositCoinsCount)
                     },
-                    linkColumn: 'username',
-                    onLink: () => GetUserProfile(row.userId)
+                    links: { username: () => GetUserProfile(row.userId) }
                 }))}
                 w={472}
                 x={14}
