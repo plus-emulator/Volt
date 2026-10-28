@@ -2694,11 +2694,10 @@
 }
 
 .volt-wired-menu__preview-instruction {
-    position: absolute;
+    position: absolute !important;
     top: 104px;
     left: 0;
-    width: 100%;
-    text-align: center;
+    opacity: 0.6;
 }
 
 .volt-wired-menu__cell-input {

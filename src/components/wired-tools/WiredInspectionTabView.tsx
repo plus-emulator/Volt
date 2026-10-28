@@ -9,6 +9,7 @@ import { CatalogIconView } from '../catalog/views/catalog-icon/CatalogIconView';
 import { LayoutAvatarImageView, LayoutPetImageView, LayoutRoomObjectImageView } from '../../common';
 import { INSPECTION_ELEMENTS } from './WiredCreatorTools.constants';
 import { InspectionFurniSelection, InspectionGiveDefinition, InspectionUserSelection, InspectionVariable } from './WiredCreatorTools.types';
+import { WiredMenuLabel } from '../../common/native-text/WiredMenuLabel';
 import { WiredMenuButton, WiredMenuButtonIcon, WiredMenuCheckbox, WiredMenuItem, WiredMenuPanel, WiredMenuTable, WiredMenuTitle } from './WiredMenuParts';
 import { useWiredCreatorToolsUiStore } from './wiredCreatorToolsUiStore';
 
@@ -101,6 +102,9 @@ export const WiredInspectionTabView = (props: WiredInspectionTabViewProps) => {
     const editingValue = useWiredCreatorToolsUiStore((s) => s.editingValue);
     const setEditingValue = useWiredCreatorToolsUiStore((s) => s.setEditingValue);
 
+    // STATE_NOTHING: no furni or user picked yet; the official tab disables the variables table then.
+    const nothingSelected = (inspectionType === 'furni' && !selectedFurni) || (inspectionType === 'user' && !selectedUser);
+
     return (
         <>
             <WiredMenuTitle h={19} w={165} x={14} y={18}>
@@ -159,8 +163,8 @@ export const WiredInspectionTabView = (props: WiredInspectionTabViewProps) => {
                         <CatalogIconView className="volt-wired-menu__highlight-wired-icon" icon={80} />
                     </WiredMenuButton>
                 )}
-                {((inspectionType === 'furni' && !selectedFurni) || (inspectionType === 'user' && !selectedUser)) && (
-                    <div className="volt-wired-menu__text volt-wired-menu__preview-instruction">{previewPlaceholder}</div>
+                {nothingSelected && (
+                    <WiredMenuLabel align="field" className="volt-wired-menu__preview-instruction" text={previewPlaceholder} width={141} />
                 )}
             </WiredMenuPanel>
             <WiredMenuCheckbox checked={keepSelected} h={18} label="Keep selected" w={197} x={14} y={348} onChange={onKeepSelectedChange} />
@@ -172,6 +176,7 @@ export const WiredInspectionTabView = (props: WiredInspectionTabViewProps) => {
                     { key: 'variable', title: 'Variable', factor: 0.65, align: 'left' },
                     { key: 'value', title: 'Value', factor: 0.35, align: 'right' }
                 ]}
+                disabled={nothingSelected}
                 h={297}
                 rows={displayedVariables.map((variable) => ({
                     key: variable.key,
