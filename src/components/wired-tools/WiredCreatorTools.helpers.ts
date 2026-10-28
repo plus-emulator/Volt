@@ -257,6 +257,16 @@ export const parseInspectionInt = (text: string): number | null => {
 /** The catalogue `variableTarget` each variable type button of the Variables tab lists. */
 export const VARIABLE_TARGET_OF_TYPE: Record<VariablesElementType, number> = { furni: 0, user: 1, global: -10, context: -20 };
 
+/** AIR Util.variableValueWithString: the value with its connected text, "Hidden" for the int limits, null without a value. */
+export const variableValueWithString = (variable: IWiredVariableData, value: number): string | null => {
+    if (!variable.hasValue) return null;
+    if (value === INT_MAX || value === INT_MIN) return 'Hidden';
+
+    const text = getPackedVariableText(variable, value) ?? getConnectedText(variable, value);
+
+    return text === null ? String(value) : `${value} (${text})`;
+};
+
 /** AIR WIN63-202610121709-785561319 WiredMenuOverviewTab.updateVariableListUI: the catalogue's visible variables of one target, sorted like AIR. */
 export const buildVariablePickerRows = (catalog: ReadonlyMap<string, IWiredVariableDiffEntry> | null, type: VariablesElementType): IWiredVariableData[] => {
     if (!catalog) return [];

@@ -10,11 +10,12 @@ export interface NativeConfirmViewProps {
     cancelText: string;
     onConfirm: () => void;
     onCancel: () => void;
+    danger?: boolean;
 }
 
 // habbo_window_confirm_xml (HabboWindowManagerCom): 300x165 frame, text at (16,14) 253x72, underlined cancel link at (20,102) and
 // a thick OK button at (196,98). The header close button answers as cancel. Not modal; opened centred.
-export const NativeConfirmView: FC<NativeConfirmViewProps> = ({ title, message, confirmText, cancelText, onConfirm, onCancel }) => {
+export const NativeConfirmView: FC<NativeConfirmViewProps> = ({ title, message, confirmText, cancelText, onConfirm, onCancel, danger = false }) => {
     const frameRef = useRef<HTMLElement>(null);
     const [growth, setGrowth] = useState(0);
 
@@ -25,7 +26,7 @@ export const NativeConfirmView: FC<NativeConfirmViewProps> = ({ title, message, 
 
     return (
         <DraggableWindow dragStyle={{ filter: 'drop-shadow(2.828px 2.828px 2px rgba(0, 0, 0, 0.349))' }} handleSelector=".volt-card-header-shell" offsetTop={growth / 2}>
-            <section ref={frameRef} aria-label={title} className="volt-alert volt-card-shell volt-card-frame-3 volt-native-confirm" role="dialog">
+            <section ref={frameRef} aria-label={title} className={`volt-alert volt-card-shell volt-card-frame-3 volt-native-confirm ${danger ? 'is-danger' : ''}`} role="dialog">
                 <div className="volt-card-header-shell">
                     <span className="volt-card-title">{title}</span>
                     <button aria-label={cancelText} className="volt-card-close-button" type="button" onClick={onCancel} />

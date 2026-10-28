@@ -115,8 +115,18 @@ export const WiredVariablesTabView: FC<WiredVariablesTabViewProps> = ({
                 </div>
             </WiredMenuItem>
             {showHighlight && (
-                <WiredMenuButton disabled={!canVariableHighlight} h={25} w={73} x={14} y={342} onClick={() => setIsVariableHighlightActive((value) => !value)}>
-                    {isVariableHighlightActive ? 'Undo' : 'Highlight'}
+                <WiredMenuButton
+                    disabled={!canVariableHighlight}
+                    h={25}
+                    title={localizeWithFallback('wiredmenu.variable_overview.highlight_holders.tooltip', 'Highlight all users/furni inside the room that are holding this variable')}
+                    w={73}
+                    x={14}
+                    y={342}
+                    onClick={() => setIsVariableHighlightActive((value) => !value)}
+                >
+                    {isVariableHighlightActive
+                        ? localizeWithFallback('wiredmenu.variable_overview.unhighlight_holders', 'Undo')
+                        : localizeWithFallback('wiredmenu.variable_overview.highlight_holders', 'Highlight')}
                 </WiredMenuButton>
             )}
             <WiredMenuButton disabled={!variableManageCanOpen} h={25} w={73} x={95} y={342} onClick={onOpenManagePanel}>

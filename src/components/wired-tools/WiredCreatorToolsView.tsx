@@ -6,7 +6,6 @@ import {
     FurnitureWallUpdateEvent,
     GetRoomEngine,
     GetSessionDataManager,
-    GetStage,
     ILinkEventTracker,
     RemoveLinkEventTracker,
     RoomControllerLevel,
@@ -15,6 +14,7 @@ import {
     RoomObjectVariable,
     RoomUnitInfoEvent,
     WiredClearErrorLogsComposer,
+    WiredDeleteAllVariableHoldersComposer,
     WiredErrorLogsEvent,
     WiredGetErrorLogsComposer,
     WiredGetRoomStatsComposer,
@@ -22,16 +22,13 @@ import {
 } from '@volt/renderer';
 import { FC, KeyboardEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
-    AddAnimationTickerCallback,
     AvatarInfoUtilities,
     createPacketCooldownGate,
-    GetRoomObjectBounds,
-    GetRoomObjectScreenLocation,
-    IsOwnerOfFloorFurniture,
     IsTemporaryFurniId,
     LocalizeText,
     localizeWithFallback,
     NotificationAlertType,
+    NotificationConfirmType,
     decodeUserVariableHolder,
     findUserVariableHolderData,
     SendMessageComposer,
@@ -53,7 +50,7 @@ import {
     VoltCardView,
     Text
 } from '../../common';
-import { useMessageEvent, useNotification, useObjectSelectedEvent, useRoom, useWiredCatalogRows, useWiredObjectVariables, useWiredTools, useWiredVariableHolders, WiredObjectHolder, WiredObjectVariableOperation } from '../../hooks';
+import { useMessageEvent, useNotification, useObjectSelectedEvent, useRoom, useWiredCatalogRows, useWiredObjectVariables, useWiredMenuErrors, useWiredTools, useWiredVariableHighlight, WiredObjectHolder, WiredObjectVariableOperation } from '../../hooks';
 import { WiredChestsTabView } from './WiredChestsTabView';
 import {
     INSPECTION_ELEMENTS,
@@ -78,7 +75,6 @@ import {
     customVariableItemId,
     isPersistedVariable,
     monitorRoomStatRows,
-    VARIABLE_TARGET_OF_TYPE,
     VARIABLE_TYPE_CUSTOM,
     VARIABLE_TYPE_INTERNAL
 } from './WiredCreatorTools.helpers';
@@ -92,8 +88,6 @@ import {
     MonitorLog,
     MonitorRoomStats,
     MonitorStat,
-    VariableHighlightOverlay,
-    VariableHighlightTarget,
     VariablesElementButton,
     VariablesElementType,
     WiredToolsTab
@@ -107,6 +101,7 @@ import { WiredToolsSettingsTabView } from './WiredToolsSettingsTabView';
 import { WiredArrayInspectorView, wiredArrayVariableTypeOf } from './WiredArrayInspectorView';
 import { HOLDER_TYPE_FURNI, HOLDER_TYPE_USER, WiredHolderDescription, WiredVariableOwnersView } from './WiredVariableOwnersView';
 import { useVariablesExplorerStore } from '../../state/variablesExplorer';
+import { WiredVariableHighlightBubbles } from './WiredVariableHighlightBubbles';
 import { WiredVariableHolderPanelView } from './WiredVariableHolderPanelView';
 import { WiredVariablesTabView } from './WiredVariablesTabView';
 import { openWiredMenuLink, useWiredCreatorToolsUiStore } from './wiredCreatorToolsUiStore';
@@ -174,10 +169,7 @@ export const WiredCreatorToolsView: FC<{}> = () => {
     const setManagedGiveValue = useWiredCreatorToolsUiStore((s) => s.setManagedGiveValue);
     const isVariableHighlightActive = useWiredCreatorToolsUiStore((s) => s.isVariableHighlightActive);
     const setIsVariableHighlightActive = useWiredCreatorToolsUiStore((s) => s.setIsVariableHighlightActive);
-    const variableHighlightOverlays = useWiredCreatorToolsUiStore((s) => s.variableHighlightOverlays);
-    const setVariableHighlightOverlays = useWiredCreatorToolsUiStore((s) => s.setVariableHighlightOverlays);
     const removedInspectionRowIndexRef = useRef(-1);
-    const variableHighlightObjectsRef = useRef<Array<{ category: number; objectId: number }>>([]);
     const monitorRequestGateRef = useRef<ReturnType<typeof createPacketCooldownGate> | null>(null);
 
     if (!monitorRequestGateRef.current) {
@@ -212,7 +204,6 @@ export const WiredCreatorToolsView: FC<{}> = () => {
     const monitorLoaded = monitorViewKey !== 0 && !!monitorRoomStats && !!monitorErrors;
     const {
         roomSettings,
-        clearVariableForAllHolders,
         userVariableDefinitions,
         userVariableAssignments,
         furniVariableDefinitions,
@@ -229,6 +220,7 @@ export const WiredCreatorToolsView: FC<{}> = () => {
         updateRoomVariableValue
     } = useWiredTools();
     const { simpleAlert = null, showConfirm = null } = useNotification();
+    useWiredMenuErrors();
 
     const getVariableAvailabilityLabel = (value: number, targetType: 'user' | 'furni' | 'global' | 'context'): string => {
         if (targetType === 'context') return 'Current wired execution';
@@ -816,106 +808,16 @@ export const WiredCreatorToolsView: FC<{}> = () => {
         selectedVariable.variableType !== VARIABLE_TYPE_INTERNAL &&
         (variablesType === 'user' || variablesType === 'furni') &&
         !!roomSession;
-    const variableHolders = useWiredVariableHolders(
-        roomSession?.roomId ?? 0,
-        isVariableHighlightActive && canVariableHighlight && selectedVariable ? selectedVariable.variableId : null
+    useWiredVariableHighlight(
+        roomSession,
+        isVariableHighlightActive && canVariableHighlight ? selectedVariable : null,
+        () => setIsVariableHighlightActive(false)
     );
-    // This server sends a negative furni id only for a temporary wall item; every other furni keeps its own id, floor or wall.
-    const variableHighlightTargets = useMemo((): VariableHighlightTarget[] => {
-        if (!variableHolders || !roomSession || !selectedVariable) return [];
-
-        const targets: VariableHighlightTarget[] = [];
-
-        for (const holder of variableHolders) {
-            const value = selectedVariable.hasValue ? holder.value : null;
-
-            if (selectedVariable.variableTarget === VARIABLE_TARGET_OF_TYPE.user) {
-                const roomIndex = Number(findUserVariableHolderData(roomSession.userDataManager, holder.objectId)?.roomIndex ?? -1);
-
-                if (roomIndex >= 0) targets.push({ category: RoomObjectCategory.UNIT, objectId: roomIndex, hasValue: value !== null, value });
-                continue;
-            }
-
-            const objectId = Math.abs(holder.objectId);
-            const category =
-                holder.objectId > 0 && GetRoomEngine().getRoomObject(roomSession.roomId, objectId, RoomObjectCategory.FLOOR)
-                    ? RoomObjectCategory.FLOOR
-                    : GetRoomEngine().getRoomObject(roomSession.roomId, objectId, RoomObjectCategory.WALL)
-                      ? RoomObjectCategory.WALL
-                      : -1;
-
-            if (category >= 0) targets.push({ category, objectId, hasValue: value !== null, value });
-        }
-
-        return targets;
-    }, [variableHolders, roomSession, selectedVariable]);
     useEffect(() => {
         if (isVisible && activeTab === 'variables' && canVariableHighlight) return;
 
         setIsVariableHighlightActive(false);
     }, [activeTab, canVariableHighlight, isVisible]);
-    useEffect(() => {
-        if (variableHighlightObjectsRef.current.length) {
-            WiredSelectionVisualizer.clearVariableHighlightFromObjects(variableHighlightObjectsRef.current);
-            variableHighlightObjectsRef.current = [];
-        }
-
-        if (!isVariableHighlightActive || !variableHighlightTargets.length) {
-            setVariableHighlightOverlays([]);
-
-            return;
-        }
-
-        const objects = variableHighlightTargets.map((target) => ({
-            category: target.category,
-            objectId: target.objectId
-        }));
-
-        WiredSelectionVisualizer.applyVariableHighlightToObjects(objects);
-        variableHighlightObjectsRef.current = objects;
-
-        return () => {
-            if (!variableHighlightObjectsRef.current.length) return;
-
-            WiredSelectionVisualizer.clearVariableHighlightFromObjects(variableHighlightObjectsRef.current);
-            variableHighlightObjectsRef.current = [];
-        };
-    }, [isVariableHighlightActive, variableHighlightTargets]);
-    useEffect(() => {
-        if (!isVariableHighlightActive || !roomSession?.roomId || !variableHighlightTargets.length) {
-            setVariableHighlightOverlays([]);
-
-            return;
-        }
-
-        const updateOverlays = () => {
-            const stage = GetStage();
-            const nextOverlays: VariableHighlightOverlay[] = [];
-
-            for (const target of variableHighlightTargets) {
-                const bounds = GetRoomObjectBounds(roomSession.roomId, target.objectId, target.category);
-                const location = GetRoomObjectScreenLocation(roomSession.roomId, target.objectId, target.category);
-
-                if (!bounds || !location) continue;
-
-                const x = Math.max(8, Math.min(Math.round(location.x), stage.width - 8));
-                const y = Math.max(8, Math.min(Math.round(bounds.top), stage.height - 40));
-
-                nextOverlays.push({
-                    ...target,
-                    key: `${target.category}:${target.objectId}`,
-                    x,
-                    y
-                });
-            }
-
-            setVariableHighlightOverlays(nextOverlays);
-        };
-
-        updateOverlays();
-
-        return AddAnimationTickerCallback(updateOverlays);
-    }, [isVariableHighlightActive, roomSession?.roomId, variableHighlightTargets]);
     const userVariableDefinitionsById = useMemo(
         () => new Map(userVariableDefinitions.map((definition) => [definition.itemId, definition])),
         [userVariableDefinitions]
@@ -1160,32 +1062,32 @@ export const WiredCreatorToolsView: FC<{}> = () => {
     }, [selectedManagedHolderVariableEntry, editingManagedHolderVariableId]);
     // The owners list and the per-holder panel work on variables created in this room.
     const variableManageCanOpen = selectedVariableItemId !== null && variablesType !== 'context' && !selectedVariable?.requiresExecutionContext;
-    // AIR WIN63-202610121709-785561319 WiredMenuOverviewTab.canDeleteCurrentVariable. Clearing reaches holders outside the room, so only the owner of the
-    // definition box gets the button; the server enforces the same rule.
+    // AIR WiredMenuOverviewTab.canDeleteCurrentVariable.
     const canVariableClear =
         roomSettings.canModify &&
         !!selectedVariable &&
         selectedVariable.canCreateAndDelete &&
         isPersistedVariable(selectedVariable) &&
         selectedVariable.variableType === VARIABLE_TYPE_CUSTOM &&
-        (variablesType === 'user' || variablesType === 'furni') &&
-        selectedVariableItemId !== null &&
-        IsOwnerOfFloorFurniture(selectedVariableItemId);
+        (variablesType === 'user' || variablesType === 'furni');
     const confirmClearVariable = () => {
-        if (!canVariableClear || !showConfirm || selectedVariableItemId === null) return;
-        const scope = variablesType === 'furni' ? 'furni' : 'user';
-        const itemId = selectedVariableItemId;
+        if (!canVariableClear || !showConfirm) return;
+        const variableId = selectedVariable.variableId;
 
         showConfirm(
             localizeWithFallback(
                 'wiredmenu.variable_overview.delete_all.desc',
                 'Are you sure you want to clear this variable? All users/furni that hold this variable will lose it. This action cannot be undone'
             ),
-            () => clearVariableForAllHolders(scope, itemId),
+            () => {
+                setIsVariableHighlightActive(false);
+                SendMessageComposer(new WiredDeleteAllVariableHoldersComposer(variableId));
+            },
             null,
             LocalizeText('generic.ok'),
             LocalizeText('generic.cancel'),
-            localizeWithFallback('wiredmenu.variable_overview.delete_all.title', 'Clear this variable')
+            localizeWithFallback('wiredmenu.variable_overview.delete_all.title', 'Clear this variable'),
+            NotificationConfirmType.DANGER
         );
     };
     const parseScalarInput = (input: string): bigint | null => {
@@ -1411,30 +1313,7 @@ export const WiredCreatorToolsView: FC<{}> = () => {
 
     return (
         <>
-            {isVariableHighlightActive && !!variableHighlightOverlays.length && (
-                <div className="pointer-events-none absolute left-0 top-0 z-30">
-                    {variableHighlightOverlays.map((overlay) => (
-                        <div
-                            key={overlay.key}
-                            className="pointer-events-none absolute"
-                            style={{
-                                left: overlay.x,
-                                top: overlay.y,
-                                transform: 'translateX(-50%)'
-                            }}
-                        >
-                            {overlay.hasValue && (
-                                <div className="absolute left-1/2 top-[-30px] -translate-x-1/2">
-                                    <div className="relative min-w-[24px] rounded-[8px] bg-[#86aebccc] px-[8px] py-[4px] text-center text-[12px] font-bold leading-none text-white shadow-[inset_0_0_0_1px_rgba(176,211,225,.7)]">
-                                        {overlay.value ?? 0}
-                                        <span className="absolute left-1/2 bottom-[-7px] z-10 h-0 w-0 -translate-x-1/2 border-x-[6px] border-t-[7px] border-x-transparent border-t-[#86aebccc]" />
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    ))}
-                </div>
-            )}
+            <WiredVariableHighlightBubbles />
             {/* Official wired_menu_view: frame 3, 500x500. The tab bodies are this hotel's, so taller ones may grow it. */}
             <WiredMenuFrame
                 activeTab={activeTab}
