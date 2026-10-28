@@ -6,8 +6,6 @@ import { WiredFurniOpacityController } from './WiredFurniOpacityController';
 
 const WIRED_FEATURE_PROTOCOL_VERSION = 1;
 const WIRED_FEATURE_OPACITY = 1;
-const WIRED_FEATURE_MOVE_STYLE = 2;
-const WIRED_FEATURE_TRAJECTORY = 4;
 
 export const useWiredFurniOpacity = (roomId: number): void => {
     const controllerRef = useRef<WiredFurniOpacityController>(null);
@@ -47,7 +45,7 @@ export const useWiredFurniOpacity = (roomId: number): void => {
         controllerRef.current.setRoom(roomId);
 
         if (roomId > 0) {
-            SendMessageComposer(new WiredFeatureCapabilitiesComposer(WIRED_FEATURE_PROTOCOL_VERSION, WIRED_FEATURE_OPACITY | WIRED_FEATURE_MOVE_STYLE | WIRED_FEATURE_TRAJECTORY));
+            SendMessageComposer(new WiredFeatureCapabilitiesComposer(WIRED_FEATURE_PROTOCOL_VERSION, WIRED_FEATURE_OPACITY));
         }
     }, [roomId]);
 
