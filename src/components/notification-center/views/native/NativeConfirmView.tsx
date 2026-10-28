@@ -1,5 +1,7 @@
 import { FC, useLayoutEffect, useRef, useState } from 'react';
 import { DraggableWindow } from '../../../../common';
+import { NativeText } from '../../../../common/native-text/NativeText';
+import { WiredMenuLabel } from '../../../../common/native-text/WiredMenuLabel';
 
 const FRAME_HEIGHT = 165;
 
@@ -28,13 +30,15 @@ export const NativeConfirmView: FC<NativeConfirmViewProps> = ({ title, message, 
         <DraggableWindow dragStyle={{ filter: 'drop-shadow(2.828px 2.828px 2px rgba(0, 0, 0, 0.349))' }} handleSelector=".volt-card-header-shell" offsetTop={growth / 2}>
             <section ref={frameRef} aria-label={title} className={`volt-alert volt-card-shell volt-card-frame-3 volt-native-confirm ${danger ? 'is-danger' : ''}`} role="dialog">
                 <div className="volt-card-header-shell">
-                    <span className="volt-card-title">{title}</span>
+                    <WiredMenuLabel align="center" className="volt-native-confirm-title" color={0xffffff} text={title} textStyle="u_frame_title" width={286} />
                     <button aria-label={cancelText} className="volt-card-close-button" type="button" onClick={onCancel} />
                 </div>
                 <div className="volt-native-confirm-body">
-                    <div className="volt-native-confirm-text">{message}</div>
+                    <div className="volt-native-confirm-text">
+                        <NativeText nativeResolution transparent background={0xe9e9e1} maxWidth={253} text={message} textStyle="u_regular" />
+                    </div>
                     <button className="volt-native-link volt-native-confirm-cancel" type="button" onClick={onCancel}>
-                        {cancelText}
+                        <NativeText nativeResolution transparent background={0xe9e9e1} overrides={{ underline: true }} text={cancelText} textStyle="u_regular" />
                     </button>
                     <button className="volt-native-button is-thick volt-native-confirm-ok" type="button" onClick={onConfirm}>
                         {confirmText}

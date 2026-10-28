@@ -1,7 +1,7 @@
 import { CSSProperties, FC, useEffect, useState } from 'react';
-import { NativeText } from '../../common/native-text/NativeText';
-import { loadNativeFont, measureNativeText } from '../../common/native-text/NativeFont';
-import { NativeTextStyleName, nativeTextStyles } from '../../common/native-text/NativeTextStyles';
+import { NativeText } from './NativeText';
+import { loadNativeFont, measureNativeText } from './NativeFont';
+import { NativeTextStyleName, nativeTextStyles } from './NativeTextStyles';
 
 const OVERFLOW = '...';
 const GUTTER = 2;

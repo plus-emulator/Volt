@@ -1064,7 +1064,7 @@
     white-space: nowrap;
 }
 
-/* titleBarColor 0xd43d59: the frame's title bar drawn again over itself and turned from the window blue to red. */
+/* titleBarColor 0xd43d59: the frame's title bar drawn again with the uncoloured skin multiplied by the red. */
 .volt-card-shell.volt-card-frame-3.volt-native-confirm.is-danger::after {
     content: "";
     position: absolute;
@@ -1072,13 +1072,12 @@
     z-index: 1;
     border: solid transparent;
     border-width: 33px 10px 10px 10px;
-    border-image-source: var(--volt-card-frame-3);
+    border-image-source: url("../../assets/images/habbo-skin/slices/frame-ubuntu-3-d43d59.png");
     border-image-slice: 33 10 10 10 fill;
     border-image-width: 33px 10px 10px 10px;
     border-image-repeat: stretch;
     image-rendering: pixelated;
     clip-path: inset(0 0 calc(100% - 33px) 0);
-    filter: hue-rotate(149deg) saturate(1.4) brightness(1.12);
     pointer-events: none;
 }
 
@@ -1297,6 +1296,17 @@
     overflow-wrap: break-word;
 }
 
+.volt-card-shell.volt-card-frame-3.volt-native-confirm > .volt-card-header-shell .volt-card-close-button {
+    right: 3px !important;
+}
+
+.volt-native-confirm-title {
+    position: absolute !important;
+    left: 0;
+    top: 3px;
+    z-index: 2;
+}
+
 /* the hidden link row still reserves its 13px in the native itemlist */
 .volt-native-popup-message:last-child {
     margin-bottom: 12.5px;
@@ -1326,7 +1336,7 @@
     width: 253px;
     min-height: 72px;
     margin-left: 16px;
-    padding: 2px 0;
+    padding: 0;
     font-size: 12px;
     line-height: 13.4px;
     letter-spacing: 0.1px;
