@@ -101,8 +101,7 @@ export const WiredMonitorTabView = (props: WiredMonitorTabViewProps) => {
                     key: `${log.errorId}-${index}`,
                     cells: { type: log.type, category: log.category, amount: log.amount, latest: log.latest },
                     cellTitles: { latest: log.latestTooltip },
-                    linkColumn: 'type',
-                    onLink: () => onOpenMonitorErrorInfo(log)
+                    links: { type: () => onOpenMonitorErrorInfo(log) }
                 }))}
                 w={472}
                 x={14}

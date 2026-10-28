@@ -206,8 +206,10 @@ export interface WiredMenuTableColumn {
 export interface WiredMenuTableRow {
     key: string;
     cells: Record<string, ReactNode>;
-    linkColumn?: string;
-    onLink?: () => void;
+    /** The cells drawn as element_link texts, by column key. */
+    links?: Record<string, () => void>;
+    /** A double click on a cell, by column key: TableView starts editing an editable cell this way. */
+    onCellDoubleClick?: (columnKey: string) => void;
     /** Tool tips of single cells, by column key. */
     cellTitles?: Record<string, string>;
     selected?: boolean;
@@ -327,9 +329,15 @@ export const WiredMenuTable: FC<WiredMenuTableProps> = ({ columns, rows, emptyTe
                                     onPointerDown={() => setFocused(true)}
                                 >
                                     {columns.map((column) => (
-                                        <div key={column.key} className="volt-wired-menu__cell" style={{ width: cellWidth(column) }} title={row.cellTitles?.[column.key]}>
-                                            {row.linkColumn === column.key ? (
-                                                <button className="volt-wired-menu__link" type="button" onClick={row.onLink}>
+                                        <div
+                                            key={column.key}
+                                            className="volt-wired-menu__cell"
+                                            style={{ width: cellWidth(column) }}
+                                            title={row.cellTitles?.[column.key]}
+                                            onDoubleClick={row.onCellDoubleClick ? () => row.onCellDoubleClick(column.key) : undefined}
+                                        >
+                                            {row.links?.[column.key] ? (
+                                                <button className="volt-wired-menu__link" type="button" onClick={row.links[column.key]}>
                                                     {cell(column, row.cells[column.key], false, 1, true)}
                                                 </button>
                                             ) : (
