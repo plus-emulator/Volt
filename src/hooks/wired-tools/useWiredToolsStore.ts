@@ -223,12 +223,13 @@ export const useWiredToolsStore = () => {
         if (accountPreferencesRef.current.playTestMode && GetRoomSession()) showPlayTestNotice('reminder');
     });
 
+    // The stored playtest value is not read here: only the checkbox and the `:playtest` command set the mode, so it starts off after every login.
     useMessageEvent<UserSettingsEvent>(UserSettingsEvent, (event) => {
         const parser = event.getParser();
         const preferences: IWiredAccountPreferences = {
             showToolbarButton: parser.wiredMenuButton,
             showInspectButton: parser.wiredInspectButton,
-            playTestMode: parser.playTestMode,
+            playTestMode: accountPreferencesRef.current.playTestMode,
             wiredWhisperDisabled: parser.wiredWhisperDisabled,
             showSystemNotifications: parser.showAllWiredErrors,
             wiredStyle: normalizeWiredStyle(parser.wiredStylePreference)
