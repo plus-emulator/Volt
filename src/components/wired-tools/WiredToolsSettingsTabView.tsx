@@ -133,7 +133,7 @@ export const WiredToolsSettingsTabView: FC<WiredToolsSettingsTabViewProps> = ({ 
             null,
             LocalizeText('generic.ok'),
             LocalizeText('generic.cancel'),
-            LocalizeText('generic.alert.title')
+            localizeWithFallback('wiredmenu.settings.room_state.roll_back', 'Rollback')
         );
     };
 
