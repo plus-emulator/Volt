@@ -18,6 +18,7 @@ import { useCallback } from 'react';
 import { HasPermission, Permission } from '../../../api/permissions';
 import { CanOpenUserChooser, ChatMessageTypeEnum, GetClubMemberLevel, GetConfigurationValue, LocalizeText, SendMessageComposer } from '../../../api';
 import { useNotification } from '../../notification';
+import { useWiredToolsActions } from '../../wired-tools/useWiredToolsActions';
 import { useRoom } from '../useRoom';
 
 /**
@@ -36,6 +37,7 @@ import { useRoom } from '../useRoom';
 export const useChatInputActions = () => {
     const { showVoltAlert = null, showConfirm = null } = useNotification();
     const { roomSession = null } = useRoom();
+    const { togglePlayTestMode } = useWiredToolsActions();
 
     const sendChat = useCallback(
         (text: string, chatType: number, recipientName: string = '', styleId: number = 0) => {
@@ -239,6 +241,9 @@ export const useChatInputActions = () => {
                     case ':inspection':
                         CreateLinkEvent('wiredmenu/open/inspection');
                         return null;
+                    case ':playtest':
+                        togglePlayTestMode();
+                        return null;
                     case ':togglefps': {
                         if (GetTicker().maxFPS > 0) GetTicker().maxFPS = 0;
                         else GetTicker().maxFPS = GetConfigurationValue('system.animation.fps');
@@ -288,7 +293,7 @@ export const useChatInputActions = () => {
 
             return null;
         },
-        [roomSession, showConfirm, showVoltAlert]
+        [roomSession, showConfirm, showVoltAlert, togglePlayTestMode]
     );
 
     return { sendChat };

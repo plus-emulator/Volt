@@ -1,6 +1,7 @@
 import {
     CreateLinkEvent,
     parseWiredInt64,
+    RoomRightsEvent,
     UserSettingsEvent,
     WiredMenuSettingsComposer,
     WiredMenuPermissionsSaveComposer,
@@ -15,11 +16,15 @@ import {
 } from '@volt/renderer';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { registerSharedHook } from '@/state/useSharedHook';
+import wiredNotificationIcon from '../../assets/images/wiredtools/icon_wired_notification.png';
 import {
     createPacketCooldownGate,
     GetConfigurationValue,
+    GetRoomSession,
     LocalizeText,
+    localizeWithFallback,
     NotificationAlertType,
+    NotificationBubbleType,
     normalizeWiredStyle,
     SendMessageComposer,
     WIRED_STYLE_DEFAULT,
@@ -126,6 +131,13 @@ const WIRED_VARIABLE_TARGET_ROOM = 3;
 const WIRED_VARIABLE_MANAGE_ACTION_ASSIGN = 0;
 const WIRED_VARIABLE_MANAGE_ACTION_REMOVE = 1;
 
+const PLAYTEST_NOTICE_LINK = 'wiredmenu/open/settings';
+const PLAYTEST_TEXTS = {
+    enabled: ['wiredmenu.settings.preferences.notification.playtest.enabled', 'Playtest mode enabled'],
+    disabled: ['wiredmenu.settings.preferences.notification.playtest.disabled', 'Playtest mode disabled'],
+    reminder: ['wiredmenu.settings.preferences.notification.playtest', 'Info: you are currently in playtest mode. Disable in the Wired Menu (click)']
+} as const;
+
 const getCurrentUnixTime = () => Math.floor(Date.now() / 1000);
 const DEFAULT_ACCOUNT_PREFERENCES: IWiredAccountPreferences = {
     showToolbarButton: false,
@@ -160,7 +172,7 @@ const DEFAULT_ROOM_SETTINGS: IWiredRoomSettings = {
  */
 export const useWiredToolsStore = () => {
     const { roomSession = null } = useRoom();
-    const { simpleAlert = null } = useNotification();
+    const { simpleAlert = null, showSingleBubble = null } = useNotification();
     const [accountPreferences, setAccountPreferences] = useState<IWiredAccountPreferences>(DEFAULT_ACCOUNT_PREFERENCES);
     const [activeWiredStyle, setActiveWiredStyle] = useState<WiredShellStyle>('illumina');
     const accountPreferencesRef = useRef(DEFAULT_ACCOUNT_PREFERENCES);
@@ -197,6 +209,19 @@ export const useWiredToolsStore = () => {
 
         if (GetConfigurationValue<boolean>('wired.ui_picker_enabled', false)) setActiveWiredStyle(style || 'volter');
     }, []);
+
+    const showPlayTestNotice = useCallback(
+        (kind: keyof typeof PLAYTEST_TEXTS) => {
+            const [key, fallback] = PLAYTEST_TEXTS[kind];
+
+            showSingleBubble?.(localizeWithFallback(key, fallback), NotificationBubbleType.INFO, wiredNotificationIcon, PLAYTEST_NOTICE_LINK);
+        },
+        [showSingleBubble]
+    );
+
+    useMessageEvent<RoomRightsEvent>(RoomRightsEvent, () => {
+        if (accountPreferencesRef.current.playTestMode && GetRoomSession()) showPlayTestNotice('reminder');
+    });
 
     useMessageEvent<UserSettingsEvent>(UserSettingsEvent, (event) => {
         const parser = event.getParser();
@@ -318,7 +343,10 @@ export const useWiredToolsStore = () => {
 
             if ('wiredStyle' in preferences) applyWiredStylePreference(preferences.wiredStyle);
 
-            const next = { ...accountPreferencesRef.current, ...preferences };
+            const previous = accountPreferencesRef.current;
+            const next = { ...previous, ...preferences };
+
+            if (next.playTestMode !== previous.playTestMode) showPlayTestNotice(next.playTestMode ? 'enabled' : 'disabled');
 
             accountPreferencesRef.current = next;
             setAccountPreferences(next);
@@ -326,7 +354,12 @@ export const useWiredToolsStore = () => {
                 new WiredMenuSettingsComposer(next.showToolbarButton, next.showInspectButton, next.playTestMode, next.wiredWhisperDisabled, next.showSystemNotifications, next.wiredStyle)
             );
         },
-        [applyWiredStylePreference]
+        [applyWiredStylePreference, showPlayTestNotice]
+    );
+
+    const togglePlayTestMode = useCallback(
+        () => updateAccountPreferences({ playTestMode: !accountPreferencesRef.current.playTestMode }),
+        [updateAccountPreferences]
     );
 
     // The official permissions packet carries the timezone too, so every save sends all three and
@@ -716,6 +749,7 @@ export const useWiredToolsStore = () => {
         contextVariableDefinitions,
         areUserVariablesLoaded,
         updateAccountPreferences,
+        togglePlayTestMode,
         saveRoomSettings,
         saveRoomTimezone,
         reloadRoomWired,
