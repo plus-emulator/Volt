@@ -7,7 +7,7 @@ import {
     WiredTransactionLogListEvent,
 } from '@volt/renderer';
 import { FC, useCallback, useEffect, useState } from 'react';
-import { GetUserProfile, localizeWithFallback, SendMessageComposer } from '../../api';
+import { GetUserProfile, LocalizeText, localizeWithFallback, SendMessageComposer } from '../../api';
 import { useMessageEvent, useNotification, useRoom } from '../../hooks';
 import { summarizeTransactionCounts } from './WiredChestTransactionCounts';
 import { WiredMenuButton, WiredMenuItem, WiredMenuPanel, WiredMenuTable } from './WiredMenuParts';
@@ -93,9 +93,9 @@ export const WiredChestsTabView: FC<{}> = () => {
             () => {
                 // nothing to undo: the confirm was declined before anything was sent
             },
-            null,
-            null,
-            localizeWithFallback('wiredmenu.chests.chest_control.lock_all.warning.title', 'Lock every chest'),
+            LocalizeText('generic.ok'),
+            LocalizeText('generic.cancel'),
+            localizeWithFallback('wiredmenu.chests.chest_control.lock_all.warning.title', 'Are you sure?'),
         );
     }, [canManageAll, sendLock, showConfirm]);
 

@@ -3,11 +3,13 @@ import {
     GetConfigurationValue,
     LocalizeText,
     localizeWithFallback,
+    NotificationConfirmType,
     normalizeWiredStyle,
     WIRED_STYLE_DEFAULT,
     WIRED_STYLE_OPTIONS,
     wiredStyleTitle
 } from '../../api';
+import { HabboDropMenuView } from '../../common/dropmenu/HabboDropMenuView';
 import { useNotification, useRoom, useWiredTools } from '../../hooks';
 import { WiredMenuButton, WiredMenuCheckbox, WiredMenuItem, WiredMenuPanel, WiredMenuTitle } from './WiredMenuParts';
 
@@ -27,7 +29,19 @@ export interface WiredToolsSettingsTabViewProps {
 }
 
 const toggleMaskBit = (mask: number, bit: number): number => (mask & bit ? mask & ~bit : mask | bit);
-const normalizeAccessMask = (mask: number): number => ((mask & WIRED_ACCESS_GROUP_MEMBERS) !== 0 ? mask | WIRED_ACCESS_GROUP_ADMINS : mask);
+const RIGHTS_AND_GROUPS = WIRED_ACCESS_USERS_WITH_RIGHTS | WIRED_ACCESS_GROUP_MEMBERS | WIRED_ACCESS_GROUP_ADMINS;
+
+/**
+ * WiredMenuSettingsTab.updatePermissionsUI: an option another option implies shows checked and is disabled. Group members
+ * implies group admins, inspect by everyone implies every other inspect level, and each modify level implies the same inspect level.
+ */
+export const forcedAccess = (modifyMask: number, inspectMask: number) => {
+    const modify = modifyMask & WIRED_ACCESS_GROUP_MEMBERS ? WIRED_ACCESS_GROUP_ADMINS : 0;
+    let inspect = inspectMask & WIRED_ACCESS_GROUP_MEMBERS ? WIRED_ACCESS_GROUP_ADMINS : 0;
+    if (inspectMask & WIRED_ACCESS_EVERYONE) inspect |= RIGHTS_AND_GROUPS;
+    inspect |= (modifyMask | modify) & RIGHTS_AND_GROUPS;
+    return { modify, inspect };
+};
 
 const buildInspectOptions = (): RoomAccessOption[] => [
     { bit: WIRED_ACCESS_EVERYONE, label: 'Everyone' },
@@ -99,21 +113,27 @@ export const WiredToolsSettingsTabView: FC<WiredToolsSettingsTabViewProps> = ({ 
     );
     const showSelfDonation = !!onOpenSelfDonation && GetConfigurationValue<boolean>('wired.selfdonation.enabled', false);
 
+    const forced = forcedAccess(roomSettings.modifyMask, roomSettings.inspectMask);
+    const shownModifyMask = roomSettings.modifyMask | forced.modify;
+    const shownInspectMask = roomSettings.inspectMask | forced.inspect;
+
+    // The official tab sends what the checkboxes show, forced options included.
     const updateInspectMask = (bit: number) => {
         if (!canManageSettings) return;
 
-        saveRoomSettings(normalizeAccessMask(toggleMaskBit(roomSettings.inspectMask, bit)), roomSettings.modifyMask);
+        const nextInspectMask = toggleMaskBit(shownInspectMask, bit);
+        const nextForced = forcedAccess(shownModifyMask, nextInspectMask);
+
+        saveRoomSettings(nextInspectMask | nextForced.inspect, shownModifyMask | nextForced.modify);
     };
 
     const updateModifyMask = (bit: number) => {
         if (!canManageSettings) return;
 
-        const nextModifyMask = toggleMaskBit(roomSettings.modifyMask, bit);
-        const enabledModifyBit = (nextModifyMask & bit) !== 0;
-        const normalizedModifyMask = normalizeAccessMask(nextModifyMask);
-        const nextInspectMask = normalizeAccessMask(enabledModifyBit ? roomSettings.inspectMask | bit : roomSettings.inspectMask);
+        const nextModifyMask = toggleMaskBit(shownModifyMask, bit);
+        const nextForced = forcedAccess(nextModifyMask, shownInspectMask);
 
-        saveRoomSettings(nextInspectMask, normalizedModifyMask);
+        saveRoomSettings(shownInspectMask | nextForced.inspect, nextModifyMask | nextForced.modify);
     };
 
     const confirmRollback = () => {
@@ -133,15 +153,17 @@ export const WiredToolsSettingsTabView: FC<WiredToolsSettingsTabViewProps> = ({ 
             null,
             LocalizeText('generic.ok'),
             LocalizeText('generic.cancel'),
-            localizeWithFallback('wiredmenu.settings.room_state.roll_back', 'Rollback')
+            localizeWithFallback('wiredmenu.settings.room_state.roll_back', 'Rollback'),
+            NotificationConfirmType.DANGER
         );
     };
 
-    const renderAccessOption = (option: RoomAccessOption, mask: number, onToggle: (bit: number) => void, y: number) => (
+    const renderAccessOption = (option: RoomAccessOption, mask: number, forcedMask: number, onToggle: (bit: number) => void, y: number) => (
         <WiredMenuCheckbox
             key={option.label}
             checked={(mask & option.bit) !== 0}
-            disabled={!roomSettings.isLoaded || !canManageSettings}
+            disabled={!roomSettings.isLoaded || !canManageSettings || (forcedMask & option.bit) !== 0}
+            labelDisabled={!roomSettings.isLoaded || !canManageSettings}
             h={19}
             label={option.label}
             w={214}
@@ -161,7 +183,7 @@ export const WiredToolsSettingsTabView: FC<WiredToolsSettingsTabViewProps> = ({ 
                     Who can modify Wired:
                 </WiredMenuTitle>
                 <WiredMenuItem x={10} y={28}>
-                    {modifyOptions.map((option, index) => renderAccessOption(option, roomSettings.modifyMask, updateModifyMask, index * 19))}
+                    {modifyOptions.map((option, index) => renderAccessOption(option, shownModifyMask, forced.modify, updateModifyMask, index * 19))}
                 </WiredMenuItem>
             </WiredMenuPanel>
             <WiredMenuPanel h={111} w={227} x={259} y={38}>
@@ -169,30 +191,23 @@ export const WiredToolsSettingsTabView: FC<WiredToolsSettingsTabViewProps> = ({ 
                     Who can inspect Wired:
                 </WiredMenuTitle>
                 <WiredMenuItem x={10} y={28}>
-                    {inspectOptions.map((option, index) => renderAccessOption(option, roomSettings.inspectMask, updateInspectMask, index * 19))}
+                    {inspectOptions.map((option, index) => renderAccessOption(option, shownInspectMask, forced.inspect, updateInspectMask, index * 19))}
                 </WiredMenuItem>
             </WiredMenuPanel>
             <WiredMenuPanel h={64} w={227} x={14} y={161}>
                 <WiredMenuTitle h={20} w={205} x={10} y={8}>
                     Timezone:
                 </WiredMenuTitle>
-                <WiredMenuItem h={25} w={206} x={10} y={29}>
-                    <div className="volt-wired-menu__dropdown-wrap">
-<select
-                        aria-label="Timezone"
-                        className="volt-wired-menu__dropdown"
-                        disabled={!roomSettings.isLoaded || !canManageSettings}
-                        value={selectedTimeZone}
-                        onChange={(event) => saveRoomTimezone(event.target.value)}
-                    >
-                        {timezoneOptions.map((zone) => (
-                            <option key={zone} value={zone}>
-                                {zone === serverTimeZone ? `${zone} (hotel)` : zone}
-                            </option>
-                        ))}
-                    </select>
-</div>
-                </WiredMenuItem>
+                <HabboDropMenuView
+                    nativeCaption
+                    disabled={!roomSettings.isLoaded || !canManageSettings || timezoneOptions.length < 2}
+                    label="Timezone"
+                    options={timezoneOptions.map((zone) => ({ value: zone, label: zone }))}
+                    skinStyle={3}
+                    style={{ position: 'absolute', left: 10, top: 29, width: 206, height: 25 }}
+                    value={selectedTimeZone}
+                    onSelect={saveRoomTimezone}
+                />
             </WiredMenuPanel>
             <WiredMenuPanel h={64} w={227} x={259} y={161}>
                 <WiredMenuTitle h={20} w={205} x={10} y={8}>

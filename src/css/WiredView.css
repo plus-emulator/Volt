@@ -2491,18 +2491,20 @@
 }
 
 .volt-wired-menu__option {
-    display: flex;
-    align-items: flex-start;
+    display: block;
     margin: 0;
 }
 
-.volt-wired-menu__option .volt-wired-menu__text {
-    margin-left: 0;
-    line-height: 17px;
+.volt-wired-menu__option-label {
+    position: absolute !important;
+    left: 20px;
+    top: 0;
 }
 
 .volt-wired-menu__option input[type='checkbox'] {
-    flex: none;
+    position: absolute;
+    left: 0;
+    top: 1px;
     appearance: none;
     width: 20px;
     height: 15px;
@@ -2516,8 +2518,8 @@
     background-image: url('../assets/images/wired/native/menu_checkbox_checked.png');
 }
 
-.volt-wired-menu__option.is-disabled {
-    opacity: 0.6;
+.volt-wired-menu__option input[type='checkbox']:disabled {
+    opacity: 0.5;
 }
 
 .volt-wired-menu__button {

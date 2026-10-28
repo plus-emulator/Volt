@@ -45,16 +45,23 @@ export const WiredMenuText: FC<PropsWithChildren<Rect & { className?: string }>>
 
 interface WiredMenuCheckboxProps extends Rect {
     checked: boolean;
+    /** The checkbox is disabled: AIR draws its bitmap at half opacity. */
     disabled?: boolean;
+    /** The whole option sits in a disabled section, so its label is at half opacity too. */
+    labelDisabled?: boolean;
     label: ReactNode;
     onChange: (checked: boolean) => void;
 }
 
 /** `option_box`: a 20px checkbox window at (0,1) and its label at x=20. */
-export const WiredMenuCheckbox: FC<WiredMenuCheckboxProps> = ({ checked, disabled = false, label, onChange, ...rect }) => (
+export const WiredMenuCheckbox: FC<WiredMenuCheckboxProps> = ({ checked, disabled = false, labelDisabled = false, label, onChange, ...rect }) => (
     <label className={`volt-wired-menu__item volt-wired-menu__option ${disabled ? 'is-disabled' : ''}`} style={place(rect)}>
         <input checked={checked} disabled={disabled} type="checkbox" onChange={(event) => onChange(event.target.checked)} />
-        <span className="volt-wired-menu__text">{label}</span>
+        {isText(label) ? (
+            <WiredMenuLabel className="volt-wired-menu__option-label" style={labelDisabled ? { opacity: 0.5 } : undefined} text={String(label)} />
+        ) : (
+            <span className="volt-wired-menu__text">{label}</span>
+        )}
     </label>
 );
 
