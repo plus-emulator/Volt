@@ -2995,3 +2995,20 @@
 .volt-wired__section--delay .volt-wired__native-section-header > .volt-wired__input-box {
     margin-left: -1px;
 }
+
+.volt-wired-menu__highlight-wired {
+    z-index: 1;
+}
+
+.volt-wired-menu__highlight-wired .volt-wired-menu__highlight-wired-icon {
+    position: absolute;
+    left: -1px;
+    top: 1px;
+    width: 16px;
+    max-width: none;
+    height: 14px;
+}
+
+.volt-wired-menu__highlight-wired:disabled .volt-wired-menu__highlight-wired-icon {
+    opacity: 0.5;
+}

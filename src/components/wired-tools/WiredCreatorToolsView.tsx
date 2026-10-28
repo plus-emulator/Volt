@@ -1383,6 +1383,30 @@ export const WiredCreatorToolsView: FC<{}> = () => {
         setInspectionGiveValue('0');
     }, [inspectionType, selectedUser?.userId, selectedFurni?.objectId]);
 
+    const [wiredBoxHighlight, setWiredBoxHighlight] = useState<{ furniId: number; boxIds: readonly number[] } | null>(null);
+    const canHighlightWiredBoxes = inspectionType === 'furni' && !!selectedFurni && objectVariables.configuredInWireds.length > 0;
+    const isHighlightingWiredBoxes = wiredBoxHighlight !== null;
+    const toggleWiredBoxHighlight = useCallback(() => {
+        setWiredBoxHighlight((current) =>
+            current || !selectedFurni || !objectVariables.configuredInWireds.length ? null : { furniId: selectedFurniWireId, boxIds: objectVariables.configuredInWireds }
+        );
+    }, [selectedFurni, selectedFurniWireId, objectVariables.configuredInWireds]);
+    useEffect(() => {
+        if (!wiredBoxHighlight) return;
+        if (isVisible && activeTab === 'inspection' && inspectionType === 'furni' && selectedFurni && selectedFurniWireId === wiredBoxHighlight.furniId) return;
+
+        setWiredBoxHighlight(null);
+    }, [wiredBoxHighlight, isVisible, activeTab, inspectionType, selectedFurni, selectedFurniWireId]);
+    useEffect(() => {
+        if (!wiredBoxHighlight) return;
+
+        const objects = wiredBoxHighlight.boxIds.map((objectId) => ({ category: RoomObjectCategory.FLOOR, objectId }));
+
+        WiredSelectionVisualizer.applyVariableHighlightToObjects(objects);
+
+        return () => WiredSelectionVisualizer.clearVariableHighlightFromObjects(objects);
+    }, [wiredBoxHighlight]);
+
     if (!isVisible) return null;
 
     return (
@@ -1443,6 +1467,9 @@ export const WiredCreatorToolsView: FC<{}> = () => {
                             previewPlaceholder={previewPlaceholder}
                             keepSelected={keepSelected}
                             onKeepSelectedChange={setKeepSelected}
+                            canHighlightWiredBoxes={canHighlightWiredBoxes}
+                            isHighlightingWiredBoxes={isHighlightingWiredBoxes}
+                            onToggleWiredBoxHighlight={toggleWiredBoxHighlight}
                             displayedVariables={displayedVariables}
                             selectedInspectionVariableKey={selectedInspectionVariableKey}
                             onSelectInspectionVariable={(variable) => {
