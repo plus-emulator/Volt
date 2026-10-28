@@ -175,7 +175,7 @@ export const VariablesExplorerHolderView: FC<VariablesExplorerHolderViewProps> =
     return (
         <WiredVariableHolderPanelView
             title={holderPanelTitle(target)}
-            warningText={WARNING_TEXT[target.scope]}
+            infoText={WARNING_TEXT[target.scope]}
             onRefresh={() => void reload()}
             onClose={onClose}
             preview={
@@ -194,7 +194,6 @@ export const VariablesExplorerHolderView: FC<VariablesExplorerHolderViewProps> =
             entries={entries.map((entry) => ({
                 id: entry.name,
                 name: entry.name,
-                availability: 'Permanent',
                 hasValue: entry.hasValue,
                 value: entry.value === null ? null : BigInt(entry.value)
             }))}
@@ -218,6 +217,7 @@ export const VariablesExplorerHolderView: FC<VariablesExplorerHolderViewProps> =
             onGiveSelect={setGiveName}
             giveValue={giveValue}
             onGiveValueChange={setGiveValue}
+            canOpenGive={canWrite && holderReady && !busy && target.scope !== 'global' && !!giveOptions.length}
             canGive={canWrite && holderReady && !busy && target.scope !== 'global' && !!giveOptions.length}
             onGive={give}
             canRemove={canWrite && holderReady && !busy && target.scope !== 'global' && !!selectedEntry}
@@ -247,8 +247,6 @@ export const VariablesExplorerHolderView: FC<VariablesExplorerHolderViewProps> =
                 ) : null
             }
             uniqueKey="variables-explorer-holder"
-            offsetLeft={760}
-            offsetTop={120}
         />
     );
 };

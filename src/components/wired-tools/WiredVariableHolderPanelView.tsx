@@ -1,10 +1,14 @@
-import { KeyboardEvent, ReactNode } from 'react';
-import { Button, DraggableWindowPosition, VoltCardContentView, VoltCardHeaderView, VoltCardView, Text } from '../../common';
+import { KeyboardEvent, ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { localizeWithFallback } from '../../api';
+import { DraggableWindowPosition, VoltCardHeaderView, VoltCardView } from '../../common';
+import { NativeText } from '../../common/native-text/NativeText';
+import { WiredMenuLabel } from '../../common/native-text/WiredMenuLabel';
+import { WiredMenuHtmlText } from './WiredMenuHtmlText';
+import { WiredMenuButton, WiredMenuItem, WiredMenuTable, WiredMenuTitle } from './WiredMenuParts';
 
 export interface WiredHolderPanelEntry {
     id: string;
     name: string;
-    availability: string;
     hasValue: boolean;
     value: bigint | number | null;
     isReadOnly?: boolean;
@@ -18,9 +22,11 @@ export interface WiredHolderPanelGiveOption {
 
 export interface WiredVariableHolderPanelViewProps {
     title: string;
-    warningText: string;
+    infoText: string;
     onRefresh: () => void;
     onClose: () => void;
+    /** The frame's help button; without it the frame has none. */
+    onHelp?: () => void;
     preview: ReactNode;
     infoLines: string[];
     variablesTitle: string;
@@ -35,12 +41,15 @@ export interface WiredVariableHolderPanelViewProps {
     onEditBlur: () => void;
     onEditKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
     isGiveOpen: boolean;
+    /** The "Give variable" button, which opens the create bubble. */
+    canOpenGive: boolean;
     onToggleGive: () => void;
     giveOptions: WiredHolderPanelGiveOption[];
     giveSelectedId: string;
     onGiveSelect: (id: string) => void;
     giveValue: string;
     onGiveValueChange: (value: string) => void;
+    /** The bubble's "Create" button. */
     canGive: boolean;
     onGive: () => void;
     canRemove: boolean;
@@ -48,20 +57,62 @@ export interface WiredVariableHolderPanelViewProps {
     status?: ReactNode;
     extraActions?: ReactNode;
     uniqueKey?: string;
-    offsetLeft?: number;
-    offsetTop?: number;
 }
 
+/** variables_management_detail: a 339x512 frame 3 window whose client starts 33 px down; it resizes in height between 400 and 650. */
+const WINDOW_WIDTH = 339;
+/** The info html window: auto size "center", word wrap in 218 px, leading 1. */
+const INFO_WIDTH = 218;
+const INFO_LINE_HEIGHT = 15;
+const PREVIEW_SIZE = 94;
+const STATUS_HEIGHT = 24;
+const EXTRA_ACTIONS_HEIGHT = 28;
+
+/** PermanentVariableHolderPreviewer.centerContainer: the preview bitmap is centred in the preview border, on whole pixels. */
+const CentredPreview = ({ children }: { children: ReactNode }) => {
+    const ref = useRef<HTMLDivElement>(null);
+    const [offset, setOffset] = useState<{ left: number; top: number }>(null);
+
+    useLayoutEffect(() => {
+        const element = ref.current;
+        if (!element) return;
+
+        // A bitmap is measured by its own size: the avatar view's box is larger than the cropped head it draws.
+        const update = () => {
+            const image = element.querySelector('img');
+            const width = image ? image.naturalWidth : element.offsetWidth;
+            const height = image ? image.naturalHeight : element.offsetHeight;
+            setOffset(width && height ? { left: Math.floor((PREVIEW_SIZE - width) / 2), top: Math.floor((PREVIEW_SIZE - height) / 2) } : null);
+        };
+        const observer = new ResizeObserver(update);
+        observer.observe(element);
+        element.addEventListener('load', update, true);
+        update();
+
+        return () => {
+            observer.disconnect();
+            element.removeEventListener('load', update, true);
+        };
+    }, []);
+
+    return (
+        <div ref={ref} className="volt-wired-varmanage-detail__preview-image" style={offset ? { left: offset.left, top: offset.top } : { visibility: 'hidden' }}>
+            {children}
+        </div>
+    );
+};
+
 /**
- * The holder detail window of the creator tools: who the holder is, the variables they hold with
- * inline value editing, and remove / give. Pure view; the caller owns the data and the writes.
+ * The holder detail window of the creator tools (AIR VariableManagementDetailView): who the holder is, the variables they hold, a value
+ * edited after a double click, and remove / give. Pure view; the caller owns the data and the writes.
  */
 export const WiredVariableHolderPanelView = (props: WiredVariableHolderPanelViewProps) => {
     const {
         title,
-        warningText,
+        infoText,
         onRefresh,
         onClose,
+        onHelp,
         preview,
         infoLines,
         variablesTitle,
@@ -76,6 +127,7 @@ export const WiredVariableHolderPanelView = (props: WiredVariableHolderPanelView
         onEditBlur,
         onEditKeyDown,
         isGiveOpen,
+        canOpenGive,
         onToggleGive,
         giveOptions,
         giveSelectedId,
@@ -88,156 +140,162 @@ export const WiredVariableHolderPanelView = (props: WiredVariableHolderPanelView
         onRemove,
         status = null,
         extraActions = null,
-        uniqueKey = 'wired-variable-management-entry',
-        offsetLeft = 890,
-        offsetTop = 110
+        uniqueKey = 'wired-variable-management-entry'
     } = props;
     const selectedGiveOption = giveOptions.find((option) => option.id === giveSelectedId) ?? null;
+    const [tableArea, setTableArea] = useState<HTMLDivElement>(null);
+    const [tableHeight, setTableHeight] = useState(0);
+    const extrasHeight = (status ? STATUS_HEIGHT : 0) + (extraActions ? EXTRA_ACTIONS_HEIGHT : 0);
+
+    // The values container stretches with the window height; the table view fills it.
+    useEffect(() => {
+        if (!tableArea) return;
+
+        const observer = new ResizeObserver(() => setTableHeight(tableArea.clientHeight));
+        observer.observe(tableArea);
+
+        return () => observer.disconnect();
+    }, [tableArea]);
+
+    const valueCell = (entry: WiredHolderPanelEntry): ReactNode => {
+        if (!entry.hasValue) return '';
+        if (editingId !== entry.id) return String(entry.value ?? 0);
+
+        return (
+            <input
+                autoFocus
+                className="volt-wired-menu__cell-input"
+                spellCheck={false}
+                type="text"
+                value={editingValue}
+                onBlur={onEditBlur}
+                onChange={(event) => onEditingValueChange(event.target.value)}
+                onClick={(event) => event.stopPropagation()}
+                onKeyDownCapture={onEditKeyDown}
+            />
+        );
+    };
 
     return (
         <VoltCardView
-            className="min-w-[430px] max-w-[430px] max-h-[620px]"
+            className="volt-wired-varmanage-detail"
+            frameStyle={3}
+            resizeAxis="vertical"
             theme="primary-slim"
             uniqueKey={uniqueKey}
-            windowPosition={DraggableWindowPosition.TOP_LEFT}
-            offsetLeft={offsetLeft}
-            offsetTop={offsetTop}
+            windowPosition={DraggableWindowPosition.CENTER}
         >
-            <VoltCardHeaderView headerText={title} onCloseClick={onClose} />
-            <VoltCardContentView className="text-black bg-[#f4efe3] p-3 flex flex-col gap-3 relative" overflow="hidden">
-                <div className="rounded border border-[#c8c2b2] bg-white p-3 flex items-center justify-between gap-3">
-                    <div className="grow text-center">
-                        <Text>{warningText}</Text>
-                    </div>
-                    <Button variant="secondary" onClick={onRefresh}>
-                        Refresh
-                    </Button>
-                </div>
-                <div className="flex flex-col gap-2">
-                    <Text bold>Holder info:</Text>
-                    <div className="flex gap-4">
-                        <div className="w-[140px] h-[110px] rounded border border-[#d8d2c3] bg-[#dedede] flex items-center justify-center overflow-hidden">
-                            {preview}
-                        </div>
-                        <div className="grow rounded border border-[#d8d2c3] bg-white p-3 flex flex-col gap-1 text-[12px]">
-                            {infoLines.map((line, index) => (
-                                <Text key={`${line}-${index}`}>{line}</Text>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-                {status}
-                <div className="flex flex-col gap-2 min-h-0 grow">
-                    <Text bold>{variablesTitle}</Text>
-                    <div className="grow rounded border border-[#d1ccbf] bg-white overflow-y-auto">
-                        <table className="w-full text-[12px]">
-                            <thead className="bg-[#efede5] sticky top-0">
-                                <tr>
-                                    <th className="text-left px-2 py-1">Variable</th>
-                                    <th className="text-left px-2 py-1">Value</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {!entries.length && (
-                                    <tr>
-                                        <td className="px-2 py-3 text-center text-[#8b8678]" colSpan={2}>
-                                            No variables currently assigned
-                                        </td>
-                                    </tr>
-                                )}
-                                {entries.map((entry, index) => {
-                                    const isSelected = selectedId === entry.id;
-                                    const isEditing = editingId === entry.id;
-                                    const isEditable = canEdit && !entry.isReadOnly;
-
-                                    return (
-                                        <tr
-                                            key={entry.id}
-                                            className={`${isSelected ? 'bg-[#d7dfea]' : index % 2 === 0 ? 'bg-white' : 'bg-[#f8f6f0]'} cursor-pointer hover:bg-[#e8eefc]`}
-                                            onClick={() => onSelect(entry.id)}
-                                        >
-                                            <td className="px-2 py-1">
-                                                <div className="flex flex-col">
-                                                    <span>{entry.name}</span>
-                                                    <span className="text-[10px] text-[#8a8476]">{entry.availability}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-2 py-1">
-                                                {!entry.hasValue && <span className="text-[#8a8476]">/</span>}
-                                                {!!entry.hasValue && !isEditing && (
-                                                    <button
-                                                        className={`rounded px-1 py-[1px] ${isEditable ? 'text-[#1b57b2] underline underline-offset-2' : 'text-[#222]'}`}
-                                                        disabled={!isEditable}
-                                                        type="button"
-                                                        onClick={(event) => {
-                                                            event.stopPropagation();
-
-                                                            if (!isEditable) return;
-
-                                                            onBeginEdit(entry);
-                                                        }}
-                                                    >
-                                                        {entry.value ?? 0}
-                                                    </button>
-                                                )}
-                                                {!!entry.hasValue && isEditing && (
-                                                    <input
-                                                        autoFocus
-                                                        className="w-[72px] rounded border border-[#b8b2a4] bg-white px-2 py-[2px] text-[12px]"
-                                                        type="number"
-                                                        value={editingValue}
-                                                        onBlur={onEditBlur}
-                                                        onChange={(event) => onEditingValueChange(event.target.value)}
-                                                        onClick={(event) => event.stopPropagation()}
-                                                        onKeyDownCapture={onEditKeyDown}
-                                                    />
-                                                )}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                {extraActions}
-                <div className="relative flex items-center justify-between gap-3 pt-1">
-                    {isGiveOpen && (
-                        <div className="absolute right-0 bottom-full mb-2 w-[210px] rounded border border-[#8d887a] bg-[#efede5] p-3 shadow-[0_2px_8px_rgba(0,0,0,.25)] z-10 flex flex-col gap-2">
-                            <Text bold>Variable:</Text>
-                            <select
-                                className="rounded border border-[#b8b2a4] bg-white px-2 py-[3px] text-[12px]"
-                                value={selectedGiveOption?.id ?? ''}
-                                onChange={(event) => onGiveSelect(event.target.value)}
-                            >
-                                {!giveOptions.length && <option value="">No variables available</option>}
-                                {giveOptions.map((option) => (
-                                    <option key={option.id} value={option.id}>
-                                        {option.name}
-                                    </option>
-                                ))}
-                            </select>
-                            <Text bold>Value:</Text>
-                            <input
-                                className="w-[96px] rounded border border-[#b8b2a4] bg-white px-2 py-[3px] text-[12px] disabled:opacity-60"
-                                disabled={!selectedGiveOption?.hasValue}
-                                type="number"
-                                value={giveValue}
-                                onChange={(event) => onGiveValueChange(event.target.value)}
-                            />
-                            <Button disabled={!canGive} variant="secondary" onClick={onGive}>
-                                Create
-                            </Button>
-                        </div>
+            <VoltCardHeaderView headerText="" onCloseClick={onClose}>
+                <WiredMenuLabel align="button" className="volt-wired-menu__caption" color={0xffffff} text={title} textStyle="u_frame_title" width={WINDOW_WIDTH - 14} />
+                {!!onHelp && (
+                    <button
+                        aria-label={localizeWithFallback('generic.help', 'Help')}
+                        className="volt-wired-varmanage-detail__help"
+                        type="button"
+                        onClick={onHelp}
+                        onMouseDownCapture={(event) => event.stopPropagation()}
+                    />
+                )}
+            </VoltCardHeaderView>
+            <div className="volt-wired-varmanage__client">
+                <WiredMenuItem className="volt-wired-varmanage__box" h={57} w={228} x={18} y={7}>
+                    <WiredMenuHtmlText wordWrap lineHeight={INFO_LINE_HEIGHT} style={{ left: 5, top: 12 }} text={infoText} width={INFO_WIDTH} />
+                </WiredMenuItem>
+                <WiredMenuButton h={30} w={62} x={259} y={20} onClick={onRefresh}>
+                    {localizeWithFallback('wiredmenu.list_view.refresh', 'Refresh')}
+                </WiredMenuButton>
+                <WiredMenuTitle h={19} w={188} x={18} y={73}>
+                    {localizeWithFallback('wiredmenu.variable_management_detail.holder_info', 'Holder info:')}
+                </WiredMenuTitle>
+                <WiredMenuItem className="volt-wired-varmanage-detail__preview" h={PREVIEW_SIZE} w={PREVIEW_SIZE} x={18} y={93}>
+                    <CentredPreview>{preview}</CentredPreview>
+                </WiredMenuItem>
+                <WiredMenuItem className="volt-wired-varmanage-detail__info-box" h={94} w={194} x={127} y={93}>
+                    <NativeText
+                        nativeResolution
+                        transparent
+                        background={0xffffff}
+                        maxWidth={182}
+                        style={{ position: 'absolute', left: 6, top: 6 }}
+                        text={infoLines.join('\n')}
+                        textStyle="u_regular"
+                    />
+                </WiredMenuItem>
+                <WiredMenuTitle h={19} w={188} x={18} y={196}>
+                    {variablesTitle}
+                </WiredMenuTitle>
+                <div ref={setTableArea} className="volt-wired-varmanage-detail__values" style={{ bottom: 52 + extrasHeight }}>
+                    {tableHeight > 0 && (
+                        <WiredMenuTable
+                            columns={[
+                                { key: 'variable', title: localizeWithFallback('wiredmenu.inspection.variables.variable', 'Variable'), factor: 0.65, align: 'left' },
+                                { key: 'value', title: localizeWithFallback('wiredmenu.inspection.variables.value', 'Value'), factor: 0.35, align: 'right' }
+                            ]}
+                            h={tableHeight}
+                            rows={entries.map((entry) => ({
+                                key: entry.id,
+                                selected: selectedId === entry.id,
+                                onSelect: () => onSelect(entry.id),
+                                onCellDoubleClick: (column) => {
+                                    if (column === 'value' && canEdit && entry.hasValue && !entry.isReadOnly) onBeginEdit(entry);
+                                },
+                                cells: { variable: entry.name, value: valueCell(entry) },
+                                cellTitles: { variable: entry.name }
+                            }))}
+                            w={303}
+                            x={0}
+                            y={0}
+                        />
                     )}
-                    <Button disabled={!canRemove} variant="secondary" onClick={onRemove}>
-                        Remove variable
-                    </Button>
-                    <Button disabled={!canGive} variant="secondary" onClick={onToggleGive}>
-                        Give variable
-                    </Button>
                 </div>
-            </VoltCardContentView>
+                {extrasHeight > 0 && (
+                    <div className="volt-wired-varmanage-detail__extras" style={{ height: extrasHeight }}>
+                        {status}
+                        {extraActions}
+                    </div>
+                )}
+                <div className="volt-wired-varmanage-detail__actions">
+                    <WiredMenuButton disabled={!canRemove} h={25} w={145} x={18} y={0} onClick={onRemove}>
+                        {localizeWithFallback('wiredmenu.inspection.delete', 'Remove variable')}
+                    </WiredMenuButton>
+                    <WiredMenuButton disabled={!canOpenGive} h={25} w={145} x={176} y={0} onClick={onToggleGive}>
+                        {localizeWithFallback('wiredmenu.inspection.add', 'Give variable')}
+                    </WiredMenuButton>
+                    {isGiveOpen && (
+                        <WiredMenuItem className="volt-wired-menu__bubble" h={145} w={186} x={140} y={-145}>
+                            <WiredMenuTitle h={17} w={158} x={6} y={6}>
+                                {localizeWithFallback('wiredmenu.inspection.select_variable', 'Variable:')}
+                            </WiredMenuTitle>
+                            <WiredMenuItem h={22} w={158} x={6} y={26}>
+                                <div className="volt-wired-menu__dropdown-wrap">
+                                    <select className="volt-wired-menu__dropdown" value={selectedGiveOption?.id ?? ''} onChange={(event) => onGiveSelect(event.target.value)}>
+                                        {!giveOptions.length && <option value="">No variables available</option>}
+                                        {giveOptions.map((option) => (
+                                            <option key={option.id} value={option.id}>
+                                                {option.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </WiredMenuItem>
+                            <WiredMenuTitle h={17} w={158} x={6} y={52}>
+                                {localizeWithFallback('wiredmenu.inspection.select_value', 'Value:')}
+                            </WiredMenuTitle>
+                            <WiredMenuItem className="volt-wired-menu__value-box" h={22} w={80} x={6} y={72}>
+                                <input
+                                    disabled={!selectedGiveOption?.hasValue}
+                                    type="number"
+                                    value={giveValue}
+                                    onChange={(event) => onGiveValueChange(event.target.value)}
+                                />
+                            </WiredMenuItem>
+                            <WiredMenuButton disabled={!canGive} h={25} w={158} x={6} y={100} onClick={onGive}>
+                                {localizeWithFallback('wiredmenu.inspection.create', 'Create')}
+                            </WiredMenuButton>
+                        </WiredMenuItem>
+                    )}
+                </div>
+            </div>
         </VoltCardView>
     );
 };

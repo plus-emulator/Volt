@@ -111,7 +111,7 @@ export const WiredMenuPagingFooter: FC<WiredMenuPagingFooterProps> = ({ width, c
     };
 
     return (
-        <div className={`volt-wired-menu__item ${className}`} style={{ left: 0, width, height: 30 }}>
+        <div className={`volt-wired-menu__item volt-wired-menu__paging ${className}`} style={{ left: 0, width, height: 30 }}>
             <PageButton disabled={isFirst} icons={[18, 27]} title="First page" x={17} onClick={() => requests.requestFirstPage()} />
             <PageButton disabled={isFirst} icons={[22]} title="Previous page" x={80} onClick={() => requests.requestPreviousPage()} />
             <PageButton right disabled={isLast} icons={[23]} title="Next page" x={width - 127} onClick={() => requests.requestNextPage()} />

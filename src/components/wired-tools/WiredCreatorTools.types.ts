@@ -161,7 +161,6 @@ export interface VariableHighlightOverlay extends VariableHighlightTarget {
 }
 
 export interface ManagedHolderVariableEntry {
-    availability: string;
     createdAt: number;
     hasValue: boolean;
     name: string;

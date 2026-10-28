@@ -2290,6 +2290,130 @@
     white-space: normal;
 }
 
+/* variables_management_overview (700x508) and variables_management_detail (339x512): frame 3 windows, resizable in height, client 33px down. */
+.volt-wired-varmanage.volt-card-shell.volt-card-frame-3,
+.volt-wired-varmanage-detail.volt-card-shell.volt-card-frame-3 {
+    padding: 0 !important;
+    font-family: HabboAirUbuntu, sans-serif;
+    font-size: 12px;
+}
+
+.volt-wired-varmanage.volt-card-shell.volt-card-frame-3 {
+    width: 700px;
+    min-width: 700px;
+    max-width: 700px;
+    height: 508px;
+    min-height: 380px;
+    max-height: 700px;
+}
+
+.volt-wired-varmanage-detail.volt-card-shell.volt-card-frame-3 {
+    width: 339px;
+    min-width: 339px;
+    max-width: 339px;
+    height: 512px;
+    min-height: 400px;
+    max-height: 650px;
+}
+
+.volt-card-shell.volt-wired-varmanage.volt-card-frame-3 > .volt-card-header-shell .volt-card-close-button,
+.volt-card-shell.volt-wired-varmanage-detail.volt-card-frame-3 > .volt-card-header-shell .volt-card-close-button {
+    right: 3px !important;
+}
+
+.volt-wired-varmanage-detail__help {
+    position: absolute;
+    top: 2px;
+    right: 27px;
+    width: 19px;
+    height: 20px;
+    padding: 0;
+    border: 0;
+    background: url('../assets/images/habbo-skin/slices/help-3-default.png') 0 0 / 19px 20px no-repeat;
+    image-rendering: pixelated;
+}
+
+.volt-wired-varmanage-detail__help:hover {
+    background-image: url('../assets/images/habbo-skin/slices/help-3-hover.png');
+}
+
+.volt-wired-varmanage-detail__help:active {
+    background-image: url('../assets/images/habbo-skin/slices/help-3-pressed.png');
+}
+
+.volt-wired-varmanage__client {
+    position: absolute;
+    inset: 33px 0 0;
+    overflow: hidden;
+    color: #000;
+}
+
+/* Border style 4: white with a thin dark border. */
+.volt-wired-varmanage__box::before,
+.volt-wired-varmanage-detail__preview::before,
+.volt-wired-varmanage-detail__info-box::before {
+    position: absolute;
+    inset: 0;
+    border: 6px solid transparent;
+    border-image: url('../assets/images/habbo-skin/slices/border-4.png') 6 fill / 6px stretch;
+    content: '';
+    image-rendering: pixelated;
+}
+
+/* Border style 2 (border_colorless) multiplied by the window colour 0xdadada. */
+.volt-wired-varmanage-detail__preview::before {
+    border-image-source: url('../assets/images/habbo-skin/slices/border-colorless-dadada.png');
+}
+
+/* Border style 10: border_colorless_dropshadow, two shadow rows under a white box. */
+.volt-wired-varmanage-detail__info-box::before {
+    border-width: 6px 6px 8px;
+    border-image: url('../assets/images/habbo-skin/slices/border-colorless-dropshadow.png') 6 6 8 fill / 6px 6px 8px stretch;
+}
+
+.volt-wired-varmanage-detail__preview-image {
+    position: absolute;
+}
+
+/* The middle container stretches with the window, the footer moves with its bottom edge. */
+.volt-wired-varmanage__middle {
+    position: absolute;
+    left: 1px;
+    top: 117px;
+    width: 698px;
+    bottom: 62px;
+}
+
+.volt-wired-varmanage__paging {
+    bottom: 16px;
+}
+
+.volt-wired-varmanage-detail__values {
+    position: absolute;
+    left: 18px;
+    top: 216px;
+    width: 303px;
+}
+
+.volt-wired-varmanage-detail__extras {
+    position: absolute;
+    left: 18px;
+    bottom: 48px;
+    display: flex;
+    width: 303px;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 4px;
+}
+
+.volt-wired-varmanage-detail__actions {
+    position: absolute;
+    left: 0;
+    bottom: 18px;
+    width: 339px;
+    height: 25px;
+}
+
 /* wired_menu_view: absolute client coordinates of the 500x500 Wired Creator Tools window. */
 .volt-wired-menu.volt-card-shell.volt-card-frame-3 {
     width: 500px;

@@ -57,22 +57,18 @@ export const VariablesExplorerHoldersView: FC<VariablesExplorerHoldersViewProps>
             lastPage={lastPage}
             requests={requests}
             scrollResetKey={scrollKey}
-            filters={[
-                {
-                    id: 'kind',
-                    label: scope === 'furni' ? 'Furni type' : 'User type',
-                    value: targetKind,
-                    options: targetKindsOf(scope).map((kind) => ({ value: kind, label: targetKindLabel(kind) })),
-                    onChange: (value) => changeFilters(value as WebApiTargetKind, sortId)
-                },
-                {
-                    id: 'sort',
-                    label: localizeWithFallback('wiredmenu.variable_management.sort_by', 'Sort by:'),
-                    value: sortId,
-                    options: EXPLORER_SORT_OPTIONS.map((option) => ({ value: option.id, label: option.label })),
-                    onChange: (value) => changeFilters(targetKind, value)
-                }
-            ]}
+            typeFilter={{
+                label: scope === 'furni' ? 'Furni type:' : 'User type:',
+                value: targetKind,
+                options: targetKindsOf(scope).map((kind) => ({ value: kind, label: targetKindLabel(kind) })),
+                onChange: (value) => changeFilters(value as WebApiTargetKind, sortId)
+            }}
+            sortFilter={{
+                label: localizeWithFallback('wiredmenu.variable_management.sort_by', 'Sort by:'),
+                value: sortId,
+                options: EXPLORER_SORT_OPTIONS.map((option) => ({ value: option.id, label: option.label })),
+                onChange: (value) => changeFilters(targetKind, value)
+            }}
             onManage={(holder) => onManage({ scope, kind: targetKind, entityId: holder.entityId })}
             onDelete={client.hasWriteAccess ? (holder) => deleteHolder(holder.entityId) : undefined}
             onClose={onClose}

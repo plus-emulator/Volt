@@ -57,7 +57,7 @@ export const WiredVariableOwnersView = (props: WiredVariableOwnersViewProps) => 
     const pending = useRef<{ room: typeof roomSession; variableId: string; page: number; users: number; sort: number; connection: ReturnType<typeof GetCommunication>['connection'] } | null>(null);
     const [page, setPage] = useState<HoldersPage | null>(null);
     const [userType, setUserType] = useState(USER_FILTER_ALL);
-    const [sortType, setSortType] = useState(SORT_NONE);
+    const [sortType, setSortType] = useState(hasValue ? SORT_VALUE_DESCENDING : SORT_NONE);
     const [scrollKey, setScrollKey] = useState(0);
     const nextFilters = useRef<{ userTypeFilter: number; sortTypeFilter: number } | null>(null);
 
@@ -93,7 +93,7 @@ export const WiredVariableOwnersView = (props: WiredVariableOwnersViewProps) => 
         onRequestPage: (requested) => {
             const filters = nextFilters.current ?? {
                 userTypeFilter: page?.userTypeFilter ?? USER_FILTER_ALL,
-                sortTypeFilter: page?.sortTypeFilter ?? SORT_NONE
+                sortTypeFilter: page?.sortTypeFilter ?? (hasValue ? SORT_VALUE_DESCENDING : SORT_NONE)
             };
 
             if (!roomSession) return;
@@ -104,15 +104,16 @@ export const WiredVariableOwnersView = (props: WiredVariableOwnersViewProps) => 
         }
     });
 
-    // The first page of a new variable, unfiltered.
+    // The first page of a new variable: every user type, highest value first (WiredMenuOverviewTab asks for sort 0, "Highest value").
     useEffect(() => {
         setPage(null);
         pending.current = null;
         if (!roomSession) return;
-        pending.current = { room: roomSession, connection: GetCommunication().connection, variableId, page: 1, users: USER_FILTER_ALL, sort: SORT_NONE };
-        SendMessageComposer(new WiredVariableHoldersPage64Composer(variableId, 1, WIRED_VARIABLE_OWNERS_PAGE_SIZE, USER_FILTER_ALL, SORT_NONE));
+        const sort = hasValue ? SORT_VALUE_DESCENDING : SORT_NONE;
+        pending.current = { room: roomSession, connection: GetCommunication().connection, variableId, page: 1, users: USER_FILTER_ALL, sort };
+        SendMessageComposer(new WiredVariableHoldersPage64Composer(variableId, 1, WIRED_VARIABLE_OWNERS_PAGE_SIZE, USER_FILTER_ALL, sort));
         return () => { pending.current = null; };
-    }, [variableId, roomSession]);
+    }, [variableId, roomSession, hasValue]);
 
     const changeFilters = (nextUserType: number, nextSortType: number) => {
         if (!requests.canRequestNewPage(false)) return;
@@ -137,11 +138,10 @@ export const WiredVariableOwnersView = (props: WiredVariableOwnersViewProps) => 
     };
 
     const userTypeFilter = {
-        id: 'usertype',
         label: localizeWithFallback('wiredmenu.variable_management.usertype', 'User type:'),
         value: String(userType),
         options: [
-            { value: String(USER_FILTER_ALL), label: localizeWithFallback('wiredmenu.variable_management.usertype.all', 'All') },
+            { value: String(USER_FILTER_ALL), label: localizeWithFallback('wiredmenu.variable_management.usertype.all', 'All types') },
             { value: String(USER_FILTER_IN_ROOM), label: localizeWithFallback('wiredmenu.variable_management.usertype.in_room', 'In the room') }
         ],
         onChange: (value: string) => {
@@ -153,7 +153,6 @@ export const WiredVariableOwnersView = (props: WiredVariableOwnersViewProps) => 
     };
 
     const sortFilter = {
-        id: 'sort',
         label: localizeWithFallback('wiredmenu.variable_management.sort_by', 'Sort by:'),
         value: String(sortType),
         options: [
@@ -182,7 +181,8 @@ export const WiredVariableOwnersView = (props: WiredVariableOwnersViewProps) => 
             lastPage={lastPage}
             requests={requests}
             scrollResetKey={scrollKey}
-            filters={variablesType === 'user' ? [userTypeFilter, sortFilter] : [sortFilter]}
+            sortFilter={sortFilter}
+            typeFilter={variablesType === 'user' ? userTypeFilter : undefined}
             onManage={(holder) => onManage(toManageEntry(holder))}
             onOpenUserProfile={(entityId) => GetUserProfile(entityId)}
             onClose={onClose}

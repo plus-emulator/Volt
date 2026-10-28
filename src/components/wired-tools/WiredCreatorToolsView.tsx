@@ -23,6 +23,7 @@ import {
 import { FC, KeyboardEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
     AvatarInfoUtilities,
+    CreateLinkEvent,
     createPacketCooldownGate,
     IsTemporaryFurniId,
     LocalizeText,
@@ -221,20 +222,6 @@ export const WiredCreatorToolsView: FC<{}> = () => {
     } = useWiredTools();
     const { simpleAlert = null, showConfirm = null } = useNotification();
     useWiredMenuErrors();
-
-    const getVariableAvailabilityLabel = (value: number, targetType: 'user' | 'furni' | 'global' | 'context'): string => {
-        if (targetType === 'context') return 'Current wired execution';
-
-        if (value === 11) {
-            const localizedValue = LocalizeText('wiredfurni.params.variables.availability.11');
-
-            return localizedValue && localizedValue !== 'wiredfurni.params.variables.availability.11' ? localizedValue : 'Permanent, shared between rooms';
-        }
-
-        if (value === 10) return 'Permanent';
-
-        return targetType === 'furni' || targetType === 'global' ? 'While the room is active' : 'While the user is in the room';
-    };
 
     const refreshSelectedUser = useCallback(
         (roomIndex: number = selectedUser?.roomIndex) => {
@@ -843,7 +830,6 @@ export const WiredCreatorToolsView: FC<{}> = () => {
                             hasValue: definition.hasValue,
                             isReadOnly: !!definition.isReadOnly,
                             value: assignment.value,
-                            availability: getVariableAvailabilityLabel(definition.availability, 'user'),
                             createdAt: Number(assignment.createdAt ?? 0),
                             updatedAt: Number(assignment.updatedAt ?? 0)
                         };
@@ -863,7 +849,6 @@ export const WiredCreatorToolsView: FC<{}> = () => {
                             hasValue: definition.hasValue,
                             isReadOnly: !!definition.isReadOnly,
                             value: assignment.value,
-                            availability: getVariableAvailabilityLabel(definition.availability, 'furni'),
                             createdAt: Number(assignment.createdAt ?? 0),
                             updatedAt: Number(assignment.updatedAt ?? 0)
                         };
@@ -883,7 +868,6 @@ export const WiredCreatorToolsView: FC<{}> = () => {
                             hasValue: definition.hasValue,
                             isReadOnly: !!definition.isReadOnly,
                             value: assignment?.value ?? 0n,
-                            availability: getVariableAvailabilityLabel(definition.availability, 'global'),
                             createdAt: 0,
                             updatedAt: Number(assignment?.updatedAt ?? 0)
                         };
@@ -903,7 +887,7 @@ export const WiredCreatorToolsView: FC<{}> = () => {
     const selectedManagedHolderVariableEntry = useMemo(() => {
         if (!managedHolderVariableEntries.length) return null;
 
-        return managedHolderVariableEntries.find((entry) => entry.variableItemId === selectedManagedHolderVariableId) ?? managedHolderVariableEntries[0];
+        return managedHolderVariableEntries.find((entry) => entry.variableItemId === selectedManagedHolderVariableId) ?? null;
     }, [managedHolderVariableEntries, selectedManagedHolderVariableId]);
     const availableManagedHolderDefinitions = useMemo(() => {
         if (!selectedManagedVariableEntry || variablesType === 'global' || variablesType === 'context') return [];
@@ -941,7 +925,7 @@ export const WiredCreatorToolsView: FC<{}> = () => {
             case 'context':
                 return 'Manage Context Variables';
             default:
-                return 'Manage User Variables';
+                return localizeWithFallback('wiredmenu.variable_management_detail.title', 'Manage User Variables');
         }
     }, [variablesType]);
     const managedHolderInfoLines = useMemo(() => {
@@ -995,7 +979,7 @@ export const WiredCreatorToolsView: FC<{}> = () => {
             case 'context':
                 return 'Context variables only live inside the current wired execution. They are shared through the signal chain until a branch overrides them.';
             default:
-                return 'Do not use this tool for users who are currently in the room/using the changed variable in another room.';
+                return localizeWithFallback('wiredmenu.variable_management_detail.info', 'Use this tool to see and change the permanent variables of a user.');
         }
     }, [variablesType]);
     const managedHolderUserData = useMemo(() => {
@@ -1015,8 +999,9 @@ export const WiredCreatorToolsView: FC<{}> = () => {
         variablesType !== 'context' &&
         !!selectedManagedHolderVariableEntry &&
         !selectedManagedHolderVariableEntry.isReadOnly;
-    const canGiveManagedHolderVariable =
-        canManageHolderVariables && variablesType !== 'global' && variablesType !== 'context' && !!availableManagedHolderDefinitions.length;
+    // VariableManagementDetailView.updateButtonsUI: "Give variable" needs only the write permission; the bubble's Create needs a variable to give.
+    const canOpenManagedGive = canManageHolderVariables && variablesType !== 'global' && variablesType !== 'context';
+    const canGiveManagedHolderVariable = canOpenManagedGive && !!availableManagedHolderDefinitions.length;
     useEffect(() => {
         if (!selectedManagedVariableEntry) {
             setSelectedManagedHolderVariableId(0);
@@ -1039,11 +1024,8 @@ export const WiredCreatorToolsView: FC<{}> = () => {
 
         if (managedHolderVariableEntries.some((entry) => entry.variableItemId === selectedManagedHolderVariableId)) return;
 
-        const preferredItemId = selectedVariableItemId ?? 0;
-        const preferredEntry = managedHolderVariableEntries.find((entry) => entry.variableItemId === preferredItemId);
-
-        setSelectedManagedHolderVariableId(preferredEntry?.variableItemId ?? managedHolderVariableEntries[0].variableItemId);
-    }, [managedHolderVariableEntries, selectedManagedHolderVariableId, selectedVariableItemId]);
+        setSelectedManagedHolderVariableId(0);
+    }, [managedHolderVariableEntries, selectedManagedHolderVariableId]);
     useEffect(() => {
         if (!availableManagedHolderDefinitions.length) {
             setManagedGiveVariableItemId(0);
@@ -1243,18 +1225,19 @@ export const WiredCreatorToolsView: FC<{}> = () => {
     };
     const onManagedHolderValueInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
         event.stopPropagation();
+        const input = event.currentTarget;
 
         switch (event.key) {
             case 'Enter':
             case 'NumpadEnter':
                 event.preventDefault();
                 commitManagedHolderValueEdit();
-                window.requestAnimationFrame(() => event.currentTarget.blur());
+                window.requestAnimationFrame(() => input.blur());
                 return;
             case 'Escape':
                 event.preventDefault();
                 setEditingManagedHolderVariableId(0);
-                window.requestAnimationFrame(() => event.currentTarget.blur());
+                window.requestAnimationFrame(() => input.blur());
                 return;
         }
     };
@@ -1425,9 +1408,10 @@ export const WiredCreatorToolsView: FC<{}> = () => {
             {!!selectedManagedVariableEntry && !!selectedVariable && (
                 <WiredVariableHolderPanelView
                     title={managedHolderPanelTitle}
-                    warningText={managedHolderWarningText}
+                    infoText={managedHolderWarningText}
                     onRefresh={() => requestUserVariables()}
                     onClose={() => setSelectedManagedVariableEntry(null)}
+                    onHelp={() => CreateLinkEvent('habbopages/wct_uservars')}
                     preview={
                         <>
                             {variablesType === 'furni' && roomSession && (
@@ -1442,7 +1426,7 @@ export const WiredCreatorToolsView: FC<{}> = () => {
                                     {managedHolderUserData.type === RoomObjectType.PET ? (
                                         <LayoutPetImageView direction={2} figure={managedHolderUserData.figure} />
                                     ) : (
-                                        <LayoutAvatarImageView direction={2} figure={managedHolderUserData.figure} />
+                                        <LayoutAvatarImageView headOnly nativeCroppedHead trimmed direction={2} figure={managedHolderUserData.figure} />
                                     )}
                                 </>
                             )}
@@ -1452,11 +1436,16 @@ export const WiredCreatorToolsView: FC<{}> = () => {
                         </>
                     }
                     infoLines={managedHolderInfoLines}
-                    variablesTitle={variablesType === 'global' ? 'Room variables:' : 'Assigned variables:'}
+                    variablesTitle={
+                        variablesType === 'global'
+                            ? 'Room variables:'
+                            : variablesType === 'user' && isPersistedVariable(selectedVariable)
+                              ? localizeWithFallback('wiredmenu.variable_management_detail.variables', 'Permanent variables:')
+                              : 'Assigned variables:'
+                    }
                     entries={managedHolderVariableEntries.map((entry) => ({
                         id: String(entry.variableItemId),
                         name: entry.name,
-                        availability: entry.availability,
                         hasValue: entry.hasValue,
                         value: entry.value,
                         isReadOnly: entry.isReadOnly
@@ -1475,6 +1464,7 @@ export const WiredCreatorToolsView: FC<{}> = () => {
                     onEditBlur={() => setEditingManagedHolderVariableId(0)}
                     onEditKeyDown={onManagedHolderValueInputKeyDown}
                     isGiveOpen={isManagedGiveOpen}
+                    canOpenGive={canOpenManagedGive}
                     onToggleGive={() => setIsManagedGiveOpen((value) => !value)}
                     giveOptions={availableManagedHolderDefinitions.map((definition) => ({
                         id: String(definition.itemId),
