@@ -344,7 +344,7 @@ export const WiredMenuTable: FC<WiredMenuTableProps> = ({ columns, rows, emptyTe
                 <WiredMenuLabel
                     align="center"
                     color={0x333333}
-                    style={{ ...textStyle, position: 'absolute', left: 0, top: titleHeight + Math.floor((contentsHeight - titleHeight - TEXT_HEIGHT) / 2) }}
+                    style={{ ...textStyle, position: 'absolute', left: 0, top: titleHeight + Math.round((contentsHeight - titleHeight - TEXT_HEIGHT) / 2) }}
                     text={emptyText}
                     width={width}
                 />

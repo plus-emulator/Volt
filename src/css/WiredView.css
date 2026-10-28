@@ -2667,8 +2667,8 @@
     text-decoration: underline;
 }
 
-.volt-wired-menu__text--soft {
-    color: #8c8c88;
+.volt-wired-menu__half {
+    opacity: 0.5;
 }
 
 /* AIR VariableValueTableObject: a value the classic client cannot show, and a packed value. */

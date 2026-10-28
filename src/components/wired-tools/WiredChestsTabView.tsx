@@ -10,7 +10,7 @@ import { FC, useCallback, useEffect, useState } from 'react';
 import { GetUserProfile, LocalizeText, localizeWithFallback, SendMessageComposer } from '../../api';
 import { useMessageEvent, useNotification, useRoom } from '../../hooks';
 import { summarizeTransactionCounts } from './WiredChestTransactionCounts';
-import { WiredMenuButton, WiredMenuItem, WiredMenuPanel, WiredMenuTable } from './WiredMenuParts';
+import { WiredMenuButton, WiredMenuPanel, WiredMenuTable, WiredMenuText, WiredMenuTitle } from './WiredMenuParts';
 import { WIRED_TRANSACTION_LOGS_PAGE_SIZE, WiredTransactionLogsPage, WiredTransactionLogsWindow } from './WiredTransactionLogsWindow';
 
 /** The preview asks for the 10 most recent transactions and refreshes on its own while the tab is open. */
@@ -101,9 +101,9 @@ export const WiredChestsTabView: FC<{}> = () => {
 
     return (
         <>
-            <WiredMenuItem h={17} w={84} x={14} y={18}>
-                <span className="volt-wired-menu__text volt-wired-menu__text--bold">Chest control:</span>
-            </WiredMenuItem>
+            <WiredMenuTitle h={17} w={84} x={14} y={18}>
+                {localizeWithFallback('wiredmenu.chests.chest_control', 'Chest control:')}
+            </WiredMenuTitle>
             <WiredMenuPanel h={90} w={472} x={14} y={38}>
                 <WiredMenuButton disabled={!canManageOwn || lockBusy} h={30} w={221} x={10} y={10} onClick={() => sendLock(true, false)}>
                     Lock all your chests
@@ -115,12 +115,12 @@ export const WiredChestsTabView: FC<{}> = () => {
                     Lock all chests
                 </WiredMenuButton>
             </WiredMenuPanel>
-            <WiredMenuItem h={17} w={136} x={14} y={139}>
-                <span className="volt-wired-menu__text volt-wired-menu__text--bold">Room Transaction Logs:</span>
-            </WiredMenuItem>
-            <WiredMenuItem h={17} w={197} x={286} y={139}>
-                <span className="volt-wired-menu__text volt-wired-menu__text--soft">PREVIEW - showing 10 most recent</span>
-            </WiredMenuItem>
+            <WiredMenuTitle h={17} w={136} x={14} y={139}>
+                {localizeWithFallback('wiredmenu.chests.room_logs', 'Room Transaction Logs:')}
+            </WiredMenuTitle>
+            <WiredMenuText className="volt-wired-menu__half" h={17} w={197} x={286} y={139}>
+                {localizeWithFallback('wiredmenu.chests.room_logs.extra', 'PREVIEW - showing 10 most recent')}
+            </WiredMenuText>
             <WiredMenuTable
                 columns={[
                     { key: 'type', title: 'Type', factor: 0.28 },
@@ -128,6 +128,7 @@ export const WiredChestsTabView: FC<{}> = () => {
                     { key: 'withdraws', title: 'Withdrawals', factor: 0.24 },
                     { key: 'deposits', title: 'Deposits', factor: 0.24 }
                 ]}
+                disabled={!preview?.length}
                 emptyText={preview ? 'Nothing to display' : ''}
                 h={168}
                 rows={(preview ?? []).map((row) => ({
