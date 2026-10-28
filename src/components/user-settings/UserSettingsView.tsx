@@ -12,7 +12,7 @@ import {
 import { FC, useEffect, useRef, useState } from 'react';
 import { DispatchMainEvent, DispatchUiEvent, GetConfigurationValue, localizeWithFallback, SendMessageComposer } from '../../api';
 import { HabboDropMenuView } from '../../common/dropmenu/HabboDropMenuView';
-import { useMessageEvent } from '../../hooks';
+import { useMessageEvent, useWiredTools } from '../../hooks';
 import { useChatPreferences } from '../../hooks/useChatPreferences';
 import { AirSettingsVolumeRow } from './AirSettingsVolumeRow';
 import { CustomWordFilterSettingsView } from './CustomWordFilterSettingsView';
@@ -45,7 +45,7 @@ export const UserSettingsView: FC<{}> = () => {
     const [open, setOpen] = useState<Record<SettingsSection, boolean>>(CLOSED);
     const [userSettings, setUserSettings] = useState<VoltSettingsEvent>(null);
     const [onlineIndicatorPreference, setOnlineIndicatorPreference] = useState<number>(null);
-    const [disableWiredWhisper, setDisableWiredWhisper] = useState(false);
+    const { accountPreferences, updateAccountPreferences } = useWiredTools();
     const { chatPreferences, updateChatPreferences } = useChatPreferences();
     const wasAudioOpenRef = useRef(false);
 
@@ -306,7 +306,7 @@ export const UserSettingsView: FC<{}> = () => {
                             </label>
                         )}
                         <label className="us-check-row">
-                            <input checked={disableWiredWhisper} className="us-check" type="checkbox" onChange={(event) => setDisableWiredWhisper(event.target.checked)} />
+                            <input checked={accountPreferences.wiredWhisperDisabled} className="us-check" type="checkbox" onChange={(event) => updateAccountPreferences({ wiredWhisperDisabled: event.target.checked })} />
                             <span>{localizeWithFallback('memenu.settings.wired_whisper_read_disable', 'Disable whispering to Wired')}</span>
                         </label>
                         <div className="us-text us-label">

@@ -1,7 +1,8 @@
 import {
     CreateLinkEvent,
     parseWiredInt64,
-    GetSessionDataManager,
+    UserSettingsEvent,
+    WiredMenuSettingsComposer,
     WiredMenuPermissionsSaveComposer,
     WiredPermissionsEvent,
     WiredRoomSettingsDataEvent,
@@ -12,7 +13,7 @@ import {
     WiredUserVariablesRequest64Composer,
     WiredUserVariableUpdate64Composer
 } from '@volt/renderer';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { registerSharedHook } from '@/state/useSharedHook';
 import {
     createPacketCooldownGate,
@@ -34,6 +35,7 @@ export interface IWiredAccountPreferences {
     showInspectButton: boolean;
     showSystemNotifications: boolean;
     showToolbarButton: boolean;
+    wiredWhisperDisabled: boolean;
     /** The look of the wired box windows; one of WIRED_STYLE_OPTIONS. */
     wiredStyle: WiredStyleName;
 }
@@ -124,13 +126,13 @@ const WIRED_VARIABLE_TARGET_ROOM = 3;
 const WIRED_VARIABLE_MANAGE_ACTION_ASSIGN = 0;
 const WIRED_VARIABLE_MANAGE_ACTION_REMOVE = 1;
 
-const WIRED_TOOLS_STORAGE_PREFIX = 'nitro.wired.tools.preferences';
 const getCurrentUnixTime = () => Math.floor(Date.now() / 1000);
 const DEFAULT_ACCOUNT_PREFERENCES: IWiredAccountPreferences = {
     showToolbarButton: false,
     showInspectButton: false,
     playTestMode: false,
     showSystemNotifications: false,
+    wiredWhisperDisabled: false,
     wiredStyle: WIRED_STYLE_DEFAULT
 };
 
@@ -161,7 +163,7 @@ export const useWiredToolsStore = () => {
     const { simpleAlert = null } = useNotification();
     const [accountPreferences, setAccountPreferences] = useState<IWiredAccountPreferences>(DEFAULT_ACCOUNT_PREFERENCES);
     const [activeWiredStyle, setActiveWiredStyle] = useState<WiredShellStyle>('illumina');
-    const [areAccountPreferencesHydrated, setAreAccountPreferencesHydrated] = useState(false);
+    const accountPreferencesRef = useRef(DEFAULT_ACCOUNT_PREFERENCES);
     const previousWiredStyleRef = useRef<WiredStyleName>('volter');
     const [roomSettings, setRoomSettings] = useState<IWiredRoomSettings>(DEFAULT_ROOM_SETTINGS);
     const [userVariableDefinitions, setUserVariableDefinitions] = useState<IWiredUserVariableDefinition[]>([]);
@@ -186,14 +188,6 @@ export const useWiredToolsStore = () => {
         });
     }, [roomSettings.canInspect]);
 
-    const storageKey = useMemo(() => {
-        const userId = GetSessionDataManager().userId;
-
-        return `${WIRED_TOOLS_STORAGE_PREFIX}.${userId || 'guest'}`;
-    }, []);
-
-    // HBe/bRe keep preference history separate from the active factory. Local storage
-    // supplies compatibility preference events here; it is not the native 1175 receiver.
     const applyWiredStylePreference = useCallback((value: unknown) => {
         const style = normalizeWiredStyle(value);
 
@@ -204,35 +198,21 @@ export const useWiredToolsStore = () => {
         if (GetConfigurationValue<boolean>('wired.ui_picker_enabled', false)) setActiveWiredStyle(style || 'volter');
     }, []);
 
-    useEffect(() => {
-        let preferences = DEFAULT_ACCOUNT_PREFERENCES;
+    useMessageEvent<UserSettingsEvent>(UserSettingsEvent, (event) => {
+        const parser = event.getParser();
+        const preferences: IWiredAccountPreferences = {
+            showToolbarButton: parser.wiredMenuButton,
+            showInspectButton: parser.wiredInspectButton,
+            playTestMode: parser.playTestMode,
+            wiredWhisperDisabled: parser.wiredWhisperDisabled,
+            showSystemNotifications: parser.showAllWiredErrors,
+            wiredStyle: normalizeWiredStyle(parser.wiredStylePreference)
+        };
 
-        try {
-            const rawValue = window.localStorage.getItem(storageKey);
-
-            if (rawValue) {
-                const parsedValue = JSON.parse(rawValue) as Partial<IWiredAccountPreferences>;
-
-                preferences = {
-                    ...DEFAULT_ACCOUNT_PREFERENCES,
-                    ...(parsedValue || {}),
-                    wiredStyle: normalizeWiredStyle(parsedValue?.wiredStyle)
-                };
-            }
-        } catch {}
-
+        accountPreferencesRef.current = preferences;
         applyWiredStylePreference(preferences.wiredStyle);
         setAccountPreferences(preferences);
-        setAreAccountPreferencesHydrated(true);
-    }, [applyWiredStylePreference, storageKey]);
-
-    useEffect(() => {
-        if (!areAccountPreferencesHydrated) return;
-
-        try {
-            window.localStorage.setItem(storageKey, JSON.stringify(accountPreferences));
-        } catch {}
-    }, [accountPreferences, areAccountPreferencesHydrated, storageKey]);
+    });
 
     useEffect(() => {
         if (!roomSession?.roomId) {
@@ -338,7 +318,13 @@ export const useWiredToolsStore = () => {
 
             if ('wiredStyle' in preferences) applyWiredStylePreference(preferences.wiredStyle);
 
-            setAccountPreferences((prevValue) => ({ ...prevValue, ...preferences }));
+            const next = { ...accountPreferencesRef.current, ...preferences };
+
+            accountPreferencesRef.current = next;
+            setAccountPreferences(next);
+            SendMessageComposer(
+                new WiredMenuSettingsComposer(next.showToolbarButton, next.showInspectButton, next.playTestMode, next.wiredWhisperDisabled, next.showSystemNotifications, next.wiredStyle)
+            );
         },
         [applyWiredStylePreference]
     );
