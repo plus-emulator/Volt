@@ -180,6 +180,56 @@
 .habbo-dropmenu--ubuntu .habbo-dropmenu-item.is-active { background: #ebebeb; }
 .habbo-dropmenu--ubuntu .habbo-dropmenu-item.is-selected,
 .habbo-dropmenu--ubuntu .habbo-dropmenu-item:active { background: #ddd; }
+/* The native label is the item's _BTN_TEXT field (2px gutter included) at the margins (4,2). */
+.habbo-dropmenu--ubuntu .habbo-dropmenu-item.is-native { padding: 2px 4px 4px; }
+
+/* The open list is a dropmenu_frame_3 too: its arrow shows through the scroll up button's corners. */
+.habbo-dropmenu-popup.habbo-dropmenu--ubuntu::before {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 22px;
+    height: 20px;
+    content: '';
+    background: url('../../assets/images/habbo-skin/slices/dropmenu-arrow.png') no-repeat;
+}
+/* scrollable_itemlist_vertical_ubuntu: a 17px scrollbar_vertical style 3 (habbo_skin_scrollbar_3) at the list's right edge. */
+.habbo-dropmenu-popup.habbo-dropmenu--ubuntu .habbo-dropmenu-list.has-scrollbar { right: 19px; }
+.habbo-dropmenu-popup.habbo-dropmenu--ubuntu .habbo-dropmenu-scrollbar { right: 2px; }
+.habbo-dropmenu--ubuntu .habbo-dropmenu-scrollbar .habbo-dropmenu-scroll-up { background-image: url('../../assets/images/habbo-skin/slices/scroll-up-3-default.png') !important; }
+.habbo-dropmenu--ubuntu .habbo-dropmenu-scrollbar .habbo-dropmenu-scroll-up:hover { background-image: url('../../assets/images/habbo-skin/slices/scroll-up-3-hover.png') !important; }
+.habbo-dropmenu--ubuntu .habbo-dropmenu-scrollbar .habbo-dropmenu-scroll-up:active { background-image: url('../../assets/images/habbo-skin/slices/scroll-up-3-pressed.png') !important; }
+.habbo-dropmenu--ubuntu .habbo-dropmenu-scrollbar .habbo-dropmenu-scroll-down { background-image: url('../../assets/images/habbo-skin/slices/scroll-down-3-default.png') !important; }
+.habbo-dropmenu--ubuntu .habbo-dropmenu-scrollbar .habbo-dropmenu-scroll-down:hover { background-image: url('../../assets/images/habbo-skin/slices/scroll-down-3-hover.png') !important; }
+.habbo-dropmenu--ubuntu .habbo-dropmenu-scrollbar .habbo-dropmenu-scroll-down:active { background-image: url('../../assets/images/habbo-skin/slices/scroll-down-3-pressed.png') !important; }
+/* The open list draws its track with the passive template (30% alpha). */
+.habbo-dropmenu--ubuntu .habbo-dropmenu-scroll-track { background-image: url('../../assets/images/habbo-skin/slices/scroll-track-v-disabled.png'); }
+/* lift_vertical_3: a 5px cap, the 16px grip tiled from row 5, and a 5px foot (rows 6-10 of the cap bitmap). */
+.habbo-dropmenu--ubuntu .habbo-dropmenu-scroll-thumb {
+    --dropmenu-thumb: url('../../assets/images/habbo-skin/slices/scroll-thumb-3-default.png');
+    box-sizing: border-box;
+    padding: 5px 0;
+    background: url('../../assets/images/habbo-skin/slices/scroll-grip-3-default.png') 0 0 repeat-y content-box;
+}
+.habbo-dropmenu--ubuntu .habbo-dropmenu-scroll-thumb:hover {
+    --dropmenu-thumb: url('../../assets/images/habbo-skin/slices/scroll-thumb-3-hover.png');
+    background-image: url('../../assets/images/habbo-skin/slices/scroll-grip-3-hover.png');
+}
+.habbo-dropmenu--ubuntu .habbo-dropmenu-scroll-thumb.is-pressed {
+    --dropmenu-thumb: url('../../assets/images/habbo-skin/slices/scroll-thumb-3-pressed.png');
+    background-image: url('../../assets/images/habbo-skin/slices/scroll-grip-3-pressed.png');
+}
+.habbo-dropmenu--ubuntu .habbo-dropmenu-scroll-thumb::before,
+.habbo-dropmenu--ubuntu .habbo-dropmenu-scroll-thumb::after {
+    position: absolute;
+    left: 0;
+    width: 17px;
+    height: 5px;
+    content: '';
+    background: var(--dropmenu-thumb) no-repeat;
+}
+.habbo-dropmenu--ubuntu .habbo-dropmenu-scroll-thumb::before { top: 0; background-position: 0 0; }
+.habbo-dropmenu--ubuntu .habbo-dropmenu-scroll-thumb::after { bottom: 0; background-position: 0 -6px; }
 
 /* WiredStyle Illumina dropmenu_100: 22px frame, 19px rows, native font and atlas. */
 .habbo-dropmenu.habbo-dropmenu--illumina,
