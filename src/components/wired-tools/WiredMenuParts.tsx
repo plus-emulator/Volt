@@ -212,6 +212,8 @@ export interface WiredMenuTableRow {
     cellTitles?: Record<string, string>;
     selected?: boolean;
     onSelect?: () => void;
+    /** TableCell.textColor of every text cell in the row. */
+    color?: number;
 }
 
 interface WiredMenuTableProps extends Rect {
@@ -265,7 +267,7 @@ export const WiredMenuTable: FC<WiredMenuTableProps> = ({ columns, rows, emptyTe
     const { focused, setFocused, rowRef } = useRowFocus();
     const textStyle: CSSProperties = disabled ? { opacity: 0.5 } : undefined;
 
-    const cell = (column: WiredMenuTableColumn, content: ReactNode, bold: boolean, top: number, link = false) => {
+    const cell = (column: WiredMenuTableColumn, content: ReactNode, bold: boolean, top: number, link = false, color = 0) => {
         const cellW = cellWidth(column);
         if (typeof content !== 'string' && typeof content !== 'number') return content;
         const text = String(content);
@@ -275,7 +277,7 @@ export const WiredMenuTable: FC<WiredMenuTableProps> = ({ columns, rows, emptyTe
         if (link)
             return <WiredMenuLabel align={align === 'left' ? undefined : align === 'center' ? 'button' : align} color={0x0000ee} style={{ position: 'absolute', left: CELL_MARGIN, top }} text={text} underline width={cellW - CELL_MARGIN * 2} />;
         if (align === 'right')
-            return <WiredMenuLabel align="right" bold={bold} style={{ ...textStyle, position: 'absolute', left: CELL_MARGIN, top }} text={text} width={cellW - CELL_MARGIN * 2} />;
+            return <WiredMenuLabel align="right" bold={bold} color={color} style={{ ...textStyle, position: 'absolute', left: CELL_MARGIN, top }} text={text} width={cellW - CELL_MARGIN * 2} />;
         // A centred cell text is drawn by AIR in sub-pixel mode; the bold title row stays pixel aligned.
         if (align === 'center' && !bold)
             return (
@@ -283,6 +285,7 @@ export const WiredMenuTable: FC<WiredMenuTableProps> = ({ columns, rows, emptyTe
                     transparent
                     align="cell"
                     background={0xffffff}
+                    color={color}
                     style={{ ...textStyle, position: 'absolute', left: CELL_MARGIN, top }}
                     text={text}
                     textStyle="u_regular"
@@ -291,7 +294,7 @@ export const WiredMenuTable: FC<WiredMenuTableProps> = ({ columns, rows, emptyTe
             );
         if (align === 'center')
             return <WiredMenuLabel align="field" bold={bold} style={{ ...textStyle, position: 'absolute', left: CELL_MARGIN, top }} text={text} width={cellW - CELL_MARGIN * 2} />;
-        return <WiredMenuLabel bold={bold} overflow={bold ? undefined : { width: cellW - CELL_MARGIN * 2, margins: CELL_MARGIN * 2 }} style={{ ...textStyle, position: 'absolute', left: CELL_MARGIN, top }} text={text} />;
+        return <WiredMenuLabel bold={bold} color={color} overflow={bold ? undefined : { width: cellW - CELL_MARGIN * 2, margins: CELL_MARGIN * 2 }} style={{ ...textStyle, position: 'absolute', left: CELL_MARGIN, top }} text={text} />;
     };
 
     return (
@@ -330,7 +333,7 @@ export const WiredMenuTable: FC<WiredMenuTableProps> = ({ columns, rows, emptyTe
                                                     {cell(column, row.cells[column.key], false, 1, true)}
                                                 </button>
                                             ) : (
-                                                cell(column, row.cells[column.key], false, 1)
+                                                cell(column, row.cells[column.key], false, 1, false, row.color)
                                             )}
                                         </div>
                                     ))}

@@ -98,7 +98,7 @@ const loadSubpixelFont = (style: SubpixelTextStyle, light: boolean) => {
 const floorToTwips = (value: number) => Math.floor(value * 20) / 20;
 
 /** Where the line starts in its field, in twips: at the 2px gutter, or centred on the field's own width. */
-const lineOrigin = (align: SubpixelTextProps['align'], fieldWidth: number, exact: number): number => {
+const lineOrigin = (align: SubpixelTextProps['align'], fieldWidth: number, exact: number, flooredWidth: number): number => {
     switch (align) {
         case 'center':
             return Math.round(((fieldWidth - Math.floor(exact / 20)) / 2) * 20);
@@ -106,6 +106,8 @@ const lineOrigin = (align: SubpixelTextProps['align'], fieldWidth: number, exact
             return Math.round(((fieldWidth - Math.round(exact / 20)) / 2) * 20);
         case 'cell':
             return Math.floor((fieldWidth - Math.round(exact / 20)) / 2) * 20;
+        case 'paragraph':
+            return Math.floor((fieldWidth * 20 - flooredWidth) / 2);
         default:
             return 40;
     }
@@ -121,8 +123,9 @@ interface SubpixelTextProps {
     /**
      * `field`: a TextField that centres itself (auto size "center"); it centres the text width rounded to whole pixels, not floored.
      * `cell`: a table cell's centred TextField; the field lands on a whole pixel, so a half pixel goes left.
+     * `paragraph`: one line of a centred multiline field; it centres the sum of the advances floored to twips.
      */
-    align?: 'left' | 'center' | 'field' | 'cell';
+    align?: 'left' | 'center' | 'field' | 'cell' | 'paragraph';
     /** A fixed text field width (gutters included); by default the field fits the text. */
     width?: number;
     className?: string;
@@ -153,7 +156,8 @@ export const SubpixelText: FC<SubpixelTextProps> = ({ text, textStyle, color = 0
                 const fieldWidth = width ?? textWidth + 4;
                 const textHeight = floorToTwips((font.ascent * font.size) / font.emSquare) + floorToTwips((font.descent * font.size) / font.emSquare);
                 const fieldHeight = Math.ceil(textHeight) + 4;
-                const origin = lineOrigin(align, fieldWidth, exact);
+                const flooredWidth = [...text].reduce((sum, character) => sum + Math.floor(twips(character)), 0);
+                const origin = lineOrigin(align, fieldWidth, exact, flooredWidth);
                 const coverage = new Uint8ClampedArray(fieldWidth * fieldHeight);
                 let cumulative = 0;
                 for (const character of text) {
