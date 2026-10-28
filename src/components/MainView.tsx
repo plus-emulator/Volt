@@ -49,6 +49,8 @@ import { VariablesExplorerView } from './variables-explorer/VariablesExplorerVie
 import { VaultView } from './vault/VaultView';
 import { WiredView } from './wired/WiredView';
 import { WiredCreatorToolsView } from './wired-tools/WiredCreatorToolsView';
+import { WiredVariableManagementDetailView } from './wired-tools/WiredVariableManagementDetailView';
+import { WiredVariableManagementView } from './wired-tools/WiredVariableManagementView';
 
 export const MainView: FC<{}> = (props) =>
 {
@@ -143,6 +145,8 @@ export const MainView: FC<{}> = (props) =>
             <ToolbarView isInRoom={!landingViewVisible} />
             <ModToolsView />
             <WiredCreatorToolsView />
+            <WiredVariableManagementView />
+            <WiredVariableManagementDetailView />
             <VariablesExplorerView />
             <RoomView />
             <ChatHistoryView />
