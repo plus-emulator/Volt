@@ -87,7 +87,8 @@ export const WiredToolsSettingsTabView: FC<WiredToolsSettingsTabViewProps> = ({ 
         useWiredTools();
 
     const canManageSettings = roomSettings.canManageSettings;
-    const canChangeRoomState = roomSettings.isLoaded && roomSettings.canModify;
+    const canReload = roomSettings.isLoaded && roomSettings.canModify;
+    const canRollback = roomSettings.isLoaded && canManageSettings;
     const inspectOptions = buildInspectOptions();
     const modifyOptions = buildModifyOptions();
     const serverTimeZone = roomSession?.hotelTimeZone || 'UTC';
@@ -115,21 +116,24 @@ export const WiredToolsSettingsTabView: FC<WiredToolsSettingsTabViewProps> = ({ 
         saveRoomSettings(nextInspectMask, normalizedModifyMask);
     };
 
-    const confirmRoomState = (messageKey: string, fallback: string, action: () => void) => {
-        if (!canChangeRoomState) return;
+    const confirmRollback = () => {
+        if (!canRollback) return;
 
         if (!showConfirm) {
-            action();
+            rollbackRoomWired();
             return;
         }
 
         showConfirm(
-            localizeWithFallback(messageKey, fallback),
-            action,
+            localizeWithFallback(
+                'wiredmenu.settings.room_state.roll_back.warning',
+                'Are you sure you want to roll this room back? Any furni movement or state change since the last room reload will be gone!'
+            ),
+            rollbackRoomWired,
             null,
             LocalizeText('generic.ok'),
             LocalizeText('generic.cancel'),
-            LocalizeText('generic.alert.title')
+            localizeWithFallback('wiredmenu.settings.room_state.roll_back', 'Rollback')
         );
     };
 
@@ -146,19 +150,6 @@ export const WiredToolsSettingsTabView: FC<WiredToolsSettingsTabViewProps> = ({ 
             onChange={() => onToggle(option.bit)}
         />
     );
-
-    const confirmReload = () =>
-        confirmRoomState(
-            'wiredmenu.settings.room_state.reload.warning',
-            'Reload the wired of this room? Every box is wired up again from the furniture as it stands now.',
-            reloadRoomWired
-        );
-    const confirmRollback = () =>
-        confirmRoomState(
-            'wiredmenu.settings.room_state.rollback.warning',
-            'Roll back the wired of this room? Every box is re-read from storage and edits that were never saved are lost.',
-            rollbackRoomWired
-        );
 
     return (
         <>
@@ -207,10 +198,10 @@ export const WiredToolsSettingsTabView: FC<WiredToolsSettingsTabViewProps> = ({ 
                 <WiredMenuTitle h={20} w={205} x={10} y={8}>
                     Room state:
                 </WiredMenuTitle>
-                <WiredMenuButton disabled={!canChangeRoomState} h={28} w={98} x={10} y={29} onClick={confirmReload}>
+                <WiredMenuButton disabled={!canReload} h={28} w={98} x={10} y={29} onClick={reloadRoomWired}>
                     Reload
                 </WiredMenuButton>
-                <WiredMenuButton danger={true} disabled={!canChangeRoomState} h={28} w={98} x={119} y={29} onClick={confirmRollback}>
+                <WiredMenuButton danger={true} disabled={!canRollback} h={28} w={98} x={119} y={29} onClick={confirmRollback}>
                     Rollback
                 </WiredMenuButton>
             </WiredMenuPanel>

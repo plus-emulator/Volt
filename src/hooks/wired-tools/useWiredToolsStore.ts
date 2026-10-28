@@ -367,19 +367,19 @@ export const useWiredToolsStore = () => {
         [saveRoomSettings, roomSettings.inspectMask, roomSettings.modifyMask]
     );
 
-    /** Drops the room's cached wired stacks so its boxes are wired up again from the furniture as it stands. */
+    /** Reloads the room: everyone is sent out and re-enters it. */
     const reloadRoomWired = useCallback(() => {
         if (!roomSettings.canModify) return;
 
         SendMessageComposer(new WiredRoomStateActionComposer(false));
     }, [roomSettings.canModify]);
 
-    /** Re-reads every box from storage, discarding edits that were never saved, then rebuilds the stacks. */
+    /** Reloads the room after every furni goes back to its place and state from the last room load. Owner or staff only. */
     const rollbackRoomWired = useCallback(() => {
-        if (!roomSettings.canModify) return;
+        if (!roomSettings.canManageSettings) return;
 
         SendMessageComposer(new WiredRoomStateActionComposer(true));
-    }, [roomSettings.canModify]);
+    }, [roomSettings.canManageSettings]);
 
     const exactInput = useCallback((input: bigint | string | number): bigint | null => {
         try { return parseWiredInt64(input); }

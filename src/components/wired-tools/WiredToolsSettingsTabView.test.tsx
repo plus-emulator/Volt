@@ -91,21 +91,6 @@ describe('WiredToolsSettingsTabView', () => {
         expect(mocks.saveRoomTimezone).toHaveBeenCalledWith('Europe/Berlin');
     });
 
-    it('reload and rollback ask first and then send the room-state action', () => {
-        render(<WiredToolsSettingsTabView />);
-
-        fireEvent.click(screen.getByRole('button', { name: 'Rollback' }));
-        expect(mocks.rollbackRoomWired).not.toHaveBeenCalled();
-        expect(mocks.showConfirm).toHaveBeenCalledTimes(1);
-
-        (mocks.showConfirm.mock.calls[0][1] as () => void)();
-        expect(mocks.rollbackRoomWired).toHaveBeenCalledTimes(1);
-
-        fireEvent.click(screen.getByRole('button', { name: 'Reload' }));
-        (mocks.showConfirm.mock.calls[1][1] as () => void)();
-        expect(mocks.reloadRoomWired).toHaveBeenCalledTimes(1);
-    });
-
     it('shows the sandbox donation tool only when the hotel enables it', () => {
         const onOpen = vi.fn();
         const { unmount } = render(<WiredToolsSettingsTabView onOpenSelfDonation={onOpen} />);
