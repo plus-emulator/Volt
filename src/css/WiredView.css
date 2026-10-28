@@ -3006,3 +3006,118 @@
 .volt-wired-menu__highlight-wired:disabled .volt-wired-menu__highlight-wired-icon {
     opacity: 0.5;
 }
+
+/* PagedTableView footer: button_shiny_thick container buttons with the triangle icons, and the page field. */
+.volt-wired-menu__page-button {
+    position: absolute;
+    top: 0;
+    width: 50px;
+    height: 30px;
+    padding: 0;
+    border: 5px solid transparent;
+    border-image: var(--habbo-skin-shiny-thick) 5 fill / 5px stretch;
+    background: none;
+    image-rendering: pixelated;
+}
+
+.volt-wired-menu__page-button:hover:enabled {
+    border-image-source: var(--habbo-skin-shiny-thick-hover);
+}
+
+.volt-wired-menu__page-button:active:enabled {
+    border-image-source: var(--habbo-skin-shiny-thick-pressed);
+}
+
+.volt-wired-menu__page-button:disabled {
+    border-image-source: var(--habbo-skin-shiny-thick-disabled);
+}
+
+.volt-wired-menu__page-button > img {
+    position: absolute;
+    max-width: none;
+}
+
+.volt-wired-menu__page-button:disabled > img {
+    opacity: 0.5;
+}
+
+/* A TextField with border and background: a 1px black frame one pixel wider and higher than the field. */
+.volt-wired-menu__page-input {
+    position: absolute;
+    top: 0;
+    width: 22px;
+    height: 18px;
+    border: 1px solid #000;
+    background: #fff;
+}
+
+.volt-wired-menu__page-input input,
+.volt-wired-logs__input input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0 2px;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: transparent;
+    caret-color: #000;
+    font: 12px HabboAirUbuntu, sans-serif;
+}
+
+/* logs_overview: a 700x508 frame 3 window, resizable in height; its client starts 33px down. */
+.volt-wired-logs.volt-card-shell.volt-card-frame-3 {
+    width: 700px;
+    min-width: 700px;
+    max-width: 700px;
+    height: 508px;
+    min-height: 380px;
+    max-height: 700px;
+    padding: 0 !important;
+    font-family: HabboAirUbuntu, sans-serif;
+    font-size: 12px;
+}
+
+.volt-card-shell.volt-wired-logs.volt-card-frame-3 > .volt-card-header-shell .volt-card-close-button {
+    right: 3px !important;
+}
+
+.volt-wired-logs__client {
+    position: absolute;
+    inset: 33px 0 0;
+    overflow: hidden;
+    color: #000;
+}
+
+/* Border style 4: white with a thin dark border. */
+.volt-wired-logs__box::before {
+    position: absolute;
+    inset: 0;
+    border: 6px solid transparent;
+    border-image: url('../assets/images/habbo-skin/slices/border-4.png') 6 fill / 6px stretch;
+    content: '';
+    image-rendering: pixelated;
+}
+
+.volt-wired-logs__input {
+    position: absolute;
+    left: 6px;
+    top: 4px;
+    width: 257px;
+    height: 18px;
+}
+
+/* The middle container stretches with the window, the footer moves with its bottom edge. */
+.volt-wired-logs__middle {
+    position: absolute;
+    left: 1px;
+    top: 97px;
+    width: 698px;
+    bottom: 62px;
+}
+
+.volt-wired-logs__paging {
+    bottom: 16px;
+}
