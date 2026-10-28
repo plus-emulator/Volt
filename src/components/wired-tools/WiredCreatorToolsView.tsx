@@ -973,11 +973,11 @@ export const WiredCreatorToolsView: FC<{}> = () => {
     const managedHolderWarningText = useMemo(() => {
         switch (variablesType) {
             case 'furni':
-                return 'Use this tool only for furni that are currently loaded in the room. Reload the panel after major room changes.';
+                return 'Only furni loaded in the room can be managed. Reload after changes.';
             case 'global':
-                return 'Global variables are room-scoped. Only the latest update time is tracked for these values.';
+                return 'Global variables are room-scoped. Only the update time is tracked.';
             case 'context':
-                return 'Context variables only live inside the current wired execution. They are shared through the signal chain until a branch overrides them.';
+                return 'Context variables only live in the current wired execution.';
             default:
                 return localizeWithFallback('wiredmenu.variable_management_detail.info', 'Use this tool to see and change the permanent variables of a user.');
         }

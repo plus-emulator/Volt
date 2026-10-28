@@ -16,7 +16,7 @@ export interface VariablesExplorerHolderViewProps {
 }
 
 const WARNING_TEXT: Record<ExplorerHolderTarget['scope'], string> = {
-    user: 'Changes go through the Variables Web API and fire the room wired like any other variable change.',
+    user: 'Changes go through the Variables Web API and fire room wired.',
     furni: 'Only furni placed in this room can hold furni variables.',
     global: 'Global variables are room-scoped. Values can be changed, not removed.'
 };
