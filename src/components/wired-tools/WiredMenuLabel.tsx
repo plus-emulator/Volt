@@ -4,17 +4,24 @@ import { loadNativeFont, measureNativeText } from '../../common/native-text/Nati
 import { NativeTextStyleName, nativeTextStyles } from '../../common/native-text/NativeTextStyles';
 
 const OVERFLOW = '...';
+const GUTTER = 2;
 
 interface Fitted {
     text: string;
     width: number;
 }
 
+/** overflow_replace: `width` is the text window's width minus its margins, `margins` is its left plus right margin. */
+interface Overflow {
+    width: number;
+    margins: number;
+}
+
 /**
- * The text as the TextField shows it and its width. With overflow_replace (TextController.refreshTextImage) a text wider than
- * the limit loses characters from the end until the shortened text and "..." fit.
+ * The text as the TextField shows it and its width. With overflow_replace (TextController.refreshTextImage) a text that does not
+ * fit is cut after the character before the last one that ends inside `width`, then loses one more character until it fits.
  */
-const useFittedText = (text: string, textStyle: NativeTextStyleName, limit?: number): Fitted | null => {
+const useFittedText = (text: string, textStyle: NativeTextStyleName, overflow?: Overflow): Fitted | null => {
     const [fitted, setFitted] = useState<Fitted | null>(null);
 
     useEffect(() => {
@@ -25,10 +32,12 @@ const useFittedText = (text: string, textStyle: NativeTextStyleName, limit?: num
                 if (disposed) return;
                 const measure = (value: string) => measureNativeText(font, value, style);
                 let shown = text;
-                if (limit !== undefined && measure(text) > limit) {
-                    let length = text.length - 1;
-                    while (length > 0 && measure(text.slice(0, length) + OVERFLOW) > limit) length--;
-                    shown = text.slice(0, length) + OVERFLOW;
+                const tooWide = (value: string) => overflow !== undefined && measure(value) + overflow.margins > overflow.width;
+                if (tooWide(text)) {
+                    let last = text.length - 1;
+                    while (last > 0 && GUTTER + measure(text.slice(0, last + 1)) > overflow.width) last--;
+                    let length = last;
+                    while (length > 0 && tooWide(shown)) shown = text.slice(0, --length) + OVERFLOW;
                 }
                 setFitted({ text: shown, width: measure(shown) });
             })
@@ -36,7 +45,7 @@ const useFittedText = (text: string, textStyle: NativeTextStyleName, limit?: num
         return () => {
             disposed = true;
         };
-    }, [text, textStyle, limit]);
+    }, [text, textStyle, overflow?.width, overflow?.margins]);
 
     return fitted;
 };
@@ -47,8 +56,7 @@ interface WiredMenuLabelProps {
     /** Another text style than u_regular / u_bold, such as the frame caption. */
     textStyle?: NativeTextStyleName;
     color?: number;
-    /** overflow_replace: the widest text that is shown whole; a wider one is cut and ends with "...". */
-    overflowWidth?: number;
+    overflow?: Overflow;
     /** `button` centres like a button caption, which rounds a half pixel down instead of up. */
     align?: 'left' | 'center' | 'button' | 'right';
     /** The width the text window aligns in, for centred and right aligned text. */
@@ -69,9 +77,9 @@ const fieldLeft = (align: WiredMenuLabelProps['align'], width: number, textWidth
 };
 
 /** A pixel-mode AIR TextField (Ubuntu 12, 2px gutter) drawn by the native glyph renderer. */
-export const WiredMenuLabel: FC<WiredMenuLabelProps> = ({ text, bold = false, textStyle, color = 0, overflowWidth, align = 'left', width, className, style }) => {
+export const WiredMenuLabel: FC<WiredMenuLabelProps> = ({ text, bold = false, textStyle, color = 0, overflow, align = 'left', width, className, style }) => {
     const styleName = textStyle ?? (bold ? 'u_bold' : 'u_regular');
-    const fitted = useFittedText(text, styleName, overflowWidth);
+    const fitted = useFittedText(text, styleName, overflow);
     const left = width === undefined || !fitted ? 0 : fieldLeft(align, width, fitted.width);
 
     return (

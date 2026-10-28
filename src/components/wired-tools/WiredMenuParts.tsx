@@ -261,7 +261,7 @@ export const WiredMenuTable: FC<WiredMenuTableProps> = ({ columns, rows, emptyTe
             return <WiredMenuLabel align="right" bold={bold} style={{ ...textStyle, position: 'absolute', left: CELL_MARGIN, top }} text={text} width={cellW - CELL_MARGIN * 2} />;
         if (align === 'center')
             return <WiredMenuLabel align="center" bold={bold} style={{ ...textStyle, position: 'absolute', left: CELL_MARGIN, top }} text={text} width={cellW - CELL_MARGIN * 2} />;
-        return <WiredMenuLabel bold={bold} overflowWidth={bold ? undefined : cellW - CELL_MARGIN * 4} style={{ ...textStyle, position: 'absolute', left: CELL_MARGIN, top }} text={text} />;
+        return <WiredMenuLabel bold={bold} overflow={bold ? undefined : { width: cellW - CELL_MARGIN * 2, margins: CELL_MARGIN * 2 }} style={{ ...textStyle, position: 'absolute', left: CELL_MARGIN, top }} text={text} />;
     };
 
     return (
