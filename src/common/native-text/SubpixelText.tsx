@@ -6,12 +6,12 @@ import { NativeText } from './NativeText';
  * glyphs sit on 1/20 px pens and each pen phase has its own raster. These styles carry AIR's own rasters per phase
  * (WIN63-202610201032, rendered by the AIR runtime); characters without one are drawn by NativeText.
  */
-export type SubpixelTextStyle = 'u_regular' | 'u_bold' | 'u_headline_small';
+export type SubpixelTextStyle = 'u_regular' | 'u_bold' | 'u_headline_small' | 'u_headline_medium';
 
 type FontAsset = { metrics: string; atlas: string };
 
 // The advanced rasterizer thickens light text (Air32 color type): light colours have their own rasters.
-const fontAssets: Record<SubpixelTextStyle, { dark: FontAsset; light?: FontAsset }> = {
+const fontAssets: Record<SubpixelTextStyle, { dark?: FontAsset; light?: FontAsset }> = {
     u_regular: {
         dark: {
             metrics: new URL('../../assets/native-fonts/subpixel/u_regular.json', import.meta.url).href,
@@ -37,6 +37,13 @@ const fontAssets: Record<SubpixelTextStyle, { dark: FontAsset; light?: FontAsset
             metrics: new URL('../../assets/native-fonts/subpixel/u_headline_small.json', import.meta.url).href,
             atlas: new URL('../../assets/native-fonts/subpixel/u_headline_small.png', import.meta.url).href
         }
+    },
+    // Ubuntu bold 16 (80 / -15) in white only: the Wired Creator Tools header title.
+    u_headline_medium: {
+        light: {
+            metrics: new URL('../../assets/native-fonts/subpixel/u_headline_medium_light.json', import.meta.url).href,
+            atlas: new URL('../../assets/native-fonts/subpixel/u_headline_medium_light.png', import.meta.url).href
+        }
     }
 };
 
@@ -58,7 +65,7 @@ interface SubpixelFont {
 const loadingFonts = new Map<string, Promise<SubpixelFont>>();
 
 const loadSubpixelFont = (style: SubpixelTextStyle, light: boolean) => {
-    const variant = light && fontAssets[style].light ? 'light' : 'dark';
+    const variant = (light && fontAssets[style].light) || !fontAssets[style].dark ? 'light' : 'dark';
     const key = `${style}:${variant}`;
     if (!loadingFonts.has(key)) {
         const asset = fontAssets[style][variant];
