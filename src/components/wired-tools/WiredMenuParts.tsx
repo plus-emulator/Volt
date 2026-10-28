@@ -256,9 +256,10 @@ export const WiredMenuTable: FC<WiredMenuTableProps> = ({ columns, rows, emptyTe
         const cellW = cellWidth(column);
         if (typeof content !== 'string' && typeof content !== 'number') return content;
         const text = String(content);
-        if (column.align === 'right')
+        const align = column.align ?? 'center';
+        if (align === 'right')
             return <WiredMenuLabel align="right" bold={bold} style={{ ...textStyle, position: 'absolute', left: CELL_MARGIN, top }} text={text} width={cellW - CELL_MARGIN * 2} />;
-        if (column.align === 'center')
+        if (align === 'center')
             return <WiredMenuLabel align="center" bold={bold} style={{ ...textStyle, position: 'absolute', left: CELL_MARGIN, top }} text={text} width={cellW - CELL_MARGIN * 2} />;
         return <WiredMenuLabel bold={bold} overflowWidth={bold ? undefined : cellW - CELL_MARGIN * 4} style={{ ...textStyle, position: 'absolute', left: CELL_MARGIN, top }} text={text} />;
     };
