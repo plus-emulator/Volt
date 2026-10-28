@@ -21,12 +21,12 @@ interface Overflow {
  * The text as the TextField shows it and its width. With overflow_replace (TextController.refreshTextImage) a text that does not
  * fit is cut after the character before the last one that ends inside `width`, then loses one more character until it fits.
  */
-const useFittedText = (text: string, textStyle: NativeTextStyleName, overflow?: Overflow): Fitted | null => {
+const useFittedText = (text: string, textStyle: NativeTextStyleName, size: number | undefined, overflow?: Overflow): Fitted | null => {
     const [fitted, setFitted] = useState<Fitted | null>(null);
 
     useEffect(() => {
         let disposed = false;
-        const style = nativeTextStyles[textStyle];
+        const style = { ...nativeTextStyles[textStyle], ...(size ? { size } : {}) };
         loadNativeFont(style)
             .then(({ font }) => {
                 if (disposed) return;
@@ -45,7 +45,7 @@ const useFittedText = (text: string, textStyle: NativeTextStyleName, overflow?: 
         return () => {
             disposed = true;
         };
-    }, [text, textStyle, overflow?.width, overflow?.margins]);
+    }, [text, textStyle, size, overflow?.width, overflow?.margins]);
 
     return fitted;
 };
@@ -56,9 +56,15 @@ interface WiredMenuLabelProps {
     /** Another text style than u_regular / u_bold, such as the frame caption. */
     textStyle?: NativeTextStyleName;
     color?: number;
+    /** A `font_size` other than the style's. */
+    size?: number;
+    underline?: boolean;
     overflow?: Overflow;
-    /** `button` centres like a button caption, which rounds a half pixel down instead of up. */
-    align?: 'left' | 'center' | 'button' | 'right';
+    /**
+     * `center`: an auto sized window centred in `width`. `button`: a label, which drops a half pixel instead of rounding it.
+     * `field`: a TextField that centres itself (auto size "center"); its pen lands on the floor of the exact centre.
+     */
+    align?: 'left' | 'center' | 'button' | 'field' | 'right';
     /** The width the text window aligns in, for centred and right aligned text. */
     width?: number;
     className?: string;
@@ -72,14 +78,15 @@ interface WiredMenuLabelProps {
 const fieldLeft = (align: WiredMenuLabelProps['align'], width: number, textWidth: number) => {
     if (align === 'center') return Math.round((width - Math.floor(textWidth + 4)) / 2);
     if (align === 'button') return Math.floor((width - Math.floor(textWidth + 4)) / 2);
+    if (align === 'field') return Math.floor((width - textWidth) / 2) - 2;
     if (align === 'right') return Math.floor(width - 2 - textWidth) - 2;
     return 0;
 };
 
 /** A pixel-mode AIR TextField (Ubuntu 12, 2px gutter) drawn by the native glyph renderer. */
-export const WiredMenuLabel: FC<WiredMenuLabelProps> = ({ text, bold = false, textStyle, color = 0, overflow, align = 'left', width, className, style }) => {
+export const WiredMenuLabel: FC<WiredMenuLabelProps> = ({ text, bold = false, textStyle, color = 0, size, underline, overflow, align = 'left', width, className, style }) => {
     const styleName = textStyle ?? (bold ? 'u_bold' : 'u_regular');
-    const fitted = useFittedText(text, styleName, overflow);
+    const fitted = useFittedText(text, styleName, size, overflow);
     const left = width === undefined || !fitted ? 0 : fieldLeft(align, width, fitted.width);
 
     return (
@@ -88,7 +95,7 @@ export const WiredMenuLabel: FC<WiredMenuLabelProps> = ({ text, bold = false, te
             transparent
             background={0xffffff}
             className={className}
-            overrides={{ color }}
+            overrides={{ color, ...(size ? { size } : {}), ...(underline ? { underline } : {}) }}
             style={{ ...style, marginLeft: left, visibility: fitted ? undefined : 'hidden' }}
             text={fitted?.text ?? text}
             textStyle={styleName}

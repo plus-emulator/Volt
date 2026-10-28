@@ -1,9 +1,13 @@
+import { FC, useEffect, useState } from 'react';
 import { localizeWithFallback } from '../../api';
 import monitorElementOne from '../../assets/images/wired/native/menu_monitor_1.png';
 import monitorElementTwo from '../../assets/images/wired/native/menu_monitor_2.png';
 import { ClassicScrollAreaView } from '../../common';
+import { loadNativeFont, measureNativeText } from '../../common/native-text/NativeFont';
+import { nativeTextStyles } from '../../common/native-text/NativeTextStyles';
 import { MONITOR_COLOR_GREEN } from './WiredCreatorTools.constants';
 import { MonitorLog, MonitorStat } from './WiredCreatorTools.types';
+import { WiredMenuLabel } from './WiredMenuLabel';
 import { WiredMenuButton, WiredMenuItem, WiredMenuPanel, WiredMenuTable, WiredMenuTitle } from './WiredMenuParts';
 
 export interface WiredMonitorTabViewProps {
@@ -22,6 +26,42 @@ export interface WiredMonitorTabViewProps {
     onOpenMonitorErrorInfo: (log: MonitorLog) => void;
 }
 
+const STAT_FONT_SIZE = 11;
+
+/** A statistics `html` window (font_size 11): the label in black and the value in its colour, drawn as one native text line. */
+const WiredMonitorStatLine: FC<{ stat: MonitorStat }> = ({ stat }) => {
+    const text = stat.value ? `${stat.label} ${stat.value}` : stat.label;
+    const [valueLeft, setValueLeft] = useState<number>(null);
+
+    useEffect(() => {
+        let disposed = false;
+        const style = { ...nativeTextStyles.u_regular, size: STAT_FONT_SIZE };
+        loadNativeFont(style)
+            .then(({ font }) => {
+                if (!disposed) setValueLeft(Math.floor(2 + measureNativeText(font, `${stat.label} `, style)));
+            })
+            .catch(() => undefined);
+        return () => {
+            disposed = true;
+        };
+    }, [stat.label]);
+
+    return (
+        <div className="volt-wired-menu__stat">
+            <WiredMenuLabel size={STAT_FONT_SIZE} text={text} />
+            {stat.value && stat.color && valueLeft !== null && (
+                <WiredMenuLabel
+                    className="volt-wired-menu__stat-value"
+                    color={parseInt(stat.color, 16)}
+                    size={STAT_FONT_SIZE}
+                    style={{ clipPath: `inset(0 0 0 ${valueLeft}px)` }}
+                    text={text}
+                />
+            )}
+        </div>
+    );
+};
+
 /** The "Monitor" tab (monitor_container of wired_menu_view): statistics, the monitor picture and the error log table. */
 export const WiredMonitorTabView = (props: WiredMonitorTabViewProps) => {
     const { loading, canClear, canOpenLogs, monitorStats, monitorLogs, onOpenRoomLogs, onClearMonitorLogs, onOpenMonitorErrorInfo } = props;
@@ -38,15 +78,7 @@ export const WiredMonitorTabView = (props: WiredMonitorTabViewProps) => {
                 <WiredMenuItem h={89} w={197} x={5} y={5}>
                     <ClassicScrollAreaView className="size-full" scrollStep={18}>
                         {monitorStats.map((stat) => (
-                            <div key={stat.label} className="volt-wired-menu__text volt-wired-menu__stat">
-                                {stat.label}
-                                {stat.value && (
-                                    <>
-                                        {' '}
-                                        <span style={stat.color ? { color: `#${stat.color}` } : undefined}>{stat.value}</span>
-                                    </>
-                                )}
-                            </div>
+                            <WiredMonitorStatLine key={stat.label} stat={stat} />
                         ))}
                     </ClassicScrollAreaView>
                 </WiredMenuItem>
@@ -67,7 +99,8 @@ export const WiredMonitorTabView = (props: WiredMonitorTabViewProps) => {
                 h={156}
                 rows={monitorLogs.map((log, index) => ({
                     key: `${log.errorId}-${index}`,
-                    cells: { type: log.type, category: log.category, amount: log.amount, latest: <span title={log.latestTooltip}>{log.latest}</span> },
+                    cells: { type: log.type, category: log.category, amount: log.amount, latest: log.latest },
+                    cellTitles: { latest: log.latestTooltip },
                     linkColumn: 'type',
                     onLink: () => onOpenMonitorErrorInfo(log)
                 }))}

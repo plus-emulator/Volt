@@ -2474,8 +2474,14 @@
 }
 
 .volt-wired-menu__stat {
+    position: relative;
     height: 18px;
-    line-height: 16px;
+}
+
+.volt-wired-menu__stat-value {
+    position: absolute !important;
+    left: 0;
+    top: 0;
 }
 
 .volt-wired-menu__monitor-image img {
@@ -2649,6 +2655,8 @@
 }
 
 .volt-wired-menu__link {
+    position: absolute;
+    inset: 0;
     padding: 0;
     border: 0;
     background: transparent;

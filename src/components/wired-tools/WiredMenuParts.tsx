@@ -2,6 +2,7 @@ import { CSSProperties, FC, PropsWithChildren, ReactNode, useEffect, useRef, use
 import boxLines from '../../assets/images/wired/native/menu_box_lines.png';
 import discordIcon from '../../assets/images/wired/native/menu_discord.png';
 import { ClassicScrollAreaView, VoltCardHeaderView, VoltCardView } from '../../common';
+import { SubpixelText } from '../../common/native-text/SubpixelText';
 import { WiredMenuLabel } from './WiredMenuLabel';
 
 interface Rect {
@@ -70,7 +71,10 @@ const BUTTON_BORDER = 5;
 /** The caption's top in a 25px high button; the label is centred, so a taller button moves it down by half the extra height. */
 const BUTTON_CAPTION_TOP = 3;
 
-/** The menu's `button_shiny_regular` buttons; the red ones use the 0xe33934 style 5 skin. A text caption is the button's centred label. */
+/**
+ * The menu's `button_shiny_regular` buttons; the red ones use the 0xe33934 style 5 skin. A text caption is the button's centred label;
+ * the style 5 (white caption) layout rounds a half pixel up, the style 3 one drops it.
+ */
 export const WiredMenuButton: FC<PropsWithChildren<WiredMenuButtonProps>> = ({ disabled = false, danger = false, className = '', title, onClick, children, ...rect }) => (
     <button
         className={`volt-wired-menu__item volt-wired-menu__button ${danger ? 'is-danger' : ''} ${className}`}
@@ -82,10 +86,10 @@ export const WiredMenuButton: FC<PropsWithChildren<WiredMenuButtonProps>> = ({ d
     >
         {isText(children) ? (
             <WiredMenuLabel
-                align="button"
+                align={danger ? 'center' : 'button'}
                 className="volt-wired-menu__button-caption"
                 color={danger ? 0xffffff : 0}
-                style={{ left: -BUTTON_BORDER, top: BUTTON_CAPTION_TOP + Math.floor(((rect.h ?? 25) - 25) / 2) - BUTTON_BORDER, opacity: disabled && !danger ? 0.5 : undefined }}
+                style={{ left: -BUTTON_BORDER, top: BUTTON_CAPTION_TOP + Math.round(((rect.h ?? 25) - 25) / 2) - BUTTON_BORDER, opacity: disabled && !danger ? 0.5 : undefined }}
                 text={String(children)}
                 width={rect.w}
             />
@@ -197,6 +201,8 @@ export interface WiredMenuTableRow {
     cells: Record<string, ReactNode>;
     linkColumn?: string;
     onLink?: () => void;
+    /** Tool tips of single cells, by column key. */
+    cellTitles?: Record<string, string>;
     selected?: boolean;
     onSelect?: () => void;
 }
@@ -252,15 +258,32 @@ export const WiredMenuTable: FC<WiredMenuTableProps> = ({ columns, rows, emptyTe
     const { focused, setFocused, rowRef } = useRowFocus();
     const textStyle: CSSProperties = disabled ? { opacity: 0.5 } : undefined;
 
-    const cell = (column: WiredMenuTableColumn, content: ReactNode, bold: boolean, top: number) => {
+    const cell = (column: WiredMenuTableColumn, content: ReactNode, bold: boolean, top: number, link = false) => {
         const cellW = cellWidth(column);
         if (typeof content !== 'string' && typeof content !== 'number') return content;
         const text = String(content);
         const align = column.align ?? 'center';
+        // element_link: a 0x0000ee underlined text window, placed like the cell's own text.
+        // TextField auto size "center" puts a half pixel to the left, like a button caption.
+        if (link)
+            return <WiredMenuLabel align={align === 'left' ? undefined : align === 'center' ? 'button' : align} color={0x0000ee} style={{ position: 'absolute', left: CELL_MARGIN, top }} text={text} underline width={cellW - CELL_MARGIN * 2} />;
         if (align === 'right')
             return <WiredMenuLabel align="right" bold={bold} style={{ ...textStyle, position: 'absolute', left: CELL_MARGIN, top }} text={text} width={cellW - CELL_MARGIN * 2} />;
+        // A centred cell text is drawn by AIR in sub-pixel mode; the bold title row stays pixel aligned.
+        if (align === 'center' && !bold)
+            return (
+                <SubpixelText
+                    transparent
+                    align="field"
+                    background={0xffffff}
+                    style={{ ...textStyle, position: 'absolute', left: CELL_MARGIN, top }}
+                    text={text}
+                    textStyle="u_regular"
+                    width={cellW - CELL_MARGIN * 2}
+                />
+            );
         if (align === 'center')
-            return <WiredMenuLabel align="center" bold={bold} style={{ ...textStyle, position: 'absolute', left: CELL_MARGIN, top }} text={text} width={cellW - CELL_MARGIN * 2} />;
+            return <WiredMenuLabel align="field" bold={bold} style={{ ...textStyle, position: 'absolute', left: CELL_MARGIN, top }} text={text} width={cellW - CELL_MARGIN * 2} />;
         return <WiredMenuLabel bold={bold} overflow={bold ? undefined : { width: cellW - CELL_MARGIN * 2, margins: CELL_MARGIN * 2 }} style={{ ...textStyle, position: 'absolute', left: CELL_MARGIN, top }} text={text} />;
     };
 
@@ -294,10 +317,10 @@ export const WiredMenuTable: FC<WiredMenuTableProps> = ({ columns, rows, emptyTe
                                     onPointerDown={() => setFocused(true)}
                                 >
                                     {columns.map((column) => (
-                                        <div key={column.key} className="volt-wired-menu__cell" style={{ width: cellWidth(column) }}>
+                                        <div key={column.key} className="volt-wired-menu__cell" style={{ width: cellWidth(column) }} title={row.cellTitles?.[column.key]}>
                                             {row.linkColumn === column.key ? (
                                                 <button className="volt-wired-menu__link" type="button" onClick={row.onLink}>
-                                                    {row.cells[column.key]}
+                                                    {cell(column, row.cells[column.key], false, 1, true)}
                                                 </button>
                                             ) : (
                                                 cell(column, row.cells[column.key], false, 1)
