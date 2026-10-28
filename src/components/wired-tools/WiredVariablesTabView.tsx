@@ -141,11 +141,11 @@ export const WiredVariablesTabView: FC<WiredVariablesTabViewProps> = ({
                 </WiredMenuButton>
             )}
             {!!onOpenWebApiExplorer && (
-                <WiredMenuButton h={19} w={92} x={110} y={18} onClick={onOpenWebApiExplorer}>
+                <WiredMenuButton h={25} w={112} x={306} y={12} onClick={onOpenWebApiExplorer}>
                     {localizeWithFallback('wiredmenu.variables.web_api_explorer', 'Web API explorer')}
                 </WiredMenuButton>
             )}
-            <WiredMenuTitle h={19} w={188} x={230} y={17}>
+            <WiredMenuTitle h={19} w={70} x={230} y={17}>
                 Properties:
             </WiredMenuTitle>
             <WiredMenuTable
