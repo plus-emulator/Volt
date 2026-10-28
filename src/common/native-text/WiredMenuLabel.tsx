@@ -63,8 +63,10 @@ interface WiredMenuLabelProps {
     /**
      * `center`: an auto sized window centred in `width`. `button`: a label, which drops a half pixel instead of rounding it.
      * `field`: a TextField that centres itself (auto size "center"); its pen lands on the floor of the exact centre.
+     * `resize`: an auto size "left" field `width` wide in the layout that keeps its centre when it resizes (on_resize_align center).
+     * `caption`: a frame caption, a label with 8px side margins centred in the title bar `width` wide; both halves are floored.
      */
-    align?: 'left' | 'center' | 'button' | 'field' | 'right';
+    align?: 'left' | 'center' | 'button' | 'field' | 'resize' | 'caption' | 'right';
     /** The width the text window aligns in, for centred and right aligned text. */
     width?: number;
     className?: string;
@@ -79,6 +81,8 @@ const fieldLeft = (align: WiredMenuLabelProps['align'], width: number, textWidth
     if (align === 'center') return Math.round((width - Math.floor(textWidth + 4)) / 2);
     if (align === 'button') return Math.floor((width - Math.floor(textWidth + 4)) / 2);
     if (align === 'field') return Math.floor((width - textWidth) / 2) - 2;
+    if (align === 'resize') return Math.trunc((width - Math.floor(textWidth + 4)) / 2);
+    if (align === 'caption') return Math.floor(width / 2) - Math.floor((Math.floor(textWidth + 4) + 16) / 2) + 8;
     if (align === 'right') return Math.floor(width - 2 - textWidth) - 2;
     return 0;
 };
