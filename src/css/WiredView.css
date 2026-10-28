@@ -2734,10 +2734,6 @@
     pointer-events: none;
 }
 
-.volt-wired-menu__discord img {
-    filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, 0.28));
-}
-
 /* Native glyph text (il_regular) inside the Illumina section kit. NativeText keeps the 2px TextField gutter but
    sizes the field ceil(lines x 12.3) + 4; an auto-sized TextField is floor(lines x 12.3 + 4), one pixel less. */
 .volt-wired__native-text {
