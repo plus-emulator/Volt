@@ -9,7 +9,7 @@ import { VariablesElementType } from './WiredCreatorTools.types';
 import { WiredMenuButton, WiredMenuItem, WiredMenuTable, WiredMenuTableColumn, WiredMenuText, WiredMenuTitle } from './WiredMenuParts';
 import { WiredMenuHtmlText } from './WiredMenuHtmlText';
 import { WiredMenuPagingFooter } from './WiredMenuPaging';
-import { useTextWindowWidth } from './useTextWindowWidth';
+import { useTextWindowWidths } from './nativeTextWindow';
 
 /** The server's holder kinds (`entityType`). */
 export const HOLDER_TYPE_ROOM = 0;
@@ -96,7 +96,7 @@ export const WiredVariableOwnersPanel = <T extends number | bigint = number>(pro
     const [tableArea, setTableArea] = useState<HTMLDivElement>(null);
     const [tableHeight, setTableHeight] = useState(0);
     const variableNameLabel = localizeWithFallback('wiredmenu.variable_management.variable_name', 'Variable name:');
-    const variableNameWidth = useTextWindowWidth(variableNameLabel, 'u_bold');
+    const variableNameWidth = useTextWindowWidths([{ text: variableNameLabel, textStyle: 'u_bold' }])?.[0] ?? null;
 
     // The middle container stretches with the window height; the table view fills it.
     useEffect(() => {
