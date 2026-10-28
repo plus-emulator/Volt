@@ -129,8 +129,16 @@ export const WiredVariablesTabView: FC<WiredVariablesTabViewProps> = ({
                         : localizeWithFallback('wiredmenu.variable_overview.highlight_holders', 'Highlight')}
                 </WiredMenuButton>
             )}
-            <WiredMenuButton disabled={!variableManageCanOpen} h={25} w={73} x={95} y={342} onClick={onOpenManagePanel}>
-                Manage
+            <WiredMenuButton
+                disabled={!variableManageCanOpen}
+                h={25}
+                title={localizeWithFallback('wiredmenu.variable_overview.manage.tooltip', 'Manage all users who are holding this variable')}
+                w={73}
+                x={95}
+                y={342}
+                onClick={onOpenManagePanel}
+            >
+                {localizeWithFallback('wiredmenu.variable_overview.manage', 'Manage')}
             </WiredMenuButton>
             <WiredMenuButton danger={true} disabled={!canVariableClear} h={25} w={25} x={176} y={342} title={clearLabel ?? localizeWithFallback('wiredmenu.variable_overview.delete_all.title', 'Clear this variable')} onClick={onClearVariable}>
                 <img alt="" className="volt-wired-menu__trash-icon" draggable={false} src={trashIcon} />

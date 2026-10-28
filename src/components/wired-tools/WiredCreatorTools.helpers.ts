@@ -125,7 +125,7 @@ const INT_MAX = 2147483647;
 const INT_MIN = -2147483648;
 
 /** AIR Util.variableCompare: custom variables by name first, then built-ins by numeric id, highest first. */
-const compareVariables = (left: IWiredVariableData, right: IWiredVariableData): number => {
+export const compareVariables = (left: IWiredVariableData, right: IWiredVariableData): number => {
     const leftInternal = left.variableType === VARIABLE_TYPE_INTERNAL;
     const rightInternal = right.variableType === VARIABLE_TYPE_INTERNAL;
 
@@ -159,6 +159,43 @@ const getConnectedText = (variable: IWiredVariableData, value: number): string |
     return entry ? entry.value : variable.textConnectorFallback;
 };
 
+export interface VariableValueCell {
+    value: string;
+    valueClassName?: string;
+    valueTitle?: string;
+    /** False for a value the client cannot show; writing it still needs the right and a writable variable. */
+    editable: boolean;
+}
+
+/** AIR VariableValueTableObject.createVariableValueCell: null for a variable without a value. */
+export const variableValueCell = (variable: IWiredVariableData, value: number): VariableValueCell | null => {
+    if (!variable.hasValue) return null;
+
+    if (value === INT_MAX || value === INT_MIN) {
+        return {
+            value: localizeWithFallback('wiredmenu.inspection.flash_restriction.text', 'Hidden'),
+            valueClassName: 'volt-wired-menu__text--hidden',
+            valueTitle: localizeWithFallback('wiredmenu.inspection.flash_restriction.desc', ''),
+            editable: false
+        };
+    }
+
+    const packed = getPackedVariableText(variable, value);
+
+    if (packed !== null) {
+        return {
+            value: packed,
+            valueClassName: 'volt-wired-menu__text--packed',
+            valueTitle: `${packed}\n${localizeWithFallback('wiredmenu.inspection.packed_variable.desc', '')}`,
+            editable: true
+        };
+    }
+
+    const text = getConnectedText(variable, value);
+
+    return { value: text === null ? String(value) : `${value} (${text})`, editable: true };
+};
+
 /**
  * The Inspection table rows, as AIR WiredMenuInspectionTab.updateTableUI and VariableValueTableObject build them: every server value
  * whose definition the catalogue knows and that is not invisible, sorted like AIR.
@@ -188,33 +225,11 @@ export const buildInspectionRows = (
             removable: variable.canCreateAndDelete
         };
 
-        if (!variable.hasValue) return row;
+        const cell = variableValueCell(variable, rawValue);
 
-        if (rawValue === INT_MAX || rawValue === INT_MIN) {
-            return {
-                ...row,
-                value: localizeWithFallback('wiredmenu.inspection.flash_restriction.text', 'Hidden'),
-                valueClassName: 'volt-wired-menu__text--hidden',
-                valueTitle: localizeWithFallback('wiredmenu.inspection.flash_restriction.desc', '')
-            };
-        }
+        if (!cell) return row;
 
-        const editable = canModify && variable.canWriteValue;
-        const packed = getPackedVariableText(variable, rawValue);
-
-        if (packed !== null) {
-            return {
-                ...row,
-                value: packed,
-                editable,
-                valueClassName: 'volt-wired-menu__text--packed',
-                valueTitle: `${packed}\n${localizeWithFallback('wiredmenu.inspection.packed_variable.desc', '')}`
-            };
-        }
-
-        const text = getConnectedText(variable, rawValue);
-
-        return { ...row, value: text === null ? String(rawValue) : `${rawValue} (${text})`, editable };
+        return { ...row, ...cell, editable: cell.editable && canModify && variable.canWriteValue };
     });
 };
 

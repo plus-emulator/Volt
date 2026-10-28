@@ -3012,3 +3012,94 @@
 .volt-wired-menu__highlight-wired:disabled .volt-wired-menu__highlight-wired-icon {
     opacity: 0.5;
 }
+
+/* variables_management_overview and variables_management_detail: frame 3 windows with their children at the XML client coordinates. */
+.volt-wired-manage.volt-card-shell.volt-card-frame-3 {
+    padding: 0 !important;
+    font-family: HabboAirUbuntu, sans-serif;
+    font-size: 12px;
+}
+
+.volt-wired-manage.volt-card-shell.volt-card-frame-3 > .volt-card-header-shell .volt-card-title {
+    top: 4px !important;
+}
+
+.volt-wired-manage__client {
+    position: absolute;
+    left: 0;
+    top: 33px;
+    right: 0;
+    bottom: 0;
+    color: #000;
+}
+
+/* Skin border style 4 and 10: a white box with a dark rounded edge. */
+.volt-wired-manage__box {
+    border: 1px solid #5e5e58;
+    border-radius: 5px;
+    background: #fff;
+}
+
+.volt-wired-manage__centered-text {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    line-height: 15px;
+    text-align: center;
+    white-space: pre-line;
+}
+
+.volt-wired-manage__info-text {
+    padding: 0 2px;
+    line-height: 15px;
+    white-space: pre-line;
+    overflow: hidden;
+}
+
+.volt-wired-manage__paging-text {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    white-space: nowrap;
+}
+
+.volt-wired-manage__paging-text > span {
+    opacity: 0.7;
+}
+
+.volt-wired-manage__paging-text input {
+    width: 21px;
+    height: 17px;
+    padding: 0 2px;
+    border: 1px solid #5e5e58;
+    background: #fff;
+    font-size: 12px;
+    text-align: center;
+}
+
+/* Skin icon styles 4 and 5: the black arrows of the paging buttons. */
+.volt-wired-manage__arrow {
+    width: 0;
+    height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+}
+
+.volt-wired-manage__arrow.is-left {
+    border-right: 6px solid currentColor;
+}
+
+.volt-wired-manage__arrow.is-right {
+    border-left: 6px solid currentColor;
+}
+
+.volt-wired-manage__preview {
+    overflow: hidden;
+    cursor: default;
+}
+
+.volt-wired-manage__preview.is-clickable {
+    cursor: pointer;
+}

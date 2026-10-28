@@ -1,4 +1,4 @@
-import { IWiredErrorLogEntry, IWiredVariableData, parseWiredInt64 } from '@volt/renderer';
+import { IWiredErrorLogEntry, IWiredVariableData } from '@volt/renderer';
 import {
     AddLinkEventTracker,
     FigureUpdateEvent,
@@ -17,6 +17,7 @@ import {
     WiredDeleteAllVariableHoldersComposer,
     WiredErrorLogsEvent,
     WiredGetErrorLogsComposer,
+    WiredGetVariableOwnersPageComposer,
     WiredGetRoomStatsComposer,
     WiredRoomStatsEvent,
 } from '@volt/renderer';
@@ -29,20 +30,14 @@ import {
     localizeWithFallback,
     NotificationAlertType,
     NotificationConfirmType,
-    decodeUserVariableHolder,
-    findUserVariableHolderData,
     SendMessageComposer,
     WiredSelectionVisualizer
 } from '../../api';
 import wiredErrorIcon from '../../assets/images/wiredtools/icon_wired_error.png';
 import wiredWarningIcon from '../../assets/images/wiredtools/icon_wired_warning.png';
-import wiredGlobalPlaceholderImage from '../../assets/images/wiredtools/wired_global_placeholder.png';
 import {
     Button,
     DraggableWindowPosition,
-    LayoutAvatarImageView,
-    LayoutPetImageView,
-    LayoutRoomObjectImageView,
     VoltCardContentView,
     VoltCardHeaderView,
     VoltCardTabsItemView,
@@ -84,7 +79,6 @@ import {
     InspectionFurniSelection,
     InspectionUserSelection,
     InspectionVariable,
-    ManagedHolderVariableEntry,
     MonitorLog,
     MonitorRoomStats,
     MonitorStat,
@@ -99,10 +93,9 @@ import { WiredRoomLogsView } from './WiredRoomLogsView';
 import { WiredSelfDonationView } from './WiredSelfDonationView';
 import { WiredToolsSettingsTabView } from './WiredToolsSettingsTabView';
 import { WiredArrayInspectorView, wiredArrayVariableTypeOf } from './WiredArrayInspectorView';
-import { HOLDER_TYPE_FURNI, HOLDER_TYPE_USER, WiredHolderDescription, WiredVariableOwnersView } from './WiredVariableOwnersView';
 import { useVariablesExplorerStore } from '../../state/variablesExplorer';
 import { WiredVariableHighlightBubbles } from './WiredVariableHighlightBubbles';
-import { WiredVariableHolderPanelView } from './WiredVariableHolderPanelView';
+import { VARIABLE_MANAGEMENT_PAGE_SIZE } from './WiredVariableManagementView';
 import { WiredVariablesTabView } from './WiredVariablesTabView';
 import { openWiredMenuLink, useWiredCreatorToolsUiStore } from './wiredCreatorToolsUiStore';
 
@@ -149,24 +142,8 @@ export const WiredCreatorToolsView: FC<{}> = () => {
     const setInspectionGiveVariableId = useWiredCreatorToolsUiStore((s) => s.setInspectionGiveVariableId);
     const inspectionGiveValue = useWiredCreatorToolsUiStore((s) => s.inspectionGiveValue);
     const setInspectionGiveValue = useWiredCreatorToolsUiStore((s) => s.setInspectionGiveValue);
-    const isVariableManageOpen = useWiredCreatorToolsUiStore((s) => s.isVariableManageOpen);
-    const setIsVariableManageOpen = useWiredCreatorToolsUiStore((s) => s.setIsVariableManageOpen);
     const isArrayInspectorOpen = useWiredCreatorToolsUiStore((s) => s.isArrayInspectorOpen);
     const setIsArrayInspectorOpen = useWiredCreatorToolsUiStore((s) => s.setIsArrayInspectorOpen);
-    const selectedManagedVariableEntry = useWiredCreatorToolsUiStore((s) => s.selectedManagedVariableEntry);
-    const setSelectedManagedVariableEntry = useWiredCreatorToolsUiStore((s) => s.setSelectedManagedVariableEntry);
-    const selectedManagedHolderVariableId = useWiredCreatorToolsUiStore((s) => s.selectedManagedHolderVariableId);
-    const setSelectedManagedHolderVariableId = useWiredCreatorToolsUiStore((s) => s.setSelectedManagedHolderVariableId);
-    const editingManagedHolderVariableId = useWiredCreatorToolsUiStore((s) => s.editingManagedHolderVariableId);
-    const setEditingManagedHolderVariableId = useWiredCreatorToolsUiStore((s) => s.setEditingManagedHolderVariableId);
-    const editingManagedHolderValue = useWiredCreatorToolsUiStore((s) => s.editingManagedHolderValue);
-    const setEditingManagedHolderValue = useWiredCreatorToolsUiStore((s) => s.setEditingManagedHolderValue);
-    const isManagedGiveOpen = useWiredCreatorToolsUiStore((s) => s.isManagedGiveOpen);
-    const setIsManagedGiveOpen = useWiredCreatorToolsUiStore((s) => s.setIsManagedGiveOpen);
-    const managedGiveVariableItemId = useWiredCreatorToolsUiStore((s) => s.managedGiveVariableItemId);
-    const setManagedGiveVariableItemId = useWiredCreatorToolsUiStore((s) => s.setManagedGiveVariableItemId);
-    const managedGiveValue = useWiredCreatorToolsUiStore((s) => s.managedGiveValue);
-    const setManagedGiveValue = useWiredCreatorToolsUiStore((s) => s.setManagedGiveValue);
     const isVariableHighlightActive = useWiredCreatorToolsUiStore((s) => s.isVariableHighlightActive);
     const setIsVariableHighlightActive = useWiredCreatorToolsUiStore((s) => s.setIsVariableHighlightActive);
     const removedInspectionRowIndexRef = useRef(-1);
@@ -176,7 +153,7 @@ export const WiredCreatorToolsView: FC<{}> = () => {
         monitorRequestGateRef.current = createPacketCooldownGate();
     }
 
-    const shouldPauseVariableSnapshotRefresh = !!editingVariable || !!editingManagedHolderVariableId || isInspectionGiveOpen || isManagedGiveOpen;
+    const shouldPauseVariableSnapshotRefresh = !!editingVariable || isInspectionGiveOpen;
     const selectedVariableKeys = useWiredCreatorToolsUiStore((s) => s.selectedVariableKeys);
     const setSelectedVariableKeys = useWiredCreatorToolsUiStore((s) => s.setSelectedVariableKeys);
     const { roomSession = null } = useRoom();
@@ -204,37 +181,10 @@ export const WiredCreatorToolsView: FC<{}> = () => {
     const monitorLoaded = monitorViewKey !== 0 && !!monitorRoomStats && !!monitorErrors;
     const {
         roomSettings,
-        userVariableDefinitions,
-        userVariableAssignments,
-        furniVariableDefinitions,
-        furniVariableAssignments,
-        roomVariableDefinitions,
-        roomVariableAssignments,
-        requestUserVariables,
-        assignUserVariable,
-        removeUserVariable,
-        updateUserVariableValue,
-        assignFurniVariable,
-        removeFurniVariable,
-        updateFurniVariableValue,
-        updateRoomVariableValue
+        requestUserVariables
     } = useWiredTools();
     const { simpleAlert = null, showConfirm = null } = useNotification();
     useWiredMenuErrors();
-
-    const getVariableAvailabilityLabel = (value: number, targetType: 'user' | 'furni' | 'global' | 'context'): string => {
-        if (targetType === 'context') return 'Current wired execution';
-
-        if (value === 11) {
-            const localizedValue = LocalizeText('wiredfurni.params.variables.availability.11');
-
-            return localizedValue && localizedValue !== 'wiredfurni.params.variables.availability.11' ? localizedValue : 'Permanent, shared between rooms';
-        }
-
-        if (value === 10) return 'Permanent';
-
-        return targetType === 'furni' || targetType === 'global' ? 'While the room is active' : 'While the user is in the room';
-    };
 
     const refreshSelectedUser = useCallback(
         (roomIndex: number = selectedUser?.roomIndex) => {
@@ -499,7 +449,7 @@ export const WiredCreatorToolsView: FC<{}> = () => {
     }, [isVisible, activeTab, roomSession?.roomId, requestMonitorData]);
 
     useEffect(() => {
-        // The per-holder panel and the wired editors read the Volt variable snapshot, kept fresh while the menu is open.
+        // The wired editors read the Volt variable snapshot, kept fresh while the menu is open.
         if (!isVisible || !roomSession?.roomId || !roomSettings.canInspect || shouldPauseVariableSnapshotRefresh) return;
 
         requestUserVariables();
@@ -608,9 +558,6 @@ export const WiredCreatorToolsView: FC<{}> = () => {
     }, [inspectionType]);
     const monitorStats = useMemo<MonitorStat[]>(() => monitorRoomStatRows(monitorLoaded ? monitorRoomStats : null), [monitorLoaded, monitorRoomStats]);
     const monitorLogs = useMemo<MonitorLog[]>(() => (monitorLoaded ? buildMonitorLogs(monitorErrors, globalClock) : []), [monitorLoaded, monitorErrors, globalClock]);
-    const roomVariableAssignmentMap = useMemo(() => {
-        return new Map(roomVariableAssignments.map((assignment) => [assignment.variableItemId, assignment]));
-    }, [roomVariableAssignments]);
     // AIR InfoStandWidgetHandler.as:1118-1124 sends a wall item as -id. This server reads a negative furni id only for a temporary
     // wall item and finds every other wall item by its own id.
     const selectedFurniWireId =
@@ -737,14 +684,6 @@ export const WiredCreatorToolsView: FC<{}> = () => {
             return didChange ? nextValue : prevValue;
         });
     }, [variableCatalog.ready, variableNamesByType]);
-    useEffect(() => {
-        setSelectedManagedVariableEntry(null);
-    }, [variablesType, selectedVariableKeys[variablesType]]);
-    useEffect(() => {
-        if (isVariableManageOpen) return;
-
-        setSelectedManagedVariableEntry(null);
-    }, [isVariableManageOpen]);
 
     const selectedVariable = useMemo(() => {
         const variables = variablesByType[variablesType];
@@ -755,52 +694,6 @@ export const WiredCreatorToolsView: FC<{}> = () => {
     const selectedVariableItemId = selectedVariable ? customVariableItemId(selectedVariable) : null;
     const selectedVariableProperties = useMemo(() => buildVariableProperties(selectedVariable), [selectedVariable]);
     const selectedVariableTextValues = useMemo(() => buildVariableTextValues(selectedVariable), [selectedVariable]);
-    const describeVariableHolder = useCallback(
-        (entityType: number, entityId: number, entityName: string): WiredHolderDescription => {
-            if (entityType === HOLDER_TYPE_USER) {
-                const userData = findUserVariableHolderData(roomSession?.userDataManager, entityId);
-                let categoryLabel = 'Habbo';
-
-                switch (userData?.type) {
-                    case RoomObjectType.BOT:
-                        categoryLabel = 'Bot';
-                        break;
-                    case RoomObjectType.RENTABLE_BOT:
-                        categoryLabel = 'Rentable bot';
-                        break;
-                    case RoomObjectType.PET:
-                        categoryLabel = 'Pet';
-                        break;
-                }
-
-                return {
-                    categoryLabel,
-                    entityName: userData?.name || entityName || `#${decodeUserVariableHolder(entityId)?.id ?? entityId}`
-                };
-            }
-
-            if (entityType === HOLDER_TYPE_FURNI) {
-                const roomId = roomSession?.roomId ?? -1;
-                const floorObject = roomSession ? GetRoomEngine().getRoomObject(roomId, entityId, RoomObjectCategory.FLOOR) : null;
-                const wallObject = floorObject || !roomSession ? null : GetRoomEngine().getRoomObject(roomId, entityId, RoomObjectCategory.WALL);
-                const roomObject = floorObject ?? wallObject;
-                const typeId = roomObject?.model?.getValue<number>(RoomObjectVariable.FURNITURE_TYPE_ID);
-                const furnitureData = !roomObject
-                    ? null
-                    : wallObject
-                      ? GetSessionDataManager().getWallItemData(typeId)
-                      : GetSessionDataManager().getFloorItemData(typeId);
-
-                return {
-                    categoryLabel: wallObject ? 'Wall furni' : 'Floor furni',
-                    entityName: furnitureData?.name || furnitureData?.className || entityName || `#${entityId}`
-                };
-            }
-
-            return { categoryLabel: 'Global', entityName: entityName || `Room #${entityId}` };
-        },
-        [roomSession]
-    );
     // AIR WIN63-202610121709-785561319 WiredMenuOverviewTab.canHighlightCurrentVariable.
     const canVariableHighlight =
         !!selectedVariable &&
@@ -818,250 +711,9 @@ export const WiredCreatorToolsView: FC<{}> = () => {
 
         setIsVariableHighlightActive(false);
     }, [activeTab, canVariableHighlight, isVisible]);
-    const userVariableDefinitionsById = useMemo(
-        () => new Map(userVariableDefinitions.map((definition) => [definition.itemId, definition])),
-        [userVariableDefinitions]
-    );
-    const furniVariableDefinitionsById = useMemo(
-        () => new Map(furniVariableDefinitions.map((definition) => [definition.itemId, definition])),
-        [furniVariableDefinitions]
-    );
-    const managedHolderVariableEntries = useMemo((): ManagedHolderVariableEntry[] => {
-        if (!selectedManagedVariableEntry) return [];
-
-        switch (variablesType) {
-            case 'user':
-                return [...(userVariableAssignments[selectedManagedVariableEntry.entityId] || [])]
-                    .map((assignment): ManagedHolderVariableEntry | null => {
-                        const definition = userVariableDefinitionsById.get(assignment.variableItemId);
-
-                        if (!definition) return null;
-
-                        return {
-                            variableItemId: assignment.variableItemId,
-                            name: definition.name,
-                            hasValue: definition.hasValue,
-                            isReadOnly: !!definition.isReadOnly,
-                            value: assignment.value,
-                            availability: getVariableAvailabilityLabel(definition.availability, 'user'),
-                            createdAt: Number(assignment.createdAt ?? 0),
-                            updatedAt: Number(assignment.updatedAt ?? 0)
-                        };
-                    })
-                    .filter((entry): entry is ManagedHolderVariableEntry => !!entry)
-                    .sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }));
-            case 'furni':
-                return [...(furniVariableAssignments[selectedManagedVariableEntry.entityId] || [])]
-                    .map((assignment): ManagedHolderVariableEntry | null => {
-                        const definition = furniVariableDefinitionsById.get(assignment.variableItemId);
-
-                        if (!definition) return null;
-
-                        return {
-                            variableItemId: assignment.variableItemId,
-                            name: definition.name,
-                            hasValue: definition.hasValue,
-                            isReadOnly: !!definition.isReadOnly,
-                            value: assignment.value,
-                            availability: getVariableAvailabilityLabel(definition.availability, 'furni'),
-                            createdAt: Number(assignment.createdAt ?? 0),
-                            updatedAt: Number(assignment.updatedAt ?? 0)
-                        };
-                    })
-                    .filter((entry): entry is ManagedHolderVariableEntry => !!entry)
-                    .sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }));
-            case 'context':
-                return [];
-            default:
-                return [...roomVariableDefinitions]
-                    .map((definition) => {
-                        const assignment = roomVariableAssignmentMap.get(definition.itemId);
-
-                        return {
-                            variableItemId: definition.itemId,
-                            name: definition.name,
-                            hasValue: definition.hasValue,
-                            isReadOnly: !!definition.isReadOnly,
-                            value: assignment?.value ?? 0n,
-                            availability: getVariableAvailabilityLabel(definition.availability, 'global'),
-                            createdAt: 0,
-                            updatedAt: Number(assignment?.updatedAt ?? 0)
-                        };
-                    })
-                    .sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }));
-        }
-    }, [
-        selectedManagedVariableEntry,
-        variablesType,
-        userVariableAssignments,
-        userVariableDefinitionsById,
-        furniVariableAssignments,
-        furniVariableDefinitionsById,
-        roomVariableDefinitions,
-        roomVariableAssignmentMap
-    ]);
-    const selectedManagedHolderVariableEntry = useMemo(() => {
-        if (!managedHolderVariableEntries.length) return null;
-
-        return managedHolderVariableEntries.find((entry) => entry.variableItemId === selectedManagedHolderVariableId) ?? managedHolderVariableEntries[0];
-    }, [managedHolderVariableEntries, selectedManagedHolderVariableId]);
-    const availableManagedHolderDefinitions = useMemo(() => {
-        if (!selectedManagedVariableEntry || variablesType === 'global' || variablesType === 'context') return [];
-
-        const assignedIds = new Set(managedHolderVariableEntries.map((entry) => entry.variableItemId));
-        const definitions = variablesType === 'user' ? userVariableDefinitions : furniVariableDefinitions;
-
-        return definitions
-            .filter((definition) => !assignedIds.has(definition.itemId) && !definition.isReadOnly)
-            .sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }));
-    }, [selectedManagedVariableEntry, variablesType, managedHolderVariableEntries, userVariableDefinitions, furniVariableDefinitions]);
-    const selectedManagedGiveDefinition = useMemo(() => {
-        if (!availableManagedHolderDefinitions.length) return null;
-
-        return availableManagedHolderDefinitions.find((definition) => definition.itemId === managedGiveVariableItemId) ?? availableManagedHolderDefinitions[0];
-    }, [availableManagedHolderDefinitions, managedGiveVariableItemId]);
-    const variableManageCategoryHeader = useMemo(() => {
-        switch (variablesType) {
-            case 'furni':
-                return 'Furni type';
-            case 'global':
-                return 'Scope';
-            case 'context':
-                return 'Execution scope';
-            default:
-                return 'User type';
-        }
-    }, [variablesType]);
-    const managedHolderPanelTitle = useMemo(() => {
-        switch (variablesType) {
-            case 'furni':
-                return 'Manage Furni Variables';
-            case 'global':
-                return 'Manage Global Variables';
-            case 'context':
-                return 'Manage Context Variables';
-            default:
-                return 'Manage User Variables';
-        }
-    }, [variablesType]);
-    const managedHolderInfoLines = useMemo(() => {
-        if (!selectedManagedVariableEntry || !roomSession) return [];
-
-        if (variablesType === 'user') {
-            const userData = findUserVariableHolderData(roomSession.userDataManager, selectedManagedVariableEntry.entityId);
-            const holder = decodeUserVariableHolder(selectedManagedVariableEntry.entityId);
-            const idLabel = holder?.kind === 'pet' ? 'Pet id' : holder?.kind === 'bot' ? 'Bot id' : 'User id';
-
-            return [
-                `${variableManageCategoryHeader}: ${selectedManagedVariableEntry.categoryLabel}`,
-                `Name: ${selectedManagedVariableEntry.entityName}`,
-                ...(holder?.kind !== 'user' && userData?.ownerName ? [`Owner: ${userData.ownerName}`] : []),
-                `${idLabel}: ${holder?.id ?? selectedManagedVariableEntry.entityId}`,
-                ...(userData?.type === RoomObjectType.PET ? [`Pet level: ${Number(userData.petLevel ?? 0)}`] : [])
-            ];
-        }
-
-        if (variablesType === 'furni') {
-            const category = selectedManagedVariableEntry.categoryLabel === 'Wall furni' ? RoomObjectCategory.WALL : RoomObjectCategory.FLOOR;
-            const owner =
-                GetRoomEngine()
-                    .getRoomObject(roomSession.roomId, selectedManagedVariableEntry.entityId, category)
-                    ?.model?.getValue<string>(RoomObjectVariable.FURNITURE_OWNER_NAME) || '';
-
-            return [
-                `${variableManageCategoryHeader}: ${selectedManagedVariableEntry.categoryLabel}`,
-                `Name: ${selectedManagedVariableEntry.entityName}`,
-                ...(owner ? [`Owner: ${owner}`] : []),
-                `Furni id: ${selectedManagedVariableEntry.entityId}`
-            ];
-        }
-
-        if (variablesType === 'context') {
-            return [
-                `${variableManageCategoryHeader}: Current execution`,
-                `Name: ${selectedManagedVariableEntry.entityName}`,
-                `Context id: ${selectedManagedVariableEntry.entityId}`
-            ];
-        }
-
-        return [`${variableManageCategoryHeader}: Room`, `Name: Room #${roomSession.roomId}`, `Room id: ${roomSession.roomId}`];
-    }, [selectedManagedVariableEntry, roomSession, variablesType, variableManageCategoryHeader]);
-    const managedHolderWarningText = useMemo(() => {
-        switch (variablesType) {
-            case 'furni':
-                return 'Use this tool only for furni that are currently loaded in the room. Reload the panel after major room changes.';
-            case 'global':
-                return 'Global variables are room-scoped. Only the latest update time is tracked for these values.';
-            case 'context':
-                return 'Context variables only live inside the current wired execution. They are shared through the signal chain until a branch overrides them.';
-            default:
-                return 'Do not use this tool for users who are currently in the room/using the changed variable in another room.';
-        }
-    }, [variablesType]);
-    const managedHolderUserData = useMemo(() => {
-        if (variablesType !== 'user' || !selectedManagedVariableEntry || !roomSession) return null;
-
-        return findUserVariableHolderData(roomSession.userDataManager, selectedManagedVariableEntry.entityId);
-    }, [variablesType, selectedManagedVariableEntry, roomSession]);
-    const managedHolderFurniCategory = useMemo(() => {
-        if (variablesType !== 'furni' || !selectedManagedVariableEntry) return RoomObjectCategory.FLOOR;
-
-        return selectedManagedVariableEntry.categoryLabel === 'Wall furni' ? RoomObjectCategory.WALL : RoomObjectCategory.FLOOR;
-    }, [variablesType, selectedManagedVariableEntry]);
-    const canManageHolderVariables = roomSettings.canModify && !!selectedManagedVariableEntry;
-    const canRemoveManagedHolderVariable =
-        canManageHolderVariables &&
-        variablesType !== 'global' &&
-        variablesType !== 'context' &&
-        !!selectedManagedHolderVariableEntry &&
-        !selectedManagedHolderVariableEntry.isReadOnly;
-    const canGiveManagedHolderVariable =
-        canManageHolderVariables && variablesType !== 'global' && variablesType !== 'context' && !!availableManagedHolderDefinitions.length;
-    useEffect(() => {
-        if (!selectedManagedVariableEntry) {
-            setSelectedManagedHolderVariableId(0);
-            setEditingManagedHolderVariableId(0);
-            setEditingManagedHolderValue('');
-            setIsManagedGiveOpen(false);
-
-            return;
-        }
-
-        setEditingManagedHolderVariableId(0);
-        setEditingManagedHolderValue('');
-        setIsManagedGiveOpen(false);
-    }, [selectedManagedVariableEntry]);
-    useEffect(() => {
-        if (!managedHolderVariableEntries.length) {
-            setSelectedManagedHolderVariableId(0);
-            return;
-        }
-
-        if (managedHolderVariableEntries.some((entry) => entry.variableItemId === selectedManagedHolderVariableId)) return;
-
-        const preferredItemId = selectedVariableItemId ?? 0;
-        const preferredEntry = managedHolderVariableEntries.find((entry) => entry.variableItemId === preferredItemId);
-
-        setSelectedManagedHolderVariableId(preferredEntry?.variableItemId ?? managedHolderVariableEntries[0].variableItemId);
-    }, [managedHolderVariableEntries, selectedManagedHolderVariableId, selectedVariableItemId]);
-    useEffect(() => {
-        if (!availableManagedHolderDefinitions.length) {
-            setManagedGiveVariableItemId(0);
-            return;
-        }
-
-        if (availableManagedHolderDefinitions.some((definition) => definition.itemId === managedGiveVariableItemId)) return;
-
-        setManagedGiveVariableItemId(availableManagedHolderDefinitions[0].itemId);
-    }, [availableManagedHolderDefinitions, managedGiveVariableItemId]);
-    useEffect(() => {
-        if (!selectedManagedHolderVariableEntry || !editingManagedHolderVariableId) return;
-        if (selectedManagedHolderVariableEntry.variableItemId !== editingManagedHolderVariableId) return;
-
-        setEditingManagedHolderValue(String(selectedManagedHolderVariableEntry.value ?? 0));
-    }, [selectedManagedHolderVariableEntry, editingManagedHolderVariableId]);
-    // The owners list and the per-holder panel work on variables created in this room.
-    const variableManageCanOpen = selectedVariableItemId !== null && variablesType !== 'context' && !selectedVariable?.requiresExecutionContext;
+    // AIR WiredMenuOverviewTab.canManageCurrentVariable.
+    const canVariableManage =
+        !!selectedVariable && !selectedVariable.requiresExecutionContext && variablesType === 'user' && isPersistedVariable(selectedVariable);
     // AIR WiredMenuOverviewTab.canDeleteCurrentVariable.
     const canVariableClear =
         roomSettings.canModify &&
@@ -1090,78 +742,6 @@ export const WiredCreatorToolsView: FC<{}> = () => {
             NotificationConfirmType.DANGER
         );
     };
-    const parseScalarInput = (input: string): bigint | null => {
-        try { return parseWiredInt64(input); }
-        catch (error) {
-            simpleAlert?.(String(error instanceof Error ? error.message : error));
-            return null;
-        }
-    };
-    const commitManagedHolderValueEdit = useCallback(() => {
-        if (!selectedManagedVariableEntry || !selectedManagedHolderVariableEntry || !roomSettings.canModify || selectedManagedHolderVariableEntry.isReadOnly)
-            return;
-        if (!selectedManagedHolderVariableEntry.hasValue) return;
-        if (variablesType === 'context') return;
-
-        const nextValue = parseScalarInput(editingManagedHolderValue);
-        if (nextValue === null) return;
-
-        switch (variablesType) {
-            case 'user':
-                updateUserVariableValue(selectedManagedVariableEntry.entityId, selectedManagedHolderVariableEntry.variableItemId, nextValue);
-                break;
-            case 'furni':
-                updateFurniVariableValue(selectedManagedVariableEntry.entityId, selectedManagedHolderVariableEntry.variableItemId, nextValue);
-                break;
-            default:
-                updateRoomVariableValue(selectedManagedHolderVariableEntry.variableItemId, nextValue);
-                break;
-        }
-
-        setEditingManagedHolderVariableId(0);
-    }, [
-        selectedManagedVariableEntry,
-        selectedManagedHolderVariableEntry,
-        roomSettings.canModify,
-        editingManagedHolderValue,
-        variablesType,
-        updateUserVariableValue,
-        updateFurniVariableValue,
-        updateRoomVariableValue
-    ]);
-    const giveManagedHolderVariable = useCallback(() => {
-        if (!selectedManagedVariableEntry || !selectedManagedGiveDefinition || !roomSettings.canModify) return;
-        if (variablesType === 'global' || variablesType === 'context') return;
-
-        const nextValue = parseScalarInput(managedGiveValue);
-        if (nextValue === null) return;
-
-        if (variablesType === 'user') assignUserVariable(selectedManagedVariableEntry.entityId, selectedManagedGiveDefinition.itemId, nextValue);
-        else assignFurniVariable(selectedManagedVariableEntry.entityId, selectedManagedGiveDefinition.itemId, nextValue);
-
-        setSelectedManagedHolderVariableId(selectedManagedGiveDefinition.itemId);
-        setManagedGiveValue('0');
-        setIsManagedGiveOpen(false);
-    }, [
-        selectedManagedVariableEntry,
-        selectedManagedGiveDefinition,
-        roomSettings.canModify,
-        variablesType,
-        managedGiveValue,
-        assignUserVariable,
-        assignFurniVariable
-    ]);
-    const removeManagedHolderVariable = useCallback(() => {
-        if (!selectedManagedVariableEntry || !selectedManagedHolderVariableEntry || !roomSettings.canModify || selectedManagedHolderVariableEntry.isReadOnly)
-            return;
-        if (variablesType === 'global' || variablesType === 'context') return;
-
-        if (variablesType === 'user') removeUserVariable(selectedManagedVariableEntry.entityId, selectedManagedHolderVariableEntry.variableItemId);
-        else removeFurniVariable(selectedManagedVariableEntry.entityId, selectedManagedHolderVariableEntry.variableItemId);
-
-        setEditingManagedHolderVariableId(0);
-    }, [selectedManagedVariableEntry, selectedManagedHolderVariableEntry, roomSettings.canModify, variablesType, removeUserVariable, removeFurniVariable]);
-
     const clearMonitorLogs = () => {
         // updateButtonsUI: Clear is disabled for CLEAR_LOGS_TIMEOUT after it was pressed.
         setIsMonitorClearLocked(true);
@@ -1241,24 +821,6 @@ export const WiredCreatorToolsView: FC<{}> = () => {
                 return;
         }
     };
-    const onManagedHolderValueInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-        event.stopPropagation();
-
-        switch (event.key) {
-            case 'Enter':
-            case 'NumpadEnter':
-                event.preventDefault();
-                commitManagedHolderValueEdit();
-                window.requestAnimationFrame(() => event.currentTarget.blur());
-                return;
-            case 'Escape':
-                event.preventDefault();
-                setEditingManagedHolderVariableId(0);
-                window.requestAnimationFrame(() => event.currentTarget.blur());
-                return;
-        }
-    };
-
     useEffect(() => {
         setEditingVariable(null);
         setEditingValue('');
@@ -1380,13 +942,12 @@ export const WiredCreatorToolsView: FC<{}> = () => {
                             selectedVariableDefinition={selectedVariable ? { key: selectedVariable.variableName } : null}
                             onPickVariable={(key) => setSelectedVariableKeys((prev) => ({ ...prev, [variablesType]: key }))}
                             canVariableHighlight={canVariableHighlight}
-                            variableManageCanOpen={variableManageCanOpen}
+                            variableManageCanOpen={canVariableManage}
                             canVariableClear={canVariableClear}
                             onClearVariable={confirmClearVariable}
                             onOpenManagePanel={() => {
-                                requestUserVariables();
-                                setSelectedManagedVariableEntry(null);
-                                setIsVariableManageOpen(true);
+                                if (canVariableManage)
+                                    SendMessageComposer(new WiredGetVariableOwnersPageComposer(selectedVariable.variableId, 1, VARIABLE_MANAGEMENT_PAGE_SIZE, 0, -1));
                             }}
                             arrayInspectorCanOpen={selectedVariableItemId !== null}
                             onOpenArrayInspector={() => setIsArrayInspectorOpen(true)}
@@ -1400,17 +961,6 @@ export const WiredCreatorToolsView: FC<{}> = () => {
                     </>
                 )}
             </WiredMenuFrame>
-            {isVariableManageOpen && variableManageCanOpen && !!selectedVariable && (
-                <WiredVariableOwnersView
-                    variableId={selectedVariable.variableId}
-                    variableName={selectedVariable.variableName}
-                    variablesType={variablesType}
-                    hasValue={selectedVariable.hasValue}
-                    describeHolder={describeVariableHolder}
-                    onManage={setSelectedManagedVariableEntry}
-                    onClose={() => setIsVariableManageOpen(false)}
-                />
-            )}
             {isArrayInspectorOpen && selectedVariableItemId !== null && !!selectedVariable && (
                 <WiredArrayInspectorView
                     definitionItemId={selectedVariableItemId}
@@ -1421,75 +971,6 @@ export const WiredCreatorToolsView: FC<{}> = () => {
             )}
             {isRoomLogsOpen && <WiredRoomLogsView onClose={() => setIsRoomLogsOpen(false)} />}
             {isSelfDonationOpen && <WiredSelfDonationView onClose={() => setIsSelfDonationOpen(false)} />}
-            {!!selectedManagedVariableEntry && !!selectedVariable && (
-                <WiredVariableHolderPanelView
-                    title={managedHolderPanelTitle}
-                    warningText={managedHolderWarningText}
-                    onRefresh={() => requestUserVariables()}
-                    onClose={() => setSelectedManagedVariableEntry(null)}
-                    preview={
-                        <>
-                            {variablesType === 'furni' && roomSession && (
-                                <LayoutRoomObjectImageView
-                                    category={managedHolderFurniCategory}
-                                    objectId={selectedManagedVariableEntry.entityId}
-                                    roomId={roomSession.roomId}
-                                />
-                            )}
-                            {variablesType === 'user' && managedHolderUserData && (
-                                <>
-                                    {managedHolderUserData.type === RoomObjectType.PET ? (
-                                        <LayoutPetImageView direction={2} figure={managedHolderUserData.figure} />
-                                    ) : (
-                                        <LayoutAvatarImageView direction={2} figure={managedHolderUserData.figure} />
-                                    )}
-                                </>
-                            )}
-                            {variablesType === 'global' && (
-                                <img alt="Global placeholder" className="max-w-full max-h-full object-contain p-3" src={wiredGlobalPlaceholderImage} />
-                            )}
-                        </>
-                    }
-                    infoLines={managedHolderInfoLines}
-                    variablesTitle={variablesType === 'global' ? 'Room variables:' : 'Assigned variables:'}
-                    entries={managedHolderVariableEntries.map((entry) => ({
-                        id: String(entry.variableItemId),
-                        name: entry.name,
-                        availability: entry.availability,
-                        hasValue: entry.hasValue,
-                        value: entry.value,
-                        isReadOnly: entry.isReadOnly
-                    }))}
-                    selectedId={selectedManagedHolderVariableEntry ? String(selectedManagedHolderVariableEntry.variableItemId) : null}
-                    onSelect={(id) => setSelectedManagedHolderVariableId(Number(id))}
-                    canEdit={roomSettings.canModify}
-                    editingId={editingManagedHolderVariableId ? String(editingManagedHolderVariableId) : null}
-                    editingValue={editingManagedHolderValue}
-                    onBeginEdit={(entry) => {
-                        setSelectedManagedHolderVariableId(Number(entry.id));
-                        setEditingManagedHolderVariableId(Number(entry.id));
-                        setEditingManagedHolderValue(String(entry.value ?? 0));
-                    }}
-                    onEditingValueChange={setEditingManagedHolderValue}
-                    onEditBlur={() => setEditingManagedHolderVariableId(0)}
-                    onEditKeyDown={onManagedHolderValueInputKeyDown}
-                    isGiveOpen={isManagedGiveOpen}
-                    onToggleGive={() => setIsManagedGiveOpen((value) => !value)}
-                    giveOptions={availableManagedHolderDefinitions.map((definition) => ({
-                        id: String(definition.itemId),
-                        name: definition.name,
-                        hasValue: !!definition.hasValue
-                    }))}
-                    giveSelectedId={selectedManagedGiveDefinition ? String(selectedManagedGiveDefinition.itemId) : ''}
-                    onGiveSelect={(id) => setManagedGiveVariableItemId(Number(id))}
-                    giveValue={managedGiveValue}
-                    onGiveValueChange={setManagedGiveValue}
-                    canGive={canGiveManagedHolderVariable}
-                    onGive={() => giveManagedHolderVariable()}
-                    canRemove={canRemoveManagedHolderVariable}
-                    onRemove={() => removeManagedHolderVariable()}
-                />
-            )}
             {!!selectedMonitorError && (
                 // Official error_info_view: 337 wide, frame 3, contents at (8, 3) and height = contents + 48.
                 <VoltCardView
