@@ -31,8 +31,7 @@ import {
     NotificationConfirmType,
     decodeUserVariableHolder,
     findUserVariableHolderData,
-    SendMessageComposer,
-    WiredSelectionVisualizer
+    SendMessageComposer
 } from '../../api';
 import wiredErrorIcon from '../../assets/images/wiredtools/icon_wired_error.png';
 import wiredWarningIcon from '../../assets/images/wiredtools/icon_wired_warning.png';
