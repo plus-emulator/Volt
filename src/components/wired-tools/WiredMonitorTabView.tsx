@@ -7,7 +7,7 @@ import { loadNativeFont, measureNativeText } from '../../common/native-text/Nati
 import { nativeTextStyles } from '../../common/native-text/NativeTextStyles';
 import { MONITOR_COLOR_GREEN } from './WiredCreatorTools.constants';
 import { MonitorLog, MonitorStat } from './WiredCreatorTools.types';
-import { WiredMenuLabel } from './WiredMenuLabel';
+import { WiredMenuLabel } from '../../common/native-text/WiredMenuLabel';
 import { WiredMenuButton, WiredMenuItem, WiredMenuPanel, WiredMenuTable, WiredMenuTitle } from './WiredMenuParts';
 
 export interface WiredMonitorTabViewProps {

@@ -3,7 +3,7 @@ import boxLines from '../../assets/images/wired/native/menu_box_lines.png';
 import discordIcon from '../../assets/images/wired/native/menu_discord.png';
 import { ClassicScrollAreaView, VoltCardHeaderView, VoltCardView } from '../../common';
 import { SubpixelText } from '../../common/native-text/SubpixelText';
-import { WiredMenuLabel } from './WiredMenuLabel';
+import { WiredMenuLabel } from '../../common/native-text/WiredMenuLabel';
 
 interface Rect {
     x: number;

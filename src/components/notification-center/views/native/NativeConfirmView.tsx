@@ -1,7 +1,7 @@
 import { FC, useLayoutEffect, useRef, useState } from 'react';
 import { DraggableWindow } from '../../../../common';
 import { NativeText } from '../../../../common/native-text/NativeText';
-import { WiredMenuLabel } from '../../../wired-tools/WiredMenuLabel';
+import { WiredMenuLabel } from '../../../../common/native-text/WiredMenuLabel';
 
 const FRAME_HEIGHT = 165;
 
