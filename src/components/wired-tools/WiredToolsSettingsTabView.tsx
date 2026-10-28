@@ -29,13 +29,14 @@ export interface WiredToolsSettingsTabViewProps {
 }
 
 const toggleMaskBit = (mask: number, bit: number): number => (mask & bit ? mask & ~bit : mask | bit);
+const normalizeAccessMask = (mask: number): number => ((mask & WIRED_ACCESS_GROUP_MEMBERS) !== 0 ? mask | WIRED_ACCESS_GROUP_ADMINS : mask);
 const RIGHTS_AND_GROUPS = WIRED_ACCESS_USERS_WITH_RIGHTS | WIRED_ACCESS_GROUP_MEMBERS | WIRED_ACCESS_GROUP_ADMINS;
 
 /**
  * WiredMenuSettingsTab.updatePermissionsUI: an option another option implies shows checked and is disabled. Group members
  * implies group admins, inspect by everyone implies every other inspect level, and each modify level implies the same inspect level.
  */
-export const forcedAccess = (modifyMask: number, inspectMask: number) => {
+const forcedAccess = (modifyMask: number, inspectMask: number) => {
     const modify = modifyMask & WIRED_ACCESS_GROUP_MEMBERS ? WIRED_ACCESS_GROUP_ADMINS : 0;
     let inspect = inspectMask & WIRED_ACCESS_GROUP_MEMBERS ? WIRED_ACCESS_GROUP_ADMINS : 0;
     if (inspectMask & WIRED_ACCESS_EVERYONE) inspect |= RIGHTS_AND_GROUPS;
@@ -117,23 +118,21 @@ export const WiredToolsSettingsTabView: FC<WiredToolsSettingsTabViewProps> = ({ 
     const shownModifyMask = roomSettings.modifyMask | forced.modify;
     const shownInspectMask = roomSettings.inspectMask | forced.inspect;
 
-    // The official tab sends what the checkboxes show, forced options included.
     const updateInspectMask = (bit: number) => {
         if (!canManageSettings) return;
 
-        const nextInspectMask = toggleMaskBit(shownInspectMask, bit);
-        const nextForced = forcedAccess(shownModifyMask, nextInspectMask);
-
-        saveRoomSettings(nextInspectMask | nextForced.inspect, shownModifyMask | nextForced.modify);
+        saveRoomSettings(normalizeAccessMask(toggleMaskBit(roomSettings.inspectMask, bit)), roomSettings.modifyMask);
     };
 
     const updateModifyMask = (bit: number) => {
         if (!canManageSettings) return;
 
-        const nextModifyMask = toggleMaskBit(shownModifyMask, bit);
-        const nextForced = forcedAccess(nextModifyMask, shownInspectMask);
+        const nextModifyMask = toggleMaskBit(roomSettings.modifyMask, bit);
+        const enabledModifyBit = (nextModifyMask & bit) !== 0;
+        const normalizedModifyMask = normalizeAccessMask(nextModifyMask);
+        const nextInspectMask = normalizeAccessMask(enabledModifyBit ? roomSettings.inspectMask | bit : roomSettings.inspectMask);
 
-        saveRoomSettings(shownInspectMask | nextForced.inspect, nextModifyMask | nextForced.modify);
+        saveRoomSettings(nextInspectMask, normalizedModifyMask);
     };
 
     const confirmRollback = () => {
