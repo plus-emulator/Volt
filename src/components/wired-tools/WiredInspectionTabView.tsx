@@ -4,6 +4,8 @@ import contextIcon from '../../assets/images/wired/native/menu_variable_context.
 import furniIcon from '../../assets/images/wired/native/menu_variable_furni.png';
 import globalIcon from '../../assets/images/wired/native/menu_variable_global.png';
 import userIcon from '../../assets/images/wired/native/menu_variable_user.png';
+import { localizeWithFallback } from '../../api';
+import { CatalogIconView } from '../catalog/views/catalog-icon/CatalogIconView';
 import { LayoutAvatarImageView, LayoutPetImageView, LayoutRoomObjectImageView } from '../../common';
 import { INSPECTION_ELEMENTS } from './WiredCreatorTools.constants';
 import { InspectionFurniSelection, InspectionGiveDefinition, InspectionUserSelection, InspectionVariable } from './WiredCreatorTools.types';
@@ -22,6 +24,11 @@ export interface WiredInspectionTabViewProps {
     // keep-selected toggle
     keepSelected: boolean;
     onKeepSelectedChange: (next: boolean) => void;
+
+    // highlight the Wired boxes that have the selected furni in their furni picks
+    canHighlightWiredBoxes: boolean;
+    isHighlightingWiredBoxes: boolean;
+    onToggleWiredBoxHighlight: () => void;
 
     // variables table
     displayedVariables: InspectionVariable[];
@@ -65,6 +72,9 @@ export const WiredInspectionTabView = (props: WiredInspectionTabViewProps) => {
         previewPlaceholder,
         keepSelected,
         onKeepSelectedChange,
+        canHighlightWiredBoxes,
+        isHighlightingWiredBoxes,
+        onToggleWiredBoxHighlight,
         displayedVariables,
         selectedInspectionVariableKey,
         onSelectInspectionVariable,
@@ -134,6 +144,20 @@ export const WiredInspectionTabView = (props: WiredInspectionTabViewProps) => {
                     <div className="volt-wired-menu__preview-image">
                         <img alt="" draggable={false} src={wiredGlobalPlaceholderImage} />
                     </div>
+                )}
+                {inspectionType === 'furni' && (
+                    <WiredMenuButton
+                        className={`volt-wired-menu__highlight-wired ${isHighlightingWiredBoxes ? 'is-selected' : ''}`}
+                        disabled={!canHighlightWiredBoxes}
+                        h={26}
+                        title={localizeWithFallback('wiredmenu.inspection.highlight_wireds', 'Highlight Wired boxes that have this furni in their furni picks')}
+                        w={25}
+                        x={110}
+                        y={6}
+                        onClick={onToggleWiredBoxHighlight}
+                    >
+                        <CatalogIconView className="volt-wired-menu__highlight-wired-icon" icon={80} />
+                    </WiredMenuButton>
                 )}
                 {((inspectionType === 'furni' && !selectedFurni) || (inspectionType === 'user' && !selectedUser)) && (
                     <div className="volt-wired-menu__text volt-wired-menu__preview-instruction">{previewPlaceholder}</div>

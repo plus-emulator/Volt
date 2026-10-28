@@ -19,6 +19,7 @@ export enum WiredObjectVariableOperation {
 
 // AIR WIN63-202610151745-318700621 WiredMenuInspectionTab.as:42 POLL_VARIABLES_MS.
 const POLL_MS = 500;
+const NO_WIRED_BOXES: readonly number[] = [];
 // A request the server never answers (no rights, unknown object) is sent again after this long.
 const UNANSWERED_MS = 4000;
 
@@ -33,6 +34,7 @@ interface PendingRead {
 interface Snapshot {
     key: string;
     values: ReadonlyMap<string, number>;
+    configuredInWireds: readonly number[];
 }
 
 /**
@@ -77,7 +79,7 @@ export const useWiredObjectVariables = (roomId: number, holder: WiredObjectHolde
         if (parser.type !== current.type || (parser.type !== -10 && parser.objectId !== current.objectId)) return;
 
         current.answered = true;
-        setSnapshot({ key, values: parser.values });
+        setSnapshot({ key, values: parser.values, configuredInWireds: parser.configuredInWireds });
 
         // As AIR, the catalogue is only asked for again when the answer names a variable it does not know yet.
         if ([...parser.values.keys()].some((variableId) => !catalog?.has(variableId))) refreshCatalog();
@@ -95,6 +97,7 @@ export const useWiredObjectVariables = (roomId: number, holder: WiredObjectHolde
 
     return {
         values: snapshot && snapshot.key === key ? snapshot.values : null,
+        configuredInWireds: snapshot && snapshot.key === key ? snapshot.configuredInWireds : NO_WIRED_BOXES,
         catalog,
         write,
         refreshCatalog
