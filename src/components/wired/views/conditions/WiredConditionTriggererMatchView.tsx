@@ -42,22 +42,21 @@ export const WiredConditionTriggererMatchView: FC<WiredConditionTriggererMatchVi
         setQuantifier: setNativeQuantifier
     } = useWired();
 
-    const needsUsername = avatarMode === AVATAR_MODE_CERTAIN || compareUserSource === SOURCE_SPECIFIED_USERNAME;
-
+    // The avatar radio only decides the name text. Both user source slots keep their own choice.
     const save = () => {
         setIntParams([entityType]);
-        setUserSources([matchUserSource, avatarMode === AVATAR_MODE_CERTAIN ? SOURCE_SPECIFIED_USERNAME : compareUserSource]);
+        setUserSources([matchUserSource, compareUserSource]);
         setNativeQuantifier(quantifier);
-        setStringParam(username);
+        setStringParam(avatarMode === AVATAR_MODE_CERTAIN ? username : '');
     };
 
     useEffect(() => {
         if (!trigger) return;
 
         setEntityType(trigger.intData.length > 0 ? trigger.intData[0] : ENTITY_HABBO);
-        setAvatarMode(trigger.userSources[1] === SOURCE_SPECIFIED_USERNAME ? AVATAR_MODE_CERTAIN : AVATAR_MODE_ANY);
+        setAvatarMode(trigger.stringData ? AVATAR_MODE_CERTAIN : AVATAR_MODE_ANY);
         setMatchUserSource(trigger.userSources[0] ?? 0);
-        setCompareUserSource(trigger.userSources[1] ?? 0);
+        setCompareUserSource(trigger.userSources[1] ?? SOURCE_SPECIFIED_USERNAME);
         setQuantifier(nativeQuantifier);
         setUsername(trigger.stringData || '');
     }, [trigger, nativeQuantifier]);
@@ -80,7 +79,7 @@ export const WiredConditionTriggererMatchView: FC<WiredConditionTriggererMatchVi
             <WiredSection title={LocalizeText('wiredfurni.params.picktriggerer')}>
                 <WiredRadioGroup name="triggererAvatarMode" options={[
                     { id: AVATAR_MODE_ANY, label: LocalizeText('wiredfurni.params.anyavatar') },
-                    { id: AVATAR_MODE_CERTAIN, label: LocalizeText('wiredfurni.params.certainavatar'), extra: <span title={LocalizeText('wiredfurni.tooltip.avatarname')}><WiredTextInput value={username} maxLength={32} disabled={!needsUsername} onChange={setUsername} /></span> }
+                    { id: AVATAR_MODE_CERTAIN, label: LocalizeText('wiredfurni.params.certainavatar'), extra: <span title={LocalizeText('wiredfurni.tooltip.avatarname')}><WiredTextInput value={username} maxLength={32} disabled={avatarMode !== AVATAR_MODE_CERTAIN} onChange={setUsername} /></span> }
                 ]} value={avatarMode} onChange={setAvatarMode} />
             </WiredSection>
         </WiredConditionBaseView>
