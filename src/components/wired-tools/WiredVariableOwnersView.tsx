@@ -16,14 +16,23 @@ export const WIRED_VARIABLE_OWNERS_PAGE_SIZE = 50;
 /** Above the server's own 250 ms limit on the page request. */
 const REQUEST_PAGE_RATELIMIT = 300;
 
-/** The server's `userTypeFilter` values. */
-const USER_FILTER_ALL = 0;
-const USER_FILTER_IN_ROOM = 1;
-/** The server's `sortTypeFilter` values; -1 keeps the natural order. */
-const SORT_NONE = -1;
-const SORT_VALUE_ASCENDING = 0;
-const SORT_VALUE_DESCENDING = 1;
-const SORT_NAME = 2;
+/** The user types of the AIR page request. */
+const USER_TYPE_ALL = -1;
+const USER_TYPES = [
+    { value: 1, key: '1', fallback: 'Habbo' },
+    { value: 2, key: '2', fallback: 'Pet' },
+    { value: 4, key: '4', fallback: 'Bot' }
+];
+/** The sorts of the AIR page request, in the order of AIR's drop menu. */
+const SORT_HIGHEST_VALUE = 0;
+const SORTS = [
+    { value: 0, fallback: 'Highest value' },
+    { value: 1, fallback: 'Lowest value' },
+    { value: 2, fallback: 'Oldest creation' },
+    { value: 3, fallback: 'Latest creation' },
+    { value: 4, fallback: 'Oldest update' },
+    { value: 5, fallback: 'Latest update' }
+];
 
 interface HoldersPage {
     variableId: string;
@@ -56,8 +65,8 @@ export const WiredVariableOwnersView = (props: WiredVariableOwnersViewProps) => 
     const { roomSession } = useRoom();
     const pending = useRef<{ room: typeof roomSession; variableId: string; page: number; users: number; sort: number; connection: ReturnType<typeof GetCommunication>['connection'] } | null>(null);
     const [page, setPage] = useState<HoldersPage | null>(null);
-    const [userType, setUserType] = useState(USER_FILTER_ALL);
-    const [sortType, setSortType] = useState(hasValue ? SORT_VALUE_DESCENDING : SORT_NONE);
+    const [userType, setUserType] = useState(USER_TYPE_ALL);
+    const [sortType, setSortType] = useState(SORT_HIGHEST_VALUE);
     const [scrollKey, setScrollKey] = useState(0);
     const nextFilters = useRef<{ userTypeFilter: number; sortTypeFilter: number } | null>(null);
 
@@ -92,28 +101,27 @@ export const WiredVariableOwnersView = (props: WiredVariableOwnersViewProps) => 
         ratelimit: REQUEST_PAGE_RATELIMIT,
         onRequestPage: (requested) => {
             const filters = nextFilters.current ?? {
-                userTypeFilter: page?.userTypeFilter ?? USER_FILTER_ALL,
-                sortTypeFilter: page?.sortTypeFilter ?? (hasValue ? SORT_VALUE_DESCENDING : SORT_NONE)
+                userTypeFilter: page?.userTypeFilter ?? USER_TYPE_ALL,
+                sortTypeFilter: page?.sortTypeFilter ?? SORT_HIGHEST_VALUE
             };
 
             if (!roomSession) return;
             pending.current = { room: roomSession, connection: GetCommunication().connection, variableId, page: requested, users: filters.userTypeFilter, sort: filters.sortTypeFilter };
             SendMessageComposer(
-                new WiredVariableHoldersPage64Composer(variableId, requested, WIRED_VARIABLE_OWNERS_PAGE_SIZE, filters.userTypeFilter, filters.sortTypeFilter)
+                new WiredVariableHoldersPage64Composer(variableId, requested, WIRED_VARIABLE_OWNERS_PAGE_SIZE, filters.sortTypeFilter, filters.userTypeFilter)
             );
         }
     });
 
-    // The first page of a new variable: every user type, highest value first (WiredMenuOverviewTab asks for sort 0, "Highest value").
+    // The first page of a new variable, as AIR's WiredMenuOverviewTab asks for it: sort 0 (highest value), user type -1 (all).
     useEffect(() => {
         setPage(null);
         pending.current = null;
         if (!roomSession) return;
-        const sort = hasValue ? SORT_VALUE_DESCENDING : SORT_NONE;
-        pending.current = { room: roomSession, connection: GetCommunication().connection, variableId, page: 1, users: USER_FILTER_ALL, sort };
-        SendMessageComposer(new WiredVariableHoldersPage64Composer(variableId, 1, WIRED_VARIABLE_OWNERS_PAGE_SIZE, USER_FILTER_ALL, sort));
+        pending.current = { room: roomSession, connection: GetCommunication().connection, variableId, page: 1, users: USER_TYPE_ALL, sort: SORT_HIGHEST_VALUE };
+        SendMessageComposer(new WiredVariableHoldersPage64Composer(variableId, 1, WIRED_VARIABLE_OWNERS_PAGE_SIZE, SORT_HIGHEST_VALUE, USER_TYPE_ALL));
         return () => { pending.current = null; };
-    }, [variableId, roomSession, hasValue]);
+    }, [variableId, roomSession]);
 
     const changeFilters = (nextUserType: number, nextSortType: number) => {
         if (!requests.canRequestNewPage(false)) return;
@@ -141,8 +149,8 @@ export const WiredVariableOwnersView = (props: WiredVariableOwnersViewProps) => 
         label: localizeWithFallback('wiredmenu.variable_management.usertype', 'User type:'),
         value: String(userType),
         options: [
-            { value: String(USER_FILTER_ALL), label: localizeWithFallback('wiredmenu.variable_management.usertype.all', 'All types') },
-            { value: String(USER_FILTER_IN_ROOM), label: localizeWithFallback('wiredmenu.variable_management.usertype.in_room', 'In the room') }
+            { value: String(USER_TYPE_ALL), label: localizeWithFallback('wiredmenu.variable_management.usertype.all', 'All types') },
+            ...USER_TYPES.map((type) => ({ value: String(type.value), label: localizeWithFallback(`wiredmenu.variable_management.usertype.${type.key}`, type.fallback) }))
         ],
         onChange: (value: string) => {
             const next = Number(value);
@@ -155,12 +163,7 @@ export const WiredVariableOwnersView = (props: WiredVariableOwnersViewProps) => 
     const sortFilter = {
         label: localizeWithFallback('wiredmenu.variable_management.sort_by', 'Sort by:'),
         value: String(sortType),
-        options: [
-            { value: String(SORT_NONE), label: localizeWithFallback('wiredmenu.variable_management.sort_by.none', 'Default order') },
-            { value: String(SORT_VALUE_DESCENDING), label: localizeWithFallback('wiredmenu.variable_management.sort_by.highest', 'Highest value') },
-            { value: String(SORT_VALUE_ASCENDING), label: localizeWithFallback('wiredmenu.variable_management.sort_by.lowest', 'Lowest value') },
-            { value: String(SORT_NAME), label: localizeWithFallback('wiredmenu.variable_management.sort_by.name', 'Name') }
-        ],
+        options: SORTS.map((sort) => ({ value: String(sort.value), label: localizeWithFallback(`wiredmenu.variable_management.sort_by.${sort.value}`, sort.fallback) })),
         onChange: (value: string) => {
             const next = Number(value);
 
