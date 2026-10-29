@@ -1,6 +1,7 @@
 .volt-high-score {
     position: absolute;
     z-index: 70;
+    pointer-events: auto;
     width: 275px;
     height: 341px;
     color: #000;
