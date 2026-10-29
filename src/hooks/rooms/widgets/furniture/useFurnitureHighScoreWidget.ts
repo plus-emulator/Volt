@@ -1,7 +1,6 @@
 import { GetRoomEngine, HighScoreDataType, ObjectDataFactory, RoomEngineTriggerWidgetEvent, RoomObjectVariable } from '@volt/renderer';
 import { useState } from 'react';
 import { useVoltEvent } from '../../../events';
-import { useRoom } from '../../useRoom';
 
 // The order is the client contract, not ours: the server sends an index into this list.
 // Two of the five are times rather than points, which changes both the column header and
@@ -52,9 +51,17 @@ export const formatScore = (score: number, scoreType: number) => {
     return scoreToTime(score, score >= 3600 ? 3 : 2);
 };
 
+export interface HighScoreDisplay
+{
+    roomId: number;
+    objectId: number;
+    category: number;
+    stuffData: HighScoreDataType;
+}
+
+// One board shows at a time: opening a board replaces the open one, and only the open board's hide event closes it.
 const useFurnitureHighScoreWidgetState = () => {
-    const [stuffDatas, setStuffDatas] = useState<Map<number, HighScoreDataType>>(new Map());
-    const { roomSession = null } = useRoom();
+    const [display, setDisplay] = useState<HighScoreDisplay>(null);
 
     useVoltEvent<RoomEngineTriggerWidgetEvent>(RoomEngineTriggerWidgetEvent.REQUEST_HIGH_SCORE_DISPLAY, (event) => {
         const roomObject = GetRoomEngine().getRoomObject(event.roomId, event.objectId, event.category);
@@ -66,28 +73,14 @@ const useFurnitureHighScoreWidgetState = () => {
 
         stuffData.initializeFromRoomObjectModel(roomObject.model);
 
-        setStuffDatas((prevValue) => {
-            const newValue = new Map(prevValue);
-
-            newValue.set(roomObject.id, stuffData);
-
-            return newValue;
-        });
+        setDisplay({ roomId: event.roomId, objectId: event.objectId, category: event.category, stuffData });
     });
 
     useVoltEvent<RoomEngineTriggerWidgetEvent>(RoomEngineTriggerWidgetEvent.REQUEST_HIDE_HIGH_SCORE_DISPLAY, (event) => {
-        if (event.roomId !== roomSession.roomId) return;
-
-        setStuffDatas((prevValue) => {
-            const newValue = new Map(prevValue);
-
-            newValue.delete(event.objectId);
-
-            return newValue;
-        });
+        setDisplay((previous) => (previous && previous.roomId === event.roomId && previous.objectId === event.objectId) ? null : previous);
     });
 
-    return { stuffDatas, getScoreType, getClearType, isConfigured, isTimeScore, formatScore };
+    return { display, getScoreType, getClearType, isConfigured, isTimeScore, formatScore };
 };
 
 export const useFurnitureHighScoreWidget = useFurnitureHighScoreWidgetState;

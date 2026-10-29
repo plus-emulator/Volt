@@ -87,6 +87,7 @@ import './css/room/NavigatorRoomSettings.css';
 import './css/room/RoomWidgets.css';
 import './css/room/WiredVariableFx.css';
 import './css/room/VariableLeaderboard.css';
+import './css/room/HighScoreDisplay.css';
 import './css/room/WiredLabelLink.css';
 
 import './css/slider.css';
