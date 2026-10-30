@@ -9,11 +9,9 @@ import {
     LegacyExternalInterface,
     LoadGameUrlEvent,
     VoltEventType,
-    VoltLogger,
-    VoltVersion
+    VoltLogger
 } from '@volt/renderer';
 import { FC, useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
-import { GetUIVersion } from './api';
 import { startHotelRuntime } from './boot/HotelRuntime';
 import { Base } from './common';
 import { LoadingView } from './components/loading/LoadingView';
@@ -25,8 +23,6 @@ import { listenForWiredLabels } from './hooks/rooms/widgets/useWiredLabelsState'
 import { clearBuildersClubStatus, listenForBuildersClubStatus } from './state/buildersClubStore';
 import { clearPerkAllowances, listenForPerkAllowances } from './state/perkAllowancesStore';
 import { SharedHookRegistry } from './state/useSharedHook';
-
-VoltVersion.UI_VERSION = GetUIVersion();
 
 const getViewportDimensions = () => {
     const viewport = window.visualViewport;
