@@ -8,8 +8,6 @@ export * from './chat-history';
 export * from './collectibles';
 export * from './events';
 export * from './friends';
-export * from './GetRendererVersion';
-export * from './GetUIVersion';
 export * from './groups';
 export * from './guide-tool';
 export * from './habbicons';
