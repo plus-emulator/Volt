@@ -25,6 +25,8 @@ import {
     IChestFurniStoredItem,
     RoomObjectCategory,
     RoomObjectVariable,
+    RoomPreviewer,
+    Vector3d,
 } from '@volt/renderer';
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -53,7 +55,7 @@ import bellIcon from '../../../../assets/images/chest/wired_chests_bell_icon.png
 import gearIcon from '../../../../assets/images/chest/wired_chests_gear_icon.png';
 import checkmarkIcon from '../../../../assets/images/reward-track/air/checkmark.png';
 import wiredIcon from '../../../../assets/images/wiredtools/wired_menu.png';
-import { Column, Flex, LayoutCurrencyIcon, LayoutFurniImageView, VoltCardContentView, VoltCardHeaderView, VoltCardView, PIXEL_ART_RENDERING, Text } from '../../../../common';
+import { Column, Flex, LayoutCurrencyIcon, LayoutFurniImageView, LayoutRoomPreviewerView, VoltCardContentView, VoltCardHeaderView, VoltCardView, PIXEL_ART_RENDERING, Text } from '../../../../common';
 import { useMessageEvent, usePurse } from '../../../../hooks';
 import { useWiredToolsState } from '../../../../hooks/wired-tools/useWiredToolsState';
 import { ChestButton } from './ChestButton';
@@ -135,6 +137,7 @@ export const FurnitureChestView: FC = () => {
     const [storedFurniItems, setStoredFurniItems] = useState<IChestFurniStoredItem[]>([]);
     const [selectedFurniKey, setSelectedFurniKey] = useState('');
     const [furniWithdrawAmount, setFurniWithdrawAmount] = useState(1);
+    const [roomPreviewer, setRoomPreviewer] = useState<RoomPreviewer>(null);
     const [withdrawAmount, setWithdrawAmount] = useState(1);
     /** Bumped to re-read the chest's room object after it updates (AIR viewingChestUpdated). */
     const [, setObjectVersion] = useState(0);
@@ -234,6 +237,37 @@ export const FurnitureChestView: FC = () => {
     }, [selectedFurniKey]);
 
     const selectedGroup = furniEntries.find((f) => f.key === selectedFurniKey) ?? null;
+
+    useEffect(() => {
+        if (itemId <= 0 || !isFurni || !rights.canRead) return;
+
+        const previewer = new RoomPreviewer(GetRoomEngine(), ++RoomPreviewer.PREVIEW_COUNTER);
+        previewer.backgroundColor = null;
+        previewer.centerWallItems = true;
+        previewer.updateRoomWallsAndFloorVisibility(false, false);
+        setRoomPreviewer(previewer);
+
+        return () => {
+            previewer.dispose();
+            setRoomPreviewer(null);
+        };
+    }, [itemId, isFurni, rights.canRead]);
+
+    useEffect(() => {
+        if (!roomPreviewer) return;
+
+        roomPreviewer.reset(false);
+
+        if (!selectedGroup) return;
+
+        if (selectedGroup.wallItem) {
+            roomPreviewer.addWallItemIntoRoom(selectedGroup.baseItemId, new Vector3d(90), selectedGroup.legacyPosterId);
+        } else {
+            roomPreviewer.addFurnitureIntoRoom(selectedGroup.baseItemId, new Vector3d(90), selectedGroup.sample.stuffData, selectedGroup.sample.extra.toString());
+        }
+
+        roomPreviewer.setAutomaticStateChange(false);
+    }, [roomPreviewer, selectedGroup]);
 
     useEffect(() => {
         syncSelectedFurniKey(furniEntries);
@@ -630,12 +664,10 @@ export const FurnitureChestView: FC = () => {
                                                 {groupLabel(selectedGroup)}
                                             </Text>
                                             <div className="volt-chest__preview-image">
-                                                <LayoutFurniImageView
-                                                    productType={selectedGroup.wallItem ? 'i' : 's'}
-                                                    productClassId={selectedGroup.baseItemId}
-                                                    extraData={selectedGroup.legacyPosterId}
-                                                    direction={2}
-                                                    scale={1}
+                                                <LayoutRoomPreviewerView
+                                                    roomPreviewer={roomPreviewer}
+                                                    fitParent
+                                                    onPreviewClick={() => {}}
                                                 />
                                             </div>
                                         </>
