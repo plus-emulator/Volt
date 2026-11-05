@@ -2,8 +2,9 @@
     z-index: 0;
 }
 
-/* AIR landing_view_default_dynamic_layout: the gradient is 1150px high and its bottom meets
-   the bottom edge; the 1px top image repeats above it. */
+/* AIR landing_view_default_dynamic_layout: the gradient and the artwork end 38px above the
+   bottom edge, a 50px dark strip fills the bottom behind the toolbar, and the 1px top image
+   repeats above the gradient. */
 .landing-backdrop {
     position: absolute;
     inset: 0;
@@ -13,10 +14,20 @@
     pointer-events: none;
 }
 
-.landing-backdrop-gradient {
+.landing-backdrop::after {
+    content: '';
     position: absolute;
     right: 0;
     bottom: 0;
+    left: 0;
+    height: 50px;
+    background-color: #333333;
+}
+
+.landing-backdrop-gradient {
+    position: absolute;
+    right: 0;
+    bottom: 38px;
     left: 0;
     height: 1150px;
     background-repeat: no-repeat;
@@ -25,7 +36,7 @@
 
 .landing-backdrop img {
     position: absolute;
-    bottom: 0;
+    bottom: 38px;
     display: block;
     max-width: none;
     user-select: none;
@@ -40,10 +51,10 @@
     right: 0;
 }
 
-/* AIR places the avatar widget 109px from the left, in the left artwork. */
+/* AIR places the avatar widget 109px from the left and 72px from the bottom, on the mat in the left artwork. */
 .hotelview-avatar {
     position: absolute;
-    bottom: 92px;
+    bottom: 72px;
     left: 109px;
     width: 90px;
     height: 130px;
