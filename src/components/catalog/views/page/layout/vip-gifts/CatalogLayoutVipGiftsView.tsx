@@ -58,11 +58,7 @@ export const CatalogLayoutVipGiftsView: FC<CatalogLayoutProps> = (props) => {
 
                     isSelectingGift = true;
 
-                    // The server replies with a fresh ClubGiftInfoEvent after
-                    // accepting the selection; useClubGifts subscribes to that
-                    // event via useVoltEventInvalidator, so giftsAvailable
-                    // refreshes from the authoritative source — no need to
-                    // mutate the parser locally.
+                    // The server answers with a fresh ClubGiftInfoEvent, which useClubGifts puts in its cache.
                     SendMessageComposer(new SelectClubGiftComposer(localizationId));
 
                     setTimeout(() => (isSelectingGift = false), 5000);
