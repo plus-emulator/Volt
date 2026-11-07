@@ -394,12 +394,13 @@
     height: 27px;
     min-height: 27px;
 }
-/* SWF group_room_info.xml coordinates. */
+/* SWF group_room_info.xml coordinates. Same extension grid slot as .volt-event-info. */
 .volt-group-room-info {
+    align-self: flex-start;
     width: 195px !important;
     max-width: 195px !important;
     height: 119px !important;
-    margin-left: auto !important;
+    margin-left: 39px !important;
     border-radius: 4px !important;
 }
 .volt-group-room-info.is-closed {

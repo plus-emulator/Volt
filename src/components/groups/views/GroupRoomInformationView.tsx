@@ -164,7 +164,7 @@ export const GroupRoomInformationView: FC<{}> = (props) => {
     if (!groupInformation) return null;
 
     return (
-        <div className={`volt-group-room-info pointer-events-auto ml-auto mt-[6px] overflow-hidden ${isOpen ? 'is-open' : 'is-closed'}`}>
+        <div className={`volt-group-room-info pointer-events-auto mt-[6px] overflow-hidden ${isOpen ? 'is-open' : 'is-closed'}`}>
             <div className="volt-group-room-info__contracted" onClick={() => setIsOpen((value) => !value)}>
                 <img src={groupBaseIcon} alt="" className="volt-group-room-info__base-icon" draggable={false} />
                 <Text variant="white" className="volt-group-room-info__title">
