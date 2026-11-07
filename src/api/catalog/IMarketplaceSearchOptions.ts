@@ -3,4 +3,6 @@ export interface IMarketplaceSearchOptions {
     type: number;
     minPrice: number;
     maxPrice: number;
+    combineUniques: boolean;
+    offerType: number;
 }
