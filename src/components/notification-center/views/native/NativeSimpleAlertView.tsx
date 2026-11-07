@@ -1,4 +1,4 @@
-import { FC, useEffect, useMemo, useRef, useState } from 'react';
+import { FC, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { localizeWithFallback, SanitizeHtml } from '../../../../api';
 import frankNeutral from '../../../../assets/images/notifications/frank-neutral.png';
 import { NativeText } from '../../../../common/native-text/NativeText';
@@ -18,11 +18,19 @@ export interface NativeSimpleAlertViewProps {
 }
 
 // simple_alert_xml (HabboWindowManagerCom): 310 wide modal frame, no header close button, Close button below an etched separator.
+// SimpleAlertDialog.resizeWindow: the message list is cut to the desktop height minus a 10px margin above and below, the
+// 40px of frame around the list, the bottom list, the 3px list spacing and the subtitle, but stays at least 1px high.
+const DESKTOP_MARGIN = 20 + 40;
+const LIST_SPACING = 3;
+
 export const NativeSimpleAlertView: FC<NativeSimpleAlertViewProps> = (props) => {
     const { caption, subtitle = '', message, linkTitle = '', linkUrl = '', imageUrl = frankNeutral, onClose } = props;
     const [imageFailed, setImageFailed] = useState(false);
     const [imageWidth, setImageWidth] = useState(32);
     const closeRef = useRef<HTMLButtonElement>(null);
+    const subtitleRef = useRef<HTMLDivElement>(null);
+    const bottomRef = useRef<HTMLDivElement>(null);
+    const [messageMaxHeight, setMessageMaxHeight] = useState<number>(null);
     const hasImage = !!imageUrl && !imageFailed;
     const hasLink = !!linkTitle && !!linkUrl;
     const messageMarkup = useMemo(() => SanitizeHtml(message.replace(/\r\n|\r|\n/g, '<br />')), [message]);
@@ -41,6 +49,19 @@ export const NativeSimpleAlertView: FC<NativeSimpleAlertViewProps> = (props) => 
 
     useEffect(() => {
         closeRef.current?.focus({ preventScroll: true });
+    }, []);
+
+    useLayoutEffect(() => {
+        const fit = () => {
+            const reserved = DESKTOP_MARGIN + (bottomRef.current?.offsetHeight ?? 0) + LIST_SPACING + (subtitleRef.current?.offsetHeight ?? 0);
+
+            setMessageMaxHeight(Math.max(1, window.innerHeight - reserved));
+        };
+
+        fit();
+        window.addEventListener('resize', fit);
+
+        return () => window.removeEventListener('resize', fit);
     }, []);
 
     const openLink = () => {
@@ -72,17 +93,23 @@ export const NativeSimpleAlertView: FC<NativeSimpleAlertViewProps> = (props) => 
                             />
                         )}
                         <div className="volt-native-alert-top">
-                            {!!subtitle && <div className="volt-native-alert-subtitle">{subtitle}</div>}
-                            {plainMessage !== null ? (
-                                <div className="volt-native-alert-message uses-native-text">
-                                    <NativeText text={plainMessage} textStyle="il_regular" background={0xe9e9e1} maxWidth={291} />
+                            {!!subtitle && (
+                                <div ref={subtitleRef} className="volt-native-alert-subtitle">
+                                    {subtitle}
                                 </div>
-                            ) : (
-                                <div className="volt-native-alert-message" dangerouslySetInnerHTML={{ __html: messageMarkup }} />
                             )}
+                            <div className="volt-native-alert-message-list" style={{ maxHeight: messageMaxHeight ?? undefined }}>
+                                {plainMessage !== null ? (
+                                    <div className="volt-native-alert-message uses-native-text">
+                                        <NativeText text={plainMessage} textStyle="il_regular" background={0xe9e9e1} maxWidth={282} />
+                                    </div>
+                                ) : (
+                                    <div className="volt-native-alert-message" dangerouslySetInnerHTML={{ __html: messageMarkup }} />
+                                )}
+                            </div>
                         </div>
                     </div>
-                    <div className="volt-native-alert-bottom">
+                    <div ref={bottomRef} className="volt-native-alert-bottom">
                         <div aria-hidden="true" className="volt-native-alert-separator" />
                         <button ref={closeRef} className="volt-native-button is-thick" type="button" onClick={onClose}>
                             {localizeWithFallback('alert.close.button', 'Close')}
