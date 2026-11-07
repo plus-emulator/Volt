@@ -20,6 +20,12 @@ const getViewportSize = () =>
 // AIR RoomDesktop listens to every canvas click in a game session; DispatchMouseEvent would turn quick repeat throws into double clicks.
 const dispatchArenaMouseEvent = (event: MouseEvent) => GetRoomEngine().dispatchMouseEvent(CANVAS_ID, event.clientX, event.clientY, event.type, event.altKey, (event.ctrlKey || event.metaKey), event.shiftKey, false);
 
+// AIR RoomDesktop never zooms a game session: ctrl+wheel is swallowed, so neither the arena nor the page zooms.
+const blockArenaZoom = (event: WheelEvent) =>
+{
+    if((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey) event.preventDefault();
+};
+
 /** AIR builds the game room on StageLoad, right after EnterArena, and keeps it until the game is over (`initView` / `gameOver`). */
 const isArenaState = (state: number) => (state >= SnowWarEngineState.GAME_STARTING) && (state <= SnowWarEngineState.STAGE_ENDING);
 
@@ -92,6 +98,7 @@ export const SnowWarArenaStageView: FC<{ engine: ISnowWarEngine; chatMessages: r
         htmlCanvas.onmousemove = dispatchArenaMouseEvent;
         htmlCanvas.onmousedown = dispatchArenaMouseEvent;
         htmlCanvas.onmouseup = dispatchArenaMouseEvent;
+        htmlCanvas.addEventListener('wheel', blockArenaZoom, { passive: false });
         element.prepend(htmlCanvas);
 
         const resize = () =>
@@ -123,6 +130,7 @@ export const SnowWarArenaStageView: FC<{ engine: ISnowWarEngine; chatMessages: r
             htmlCanvas.onmousemove = previousHandlers.move;
             htmlCanvas.onmousedown = previousHandlers.down;
             htmlCanvas.onmouseup = previousHandlers.up;
+            htmlCanvas.removeEventListener('wheel', blockArenaZoom);
 
             if(previousParent && (previousParent !== element)) previousParent.appendChild(htmlCanvas);
 
