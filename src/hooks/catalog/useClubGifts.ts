@@ -1,27 +1,21 @@
 import { ClubGiftInfoEvent, ClubGiftInfoParser, GetClubGiftInfo } from '@volt/renderer';
-import { UseQueryResult } from '@tanstack/react-query';
-import { useVoltEventInvalidator, useVoltQuery } from '../../api/volt-query';
+import { UseQueryResult, useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
+import { useVoltQuery } from '../../api/volt-query';
+import { useMessageEvent } from '../events';
 
-const CLUB_GIFTS_KEY = ['volt', 'catalog', 'clubGifts'] as const;
+const CLUB_GIFTS_KEY = ['volt', 'catalog', 'clubGifts'];
 
 /**
- * Habbo Club gift availability (counts of pending gifts, days until
- * next gift, gift list). The server replies once to GetClubGiftInfo
- * and then pushes ClubGiftInfoEvent again every time the user claims
- * a gift via SelectClubGiftComposer — so the cache needs to be
- * invalidated on each push, not just hydrated by the first response.
- *
- * Pair the query with useVoltEventInvalidator so unsolicited pushes
- * mark the slot stale; the next render of any consumer triggers a
- * re-fetch (which, since the server just pushed, will resolve almost
- * immediately with the fresh data the server already sent us).
- *
- * Replaces the previous useCatalog listener that stuffed
- * `parser` into `catalogOptions.clubGifts`.
+ * Habbo Club gift availability. The server also pushes ClubGiftInfoEvent after each claimed gift.
+ * Every ClubGiftInfoEvent carries the full state, so it goes straight into the cache. Invalidating
+ * here would loop: each refetch reply is the same event and cancels the refetch it answers.
  */
 export const useClubGifts = (options: { enabled?: boolean } = {}): UseQueryResult<ClubGiftInfoParser> => {
+    const queryClient = useQueryClient();
+
     const query = useVoltQuery<ClubGiftInfoEvent, ClubGiftInfoParser>({
-        key: CLUB_GIFTS_KEY as unknown as string[],
+        key: CLUB_GIFTS_KEY,
         request: () => new GetClubGiftInfo(),
         parser: ClubGiftInfoEvent,
         select: (event) => event.getParser(),
@@ -29,7 +23,9 @@ export const useClubGifts = (options: { enabled?: boolean } = {}): UseQueryResul
         staleTime: Infinity
     });
 
-    useVoltEventInvalidator<ClubGiftInfoEvent>(ClubGiftInfoEvent, CLUB_GIFTS_KEY as unknown as string[]);
+    const onClubGiftInfo = useCallback((event: ClubGiftInfoEvent) => queryClient.setQueryData(CLUB_GIFTS_KEY, event.getParser()), [queryClient]);
+
+    useMessageEvent<ClubGiftInfoEvent>(ClubGiftInfoEvent, onClubGiftInfo);
 
     return query;
 };
