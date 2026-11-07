@@ -179,12 +179,12 @@
     pointer-events: none;
 }
 
-/* search_container (0, 30, 360x120): border style 100, illumina_light_border_etched (3px caps, no centre). */
+/* search_container (0, 30, 360x150): border style 100, illumina_light_border_etched (3px caps, no centre). */
 .volt-catalog-market-search {
     top: 30px;
     left: 0;
     width: 360px;
-    height: 120px;
+    height: 150px;
 }
 
 .volt-catalog-market-search::before {
@@ -202,25 +202,45 @@
     position: absolute !important;
 }
 
-/* marketplace_search_simple: the centred sort_order text at y 23 and sort_dropmenu (70, 50, 220x24). */
-.volt-catalog-market-label.is-sort-centred {
-    top: 23px;
-    left: 0;
+/* marketplace_search_simple: the Type and sort_order texts (20, 38 / 73, 88 wide, auto size right) and their menus at (118, 35 / 70). */
+.volt-catalog-market-label-right {
+    display: flex;
+    justify-content: flex-end;
+    left: 20px;
+    width: 88px;
 }
 
-.volt-catalog-market-search > .habbo-dropmenu.volt-catalog-market-sort {
+.volt-catalog-market-label-right.is-offer-type {
+    top: 38px;
+}
+
+.volt-catalog-market-label-right.is-sort {
+    top: 73px;
+}
+
+.volt-catalog-market-search > .habbo-dropmenu:is(.volt-catalog-market-sort, .volt-catalog-market-offer-type) {
     width: 220px;
     height: 24px;
 }
 
-.volt-catalog-market-search > .habbo-dropmenu.volt-catalog-market-sort.is-simple {
-    top: 50px;
-    left: 70px;
+.volt-catalog-market-search > .habbo-dropmenu.volt-catalog-market-offer-type.is-simple {
+    top: 35px;
+    left: 118px;
 }
 
-/* marketplace_search_advanced: labels at x 10, y 13 / 38 / 63; fields at x 130 (and 280); sort menu (130, 60). */
-.volt-catalog-market-search > .habbo-dropmenu.volt-catalog-market-sort.is-advanced {
+.volt-catalog-market-search > .habbo-dropmenu.volt-catalog-market-sort.is-simple {
+    top: 70px;
+    left: 118px;
+}
+
+/* marketplace_search_advanced: labels at x 10, y 13 / 38 / 63 / 92; fields at x 130 (and 280); menus at (130, 60 / 89). */
+.volt-catalog-market-search > .habbo-dropmenu.volt-catalog-market-offer-type.is-advanced {
     top: 60px;
+    left: 130px;
+}
+
+.volt-catalog-market-search > .habbo-dropmenu.volt-catalog-market-sort.is-advanced {
+    top: 89px;
     left: 130px;
 }
 
@@ -234,19 +254,24 @@
     left: 10px;
 }
 
-.volt-catalog-market-label.is-sort {
+.volt-catalog-market-label.is-offer-type {
     top: 63px;
     left: 10px;
 }
 
-/* combine_uniques_checkbox (10, 92) and its label (29, 91). */
+.volt-catalog-market-label.is-sort {
+    top: 92px;
+    left: 10px;
+}
+
+/* combine_uniques_checkbox (10, 122) and its label (29, 121). */
 .volt-catalog-market-label.is-combine {
-    top: 91px;
+    top: 121px;
     left: 29px;
 }
 
 .volt-catalog-market-checkbox {
-    top: 92px;
+    top: 122px;
     left: 10px;
     width: 16px;
     height: 15px;
@@ -332,9 +357,9 @@
     width: 60px;
 }
 
-/* status_text (2, 155) on the offers page, the status label (0, 440) on the own items page. */
+/* status_text (2, 185) on the offers page, the status label (0, 440) on the own items page. */
 .volt-catalog-market-status.is-offers {
-    top: 155px;
+    top: 185px;
     left: 2px;
 }
 
@@ -343,12 +368,12 @@
     left: 0;
 }
 
-/* offer_list (0, 170, 360x277 after the 608px layout shrinks to 460) and item_list (0, 72, 360x352). */
+/* offer_list (0, 200, 360x247 after the 608px layout shrinks to 460) and item_list (0, 72, 360x352). */
 .volt-catalog-market-list.is-offers {
-    top: 170px;
+    top: 200px;
     left: 0;
     width: 360px;
-    height: 277px;
+    height: 247px;
 }
 
 .volt-catalog-market-list.is-own {

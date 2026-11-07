@@ -13,6 +13,7 @@ import {
     LocalizeText,
     localizeWithFallback,
     MarketplaceOfferData,
+    MarketplaceOfferType,
     MarketplaceSearchType,
     NotificationAlertType,
     SendMessageComposer
@@ -44,9 +45,17 @@ export const CatalogLayoutMarketplacePublicItemsView: FC<CatalogLayoutMarketplac
     const [searchType, setSearchType] = useState(MarketplaceSearchType.BY_ACTIVITY);
     const [totalItemsFound, setTotalItemsFound] = useState(0);
     const [offers, setOffers] = useState(new Map<number, MarketplaceOfferData>());
-    const [lastSearch, setLastSearch] = useState<IMarketplaceSearchOptions>({ minPrice: -1, maxPrice: -1, query: '', type: 3 });
+    const [lastSearch, setLastSearch] = useState<IMarketplaceSearchOptions>({
+        minPrice: -1,
+        maxPrice: -1,
+        query: '',
+        type: 3,
+        combineUniques: true,
+        offerType: MarketplaceOfferType.ALL
+    });
     const [searching, setSearching] = useState(true);
     const [combineUniques, setCombineUniques] = useState(true);
+    const [offerType, setOfferType] = useState(MarketplaceOfferType.ALL);
     const { getCurrencyAmount = null } = usePurse();
     const { simpleAlert = null, showConfirm = null } = useNotification();
     const pendingOfferIdRef = useRef<number>(null);
@@ -70,7 +79,9 @@ export const CatalogLayoutMarketplacePublicItemsView: FC<CatalogLayoutMarketplac
     const requestOffers = useCallback((options: IMarketplaceSearchOptions) => {
         setLastSearch(options);
         setSearching(true);
-        SendMessageComposer(new GetMarketplaceOffersMessageComposer(options.minPrice, options.maxPrice, options.query, options.type));
+        SendMessageComposer(
+            new GetMarketplaceOffersMessageComposer(options.minPrice, options.maxPrice, options.query, options.type, options.combineUniques, options.offerType)
+        );
     }, []);
 
     const getSortTypes = useMemo(() => {
@@ -259,10 +270,13 @@ export const CatalogLayoutMarketplacePublicItemsView: FC<CatalogLayoutMarketplac
             })}
             <div className="volt-catalog-market-search">
                 <SearchFormView
+                    key={searchType}
                     combineUniques={combineUniques}
+                    offerType={offerType}
                     searchType={searchType}
                     sortTypes={getSortTypes}
                     onCombineUniquesChange={setCombineUniques}
+                    onOfferTypeChange={setOfferType}
                     onSearch={requestOffers}
                 />
             </div>

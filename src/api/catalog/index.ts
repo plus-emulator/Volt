@@ -19,6 +19,7 @@ export * from './IPurchasableOffer';
 export * from './IPurchaseOptions';
 export * from './MarketplaceOfferData';
 export * from './MarketplaceOfferState';
+export * from './MarketplaceOfferType';
 export * from './MarketplaceSearchType';
 export * from './Offer';
 export * from './PageLocalization';
