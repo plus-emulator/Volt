@@ -1129,6 +1129,51 @@
     letter-spacing: 0.12px;
 }
 
+/* message_list: scrollable_itemlist_vertical style 100 (291 wide) around the 282 wide message; its 9px illumina scrollbar shows only when the message is cut. */
+.volt-native-alert-message-list {
+    width: 291px;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.volt-native-alert-message-list > .volt-native-alert-message {
+    box-sizing: border-box;
+    width: 282px;
+}
+
+.has-classic-scrollbar .volt-native-alert-message-list::-webkit-scrollbar {
+    width: 9px !important;
+    height: 9px !important;
+    background: transparent !important;
+}
+
+.has-classic-scrollbar .volt-native-alert-message-list::-webkit-scrollbar-button,
+.has-classic-scrollbar .volt-native-alert-message-list::-webkit-scrollbar-button:single-button:vertical:decrement,
+.has-classic-scrollbar .volt-native-alert-message-list::-webkit-scrollbar-button:single-button:vertical:increment {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+.has-classic-scrollbar .volt-native-alert-message-list::-webkit-scrollbar-track:vertical {
+    border: solid transparent !important;
+    border-width: 2px 0 !important;
+    border-image: url("../../assets/images/reward-track/air/scrollbar-track.png") 2 0 fill / 2px 0 stretch !important;
+    background: transparent !important;
+    image-rendering: pixelated !important;
+}
+
+.has-classic-scrollbar .volt-native-alert-message-list::-webkit-scrollbar-thumb:vertical,
+.has-classic-scrollbar .volt-native-alert-message-list::-webkit-scrollbar-thumb:vertical:hover,
+.has-classic-scrollbar .volt-native-alert-message-list::-webkit-scrollbar-thumb:vertical:active {
+    min-height: 9px !important;
+    border: solid transparent !important;
+    border-width: 4px 0 !important;
+    border-image: url("../../assets/images/reward-track/air/scrollbar-lift.png") 4 0 fill / 4px 0 stretch !important;
+    background: transparent !important;
+    image-rendering: pixelated !important;
+}
+
 .volt-native-alert-message {
     letter-spacing: 0.1px;
     line-height: 12px;
