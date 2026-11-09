@@ -20,6 +20,7 @@ import
     GetTicker,
     GetEventDispatcher,
     LegacyDataType,
+    MapDataType,
     LegacyWallGeometry,
     VoltAdjustmentFilter,
     VoltRectangle,
@@ -75,6 +76,17 @@ interface CameraSceneItem
     state: number;
     wallPosition: string;
     extraData: string;
+    branding?: CameraSceneBranding | null;
+}
+
+interface CameraSceneBranding
+{
+    imageUrl: string;
+    offsetX: number;
+    offsetY: number;
+    offsetZ: number;
+    scale: number;
+    alpha: number;
 }
 
 interface CameraSceneUser
@@ -186,6 +198,13 @@ window.Image = class extends NativeImage
 
 const cameraImagesSettled = (): boolean => ![...cameraImages].some(image => image.src.includes('/camera/'));
 
+// A room ad image that failed to load stays empty, as it does in the client.
+function adImagesSettled(roomId: number): boolean
+{
+    return GetRoomEngine().getRoomObjects(roomId, RoomObjectCategory.FLOOR).every(object =>
+        !object?.model?.getValue<string>(RoomObjectVariable.FURNITURE_BRANDING_IMAGE_URL) || (object.model.getValue<number>(RoomObjectVariable.FURNITURE_BRANDING_IMAGE_STATUS) !== 0));
+}
+
 const MEDIA_SCHEME = /(?:https?:|data:|blob:|javascript:|file:|\/\/)/i;
 const WALL_POSITION = /^:w=(-?\d+),(-?\d+)\s+l=(-?\d+),(-?\d+)\s+([lr])$/i;
 const REQUIRED_CONFIGURATION = [
@@ -289,11 +308,40 @@ function extraText(value: unknown): string
     return value;
 }
 
+const BRANDING_NUMBERS = [ 'offsetX', 'offsetY', 'offsetZ', 'scale', 'alpha' ] as const;
+
+// A room ad is the one scene object that carries a web address: the image it shows.
+function assertBranding(branding: unknown): void
+{
+    if(branding === undefined || branding === null) return;
+
+    const value = branding as CameraSceneBranding;
+
+    if((typeof branding !== 'object') || (Object.keys(branding).length !== (BRANDING_NUMBERS.length + 1)) || (typeof value.imageUrl !== 'string') || BRANDING_NUMBERS.some(key => !Number.isInteger(value[key]))) fail('Invalid room ad');
+
+    let address: URL = null;
+
+    try { address = new URL(value.imageUrl); }
+    catch { fail('Invalid room ad'); }
+
+    if(!/^https?:$/.test(address.protocol) || address.username || address.password || (value.imageUrl.length > 500)) fail('Invalid room ad');
+}
+
 function readScene(scene: CameraScene): CameraScene
 {
     if(!scene || !Number.isInteger(scene.roomId) || (scene.roomId <= 0) || (typeof scene.heightmap !== 'string') || (scene.heightmap.length > 65536) || !Array.isArray(scene.items) || (scene.items.length > 5000) || !Array.isArray(scene.users) || (scene.users.length > 1000)) fail('Invalid server scene');
 
-    assertNoUrls(scene);
+    const { items, ...rest } = scene;
+
+    assertNoUrls(rest);
+
+    for(const item of items)
+    {
+        const { branding, ...fields } = (item ?? {}) as CameraSceneItem;
+
+        assertNoUrls(fields);
+        assertBranding(branding);
+    }
 
     return scene;
 }
@@ -551,9 +599,9 @@ function placeFurniture(scene: CameraScene, floorItems: CameraSceneItem[], wallI
 
     for(const item of floorItems)
     {
-        const data = new LegacyDataType();
+        const data = item.branding ? brandingData(item.branding) : new LegacyDataType();
 
-        data.setString(item.extraData);
+        if(data instanceof LegacyDataType) data.setString(item.extraData);
 
         if(!engine.addFurnitureFloor(scene.roomId, item.id, item.spriteId, new Vector3d(finite(item.x, 'item'), finite(item.y, 'item'), finite(item.z, 'item')), new Vector3d(facing(item.direction)), Number.isFinite(item.state) ? Math.trunc(item.state) : 0, data)) fail(`Could not place floor item ${ item.id }`);
     }
@@ -570,6 +618,18 @@ function placeFurniture(scene: CameraScene, floorItems: CameraSceneItem[], wallI
 
         if(!engine.addFurnitureWall(scene.roomId, item.id, item.spriteId, location, new Vector3d(wallGeometry.getDirection(match[5].toLowerCase())), Number.isFinite(item.state) ? Math.trunc(item.state) : 0, item.extraData)) fail(`Could not place wall item ${ item.id }`);
     }
+}
+
+function brandingData(branding: CameraSceneBranding): MapDataType
+{
+    const data = new MapDataType();
+
+    data.setValue('state', '0');
+    data.setValue('imageUrl', branding.imageUrl);
+
+    for(const key of BRANDING_NUMBERS) data.setValue(key, String(branding[key]));
+
+    return data;
 }
 
 function placeUsers(scene: CameraScene): CameraSceneUser[]
@@ -737,7 +797,7 @@ async function waitUntilReady(roomId: number, users: CameraSceneUser[], librarie
         libraries.forEach(assertSupportedLibrary);
 
         // A loaded photo is applied by the next update and drawn by the one after it.
-        settledPumps = cameraImagesSettled() ? (settledPumps + 1) : 0;
+        settledPumps = (cameraImagesSettled() && adImagesSettled(roomId)) ? (settledPumps + 1) : 0;
 
         await pump(engineTime);
 
@@ -762,6 +822,8 @@ async function waitUntilReady(roomId: number, users: CameraSceneUser[], librarie
     if(!effectsReady(users)) fail('Avatar effect library was not ready');
 
     if(!cameraImagesSettled()) fail('Camera photo image was not ready');
+
+    if(!adImagesSettled(roomId)) fail('Room ad image was not ready');
 
     const floorNow = engine.getRoomObjects(roomId, RoomObjectCategory.FLOOR).length;
     const wallNow = engine.getRoomObjects(roomId, RoomObjectCategory.WALL).length;
