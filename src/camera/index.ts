@@ -1,9 +1,11 @@
+import { matteOnTransparent } from './avatarMatte';
 import { cullOpaqueSprites } from './opaqueCull';
 import { buildAvatarEffectLibraries, avatarEffectsReady } from './effectLibraries';
 import
 {
     AvatarAction,
     AvatarScaleType,
+    AvatarSetType,
     ColorConverter,
     FloorHeightMapMessageParser,
     FurnitureStackingHeightMap,
@@ -236,6 +238,7 @@ declare global
         cameraEffects: readonly CameraCatalogueEntry[];
         cameraRender: (job: CameraJob) => Promise<string>;
         cameraPrepare: (request: { scene: CameraScene, viewport?: CameraViewport }) => Promise<CameraPreparation>;
+        cameraAvatar: (job: AvatarImageJob) => Promise<string[]>;
     }
 }
 
@@ -246,6 +249,10 @@ window.cameraRender = async () =>
     throw startupError ?? new Error('Camera renderer is not ready');
 };
 window.cameraPrepare = async () =>
+{
+    throw startupError ?? new Error('Camera renderer is not ready');
+};
+window.cameraAvatar = async () =>
 {
     throw startupError ?? new Error('Camera renderer is not ready');
 };
@@ -765,7 +772,7 @@ function effectsReady(users: CameraSceneUser[]): boolean
     return avatarEffectsReady(users, effectLibraries, library => !!assets.getCollection(library));
 }
 
-async function pump(engineTime: { value: number }): Promise<void>
+async function pump(engineTime: { value: number }, interval: number = 50): Promise<void>
 {
     const engine = GetRoomEngine();
     const ticker = GetTicker();
@@ -773,7 +780,7 @@ async function pump(engineTime: { value: number }): Promise<void>
     // processPendingFurniture drops the next call after a 40ms batch, so each pump runs two updates.
     for(let step = 0; step < 2; step++)
     {
-        engineTime.value = Math.max(engineTime.value, ticker.lastTime) + 50;
+        engineTime.value = Math.max(engineTime.value, ticker.lastTime) + interval;
         ticker.update(engineTime.value);
         engine.update(ticker);
     }
@@ -1233,6 +1240,293 @@ function enqueue(job: CameraJob): Promise<string>
     return queued(() => renderRoom(job));
 }
 
+interface AvatarImageJob
+{
+    figure: string;
+    gender: string;
+    part: 'full' | 'head';
+    direction: number;
+    headDirection: number;
+    posture: string;
+    expression: number;
+    gesture: string;
+    dance: number;
+    effect: number;
+    handItem: number;
+    frames: number;
+    scale: number;
+}
+
+const AVATAR_ROOM_ID = 2000000001;
+const AVATAR_VIEW = 512;
+// A gesture ends after three seconds of room time, so one image holds fewer frames than that.
+const AVATAR_MAX_FRAMES = 32;
+// An avatar draws its next animation frame after two room updates of this length.
+const AVATAR_FRAME_STEP_MS = 42;
+// The crop around the avatar's tile for each posture. A standing avatar is framed as the official imager frames it.
+const AVATAR_STANDING_FRAME = { width: 64, height: 110, left: 32, top: 96 };
+const AVATAR_FRAMES: { [posture: string]: { width: number, height: number, left: number, top: number } } = {
+    std: AVATAR_STANDING_FRAME,
+    mv: AVATAR_STANDING_FRAME,
+    sit: { width: 64, height: 110, left: 32, top: 70 },
+    lay: { width: 110, height: 64, left: 18, top: -6 }
+};
+const AVATAR_HEAD_FRAME = { x: 18, y: 12, width: 54, height: 62 };
+const AVATAR_SCALES = [ 0.5, 1, 2 ];
+
+function readAvatarJob(job: AvatarImageJob): AvatarImageJob
+{
+    const within = (value: number, max: number) => Number.isInteger(value) && (value >= 0) && (value <= max);
+
+    if(!job || (typeof job.figure !== 'string') || !job.figure.length || (job.figure.length > 512) || MEDIA_SCHEME.test(job.figure)) fail('Invalid avatar figure');
+
+    if((job.gender !== 'M') && (job.gender !== 'F')) fail('Invalid avatar gender');
+
+    if((job.part !== 'full') && (job.part !== 'head')) fail('Invalid avatar part');
+
+    if(!within(job.direction, 7) || !within(job.headDirection, 7)) fail('Invalid avatar direction');
+
+    if(!Object.hasOwn(AVATAR_FRAMES, job.posture)) fail('Invalid avatar posture');
+
+    if((typeof job.gesture !== 'string') || (job.gesture && !AvatarAction.getGestureId(job.gesture))) fail('Invalid avatar gesture');
+
+    if(!within(job.expression, 5) || !within(job.dance, 4) || !within(job.effect, 100000) || !within(job.handItem, 100000)) fail('Invalid avatar action');
+
+    if(!Number.isInteger(job.frames) || (job.frames < 1) || (job.frames > AVATAR_MAX_FRAMES)) fail('Invalid avatar frame count');
+
+    if(!AVATAR_SCALES.includes(job.scale)) fail('Invalid avatar scale');
+
+    return job;
+}
+
+function encodeAvatarFrame(source: HTMLCanvasElement, x: number, y: number, width: number, height: number, scale: number): string
+{
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+
+    if(!context) fail('Canvas is unavailable');
+
+    canvas.width = Math.round(width * scale);
+    canvas.height = Math.round(height * scale);
+    context.imageSmoothingEnabled = (scale < 1);
+    context.drawImage(source, x, y, width, height, 0, 0, canvas.width, canvas.height);
+
+    const encoded = canvas.toDataURL('image/png');
+
+    canvas.width = 0;
+    canvas.height = 0;
+
+    return encoded.slice(encoded.indexOf(',') + 1);
+}
+
+async function figureLibraries(figure: string): Promise<void>
+{
+    const avatars = GetAvatarRenderManager();
+    const container = avatars.createFigureContainer(figure);
+    const deadline = performance.now() + READY_BUDGET_MS;
+
+    avatars.downloadAvatarFigure(container, { resetFigure: () => undefined, dispose: () => undefined, disposed: false });
+
+    while(!avatars.isFigureContainerReady(container))
+    {
+        if(performance.now() > deadline) fail('Avatar figure library was not ready');
+
+        await new Promise(resolve => setTimeout(resolve, 10));
+    }
+}
+
+// A head is drawn as the client draws its own head images, since a room always draws the whole body.
+async function renderAvatarHead(job: AvatarImageJob): Promise<string[]>
+{
+    await figureLibraries(job.figure);
+
+    const image = GetAvatarRenderManager().createAvatarImage(job.figure, AvatarScaleType.LARGE, job.gender);
+
+    if(!image || image.isPlaceholder()) fail('Avatar head was not created');
+
+    try
+    {
+        image.setDirection(AvatarSetType.HEAD, job.headDirection);
+
+        if(job.gesture)
+        {
+            image.initActionAppends();
+            image.appendAction(AvatarAction.GESTURE, job.gesture);
+            image.endActionAppends();
+        }
+
+        const canvas = GetRenderer().texture.generateCanvas(image.processAsTexture(AvatarSetType.HEAD, false)) as HTMLCanvasElement;
+        const frame = AVATAR_HEAD_FRAME;
+
+        try
+        {
+            return [ encodeAvatarFrame(canvas, frame.x, frame.y, frame.width, frame.height, job.scale) ];
+        }
+        finally
+        {
+            canvas.width = 0;
+            canvas.height = 0;
+        }
+    }
+    finally
+    {
+        image.dispose();
+    }
+}
+
+function avatarScene(job: AvatarImageJob): CameraJob
+{
+    const user: CameraSceneUser = {
+        id: 1,
+        roomIndex: 0,
+        figure: job.figure,
+        gender: job.gender,
+        type: RoomObjectUserType.getTypeNumber(RoomObjectUserType.USER),
+        x: 0,
+        y: 0,
+        z: 0,
+        direction: job.direction,
+        headDirection: job.headDirection,
+        posture: job.posture,
+        postureParameter: ((job.posture === 'sit') || (job.posture === 'lay')) ? '0.5' : '',
+        gesture: job.gesture,
+        effect: job.effect,
+        handItem: job.handItem,
+        dance: job.dance
+    };
+
+    return {
+        scene: {
+            roomId: AVATAR_ROOM_ID,
+            heightmap: '0',
+            door: { x: -1, y: -1, z: 0, direction: 0 },
+            wallHeight: -1,
+            wallThickness: 0,
+            floorThickness: 0,
+            hideWalls: true,
+            floor: '',
+            wallpaper: '',
+            landscape: '',
+            backgroundColor: 0,
+            items: [],
+            users: [ user ]
+        },
+        viewport: { width: AVATAR_VIEW, height: AVATAR_VIEW, offsetX: 0, offsetY: 0, x: 0, y: 0, cropWidth: AVATAR_VIEW, cropHeight: AVATAR_VIEW, scale: 1, locationX: 0, locationY: 0, locationZ: 0 },
+        effects: [],
+        zoom: false,
+        level: 0
+    };
+}
+
+// The room draws a floor and a shadow under the avatar; an avatar image has neither.
+function hideAvatarSurroundings(display: { children?: unknown[] }, shadow: VoltTexture): void
+{
+    for(const child of (display.children ?? []) as { texture?: VoltTexture, visible: boolean, children?: unknown[] }[])
+    {
+        if(shadow && (child.texture === shadow)) child.visible = false;
+
+        hideAvatarSurroundings(child, shadow);
+    }
+}
+
+async function renderAvatarBody(job: AvatarImageJob): Promise<string[]>
+{
+    const engine = GetRoomEngine();
+    const requested = avatarScene(job);
+    const roomId = AVATAR_ROOM_ID;
+    const watch = watchRoom(roomId);
+
+    clearTimeout(teardownTimer);
+
+    try
+    {
+        // The first room downloads the libraries. The avatar is then placed again, so its animation always starts
+        // from the same frame however long the downloads took.
+        const opened = await replaceUnits(requested, await openRoom(requested, watch), watch);
+
+        engine.updateRoomInstancePlaneVisibility(roomId, false, false);
+        applyGestures(roomId, opened.users);
+
+        if(job.expression) engine.updateRoomObjectUserAction(roomId, 0, RoomObjectVariable.FIGURE_EXPRESSION, job.expression);
+
+        const canvas = engine.getRoomInstanceRenderingCanvas(roomId, CANVAS_ID);
+        const master = canvas.master as unknown as { children: unknown[] };
+        const backdrop = master.children[0] as VoltSprite;
+        const shadow = GetAssetManager().getAsset('h_std_sd_1_0_0')?.texture ?? null;
+        const engineTime = { value: GetTicker().lastTime };
+        const frame = AVATAR_FRAMES[job.posture];
+        const frames: string[] = [];
+        const matte = document.createElement('canvas');
+        const context = matte.getContext('2d', { willReadFrequently: true });
+
+        if(!context) fail('Canvas is unavailable');
+
+        matte.width = frame.width;
+        matte.height = frame.height;
+
+        const drawOn = (color: number, bounds: VoltRectangle): Uint8ClampedArray =>
+        {
+            backdrop.tint = color;
+
+            const texture = engine.createTextureFromRoom(roomId, CANVAS_ID, bounds);
+
+            if(!texture) fail('Avatar texture was not created');
+
+            try
+            {
+                const drawn = GetRenderer().texture.generateCanvas(texture) as HTMLCanvasElement;
+
+                context.clearRect(0, 0, frame.width, frame.height);
+                context.drawImage(drawn, 0, 0);
+                drawn.width = 0;
+                drawn.height = 0;
+
+                return context.getImageData(0, 0, frame.width, frame.height).data;
+            }
+            finally
+            {
+                if(!texture.destroyed) texture.destroy(true);
+            }
+        };
+
+        for(let index = 0; index < job.frames; index++)
+        {
+            await pump(engineTime, AVATAR_FRAME_STEP_MS);
+
+            if(watch.failed.length) fail(`Missing library ${ watch.failed[0] }`);
+
+            const location = engine.getRoomObjectScreenLocation(roomId, 0, RoomObjectCategory.UNIT, CANVAS_ID);
+
+            if(!location) fail('Avatar was not placed');
+
+            hideAvatarSurroundings(master, shadow);
+
+            const bounds = new VoltRectangle(Math.round(location.x) - frame.left, Math.round(location.y) - frame.top, frame.width, frame.height);
+            const image = matteOnTransparent(drawOn(0x000000, bounds), drawOn(0xFFFFFF, bounds));
+
+            context.putImageData(new ImageData(image, frame.width, frame.height), 0, 0);
+            frames.push(encodeAvatarFrame(matte, 0, 0, frame.width, frame.height, job.scale));
+        }
+
+        matte.width = 0;
+        matte.height = 0;
+
+        return frames;
+    }
+    finally
+    {
+        watch.stop();
+        tearDownRenderedRoom();
+    }
+}
+
+function renderAvatar(job: AvatarImageJob): Promise<string[]>
+{
+    const requested = readAvatarJob(job);
+
+    return queued(() => (requested.part === 'head') ? renderAvatarHead(requested) : renderAvatarBody(requested));
+}
+
 async function loadEffectLibraries(): Promise<Map<string, string[]>>
 {
     const url = GetConfiguration().getValue<string>('avatar.effectmap.url');
@@ -1338,6 +1632,7 @@ async function start(): Promise<void>
     window.cameraEffects = Object.freeze(catalogue);
     window.cameraRender = enqueue;
     window.cameraPrepare = prepareScene;
+    window.cameraAvatar = renderAvatar;
     window.cameraReady = true;
 }
 
@@ -1350,6 +1645,10 @@ void start().catch(error =>
         throw startupError;
     };
     window.cameraPrepare = async () =>
+    {
+        throw startupError;
+    };
+    window.cameraAvatar = async () =>
     {
         throw startupError;
     };
