@@ -1,4 +1,4 @@
-import { firstShownRow, matteOnTransparent } from './avatarMatte';
+import { emptyRows, matteOnTransparent } from './avatarMatte';
 import { cullOpaqueSprites } from './opaqueCull';
 import { buildAvatarEffectLibraries, avatarEffectsReady } from './effectLibraries';
 import
@@ -1274,7 +1274,6 @@ const AVATAR_FRAMES: { [posture: string]: { width: number, height: number, left:
 const AVATAR_HEAD_FRAME = { x: 18, y: 0, width: 54, height: 74 };
 // Room above a standing avatar for tall hats and effects. Rows that stay empty are cut off again.
 const AVATAR_HEADROOM = 60;
-const AVATAR_TOP_PADDING = 1;
 const AVATAR_SCALES = [ 0.5, 1, 2 ];
 
 function readAvatarJob(job: AvatarImageJob): AvatarImageJob
@@ -1338,12 +1337,14 @@ async function figureLibraries(figure: string): Promise<void>
     }
 }
 
-// The row where every frame of one image starts, so no frame loses a pixel and all frames keep one size.
+// The row where every frame of one image starts. It leaves as much room above the drawing as there is below it,
+// and all frames keep one size.
 function avatarTop(images: Uint8ClampedArray[], width: number, height: number): number
 {
-    const top = Math.min(...images.map(image => firstShownRow(image, width, height)));
+    const rows = images.map(image => emptyRows(image, width, height));
+    const above = Math.min(...rows.map(row => row.above));
 
-    return (top >= height) ? 0 : Math.max(0, top - AVATAR_TOP_PADDING);
+    return (above >= height) ? 0 : Math.max(0, above - Math.min(...rows.map(row => row.below)));
 }
 
 // A head is drawn as the client draws its own head images, since a room always draws the whole body.
