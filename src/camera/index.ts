@@ -1,4 +1,4 @@
-import { matteOnTransparent } from './avatarMatte';
+import { firstShownRow, matteOnTransparent } from './avatarMatte';
 import { cullOpaqueSprites } from './opaqueCull';
 import { buildAvatarEffectLibraries, avatarEffectsReady } from './effectLibraries';
 import
@@ -1263,7 +1263,7 @@ const AVATAR_VIEW = 512;
 const AVATAR_MAX_FRAMES = 32;
 // An avatar draws its next animation frame after two room updates of this length.
 const AVATAR_FRAME_STEP_MS = 42;
-// The crop around the avatar's tile for each posture. A standing avatar is framed as the official imager frames it.
+// The crop around the avatar's tile for each posture, before the empty rows above the avatar are cut off.
 const AVATAR_STANDING_FRAME = { width: 64, height: 110, left: 32, top: 96 };
 const AVATAR_FRAMES: { [posture: string]: { width: number, height: number, left: number, top: number } } = {
     std: AVATAR_STANDING_FRAME,
@@ -1271,7 +1271,10 @@ const AVATAR_FRAMES: { [posture: string]: { width: number, height: number, left:
     sit: { width: 64, height: 110, left: 32, top: 70 },
     lay: { width: 110, height: 64, left: 18, top: -6 }
 };
-const AVATAR_HEAD_FRAME = { x: 18, y: 12, width: 54, height: 62 };
+const AVATAR_HEAD_FRAME = { x: 18, y: 0, width: 54, height: 74 };
+// Room above a standing avatar for tall hats and effects. Rows that stay empty are cut off again.
+const AVATAR_HEADROOM = 60;
+const AVATAR_TOP_PADDING = 1;
 const AVATAR_SCALES = [ 0.5, 1, 2 ];
 
 function readAvatarJob(job: AvatarImageJob): AvatarImageJob
@@ -1335,6 +1338,14 @@ async function figureLibraries(figure: string): Promise<void>
     }
 }
 
+// The row where every frame of one image starts, so no frame loses a pixel and all frames keep one size.
+function avatarTop(images: Uint8ClampedArray[], width: number, height: number): number
+{
+    const top = Math.min(...images.map(image => firstShownRow(image, width, height)));
+
+    return (top >= height) ? 0 : Math.max(0, top - AVATAR_TOP_PADDING);
+}
+
 // A head is drawn as the client draws its own head images, since a room always draws the whole body.
 async function renderAvatarHead(job: AvatarImageJob): Promise<string[]>
 {
@@ -1357,15 +1368,27 @@ async function renderAvatarHead(job: AvatarImageJob): Promise<string[]>
 
         const canvas = GetRenderer().texture.generateCanvas(image.processAsTexture(AvatarSetType.HEAD, false)) as HTMLCanvasElement;
         const frame = AVATAR_HEAD_FRAME;
+        const head = document.createElement('canvas');
+        const context = head.getContext('2d');
+
+        if(!context) fail('Canvas is unavailable');
 
         try
         {
-            return [ encodeAvatarFrame(canvas, frame.x, frame.y, frame.width, frame.height, job.scale) ];
+            head.width = frame.width;
+            head.height = frame.height;
+            context.drawImage(canvas, frame.x, frame.y, frame.width, frame.height, 0, 0, frame.width, frame.height);
+
+            const top = avatarTop([ context.getImageData(0, 0, frame.width, frame.height).data ], frame.width, frame.height);
+
+            return [ encodeAvatarFrame(head, 0, top, frame.width, frame.height - top, job.scale) ];
         }
         finally
         {
             canvas.width = 0;
             canvas.height = 0;
+            head.width = 0;
+            head.height = 0;
         }
     }
     finally
@@ -1454,8 +1477,9 @@ async function renderAvatarBody(job: AvatarImageJob): Promise<string[]>
         const backdrop = master.children[0] as VoltSprite;
         const shadow = GetAssetManager().getAsset('h_std_sd_1_0_0')?.texture ?? null;
         const engineTime = { value: GetTicker().lastTime };
-        const frame = AVATAR_FRAMES[job.posture];
-        const frames: string[] = [];
+        const posture = AVATAR_FRAMES[job.posture];
+        const frame = { ...posture, top: posture.top + AVATAR_HEADROOM, height: posture.height + AVATAR_HEADROOM };
+        const images: Uint8ClampedArray<ArrayBuffer>[] = [];
         const matte = document.createElement('canvas');
         const context = matte.getContext('2d', { willReadFrequently: true });
 
@@ -1502,11 +1526,17 @@ async function renderAvatarBody(job: AvatarImageJob): Promise<string[]>
             hideAvatarSurroundings(master, shadow);
 
             const bounds = new VoltRectangle(Math.round(location.x) - frame.left, Math.round(location.y) - frame.top, frame.width, frame.height);
-            const image = matteOnTransparent(drawOn(0x000000, bounds), drawOn(0xFFFFFF, bounds));
 
-            context.putImageData(new ImageData(image, frame.width, frame.height), 0, 0);
-            frames.push(encodeAvatarFrame(matte, 0, 0, frame.width, frame.height, job.scale));
+            images.push(matteOnTransparent(drawOn(0x000000, bounds), drawOn(0xFFFFFF, bounds)));
         }
+
+        const top = avatarTop(images, frame.width, frame.height);
+        const frames = images.map(image =>
+        {
+            context.putImageData(new ImageData(image, frame.width, frame.height), 0, 0);
+
+            return encodeAvatarFrame(matte, 0, top, frame.width, frame.height - top, job.scale);
+        });
 
         matte.width = 0;
         matte.height = 0;

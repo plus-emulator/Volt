@@ -19,3 +19,16 @@ export function matteOnTransparent(black: Uint8ClampedArray, white: Uint8Clamped
 
     return image;
 }
+
+// The first row of an image that has a pixel to show, or the height when the image is empty.
+export function firstShownRow(image: Uint8ClampedArray, width: number, height: number): number
+{
+    for(let row = 0; row < height; row++)
+    {
+        const end = (row + 1) * width * 4;
+
+        for(let index = (row * width * 4) + 3; index < end; index += 4) if(image[index]) return row;
+    }
+
+    return height;
+}
