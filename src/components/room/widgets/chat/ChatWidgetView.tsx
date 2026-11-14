@@ -8,6 +8,7 @@ import { ChatWidgetWindowView } from './ChatWidgetWindowView';
 import { measureChatBubble } from './chatBubbleMetrics';
 import { getChatViewerHeight } from './freeFlowChatLayout';
 import { NativeChatScroller } from './nativeChatScroller';
+import { isExpiredPetSpeechBubble, PET_SPEECH_BUBBLE_MAX_AGE_MS } from './petSpeechBubble';
 
 export const ChatWidgetView: FC<{}> = (props) => {
     const { chatMessages = [], setChatMessages = null, chatSettings = null, getScrollSpeed = 6000, roomId = null } = useChatWidget();
@@ -52,7 +53,7 @@ export const ChatWidgetView: FC<{}> = (props) => {
 
     useEffect(() => {
         let frame = 0;
-        let previous = Date.now();
+        let previous = performance.now();
         const placePending = () => {
             const pending = pendingRef.current;
             if (!pending.size) return;
@@ -66,14 +67,28 @@ export const ChatWidgetView: FC<{}> = (props) => {
             for (const [chat, creationMode] of entries) if (chat.elementRef) scroller.register(chat, creationMode);
         };
         const update = () => {
-            placePending();
-            const now = Date.now();
-            // v75 normal core passes one wall-clock delta per ticker frame, without replaying missed frames.
-            const removed = scroller.advance(now - previous, chatMessagesRef.current);
+            const now = performance.now();
+            const elapsed = now - previous;
             previous = now;
-            if (removed.length) {
+            let chats = chatMessagesRef.current;
+            let expired: Set<ChatBubbleMessage> | undefined;
+
+            if (elapsed >= PET_SPEECH_BUBBLE_MAX_AGE_MS) {
+                expired = new Set([...chats, ...pendingRef.current.keys()].filter(chat => isExpiredPetSpeechBubble(chat, now)));
+                for (const chat of expired) {
+                    pendingRef.current.delete(chat);
+                    if (chat.elementRef) chat.elementRef.style.visibility = 'hidden';
+                }
+                chats = chats.filter(chat => !expired.has(chat));
+                scroller.removeChats(expired);
+            }
+
+            placePending();
+            // Advance once per frame without replaying missed frames.
+            const removed = scroller.advance(elapsed, chats);
+            if (removed.length || expired?.size) {
                 const ids = new Set(removed);
-                setChatMessages((messages) => messages.filter((chat) => !ids.has(chat.id)));
+                setChatMessages(messages => messages.filter(chat => !ids.has(chat.id) && !expired?.has(chat)));
             }
             frame = window.requestAnimationFrame(update);
         };

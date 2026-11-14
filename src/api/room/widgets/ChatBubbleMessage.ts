@@ -4,6 +4,7 @@ export class ChatBubbleMessage {
     public static BUBBLE_COUNTER: number = 0;
 
     public id: number = -1;
+    public petSpeechReceivedAt?: number;
     public width: number = 0;
     public height: number = 0;
     public visualOffsetTop: number = 0;

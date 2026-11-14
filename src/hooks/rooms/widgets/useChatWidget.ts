@@ -26,6 +26,7 @@ import {
     RoomChatFormatter,
     resolveChatBubbleWidth
 } from '../../../api';
+import { isExpiredPetSpeechBubble } from '../../../components/room/widgets/chat/petSpeechBubble';
 import { captureNativeChatCreation } from '../../../components/room/widgets/chat/nativeChatScroller';
 import { getChatTextSize } from '../../../components/room/widgets/chat-input/chatTextSize';
 import { useChatHistory } from './../../chat-history';
@@ -73,7 +74,8 @@ const useChatWidgetState = () => {
 
         if (isDisposed.current) return;
 
-        const batch = takeReadyChatLines(lineQueueRef.current);
+        const now = performance.now();
+        const batch = takeReadyChatLines(lineQueueRef.current).filter(chat => !isExpiredPetSpeechBubble(chat, now));
 
         if (!batch.length) return;
 
@@ -110,7 +112,7 @@ const useChatWidgetState = () => {
         }
     }, [chatSettings]);
 
-    const processChatEvent = (event: RoomSessionChatEvent, roomToken: number, seq: number) => {
+    const processChatEvent = (event: RoomSessionChatEvent, roomToken: number, seq: number, receivedAt: number) => {
         if (!roomSession || isDisposed.current) {
             abandonLine(seq);
 
@@ -223,6 +225,9 @@ const useChatWidgetState = () => {
         );
         if (userType === RoomObjectType.USER) chatMessage.imageScale = 2;
         chatMessage.textSize = getChatTextSize(chatFontScale);
+        if (userType === RoomObjectType.PET && event.chatType === RoomSessionChatEvent.CHAT_TYPE_SPEAK) {
+            chatMessage.petSpeechReceivedAt = receivedAt;
+        }
         captureNativeChatCreation(chatMessage, chatSettings.mode);
         // The renderer adds bubbleWidthOverride to the chat event in Volt-Renderer#212; until that
         // lands the published event has no such field, so it is read as optional.
@@ -290,11 +295,12 @@ const useChatWidgetState = () => {
     };
 
     useVoltEvent<RoomSessionChatEvent>(RoomSessionChatEvent.CHAT_EVENT, (event) => {
+        const receivedAt = performance.now();
         const roomToken = roomTokenRef.current;
         const seq = reserveChatLine(lineQueueRef.current);
 
         try {
-            processChatEvent(event, roomToken, seq);
+            processChatEvent(event, roomToken, seq, receivedAt);
         } catch (error) {
             console.error('[RoomChat] Failed to process chat event', error);
         } finally {

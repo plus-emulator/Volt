@@ -180,6 +180,10 @@ export class NativeChatScroller {
 
     clear() { this.bubbles = []; }
 
+    removeChats(chats: ReadonlySet<ChatBubbleMessage>) {
+        this.bubbles = this.bubbles.filter(bubble => !bubble.chat || !chats.has(bubble.chat));
+    }
+
     register(chat: ChatBubbleMessage, mode: number) {
         const existing = this.bubbles.find((bubble) => bubble.chat === chat);
         const geometry = getNativeChatGeometry(chat.styleId);
