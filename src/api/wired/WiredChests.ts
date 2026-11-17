@@ -150,9 +150,9 @@ export interface IWiredChestLayout {
     depositKey: string;
 }
 
-/** AIR WiredChestWrapperView.updateLayout. */
+/** AIR WiredChestWrapperView.updateLayout: both chest kinds use the same captions. */
 export const getWiredChestLayout = (canRead: boolean, wiredEnabled: boolean, kind: WiredChestKind): IWiredChestLayout => {
-    const depositKey = kind === WIRED_CHEST_KIND_FURNI ? 'wiredchests.start_deposit' : 'wiredchests.initial_deposit';
+    const depositKey = 'wiredchests.start_deposit';
 
     if (!canRead) {
         return {
