@@ -18,18 +18,26 @@ interface ChestTextProps {
     maxWidth?: number;
     className?: string;
     style?: CSSProperties;
+    /** Told the drawn text field height. */
+    onHeight?: (height: number) => void;
+    /**
+     * An auto-sized window in an item list is int(size + 4) wide and high, the raster field ceil(size) + 4: one pixel larger for
+     * Ubuntu's fractional advances and line heights, so the next item moves back by one.
+     */
+    truncate?: boolean;
 }
 
 /** A layout text window: Ubuntu themed windows default to u_regular; `bold` is the window's bold variable. */
-export const ChestText: FC<ChestTextProps> = ({ text, background, textStyle = 'u_regular', bold = false, color, size, blend = 1, maxWidth, className, style }) => (
+export const ChestText: FC<ChestTextProps> = ({ text, background, textStyle = 'u_regular', bold = false, color, size, blend = 1, maxWidth, className, style, onHeight, truncate = false }) => (
     <NativeText
         nativeResolution
         transparent
         background={background}
         className={className}
         maxWidth={maxWidth}
+        onRaster={onHeight ? (raster) => raster && onHeight(raster.canvas.height) : undefined}
         overrides={{ ...(bold ? { bold: true } : {}), ...(color !== undefined ? { color } : {}), ...(size !== undefined ? { size } : {}) }}
-        style={blend < 1 ? { opacity: blend, ...style } : style}
+        style={{ ...(blend < 1 ? { opacity: blend } : {}), ...(truncate ? { marginRight: -1, marginBottom: -1 } : {}), ...style }}
         text={text}
         textStyle={textStyle}
     />

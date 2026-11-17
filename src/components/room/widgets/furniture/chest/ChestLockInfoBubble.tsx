@@ -1,4 +1,5 @@
 import { FC, MouseEvent, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { CreateLinkEvent, LocalizeText, SanitizeHtml } from '../../../../../api';
 import { ChestText } from './ChestAirParts';
 
@@ -53,21 +54,22 @@ export const ChestLockInfoBubble: FC<ChestLockInfoBubbleProps> = ({ anchor, onCl
         return () => document.removeEventListener('pointerdown', onPointerDown, true);
     }, [anchor, onClose]);
 
-    return (
+    return createPortal(
         <div ref={ref} className="volt-chest-air__bubble" role="tooltip" style={position ?? { visibility: 'hidden' }}>
             <span aria-hidden className="volt-chest-air__bubble-pointer" />
             <div className="volt-chest-air__bubble-texts">
-                <ChestText background={0xe9e9e1} className="volt-chest-air__bubble-title" text={LocalizeText('wiredchests.lock_info.title')} size={14} textStyle="u_bold" />
-                <ChestText background={0xe9e9e1} maxWidth={353} text={LocalizeText('wiredchests.lock_info.desc')} />
+                <ChestText truncate background={0xe9e9e1} className="volt-chest-air__bubble-title" text={LocalizeText('wiredchests.lock_info.title')} size={14} textStyle="u_bold" />
+                <ChestText truncate background={0xe9e9e1} maxWidth={353} text={LocalizeText('wiredchests.lock_info.desc')} />
                 {LOCK_RULES.map((key) => (
                     <HtmlRule key={key} textKey={key} />
                 ))}
-                <ChestText background={0xe9e9e1} className="volt-chest-air__bubble-title is-capacity" size={14} text={LocalizeText('wiredchests.capacity_info.title')} textStyle="u_bold" />
-                <ChestText background={0xe9e9e1} maxWidth={353} text={LocalizeText('wiredchests.capacity_info.desc')} />
+                <ChestText truncate background={0xe9e9e1} className="volt-chest-air__bubble-title is-capacity" size={14} text={LocalizeText('wiredchests.capacity_info.title')} textStyle="u_bold" />
+                <ChestText truncate background={0xe9e9e1} maxWidth={353} text={LocalizeText('wiredchests.capacity_info.desc')} />
                 {CAPACITY_RULES.map((key) => (
                     <HtmlRule key={key} textKey={key} />
                 ))}
             </div>
-        </div>
+        </div>,
+        document.body,
     );
 };
