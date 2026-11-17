@@ -1,0 +1,693 @@
+/*
+ * AIR chest window: chest_generic (frame style 3, content origin 0,33) around furni_chest_contents or coins_chest_contents.
+ * Coordinates are frame coordinates from the layout XML. Panels are border style 2 (border_colorless) and the item tiles
+ * border style 5, tinted like Flash ColorTransform does it.
+ */
+.volt-chest-air {
+    min-width: 415px;
+    max-width: 595px;
+    min-height: 390px;
+    max-height: 730px;
+    font-family: HabboAirUbuntu, UbuntuRegular, Ubuntu, sans-serif;
+    color: #000;
+}
+
+.volt-chest-air.is-coins {
+    min-width: 415px;
+    max-width: 415px;
+    min-height: 472px;
+    max-height: 472px;
+}
+
+.volt-chest-air img {
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-chest-air__title {
+    position: absolute;
+    top: 3px;
+    left: 0;
+    right: 0;
+    height: 0;
+}
+
+.volt-chest-air .volt-catalog-air-shiny {
+    position: absolute;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    cursor: pointer;
+}
+
+.volt-chest-air__button {
+    position: absolute;
+}
+
+/* The shiny button caption sits one pixel right of and below the centred text field. */
+.volt-chest-air__button .volt-catalog-air-shiny-caption {
+    margin: 1px 0 0 1px;
+}
+
+.volt-chest-air__splitter {
+    position: absolute;
+    left: 0;
+    width: 429px;
+    height: 1px;
+    background: #b0b0b0;
+}
+
+/* header: layout_1 0xdadada band and its 0xc0c0c0 splitter at y 50. */
+.volt-chest-air__header {
+    position: absolute;
+    top: 33px;
+    left: 0;
+    right: 0;
+    height: 51px;
+}
+
+.volt-chest-air__header::before {
+    position: absolute;
+    inset: 0 1px;
+    background: #dadada;
+    border-bottom: 1px solid #c0c0c0;
+    content: '';
+}
+
+.volt-chest-air__desc {
+    position: absolute !important;
+    top: 10px;
+    left: 10px;
+}
+
+.volt-chest-air .volt-chest-air__icon-button {
+    top: 7px;
+    width: 24px;
+    height: 24px;
+}
+
+.volt-chest-air__icon-button > img {
+    position: absolute;
+}
+
+.volt-chest-air__icon-button:disabled > img {
+    opacity: 0.5;
+}
+
+.volt-chest-air__contents {
+    position: absolute;
+    top: 84px;
+    left: 1px;
+    right: 1px;
+    bottom: 125px;
+}
+
+/* furni_chest_contents */
+.volt-chest-air__furni {
+    position: absolute;
+    inset: 0;
+}
+
+.volt-chest-air__grid-border {
+    position: absolute;
+    top: 11px;
+    left: 9px;
+    right: 194px;
+    bottom: 11px;
+    border: 6px solid transparent;
+    border-image: url('../../assets/images/chest/air-border-grid.png') 6 fill / 6px stretch;
+}
+
+.volt-chest-air__no-items {
+    position: absolute;
+    inset: -6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.volt-chest-air__grid {
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    right: -1px;
+    bottom: -1px;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 3px;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.volt-chest-air__grid.has-search {
+    top: 27px;
+}
+
+.volt-chest-air__item {
+    position: relative;
+    flex: none;
+    width: 42px;
+    height: 42px;
+    cursor: pointer;
+}
+
+.volt-chest-air__item-border {
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    box-sizing: border-box;
+    width: 40px;
+    height: 40px;
+    border: 5px solid transparent;
+    border-image: url('../../assets/images/chest/air-border-item.png') 5 fill / 5px stretch;
+}
+
+.volt-chest-air__item:hover .volt-chest-air__item-border {
+    border-image-source: url('../../assets/images/chest/air-border-item-hover.png');
+}
+
+.volt-chest-air__item-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    max-width: 40px;
+    max-height: 40px;
+    transform: translate(-50%, -50%);
+}
+
+.volt-chest-air__item-ltd-bg {
+    position: absolute;
+    inset: -3px;
+}
+
+.volt-chest-air__item-ltd {
+    position: absolute;
+    bottom: -4px;
+    left: -3px;
+}
+
+.volt-chest-air__item-rarity {
+    top: -3px;
+    left: -3px;
+}
+
+/* number_container: 0x2f6982 with a white 11x14 inner box, right-aligned at (27,2) of the 40px border. */
+.volt-chest-air__item-count {
+    position: absolute;
+    top: -3px;
+    right: -5px;
+    min-width: 13px;
+    height: 16px;
+    padding: 1px;
+    box-sizing: border-box;
+    background: #2f6982;
+}
+
+.volt-chest-air__item-count > * {
+    min-width: 11px;
+    height: 14px;
+    background: #fff;
+}
+
+.volt-chest-air__item-selected {
+    position: absolute;
+    inset: 0;
+    background: url('../../assets/images/chest/air-item-selected.png') no-repeat;
+    pointer-events: none;
+}
+
+.volt-chest-air__right-panel {
+    position: absolute;
+    top: 11px;
+    right: 9px;
+    bottom: 11px;
+    width: 175px;
+}
+
+.volt-chest-air__preview-border {
+    position: absolute;
+    inset: 0 0 31px;
+    border-image: url('../../assets/images/chest/air-border-preview.png') 6 fill / 6px stretch;
+}
+
+.volt-chest-air__furni-name {
+    position: absolute !important;
+    top: 5px;
+    left: 5px;
+    z-index: 1;
+}
+
+.volt-chest-air__preview-image {
+    position: absolute;
+    top: 35px;
+    left: 2px;
+    right: 3px;
+    bottom: 9px;
+}
+
+/* placeholder_preview_image: a 175x201 box at y 10 with the bitmap centred on whole pixels. */
+.volt-chest-air__placeholder {
+    position: absolute;
+    top: calc(10px + round(down, (100% - 152px) / 2, 1px));
+    left: 4px;
+}
+
+.volt-chest-air__withdraw {
+    position: absolute;
+    top: calc(100% - 22px);
+    left: 62px;
+    width: 113px;
+    height: 22px;
+}
+
+.volt-chest-air .volt-chest-air__withdraw-input,
+.volt-chest-air .volt-chest-air__input-border > input {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0 0 0 1px;
+    border-radius: 0;
+    box-shadow: none;
+    font-family: HabboAirUbuntu, UbuntuRegular, Ubuntu, sans-serif;
+    font-size: 12px;
+    color: #000;
+    outline: none;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* A TextField with border and background: Flash draws the 1px black frame on both edges, so the box is one pixel larger. */
+.volt-chest-air .volt-chest-air__withdraw-input {
+    position: absolute;
+    top: 1px;
+    left: 0;
+    width: 31px;
+    height: 20px;
+    border: 1px solid #000;
+    border-radius: 0;
+    background: #fff;
+    line-height: 16px;
+}
+
+/* footer: layout_1 band, the colorless layout_2 border under the buttons and the top splitter. */
+.volt-chest-air__footer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 2px;
+    height: 123px;
+}
+
+.volt-chest-air__footer::before {
+    position: absolute;
+    top: 0;
+    left: 1px;
+    right: 1px;
+    height: 110px;
+    box-sizing: border-box;
+    background: #dadada;
+    border-top: 1px solid #c0c0c0;
+    content: '';
+}
+
+.volt-chest-air__footer::after {
+    position: absolute;
+    top: 87px;
+    left: 1px;
+    right: 1px;
+    height: 36px;
+    box-sizing: border-box;
+    border: 6px solid transparent;
+    border-image: url('../../assets/images/chest/air-border-footer.png') 6 fill / 6px stretch;
+    content: '';
+}
+
+.volt-chest-air__info {
+    position: absolute;
+    z-index: 2;
+    top: 6px;
+    right: 19px;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: 0;
+    background: url('../../assets/images/chest/air-info-grey.png') no-repeat;
+    cursor: pointer;
+}
+
+.volt-chest-air__options {
+    position: absolute;
+    z-index: 1;
+    top: 7px;
+    left: 17px;
+    width: 443px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.volt-chest-air__locking {
+    position: relative;
+    height: 41px;
+}
+
+.volt-chest-air__checkbox-row {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 16px;
+    margin: 0;
+    cursor: pointer;
+}
+
+.volt-chest-air__checkbox-row.is-disabled {
+    cursor: default;
+}
+
+.volt-chest-air .volt-chest-air__checkbox {
+    position: absolute;
+    top: 1px;
+    left: 0;
+    width: 15px;
+    height: 15px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    appearance: none;
+    background: url('../../assets/images/chest/air-checkbox.png') no-repeat;
+    box-shadow: none;
+    outline: none;
+    cursor: inherit;
+}
+
+.volt-chest-air .volt-chest-air__checkbox:checked {
+    background: url('../../assets/images/chest/air-checkbox-checked.png') no-repeat;
+}
+
+.volt-chest-air__checkbox-row.is-disabled > * {
+    opacity: 0.5;
+}
+
+.volt-chest-air__checkbox-label {
+    position: absolute !important;
+    top: 0;
+    left: 20px;
+    white-space: nowrap;
+}
+
+.volt-chest-air__capacity {
+    position: relative;
+    height: 30px;
+}
+
+.volt-chest-air__item-count {
+    position: absolute !important;
+    top: 4px;
+    left: 0;
+}
+
+.volt-chest-air__capacity-override {
+    position: absolute;
+    top: 2px;
+    left: 0;
+    display: flex;
+    gap: 6px;
+}
+
+.volt-chest-air__capacity-override > :first-child {
+    margin-top: 2px;
+}
+
+/* capacity_input_border: border style 4, the 55x17 input at (5,3). */
+.volt-chest-air__input-border {
+    position: relative;
+    width: 65px;
+    height: 22px;
+    box-sizing: border-box;
+    border: 6px solid transparent;
+    border-image: url('../../assets/images/chest/air-border-input.png') 6 fill / 6px stretch;
+}
+
+.volt-chest-air__input-border.is-disabled {
+    opacity: 0.5;
+}
+
+.volt-chest-air .volt-chest-air__input-border > input {
+    position: absolute;
+    top: -3px;
+    left: -1px;
+    width: 55px;
+    height: 17px;
+    border: 0;
+    background: transparent;
+    line-height: 17px;
+}
+
+.volt-chest-air__upgrade {
+    position: absolute;
+    top: 0;
+    left: 227px;
+    width: 200px;
+    height: 25px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+.volt-chest-air__upgrade > :first-child {
+    margin-top: 4px;
+}
+
+.volt-chest-air__upgrade > span {
+    margin-top: 2px;
+    width: 22px;
+    height: 22px;
+}
+
+/* iconbutton style 3: button_plus_3 from the ubuntu skin. */
+.volt-chest-air__plus {
+    display: block;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 0;
+    background: url('../../assets/images/chest/air-plus-default.png') no-repeat;
+    cursor: pointer;
+}
+
+.volt-chest-air__plus:hover {
+    background-image: url('../../assets/images/chest/air-plus-hover.png');
+}
+
+.volt-chest-air__plus:active {
+    background-image: url('../../assets/images/chest/air-plus-pressed.png');
+}
+
+.volt-chest-air__plus:disabled {
+    background-image: url('../../assets/images/chest/air-plus-disabled.png');
+    cursor: default;
+}
+
+.volt-chest-air__buttons {
+    position: absolute;
+    z-index: 1;
+    top: 87px;
+    left: 0;
+    right: 0;
+    height: 30px;
+}
+
+.volt-chest-air__logs {
+    position: absolute;
+    top: 0;
+    right: 17px;
+    width: 73px;
+    height: 30px;
+}
+
+.volt-chest-air__item-count-bottom {
+    position: absolute !important;
+    top: 7px;
+    right: 15px;
+}
+
+.volt-chest-air__coins {
+    position: absolute;
+    inset: 0;
+}
+
+/* lock_info_bubble: bubble style 7 with the left pointer. The skin box starts 9px right of the info button; the 353px item
+   list (spacing 1) sits 11px in from its left edge and 8px down. */
+.volt-chest-air__bubble {
+    position: fixed;
+    z-index: 1100;
+    padding: 8px 9px 9px 11px;
+    font-family: HabboAirUbuntu, UbuntuRegular, Ubuntu, sans-serif;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-chest-air__bubble::before {
+    position: absolute;
+    inset: 0;
+    border: solid transparent;
+    border-width: 7px 7px 8px;
+    border-image: url('../../assets/images/chest/air-bubble.png') 7 7 8 fill / 7px 7px 8px stretch;
+    content: '';
+}
+
+.volt-chest-air__bubble-pointer {
+    position: absolute;
+    z-index: 1;
+    top: calc(50% - 10px);
+    left: -7px;
+    width: 11px;
+    height: 18px;
+    background: url('../../assets/images/chest/air-bubble-pointer-left.png') no-repeat;
+}
+
+.volt-chest-air__bubble-texts {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    width: 353px;
+}
+
+.volt-chest-air__bubble-title {
+    margin-bottom: 8px;
+}
+
+.volt-chest-air__bubble-title.is-capacity {
+    margin-top: 15px;
+}
+
+.volt-chest-air__bubble-rule {
+    padding: 2px;
+    font-size: 12px;
+    line-height: 13px;
+    color: #000;
+    -webkit-font-smoothing: antialiased;
+}
+
+.volt-chest-air__bubble-rule a {
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* button_thick style 5, 0x00aa00. */
+.volt-chest-air__buy {
+    position: absolute;
+    box-sizing: border-box;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+}
+
+.volt-chest-air__buy::before {
+    position: absolute;
+    inset: 0;
+    border: 5px solid transparent;
+    border-image: var(--habbo-skin-shiny-thick-green) 5 fill / 5px stretch;
+    content: '';
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-chest-air__buy:hover::before {
+    border-image-source: var(--habbo-skin-shiny-thick-green-hover);
+}
+
+.volt-chest-air__buy:active::before {
+    border-image-source: var(--habbo-skin-shiny-thick-green-pressed);
+}
+
+.volt-chest-air__buy:disabled {
+    cursor: default;
+}
+
+.volt-chest-air__buy:disabled::before {
+    border-image-source: var(--habbo-skin-shiny-thick-green-disabled);
+}
+
+.volt-chest-air__buy-caption {
+    position: absolute;
+    top: 4px;
+    left: 0;
+    width: 100%;
+}
+
+.volt-chest-air__buy:disabled .volt-chest-air__buy-caption {
+    opacity: 0.5;
+}
+
+/* chest_upgrade: layout child (x, y) is drawn at (x + 1, y + 33). */
+.volt-chest-upgrade-air {
+    font-family: HabboAirUbuntu, UbuntuRegular, Ubuntu, sans-serif;
+}
+
+.volt-chest-upgrade-air .volt-catalog-air-shiny {
+    position: absolute;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+}
+
+.volt-chest-upgrade-air__image {
+    position: absolute;
+    top: 45px;
+    left: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 126px;
+    height: 152px;
+    border: 1px solid #a6a6a6;
+    border-radius: 3px;
+    background: #f1f1f1;
+}
+
+.volt-chest-upgrade-air__properties {
+    position: absolute;
+    top: 48px;
+    left: 144px;
+    width: 197px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.volt-chest-upgrade-air__amount {
+    display: flex;
+    gap: 5px;
+}
+
+.volt-chest-upgrade-air__amount > :first-child {
+    margin-top: 3px;
+}
+
+.volt-chest-upgrade-air__price {
+    position: absolute;
+    top: 170px;
+    left: 143px;
+    display: flex;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+.volt-chest-upgrade-air__price > :not(:first-child) {
+    margin-top: 1px;
+}
+
+.volt-chest-upgrade-air__error {
+    position: absolute !important;
+    top: 207px;
+    left: 13px;
+}

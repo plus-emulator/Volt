@@ -1,71 +1,48 @@
 import { FurnitureType } from '@volt/renderer';
-import { FC, useState } from 'react';
+import { FC } from 'react';
 import { ProductImageUtility } from '../../../../api';
 import { LayoutLimitedEditionStyledNumberView, LayoutRarityLevelView, PIXEL_ART_RENDERING } from '../../../../common';
+import { ChestText } from './chest/ChestAirParts';
 import { ChestFurniGroup } from './chestFurniGrouping';
 
-const BORDER_IDLE = '#cbcbcb';
-const BORDER_HOVER = '#d69586';
-
+/**
+ * furni_template (FurniChestItemView): a 42x42 region with a 40x40 border style 5 at (1,1), 0xcbcbcb and 0xd6d6d6 while hovered,
+ * the product icon over it, the count badge when the group has more than one item and the selected outline on top.
+ */
 export const FurniChestGridItem: FC<{
     group: ChestFurniGroup;
     selected: boolean;
     onSelect: () => void;
     title?: string;
 }> = ({ group, selected, onSelect, title }) => {
-    const [hovered, setHovered] = useState(false);
-    const sample = group.sample;
-    const stuff = sample.stuffData;
+    const stuff = group.sample.stuffData;
     const isLtd = (stuff?.uniqueNumber ?? 0) > 0;
     const isRarity = group.specialType === 19;
 
     return (
-        <div
-            className="volt-chest__grid-cell"
-            title={title}
-            onClick={onSelect}
-            onMouseEnter={() => setHovered(true)}
-            onMouseLeave={() => setHovered(false)}
-        >
-            {selected && <div className="volt-chest__grid-cell-focus" aria-hidden />}
-            <div
-                className={`volt-chest__grid-cell-inner${isLtd ? ' unique-item' : ''}`}
-                style={{ borderColor: hovered && !selected ? BORDER_HOVER : BORDER_IDLE, position: 'relative' }}
-            >
-                {isLtd && (
-                    <>
-                        <div className="unique-bg-override volt-chest__grid-ltd-bg" />
-                        <div className="absolute bottom-0 unique-item-counter volt-chest__grid-ltd-counter">
-                            <LayoutLimitedEditionStyledNumberView value={stuff?.uniqueNumber ?? 0} />
-                        </div>
-                    </>
-                )}
-                {/* Same gamedata icon (and sizing) as the deposit panel, so both grids look identical. */}
-                <div className="volt-chest__grid-icon">
-                    <img
-                        src={ProductImageUtility.getProductImageUrl(
-                            group.wallItem ? FurnitureType.WALL : FurnitureType.FLOOR,
-                            group.baseItemId,
-                            group.legacyPosterId,
-                        )}
-                        alt=""
-                        draggable={false}
-                        style={{ maxWidth: 38, maxHeight: 38, objectFit: 'contain', imageRendering: PIXEL_ART_RENDERING }}
-                    />
-                </div>
-                {isRarity && (
-                    <LayoutRarityLevelView
-                        className="volt-chest__grid-rarity"
-                        level={stuff?.rarityLevel ?? 0}
-                        position="absolute"
-                    />
-                )}
+        <div className="volt-chest-air__item" data-air-name="furni_template" title={title} onClick={onSelect}>
+            <div className="volt-chest-air__item-border">
+                {isLtd && <div className="unique-bg-override volt-chest-air__item-ltd-bg" />}
+                <img
+                    alt=""
+                    className="volt-chest-air__item-icon"
+                    draggable={false}
+                    src={ProductImageUtility.getProductImageUrl(group.wallItem ? FurnitureType.WALL : FurnitureType.FLOOR, group.baseItemId, group.legacyPosterId)}
+                    style={{ imageRendering: PIXEL_ART_RENDERING }}
+                />
                 {group.quantity > 1 && (
-                    <div className="volt-chest__qty-badge">
-                        <span>{group.quantity}</span>
+                    <div className="volt-chest-air__item-quantity">
+                        <ChestText background={0xffffff} color={0x2f6982} text={String(group.quantity)} textStyle="regular" />
                     </div>
                 )}
+                {isLtd && (
+                    <div className="volt-chest-air__item-ltd">
+                        <LayoutLimitedEditionStyledNumberView value={stuff?.uniqueNumber ?? 0} />
+                    </div>
+                )}
+                {isRarity && <LayoutRarityLevelView className="volt-chest-air__item-rarity" level={stuff?.rarityLevel ?? 0} position="absolute" />}
             </div>
+            {selected && <div aria-hidden className="volt-chest-air__item-selected" />}
         </div>
     );
 };
