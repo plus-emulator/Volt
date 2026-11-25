@@ -14,6 +14,7 @@ import {
 import { createPortal } from 'react-dom';
 import { GetLocalStorage, SetLocalStorage, WindowSaveOptions } from '../../api';
 import { DraggableWindowPosition } from './DraggableWindowPosition';
+import { TouchPresentation, useTouchWindow } from './useTouchWindow';
 
 const CURRENT_WINDOWS: HTMLElement[] = [];
 const POS_MEMORY: Map<Key, { x: number; y: number }> = new Map();
@@ -34,6 +35,8 @@ export interface DraggableWindowProps {
     constrainToViewport?: boolean;
     unconstrainedPosition?: boolean;
     onPositionChange?: (position: { x: number; y: number }) => void;
+    /** How the window shows on phones and tablets. */
+    touchPresentation?: TouchPresentation;
     children?: ReactNode;
 }
 
@@ -50,7 +53,8 @@ export const DraggableWindow: FC<DraggableWindowProps> = (props) => {
         initialPosition,
         constrainToViewport = false,
         unconstrainedPosition = false,
-        onPositionChange
+        onPositionChange,
+        touchPresentation = 'auto'
     } = props;
     const [delta, setDelta] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
     const [offset, setOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -61,6 +65,9 @@ export const DraggableWindow: FC<DraggableWindowProps> = (props) => {
     const offsetRef = useRef({ x: 0, y: 0 });
     const deltaRef = useRef({ x: 0, y: 0 });
     const dragRef = useRef<{ pointerId: number; startX: number; startY: number; active: boolean } | null>(null);
+    const { layout, state: touch, onFloatDragMove, onFloatDragEnd } = useTouchWindow({ elementRef, dragHandler, presentation: touchPresentation });
+    const isFloating = touch.mode === 'float';
+    const isTablet = layout === 'tablet-landscape' || layout === 'tablet-portrait';
     const bringToTop = useCallback(() => {
         let zIndex = 400;
         for (const existingWindow of CURRENT_WINDOWS) {
@@ -198,7 +205,7 @@ export const DraggableWindow: FC<DraggableWindowProps> = (props) => {
 
 
     useEffect(() => {
-        if (!dragHandler) return;
+        if (!dragHandler || !isFloating) return;
 
         const onPointerDown = (event: PointerEvent) => {
             if ((event.target as HTMLElement)?.closest?.('button, input, select, textarea, a, [role="button"], .volt-card-close-button, .volt-card-header-report-camera, .volt-card-header-info-habbopages, .header-trash, .stickie-color, .header-close')) return;
@@ -223,6 +230,8 @@ export const DraggableWindow: FC<DraggableWindowProps> = (props) => {
                 setIsDragging(true);
             }
 
+            if (isTablet) onFloatDragMove(event.clientX, event.clientY);
+
             const clampedPos = clampPosition(offsetRef.current.x + (event.clientX - drag.startX), offsetRef.current.y + (event.clientY - drag.startY));
             const nextDelta = { x: clampedPos.x - offsetRef.current.x, y: clampedPos.y - offsetRef.current.y };
 
@@ -241,6 +250,13 @@ export const DraggableWindow: FC<DraggableWindowProps> = (props) => {
             } catch {}
 
             if (!drag.active) return;
+
+            if (isTablet && onFloatDragEnd(event.clientX, event.clientY)) {
+                deltaRef.current = { x: 0, y: 0 };
+                setDelta({ x: 0, y: 0 });
+                setIsDragging(false);
+                return;
+            }
 
             const clampedPos = clampPosition(offsetRef.current.x + deltaRef.current.x, offsetRef.current.y + deltaRef.current.y);
 
@@ -270,7 +286,7 @@ export const DraggableWindow: FC<DraggableWindowProps> = (props) => {
             dragHandler.removeEventListener('pointerup', onPointerEnd);
             dragHandler.removeEventListener('pointercancel', onPointerEnd);
         };
-    }, [dragHandler, uniqueKey, clampPosition, hasInitialPosition, onPositionChange]);
+    }, [dragHandler, isFloating, isTablet, onFloatDragMove, onFloatDragEnd, uniqueKey, clampPosition, hasInitialPosition, onPositionChange]);
 
     useEffect(() => {
         if (!uniqueKey || hasInitialPosition) return;
@@ -292,15 +308,27 @@ export const DraggableWindow: FC<DraggableWindowProps> = (props) => {
             className="absolute draggable-window"
             data-window-key={uniqueKey ?? undefined}
             data-native-position={hasInitialPosition ? '' : undefined}
-            style={{
-                ...dragStyle,
-                left: 0,
-                top: 0,
-                transform: `translate3d(${Math.round(offset.x + delta.x)}px, ${Math.round(offset.y + delta.y)}px, 0)`,
-                willChange: isDragging ? 'transform' : undefined,
-                backfaceVisibility: 'hidden',
-                visibility: isPositioned ? 'visible' : 'hidden'
-            }}
+            data-volt-window={touch.mode}
+            data-volt-sheet-size={touch.mode === 'sheet' ? touch.sheetSize : undefined}
+            data-volt-dragging={touch.sheetHeight !== null ? '' : undefined}
+            data-volt-dock-target={touch.isDockTarget ? layout : undefined}
+            style={
+                isFloating
+                    ? {
+                          ...dragStyle,
+                          left: 0,
+                          top: 0,
+                          transform: `translate3d(${Math.round(offset.x + delta.x)}px, ${Math.round(offset.y + delta.y)}px, 0)`,
+                          willChange: isDragging ? 'transform' : undefined,
+                          backfaceVisibility: 'hidden',
+                          visibility: isPositioned ? 'visible' : 'hidden'
+                      }
+                    : {
+                          ...dragStyle,
+                          height: touch.sheetHeight !== null ? `${Math.round(touch.sheetHeight)}px` : undefined,
+                          visibility: isPositioned ? 'visible' : 'hidden'
+                      }
+            }
             onMouseDownCapture={onMouseDown}
             onTouchStartCapture={onTouchStart}
         >

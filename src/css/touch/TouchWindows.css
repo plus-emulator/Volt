@@ -1,0 +1,297 @@
+/* Touch window frames. The frame, close and help sprites are the AIR pixels with flat rows repeated
+   to reach touch height, so they always draw at 1x. */
+
+:root {
+    --volt-safe-top: env(safe-area-inset-top, 0px);
+    --volt-safe-right: env(safe-area-inset-right, 0px);
+    --volt-safe-bottom: env(safe-area-inset-bottom, 0px);
+    --volt-safe-left: env(safe-area-inset-left, 0px);
+    --volt-keyboard-inset: 0px;
+    --volt-touch-target: 44px;
+    --volt-dock-width: 448px;
+}
+
+html[data-volt-touch='on'] {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    overscroll-behavior: none;
+
+    body {
+        overscroll-behavior: none;
+        touch-action: manipulation;
+    }
+
+    /* Phones zoom in on inputs under 16px; 15px plus text-size-adjust keeps the page still on iOS. */
+    input[type='text'],
+    input[type='search'],
+    input[type='password'],
+    input[type='number'],
+    input:not([type]),
+    textarea {
+        font-size: max(15px, 1em);
+    }
+
+    .volt-card-shell > .volt-card-resize-handle {
+        display: none !important;
+    }
+}
+
+html[data-volt-layout='tablet-landscape'],
+html[data-volt-layout='tablet-portrait'] {
+    .draggable-window[data-volt-window='float'] .volt-card-shell > .volt-card-resize-handle {
+        display: block !important;
+        width: 24px !important;
+        height: 24px !important;
+    }
+}
+
+/* ---------- Window modes ---------- */
+
+html[data-volt-touch='on'] .draggable-window[data-volt-window='sheet'],
+html[data-volt-touch='on'] .draggable-window[data-volt-window='dock'],
+html[data-volt-touch='on'] .draggable-window[data-volt-window='dialog'] {
+    position: fixed !important;
+    transform: none !important;
+    filter: none !important;
+    display: flex;
+    flex-direction: column;
+}
+
+html[data-volt-touch='on'] .draggable-window[data-volt-window='sheet'] {
+    top: auto !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    height: calc(100% - var(--volt-safe-top) - 8px);
+    max-height: calc(var(--volt-visual-height, 100dvh) - var(--volt-safe-top));
+    transition: height 220ms cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+html[data-volt-touch='on'] .draggable-window[data-volt-window='sheet'][data-volt-sheet-size='half'] {
+    height: 55%;
+}
+
+html[data-volt-touch='on'] .draggable-window[data-volt-window='sheet'][data-volt-dragging] {
+    transition: none;
+}
+
+html[data-volt-layout='tablet-portrait'] .draggable-window[data-volt-window='sheet'] {
+    height: 90%;
+}
+
+html[data-volt-layout='tablet-portrait'] .draggable-window[data-volt-window='sheet'][data-volt-sheet-size='half'] {
+    height: 50%;
+}
+
+html[data-volt-touch='on'] .draggable-window[data-volt-window='dock'] {
+    top: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: auto !important;
+    width: min(var(--volt-dock-width), 60vw);
+    padding-right: var(--volt-safe-right);
+}
+
+html[data-volt-layout='phone-landscape'] .draggable-window[data-volt-window='dock'] {
+    width: min(var(--volt-dock-width), calc(100vw - 120px));
+}
+
+html[data-volt-touch='on'] .draggable-window[data-volt-window='dialog'] {
+    top: 50% !important;
+    left: 50% !important;
+    right: auto !important;
+    bottom: auto !important;
+    max-width: calc(100vw - 16px - var(--volt-safe-left) - var(--volt-safe-right));
+    max-height: calc(var(--volt-visual-height, 100dvh) - 16px - var(--volt-safe-top) - var(--volt-safe-bottom));
+    translate: -50% -50%;
+}
+
+/* The window's own card fills the sheet or dock; inline sizes from desktop layouts lose here. */
+html[data-volt-touch='on'] .draggable-window:is([data-volt-window='sheet'], [data-volt-window='dock']) > :not(.volt-native-frame-shadow) {
+    flex: 1 1 auto;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    resize: none !important;
+}
+
+html[data-volt-touch='on'] .draggable-window[data-volt-window='dialog'] > :not(.volt-native-frame-shadow) {
+    max-width: 100% !important;
+    max-height: 100% !important;
+}
+
+html[data-volt-touch='on'] .draggable-window:not([data-volt-window='float']) > .volt-native-frame-shadow {
+    display: none;
+}
+
+html[data-volt-touch='on'] .draggable-window[data-volt-window='sheet'] > :not(.volt-native-frame-shadow) {
+    padding-bottom: var(--volt-safe-bottom) !important;
+}
+
+/* Sheets have a drag handle over the header. */
+html[data-volt-touch='on'] .draggable-window[data-volt-window='sheet'] > :not(.volt-native-frame-shadow)::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 50%;
+    z-index: 5;
+    width: 36px;
+    height: 4px;
+    margin-left: -18px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.55);
+    pointer-events: none;
+}
+
+/* Tablet dock target. */
+html[data-volt-touch='on'] #draggable-windows-container:has(.draggable-window[data-volt-dock-target])::before {
+    content: '';
+    position: fixed;
+    z-index: 399;
+    border: 2px dashed rgba(255, 255, 255, 0.85);
+    border-radius: 6px;
+    background: rgba(65, 141, 176, 0.25);
+    pointer-events: none;
+}
+
+html[data-volt-layout='tablet-landscape'] #draggable-windows-container:has(.draggable-window[data-volt-dock-target])::before {
+    top: 8px;
+    right: 8px;
+    bottom: 8px;
+    width: min(var(--volt-dock-width), 60vw);
+}
+
+html[data-volt-layout='tablet-portrait'] #draggable-windows-container:has(.draggable-window[data-volt-dock-target])::before {
+    right: 8px;
+    bottom: 8px;
+    left: 8px;
+    height: 50%;
+}
+
+/* ---------- AIR frame 3 at touch height ---------- */
+
+html[data-volt-touch='on'] .draggable-window .volt-card-shell.volt-card-frame-3 {
+    --volt-touch-header: 44px;
+    --volt-card-frame-3: url('../../assets/images/habbo-skin/touch/frame-touch-44.png');
+    --volt-card-close-3: url('../../assets/images/habbo-skin/touch/close-touch.png');
+    --volt-card-close-3-hover: url('../../assets/images/habbo-skin/touch/close-touch.png');
+    --volt-card-close-3-pressed: url('../../assets/images/habbo-skin/touch/close-touch.png');
+
+    padding-top: calc(var(--volt-touch-header) + 3px) !important;
+}
+
+html[data-volt-touch='on'] .draggable-window[data-volt-window='sheet']:not([data-volt-sheet-size='half']) .volt-card-shell.volt-card-frame-3 {
+    --volt-touch-header: 48px;
+    --volt-card-frame-3: url('../../assets/images/habbo-skin/touch/frame-touch-48.png');
+}
+
+html[data-volt-touch='on'] .draggable-window .volt-card-shell.volt-card-frame-3::before {
+    border-width: var(--volt-touch-header) 10px 10px 10px !important;
+    border-image-slice: 44 10 10 10 fill !important;
+    border-image-width: var(--volt-touch-header) 10px 10px 10px !important;
+}
+
+html[data-volt-touch='on'] .draggable-window[data-volt-window='sheet']:not([data-volt-sheet-size='half']) .volt-card-shell.volt-card-frame-3::before {
+    border-image-slice: 48 10 10 10 fill !important;
+}
+
+html[data-volt-touch='on'] .draggable-window .volt-card-shell.volt-card-frame-3 > .volt-card-header-shell {
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: var(--volt-touch-header) !important;
+    min-height: var(--volt-touch-header) !important;
+    max-height: var(--volt-touch-header) !important;
+    padding: 0 80px !important;
+    touch-action: none;
+}
+
+html[data-volt-touch='on'] .draggable-window .volt-card-shell.volt-card-frame-3 > .volt-card-header-shell .volt-card-title {
+    top: 50% !important;
+    right: 80px !important;
+    left: 80px !important;
+    height: 18px !important;
+    min-height: 18px !important;
+    overflow: hidden;
+    font-size: 15px !important;
+    line-height: 18px !important;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    transform: translateY(-50%);
+}
+
+/* Close: a 27 x 28 sprite in a 38 x 44 hit area that meets the window edge. */
+html[data-volt-touch='on'] .draggable-window .volt-card-shell.volt-card-frame-3 > .volt-card-header-shell .volt-card-close-button {
+    top: 0 !important;
+    right: 0 !important;
+    width: 38px !important;
+    height: var(--volt-touch-header) !important;
+    background: var(--volt-card-close-3) left 4px center / 27px 28px no-repeat !important;
+    transform: none !important;
+}
+
+html[data-volt-touch='on'] .draggable-window .volt-card-shell.volt-card-frame-3 > .volt-card-header-shell .volt-card-close-button:active {
+    filter: brightness(0.85) !important;
+}
+
+/* Help: 27 x 28 sprite in a 34 x 44 hit area, 7 px left of close. */
+html[data-volt-touch='on'] .draggable-window .volt-card-shell.volt-card-frame-3 > .volt-card-header-shell .volt-card-header-info-habbopages {
+    position: absolute !important;
+    top: 0 !important;
+    right: 38px !important;
+    width: 34px !important;
+    height: var(--volt-touch-header) !important;
+    background: url('../../assets/images/habbo-skin/touch/help-touch.png') right 3px center / 27px 28px no-repeat !important;
+    image-rendering: pixelated;
+}
+
+html[data-volt-touch='on'] .draggable-window .volt-card-shell.volt-card-frame-3 > .volt-card-header-shell .volt-card-header-info-habbopages:active {
+    filter: brightness(0.85);
+}
+
+/* Plain title bars (non frame 3). */
+html[data-volt-touch='on'] .draggable-window .volt-card-shell:not(.volt-card-frame-3):not(.volt-wired) > .volt-card-header-shell,
+html[data-volt-touch='on'] .draggable-window .volt-card:not(.volt-card-frame-3):not(.volt-wired) > .volt-card-header {
+    min-height: 44px !important;
+    max-height: 44px !important;
+    padding: 0 48px !important;
+    touch-action: none;
+}
+
+html[data-volt-touch='on'] .draggable-window :is(.volt-card-header, .volt-card-header-shell) :is(.volt-card-header-text, .volt-card-title) {
+    font-size: 15px;
+}
+
+html[data-volt-touch='on'] .draggable-window .volt-card-shell:not(.volt-card-frame-3) > .volt-card-header-shell .volt-card-close-button,
+html[data-volt-touch='on'] .draggable-window .volt-card:not(.volt-card-frame-3) > .volt-card-header .volt-card-close-button,
+html[data-volt-touch='on'] .draggable-window :is(.volt-card-header, .volt-card-header-shell) .volt-card-header-close {
+    width: 26px !important;
+    height: 26px !important;
+    right: 9px !important;
+}
+
+/* Tabs scroll sideways instead of squeezing. */
+html[data-volt-touch='on'] .draggable-window :is(.volt-card-tabs, .volt-card-tabs-shell) {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    min-height: 40px;
+    max-height: 40px;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+
+    > * {
+        flex-shrink: 0;
+    }
+}
+
+/* Scroll areas scroll with momentum and do not drag the room behind. */
+html[data-volt-touch='on'] .draggable-window :is(.overflow-auto, .overflow-y-auto, .overflow-y-scroll) {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+}
