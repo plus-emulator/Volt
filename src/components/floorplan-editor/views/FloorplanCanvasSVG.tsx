@@ -202,9 +202,11 @@ export const FloorplanCanvasSVG: FC<Props> = ({ state, dispatch, panMode }) => {
         };
         window.addEventListener('pointermove', onMove);
         window.addEventListener('pointerup', onUp);
+        window.addEventListener('pointercancel', onUp);
         return () => {
             window.removeEventListener('pointermove', onMove);
             window.removeEventListener('pointerup', onUp);
+            window.removeEventListener('pointercancel', onUp);
         };
     }, [visW]);
 
@@ -218,15 +220,19 @@ export const FloorplanCanvasSVG: FC<Props> = ({ state, dispatch, panMode }) => {
                 ref={svgRef}
                 viewBox={viewBox}
                 style={flipped ? { transform: 'scaleX(-1)' } : undefined}
-                className={`block w-full h-full select-none bg-black [shape-rendering:crispEdges] ${cursorClass}`}
+                className={`block w-full h-full select-none touch-none bg-black [shape-rendering:crispEdges] ${cursorClass}`}
                 onWheel={onWheel}
                 onPointerDown={(e) => {
                     if (isPanGesture(e)) {
                         e.preventDefault();
+                        try {
+                            e.currentTarget.setPointerCapture?.(e.pointerId);
+                        } catch {}
                         panStartRef.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y };
                         setIsPanning(true);
                         return;
                     }
+                    if (e.pointerType !== 'mouse') e.preventDefault();
                     tool.onPointerDown(e);
                 }}
                 onPointerMove={(e) => {
@@ -234,7 +240,23 @@ export const FloorplanCanvasSVG: FC<Props> = ({ state, dispatch, panMode }) => {
                     tool.onPointerMove(e);
                 }}
                 onPointerUp={(e) => {
-                    if (panStartRef.current) return;
+                    if (panStartRef.current) {
+                        try {
+                            e.currentTarget.releasePointerCapture?.(e.pointerId);
+                        } catch {}
+                        return;
+                    }
+                    tool.onPointerUp(e);
+                }}
+                onPointerCancel={(e) => {
+                    if (panStartRef.current) {
+                        panStartRef.current = null;
+                        setIsPanning(false);
+                        try {
+                            e.currentTarget.releasePointerCapture?.(e.pointerId);
+                        } catch {}
+                        return;
+                    }
                     tool.onPointerUp(e);
                 }}
             >

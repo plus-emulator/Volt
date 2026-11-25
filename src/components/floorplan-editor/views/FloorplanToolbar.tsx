@@ -1,6 +1,6 @@
 import { Dispatch, FC } from 'react';
 import { FaRedo, FaUndo } from 'react-icons/fa';
-import { LocalizeText } from '../../../api';
+import { LocalizeText, useVoltLayout } from '../../../api';
 import { Base } from '../../../common';
 import { AIR_FLOOR_ASSETS } from '../air/airAssets';
 import { FloorActionMode, FloorplanAction, FloorplanState } from '../state/types';
@@ -28,6 +28,7 @@ const BRUSH_BUTTONS: { id: string; mode: FloorActionMode; icon: string; name: st
 ];
 
 export const FloorplanToolbar: FC<Props> = ({ state, dispatch, canUndo, canRedo, onUndo, onRedo, panMode, setPanMode, includeDoor = true, extras = true }) => {
+    const isTouch = useVoltLayout() !== 'desktop';
     const exitPan = () => {
         if (panMode && setPanMode) setPanMode(false);
     };
@@ -37,7 +38,7 @@ export const FloorplanToolbar: FC<Props> = ({ state, dispatch, canUndo, canRedo,
     return (
         <div className="fp-control-group" data-testid="floorplan-toolbar">
             <div className="fp-group-label">
-                {extras ? LocalizeText('floor.plan.editor.draw.mode') : <FloorplanNativeText background={0xbdbdb5} text={LocalizeText('floor.plan.editor.draw.mode')} />}
+                {extras || isTouch ? LocalizeText('floor.plan.editor.draw.mode') : <FloorplanNativeText background={0xbdbdb5} text={LocalizeText('floor.plan.editor.draw.mode')} />}
             </div>
             <div className="fp-tools">
                 {buttons.map((b, index) => {

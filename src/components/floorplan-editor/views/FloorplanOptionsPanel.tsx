@@ -1,6 +1,6 @@
 import { AvatarScaleType, AvatarSetType, GetAvatarRenderManager } from '@volt/renderer';
 import { Dispatch, FC, useEffect, useState } from 'react';
-import { LocalizeText } from '../../../api';
+import { LocalizeText, useVoltLayout } from '../../../api';
 import { AIR_FLOOR_ASSETS } from '../air/airAssets';
 import { FloorplanThicknessMenu } from './FloorplanThicknessMenu';
 import { THICKNESS_NAMES } from '../state/constants';
@@ -102,6 +102,7 @@ const GhostAvatar: FC<{ direction: number }> = ({ direction }) => {
 };
 
 export const FloorplanOptionsPanel: FC<Props> = ({ state, dispatch, official = false }) => {
+    const isTouch = useVoltLayout() !== 'desktop';
     const setDir = (next: EntryDir) => dispatch({ type: 'SET_DOOR_DIR', dir: next, source: 'local' });
     const setWall = (t: ThicknessLevel) => dispatch({ type: 'SET_THICKNESS', wall: t, source: 'local' });
     const setFloor = (t: ThicknessLevel) => dispatch({ type: 'SET_THICKNESS', floor: t, source: 'local' });
@@ -111,7 +112,7 @@ export const FloorplanOptionsPanel: FC<Props> = ({ state, dispatch, official = f
         <div className="fp-bc-room-controls" data-testid="floorplan-room-controls">
             <div className="fp-bc-direction" data-testid="floorplan-orientation">
                 <div className="fp-bc-direction-label">
-                    {official ? <FloorplanNativeText background={0xbdbdb5} text={LocalizeText('floor.plan.editor.enter.direction')} /> : LocalizeText('floor.plan.editor.enter.direction')}
+                    {official && !isTouch ? <FloorplanNativeText background={0xbdbdb5} text={LocalizeText('floor.plan.editor.enter.direction')} /> : LocalizeText('floor.plan.editor.enter.direction')}
                 </div>
                 <button type="button" className="fp-bc-dir-btn" data-testid="entry-dir-prev" title="Rotate door" onClick={() => setDir(rotateDir(state.door.dir, 1))}>
                     <img src={AIR_FLOOR_ASSETS.arrowLeft} alt="" />
@@ -131,7 +132,7 @@ export const FloorplanOptionsPanel: FC<Props> = ({ state, dispatch, official = f
             <img className="fp-bc-vdivider" src={AIR_FLOOR_ASSETS.receptionDivider} alt="" />
             <div className="fp-bc-thickness" data-testid="floorplan-appearance">
                 <div className="fp-bc-direction-label">
-                    {official ? <FloorplanNativeText background={0xbdbdb5} text={LocalizeText('floor.plan.editor.room.options')} /> : LocalizeText('floor.plan.editor.room.options')}
+                    {official && !isTouch ? <FloorplanNativeText background={0xbdbdb5} text={LocalizeText('floor.plan.editor.room.options')} /> : LocalizeText('floor.plan.editor.room.options')}
                 </div>
                 <Menu value={state.thickness.wall} onChange={setWall} testId="wall-thickness" labelKeyPrefix="navigator.roomsettings.wall_thickness" />
                 <Menu value={state.thickness.floor} onChange={setFloor} testId="floor-thickness" labelKeyPrefix="navigator.roomsettings.floor_thickness" />

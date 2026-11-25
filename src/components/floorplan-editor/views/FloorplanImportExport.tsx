@@ -1,5 +1,5 @@
 import { Dispatch, FC, useRef, useState } from 'react';
-import { LocalizeText } from '../../../api';
+import { LocalizeText, useVoltLayout } from '../../../api';
 import { VoltCardContentView, VoltCardHeaderView, VoltCardView } from '../../../common';
 import { localizeOr } from '../state/localize';
 import { serializeTilemap } from '../state/encoding';
@@ -19,6 +19,7 @@ type Props = {
 };
 
 export const FloorplanImportExport: FC<Props> = ({ state, dispatch, onClose, onSaveFromText, onRevertText, initialText, saveDisabled = false, showLoad = false }) => {
+    const isTouch = useVoltLayout() !== 'desktop';
     const [raw, setRaw] = useState(() => initialText ?? serializeTilemap(state.tiles));
     const dataRef = useRef<HTMLTextAreaElement>(null);
 
@@ -34,36 +35,72 @@ export const FloorplanImportExport: FC<Props> = ({ state, dispatch, onClose, onS
     };
 
     return (
-        <VoltCardView uniqueKey="floorplan-import-export" frameStyle={3} theme="primary" className="w-[379px] h-[374px]" classNames={['volt-floorplan-import', ...(!showLoad ? ['is-official'] : [])]} isResizable={false}>
+        <VoltCardView
+            uniqueKey="floorplan-import-export"
+            frameStyle={3}
+            theme="primary"
+            className="w-[379px] h-[374px]"
+            classNames={['volt-floorplan-import', ...(!showLoad ? ['is-official'] : []), ...(isTouch ? ['is-touch-import'] : [])]}
+            touchPresentation="dialog"
+            isResizable={false}
+        >
             {showLoad ? (
                 <VoltCardHeaderView headerText={LocalizeText('floor.plan.editor.import.export')} onCloseClick={onClose} />
             ) : (
-                <div className="volt-card-header-shell">
+                <div className="volt-card-header-shell drag-handler">
                     <span className="volt-card-title">
-                        <FloorplanCenteredText background={0x377998} color={0xffffff} text={LocalizeText('floor.plan.editor.import.export')} textStyle="u_frame_title" width={377} />
+                        {isTouch ? (
+                            LocalizeText('floor.plan.editor.import.export')
+                        ) : (
+                            <FloorplanCenteredText background={0x377998} color={0xffffff} text={LocalizeText('floor.plan.editor.import.export')} textStyle="u_frame_title" width={377} />
+                        )}
                     </span>
-                    <button aria-label={LocalizeText('generic.close')} className="volt-card-close-button" type="button" onClick={onClose} />
+                    <button
+                        aria-label={LocalizeText('generic.close')}
+                        className="volt-card-close-button"
+                        type="button"
+                        onClick={onClose}
+                        onPointerDown={(event) => event.stopPropagation()}
+                    />
                 </div>
             )}
             <VoltCardContentView overflow="hidden" className="fp-bc-import">
                 <textarea ref={dataRef} className="fp-bc-import-data" name="data" value={raw} spellCheck={false} onChange={(event) => setRaw(event.target.value)} />
-                {!showLoad && (
+                {!showLoad && !isTouch && (
                     <>
                         <FloorplanSkinScrollbar scrollerRef={dataRef} axis="vertical" slot={17} className="fp-bc-import-vbar" testId="import-scroll-vertical" revision={raw} />
                         <FloorplanSkinScrollbar scrollerRef={dataRef} axis="horizontal" slot={17} className="fp-bc-import-hbar" testId="import-scroll-horizontal" revision={raw} />
                     </>
                 )}
-                <button type="button" className="fp-bc-btn fp-bc-import-revert" data-testid="import-revert" onClick={() => setRaw(onRevertText())}>
-                    {showLoad ? localizeOr('floor.plan.editor.revert.to.last.received.map', 'Revert') : <span className="fp-bc-import-label"><FloorplanNativeText background={0xffffff} color={0x000000} style={{ mixBlendMode: 'multiply' }} text={localizeOr('floor.plan.editor.revert.to.last.received.map', 'Revert')} size={10} textStyle="button_shiny_bold" /></span>}
-                </button>
-                {showLoad && (
-                    <button type="button" className="fp-bc-btn is-extra" data-testid="import-load" onClick={load}>
-                        Load
-                    </button>
+                {isTouch ? (
+                    <div className="fp-touch-import-actions">
+                        <button type="button" className="fp-touch-btn" data-testid="import-revert" onClick={() => setRaw(onRevertText())}>
+                            {localizeOr('floor.plan.editor.revert.to.last.received.map', 'Revert')}
+                        </button>
+                        {showLoad && (
+                            <button type="button" className="fp-touch-btn" data-testid="import-load" onClick={load}>
+                                Load
+                            </button>
+                        )}
+                        <button type="button" className="fp-touch-btn is-primary" data-testid="import-save" disabled={saveDisabled} onClick={save}>
+                            {LocalizeText('floor.plan.editor.save')}
+                        </button>
+                    </div>
+                ) : (
+                    <>
+                        <button type="button" className="fp-bc-btn fp-bc-import-revert" data-testid="import-revert" onClick={() => setRaw(onRevertText())}>
+                            {showLoad ? localizeOr('floor.plan.editor.revert.to.last.received.map', 'Revert') : <span className="fp-bc-import-label"><FloorplanNativeText background={0xffffff} color={0x000000} style={{ mixBlendMode: 'multiply' }} text={localizeOr('floor.plan.editor.revert.to.last.received.map', 'Revert')} size={10} textStyle="button_shiny_bold" /></span>}
+                        </button>
+                        {showLoad && (
+                            <button type="button" className="fp-bc-btn is-extra" data-testid="import-load" onClick={load}>
+                                Load
+                            </button>
+                        )}
+                        <button type="button" className="fp-bc-btn fp-bc-import-save" data-testid="import-save" disabled={saveDisabled} onClick={save}>
+                            {showLoad ? LocalizeText('floor.plan.editor.save') : <span className="fp-bc-import-label"><FloorplanNativeText background={0xffffff} color={0x000000} style={{ mixBlendMode: 'multiply', opacity: saveDisabled ? 0.5 : 1 }} text={LocalizeText('floor.plan.editor.save')} size={10} textStyle="button_shiny_bold" /></span>}
+                        </button>
+                    </>
                 )}
-                <button type="button" className="fp-bc-btn fp-bc-import-save" data-testid="import-save" disabled={saveDisabled} onClick={save}>
-                    {showLoad ? LocalizeText('floor.plan.editor.save') : <span className="fp-bc-import-label"><FloorplanNativeText background={0xffffff} color={0x000000} style={{ mixBlendMode: 'multiply', opacity: saveDisabled ? 0.5 : 1 }} text={LocalizeText('floor.plan.editor.save')} size={10} textStyle="button_shiny_bold" /></span>}
-                </button>
             </VoltCardContentView>
         </VoltCardView>
     );

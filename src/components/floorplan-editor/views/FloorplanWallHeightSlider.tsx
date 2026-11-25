@@ -29,6 +29,7 @@ export const FloorplanWallHeightSlider: FC<Props> = ({ value, onChange, disabled
     const onPointerDown = useCallback(
         (e: ReactPointerEvent<HTMLDivElement>) => {
             if (disabled || e.button !== 0) return;
+            if (e.pointerType !== 'mouse') e.preventDefault();
             const next = valueFromClientX(e.clientX);
             if (next !== null && next !== value) onChange(next);
             setIsDragging(true);

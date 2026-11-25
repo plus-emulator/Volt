@@ -18,3 +18,247 @@
     pointer-events: none;
     image-rendering: var(--volt-pixel-art, pixelated);
 }
+
+/* ---------- Touch layout ---------- */
+
+html[data-volt-touch='on'] .volt-area-hide-touch {
+    width: 360px;
+    max-width: calc(100vw - 16px);
+    font-family: HabboAirUbuntu, Ubuntu, sans-serif;
+    color: #111111;
+}
+
+html[data-volt-touch='on'] .volt-area-hide-touch__content {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 0 !important;
+    background: #e9e9e1;
+}
+
+html[data-volt-touch='on'] .volt-area-hide-touch__scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px 10px 8px;
+}
+
+html[data-volt-touch='on'] .volt-area-hide-touch__section {
+    position: relative;
+    padding: 10px 12px;
+    background: #ffffff;
+}
+
+html[data-volt-touch='on'] .volt-area-hide-touch__section::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    box-sizing: border-box;
+    border: 3px solid transparent;
+    border-image: url('../../../../assets/images/habbo-skin/slices/illumina-border-etched.png') 3 / 3px stretch;
+    pointer-events: none;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+html[data-volt-touch='on'] .volt-area-hide-touch__section.is-dimmed {
+    opacity: 0.55;
+}
+
+html[data-volt-touch='on'] .volt-area-hide-touch__section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+html[data-volt-touch='on'] .volt-area-hide-touch__heading {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 18px;
+    color: #111111;
+}
+
+html[data-volt-touch='on'] .volt-area-hide-touch__badge {
+    padding: 2px 8px;
+    border-radius: 3px;
+    background: #418db0;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 16px;
+    font-variant-numeric: tabular-nums;
+}
+
+html[data-volt-touch='on'] .volt-area-hide-touch__info {
+    margin: 6px 0 10px;
+    font-size: 13px;
+    line-height: 18px;
+    color: #3f3f3c;
+}
+
+html[data-volt-touch='on'] .volt-area-hide-touch__actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+}
+
+html[data-volt-touch='on'] .volt-area-hide-touch__options {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 6px;
+}
+
+html[data-volt-touch='on'] .volt-area-hide-touch__option {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    min-height: 44px;
+    padding: 8px 6px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    color: #111111;
+    font-family: inherit;
+}
+
+html[data-volt-touch='on'] .volt-area-hide-touch__option:active:not(:disabled) {
+    background: rgba(65, 141, 176, 0.12);
+}
+
+html[data-volt-touch='on'] .volt-area-hide-touch__option:disabled {
+    cursor: default;
+}
+
+html[data-volt-touch='on'] .volt-area-hide-touch__checkbox {
+    flex: 0 0 19px;
+    width: 19px;
+    height: 20px;
+    margin-top: 1px;
+    background: url('../../../../assets/images/habbo-skin/slices/checkbox-default.png') 0 0 / 19px 20px no-repeat;
+    image-rendering: pixelated;
+}
+
+html[data-volt-touch='on'] .volt-area-hide-touch__option.is-checked .volt-area-hide-touch__checkbox {
+    background-image: url('../../../../assets/images/habbo-skin/slices/checkbox-checked.png');
+}
+
+html[data-volt-touch='on'] .volt-area-hide-touch__option-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+html[data-volt-touch='on'] .volt-area-hide-touch__option-label {
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 19px;
+    color: #111111;
+}
+
+html[data-volt-touch='on'] .volt-area-hide-touch__option-info {
+    font-size: 13px;
+    line-height: 17px;
+    color: #666660;
+}
+
+html[data-volt-touch='on'] .volt-area-hide-touch__footer {
+    flex: 0 0 auto;
+    padding: 8px 10px 10px;
+    border-top: 1px solid #c9c7bd;
+    background: #e9e9e1;
+}
+
+.volt-area-hide-touch__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    height: 44px;
+    padding: 0 14px;
+    border-style: solid;
+    border-width: 0 5px;
+    border-image: url('../../../../assets/images/habbo-skin/touch/btn-default-h44.png') 0 5 fill / 0 5px stretch;
+    background: transparent;
+    color: #111111;
+    font: 700 14px/1 HabboAirUbuntu, Ubuntu, sans-serif;
+    white-space: nowrap;
+    cursor: pointer;
+    image-rendering: pixelated;
+}
+
+.volt-area-hide-touch__btn:active:not(:disabled) {
+    border-image-source: url('../../../../assets/images/habbo-skin/touch/btn-pressed-h44.png');
+}
+
+.volt-area-hide-touch__btn:disabled {
+    border-image-source: url('../../../../assets/images/habbo-skin/touch/btn-disabled-h44.png');
+    color: #82827c;
+    cursor: default;
+}
+
+.volt-area-hide-touch__btn.is-primary {
+    border-image-source: url('../../../../assets/images/habbo-skin/touch/btn-green-default-h44.png');
+    color: #ffffff;
+}
+
+.volt-area-hide-touch__btn.is-primary:active:not(:disabled) {
+    border-image-source: url('../../../../assets/images/habbo-skin/touch/btn-green-pressed-h44.png');
+}
+
+.volt-area-hide-touch__btn.is-danger {
+    border-image-source: url('../../../../assets/images/habbo-skin/touch/btn-red-default-h44.png');
+    color: #ffffff;
+}
+
+.volt-area-hide-touch__btn.is-danger:active:not(:disabled) {
+    filter: brightness(0.9);
+}
+
+.volt-area-hide-touch__toggle {
+    width: 100%;
+}
+
+/* Compact floating bar while dragging an area in the room on touch. */
+.volt-area-hide-selecting-bar {
+    position: fixed;
+    right: calc(10px + var(--volt-safe-right));
+    bottom: calc(12px + var(--volt-safe-bottom));
+    left: calc(10px + var(--volt-safe-left));
+    z-index: 450;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    max-width: 520px;
+    margin-inline: auto;
+    padding: 8px 10px 8px 14px;
+    border-style: solid;
+    border-width: 0;
+    border-image: url('../../../../assets/images/habbo-skin/slices/border-colorless-3b3933-opaque.png') 24 fill / 6px stretch;
+    color: #ffffff;
+    font: 700 13px/18px HabboAirUbuntu, Ubuntu, sans-serif;
+    pointer-events: auto;
+    image-rendering: pixelated;
+}
+
+.volt-area-hide-selecting-bar__text {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.volt-area-hide-selecting-bar__cancel {
+    flex: 0 0 auto;
+    min-width: 84px;
+}

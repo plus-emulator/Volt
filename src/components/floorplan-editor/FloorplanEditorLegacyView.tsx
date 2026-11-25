@@ -14,10 +14,11 @@ import {
     UpdateFloorPropertiesMessageComposer
 } from '@volt/renderer';
 import { FC, useEffect, useMemo, useRef, useState } from 'react';
-import { GetLocalStorage, LocalizeText, SendMessageComposer, SetLocalStorage } from '../../api';
+import { GetLocalStorage, LocalizeText, SendMessageComposer, SetLocalStorage, useVoltLayout } from '../../api';
 import { Base, VoltCardContentView, VoltCardHeaderView, VoltCardView } from '../../common';
 import { useMessageEvent, useVoltEvent } from '../../hooks';
 import { useFloorplanLiveSync } from '../../hooks/rooms/widgets/useFloorplanLiveSync';
+import { airHeightHex } from './air/airHeightColor';
 import { useFloorplanReducer } from './hooks/useFloorplanReducer';
 import { MAX_WALL_HEIGHT, MIN_WALL_HEIGHT } from './state/constants';
 import { serializeTilemap } from './state/encoding';
@@ -62,10 +63,12 @@ const clampThickness = (v: number): ThicknessLevel => {
 };
 
 export const FloorplanEditorLegacyView: FC<Props> = ({ externalSession }) => {
+    const isTouch = useVoltLayout() !== 'desktop';
     const [roomVisible, setRoomVisible] = useState(false);
     const [importExportVisible, setImportExportVisible] = useState(false);
     const [liveSync, setLiveSync] = useState(true);
     const [panMode, setPanMode] = useState(false);
+    const [touchView, setTouchView] = useState<'map' | 'preview'>('map');
     const [autoPickup, setAutoPickup] = useState(false);
     const [preview3d, setPreview3d] = useState(readPreview3dPreference);
     const { state, dispatch, loadFromServer, undo, redo, canUndo, canRedo } = useFloorplanReducer();
@@ -282,9 +285,201 @@ export const FloorplanEditorLegacyView: FC<Props> = ({ externalSession }) => {
     return (
         <>
             {isVisible && (
-                <VoltCardView uniqueKey="floorpan-editor" className="w-[1010px] h-[620px]" classNames={['volt-floorplan-window']} theme="primary-slim" isResizable={false}>
+                <VoltCardView
+                    uniqueKey="floorpan-editor"
+                    className="w-[1010px] h-[620px]"
+                    classNames={['volt-floorplan-window', ...(isTouch ? ['is-touch-editor', 'is-touch-legacy'] : [])]}
+                    theme="primary-slim"
+                    touchPresentation="full"
+                    isResizable={false}
+                >
                     <VoltCardHeaderView headerText={externalSession?.title ?? LocalizeText('floor.plan.editor.title')} onCloseClick={closeEditor} />
                     <VoltCardContentView overflow="hidden" className="flex flex-col">
+                        {isTouch ? (
+                            <div className="fp-bc is-touch is-legacy">
+                                <div className="fp-touch-stage" data-testid={touchView === 'map' ? 'floorplan-plan-panel' : 'floorplan-preview-panel'}>
+                                    {touchView === 'map' ? (
+                                        <FloorplanCanvasSVG state={state} dispatch={dispatch} panMode={panMode} />
+                                    ) : preview3d ? (
+                                        <Floorplan3DView state={state} dispatch={dispatch} panMode={panMode} />
+                                    ) : (
+                                        <div className="fp-stage" data-testid="floorplan-preview-2d">
+                                            <FloorplanPreviewSVG state={state} />
+                                        </div>
+                                    )}
+                                    <div className="fp-touch-stage-controls is-bottom-left">
+                                        {(touchView === 'map' || preview3d) && (
+                                            <div className="fp-touch-mode-group" role="group" aria-label="Canvas gesture mode">
+                                                <button
+                                                    type="button"
+                                                    className={`fp-touch-chip ${!panMode ? 'is-active' : ''}`}
+                                                    aria-pressed={!panMode}
+                                                    onClick={() => setPanMode(false)}
+                                                >
+                                                    Paint
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className={`fp-touch-chip ${panMode ? 'is-active' : ''}`}
+                                                    aria-pressed={panMode}
+                                                    onClick={() => setPanMode(true)}
+                                                >
+                                                    Pan
+                                                </button>
+                                            </div>
+                                        )}
+                                        <div className="fp-touch-stage-right">
+                                            {touchView === 'preview' && (
+                                                <div className="fp-touch-mode-group" role="group" aria-label={localizeOr('floor.plan.editor.preview.mode', 'Preview')}>
+                                                    <button
+                                                        type="button"
+                                                        data-testid="floorplan-view-2d"
+                                                        className={`fp-touch-chip ${!preview3d ? 'is-active' : ''}`}
+                                                        onClick={() => choosePreview(false)}
+                                                    >
+                                                        2D
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        data-testid="floorplan-view-3d"
+                                                        className={`fp-touch-chip ${preview3d ? 'is-active' : ''}`}
+                                                        onClick={() => choosePreview(true)}
+                                                    >
+                                                        3D
+                                                    </button>
+                                                </div>
+                                            )}
+                                            <button
+                                                type="button"
+                                                className={`fp-touch-chip ${touchView === 'preview' ? 'is-active' : ''}`}
+                                                onClick={() => setTouchView((value) => (value === 'map' ? 'preview' : 'map'))}
+                                            >
+                                                {touchView === 'map' ? 'Preview' : 'Map'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="fp-touch-palette">
+                                    <section className="fp-touch-card">
+                                        <FloorplanToolbar
+                                            state={state}
+                                            dispatch={dispatch}
+                                            canUndo={canUndo}
+                                            canRedo={canRedo}
+                                            onUndo={undo}
+                                            onRedo={redo}
+                                            panMode={panMode}
+                                            setPanMode={setPanMode}
+                                            includeDoor={!isExternal}
+                                        />
+                                        <div className="fp-touch-height">
+                                            <div className="fp-touch-row-head">
+                                                <span className="fp-touch-label">{localizeOr('floor.plan.editor.tile.height', 'Set height')}</span>
+                                                <span className="fp-touch-area" data-testid="floorplan-area">
+                                                    {localizeOr('floor.plan.editor.area', `Area: ${area.total} (${area.walkable} tiles)`, ['total', 'walkable'], [String(area.total), String(area.walkable)])}
+                                                </span>
+                                                <span
+                                                    className="fp-touch-height-badge"
+                                                    data-testid="brush-height-badge"
+                                                    style={{ backgroundColor: airHeightHex(state.brush.h) }}
+                                                >
+                                                    {state.brush.h}
+                                                </span>
+                                            </div>
+                                            <div className="fp-touch-stepper-row">
+                                                <button
+                                                    type="button"
+                                                    className="fp-touch-btn is-step"
+                                                    aria-label="Decrease tile height"
+                                                    disabled={state.brush.h <= 0}
+                                                    onClick={() => dispatch({ type: 'BRUSH_SET', h: Math.max(0, state.brush.h - 1) })}
+                                                >
+                                                    −
+                                                </button>
+                                                <FloorplanHeightPicker selectedH={state.brush.h} onSelect={(h) => dispatch({ type: 'BRUSH_SET', h })} />
+                                                <button
+                                                    type="button"
+                                                    className="fp-touch-btn is-step"
+                                                    aria-label="Increase tile height"
+                                                    disabled={state.brush.h >= 29}
+                                                    onClick={() => dispatch({ type: 'BRUSH_SET', h: Math.min(29, state.brush.h + 1) })}
+                                                >
+                                                    +
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </section>
+
+                                    {!isExternal && (
+                                        <section className="fp-touch-card">
+                                            <FloorplanOptionsPanel state={state} dispatch={dispatch} />
+                                            <div className="fp-touch-wall">
+                                                <div className="fp-touch-row-head">
+                                                    <span className="fp-touch-label">{LocalizeText('floor.editor.wall.height')}</span>
+                                                    <span className="fp-touch-wall-value" data-testid="wall-height-badge">
+                                                        {state.wallHeight}
+                                                    </span>
+                                                </div>
+                                                <div className="fp-touch-stepper-row">
+                                                    <button
+                                                        type="button"
+                                                        className="fp-touch-btn is-step"
+                                                        aria-label="Decrease wall height"
+                                                        disabled={state.wallHeight <= MIN_WALL_HEIGHT}
+                                                        onClick={() => onWallHeightChange(state.wallHeight - 1)}
+                                                    >
+                                                        −
+                                                    </button>
+                                                    <FloorplanWallHeightSlider value={state.wallHeight} onChange={onWallHeightChange} />
+                                                    <button
+                                                        type="button"
+                                                        className="fp-touch-btn is-step"
+                                                        aria-label="Increase wall height"
+                                                        disabled={state.wallHeight >= MAX_WALL_HEIGHT}
+                                                        onClick={() => onWallHeightChange(state.wallHeight + 1)}
+                                                    >
+                                                        +
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="fp-touch-toggles">
+                                                <button
+                                                    type="button"
+                                                    data-testid="floorplan-live-sync"
+                                                    data-active={liveSync ? 'true' : 'false'}
+                                                    className={`fp-touch-pill ${liveSync ? 'is-on' : ''}`}
+                                                    onClick={() => setLiveSync((v) => !v)}
+                                                >
+                                                    {liveSync ? 'Live preview ON' : 'Live preview OFF'}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    data-testid="floorplan-auto-pickup"
+                                                    data-active={autoPickup ? 'true' : 'false'}
+                                                    className={`fp-touch-pill ${autoPickup ? 'is-on' : ''}`}
+                                                    onClick={() => setAutoPickup((v) => !v)}
+                                                >
+                                                    {autoPickup ? 'Pick up blocking furni ON' : 'Pick up blocking furni OFF'}
+                                                </button>
+                                            </div>
+                                        </section>
+                                    )}
+                                </div>
+
+                                <div className="fp-touch-footer">
+                                    <button type="button" className="fp-touch-btn is-danger" data-testid="floorplan-revert" onClick={revertChanges}>
+                                        {LocalizeText('floor.plan.editor.reload')}
+                                    </button>
+                                    <button type="button" className="fp-touch-btn" data-testid="floorplan-import-export" onClick={() => setImportExportVisible(true)}>
+                                        {LocalizeText('floor.plan.editor.import.export')}
+                                    </button>
+                                    <button type="button" className="fp-touch-btn is-primary" data-testid="floorplan-save" onClick={saveFloorChanges}>
+                                        {LocalizeText('floor.plan.editor.save')}
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
                         <div className="fp-body">
                             <div className="fp-controls">
                                 <FloorplanToolbar
@@ -397,6 +592,7 @@ export const FloorplanEditorLegacyView: FC<Props> = ({ externalSession }) => {
                                 </div>
                             </div>
                         </div>
+                        )}
                     </VoltCardContentView>
                 </VoltCardView>
             )}

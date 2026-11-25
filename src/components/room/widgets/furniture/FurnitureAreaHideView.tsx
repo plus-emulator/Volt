@@ -1,6 +1,8 @@
-import { CSSProperties, FC, useState } from 'react';
-import { LocalizeText } from '../../../../api';
-import { DraggableWindow } from '../../../../common';
+import { GetRoomEngine } from '@volt/renderer';
+import { CSSProperties, FC, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { LocalizeText, useVoltLayout } from '../../../../api';
+import { DraggableWindow, VoltCardContentView, VoltCardView } from '../../../../common';
 import { NativeText } from '../../../../common/native-text/NativeText';
 import { useFurnitureAreaHideWidget } from '../../../../hooks';
 import { Native0Button, Native0Checkbox } from '../../../mod-tools/native/NativeWindow0';
@@ -55,10 +57,41 @@ const Option: FC<OptionProps> = ({ y, name, label, info, checked, disabled, onTo
     </>
 );
 
+interface TouchOptionProps {
+    label: string;
+    info?: string;
+    checked: boolean;
+    disabled: boolean;
+    onToggle: () => void;
+}
+
+const TouchOption: FC<TouchOptionProps> = ({ label, info, checked, disabled, onToggle }) => (
+    <button
+        aria-checked={checked}
+        className={`volt-area-hide-touch__option ${checked ? 'is-checked' : ''}`}
+        disabled={disabled}
+        role="checkbox"
+        type="button"
+        onClick={onToggle}
+    >
+        <span aria-hidden="true" className="volt-area-hide-touch__checkbox" />
+        <span className="volt-area-hide-touch__option-text">
+            <span className="volt-area-hide-touch__option-label">{label}</span>
+            {info && <span className="volt-area-hide-touch__option-info">{info}</span>}
+        </span>
+    </button>
+);
+
 export const FurnitureAreaHideView: FC<{}> = () => {
+    const layout = useVoltLayout();
+    const isTouch = layout !== 'desktop';
     const {
         objectId = -1,
         isOn,
+        rootX = 0,
+        rootY = 0,
+        width = 0,
+        length = 0,
         selecting,
         wallItems,
         inverted,
@@ -70,8 +103,131 @@ export const FurnitureAreaHideView: FC<{}> = () => {
         onClose = null
     } = useFurnitureAreaHideWidget();
     const [selectWidth, setSelectWidth] = useState(0);
+    const prevAreaRef = useRef<{ rootX: number; rootY: number; width: number; length: number } | null>(null);
 
     if (objectId === -1) return null;
+
+    if (isTouch) {
+        const onStartSelecting = () => {
+            prevAreaRef.current = { rootX, rootY, width, length };
+            startSelecting();
+        };
+
+        const onCancelSelecting = () => {
+            const previous = prevAreaRef.current;
+
+            prevAreaRef.current = null;
+            clearArea();
+
+            if (previous && previous.width > 0 && previous.length > 0) {
+                save(previous);
+                GetRoomEngine().areaSelectionManager.setHighlight(previous.rootX, previous.rootY, previous.width, previous.length);
+            }
+        };
+
+        if (selecting) {
+            return createPortal(
+                <div className="volt-area-hide-selecting-bar" role="status">
+                    <span className="volt-area-hide-selecting-bar__text">Drag across tiles in the room to select area</span>
+                    <button className="volt-area-hide-touch__btn is-danger volt-area-hide-selecting-bar__cancel" type="button" onClick={onCancelSelecting}>
+                        {LocalizeText('generic.cancel')}
+                    </button>
+                </div>,
+                document.body
+            );
+        }
+
+        const hasArea = width > 0 && length > 0;
+
+        return (
+            <VoltCardView
+                classNames={['volt-area-hide-touch']}
+                frameStyle={3}
+                isResizable={false}
+                touchPresentation="half"
+                uniqueKey="area-hide"
+            >
+                <div className="volt-card-header-shell drag-handler">
+                    <span className="volt-card-title">{LocalizeText('widget.areahide.title')}</span>
+                    <button
+                        aria-label={LocalizeText('generic.close')}
+                        className="volt-card-close-button"
+                        type="button"
+                        onClick={onClose}
+                        onPointerDown={(event) => event.stopPropagation()}
+                    />
+                </div>
+                <VoltCardContentView className="volt-area-hide-touch__content" overflow="hidden">
+                    <div className="volt-area-hide-touch__scroll">
+                        <section className={`volt-area-hide-touch__section ${isOn ? 'is-dimmed' : ''}`}>
+                            <div className="volt-area-hide-touch__section-head">
+                                <h3 className="volt-area-hide-touch__heading">{LocalizeText('widget.areahide.area_selection')}</h3>
+                                {hasArea && (
+                                    <span className="volt-area-hide-touch__badge">
+                                        {width} × {length}
+                                    </span>
+                                )}
+                            </div>
+                            <p className="volt-area-hide-touch__info">{LocalizeText('widget.areahide.area_selection.info')}</p>
+                            <div className="volt-area-hide-touch__actions">
+                                <button
+                                    className="volt-area-hide-touch__btn"
+                                    disabled={isOn || selecting}
+                                    type="button"
+                                    onClick={onStartSelecting}
+                                >
+                                    {LocalizeText('widget.areahide.area_selection.select')}
+                                </button>
+                                <button
+                                    className="volt-area-hide-touch__btn"
+                                    disabled={isOn}
+                                    type="button"
+                                    onClick={clearArea}
+                                >
+                                    {LocalizeText('widget.areahide.area_selection.clear')}
+                                </button>
+                            </div>
+                        </section>
+
+                        <section className={`volt-area-hide-touch__section ${isOn ? 'is-dimmed' : ''}`}>
+                            <h3 className="volt-area-hide-touch__heading">{LocalizeText('widget.areahide.options')}</h3>
+                            <div className="volt-area-hide-touch__options">
+                                <TouchOption
+                                    checked={wallItems}
+                                    disabled={isOn}
+                                    label={LocalizeText('widget.areahide.options.wallitems')}
+                                    onToggle={() => save({ wallItems: !wallItems })}
+                                />
+                                <TouchOption
+                                    checked={inverted}
+                                    disabled={isOn}
+                                    info={LocalizeText('widget.areahide.options.invert.info')}
+                                    label={LocalizeText('widget.areahide.options.invert')}
+                                    onToggle={() => save({ inverted: !inverted })}
+                                />
+                                <TouchOption
+                                    checked={invisibility}
+                                    disabled={isOn}
+                                    info={LocalizeText('widget.areahide.options.invisibility.info')}
+                                    label={LocalizeText('widget.areahide.options.invisibility')}
+                                    onToggle={() => save({ invisibility: !invisibility })}
+                                />
+                            </div>
+                        </section>
+                    </div>
+                    <div className="volt-area-hide-touch__footer">
+                        <button
+                            className={`volt-area-hide-touch__btn volt-area-hide-touch__toggle ${isOn ? 'is-danger' : 'is-primary'}`}
+                            type="button"
+                            onClick={toggleOnOff}
+                        >
+                            {LocalizeText(isOn ? 'widget.areahide.button.off' : 'widget.areahide.button.on')}
+                        </button>
+                    </div>
+                </VoltCardContentView>
+            </VoltCardView>
+        );
+    }
 
     return (
         <DraggableWindow handleSelector=".native3-title" initialPosition={centred()} uniqueKey="area-hide">

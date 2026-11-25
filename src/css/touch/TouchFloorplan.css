@@ -1,1 +1,880 @@
-/* TouchFloorplan */
+/* TouchFloorplan: Floorplan Editor (official + legacy + import/export) on phones and tablets.
+   All sprites stay at 1x or 2x integer scale with pixelated rendering; tap targets are >= 44 px. */
+
+/* ---------- Window shell & AIR touch header ---------- */
+
+html[data-volt-touch='on'] .draggable-window:is([data-volt-window='sheet'], [data-volt-window='dock']):has(> .volt-floorplan-window) {
+    min-width: 0 !important;
+    max-width: none !important;
+}
+
+html[data-volt-device='tablet'] .draggable-window[data-volt-window='float']:has(> .volt-floorplan-window) {
+    width: min(740px, calc(100vw - 24px)) !important;
+    min-width: 0 !important;
+    max-width: none !important;
+}
+
+html[data-volt-device='tablet'] .draggable-window[data-volt-window='float'] > .volt-floorplan-window.volt-card-shell.volt-card-frame-3,
+html[data-volt-device='tablet'] .draggable-window[data-volt-window='float'] > .volt-floorplan-window.volt-card-shell {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: min(760px, calc(var(--volt-visual-height, 100dvh) - 24px)) !important;
+    min-height: 0 !important;
+    max-height: calc(var(--volt-visual-height, 100dvh) - 16px) !important;
+}
+
+/* Override desktop BC frame 3 dimensions and header coordinates so TouchWindows.css 44/48 px header applies cleanly. */
+html[data-volt-touch='on'] .volt-floorplan-window.volt-card-shell.volt-card-frame-3 {
+    --volt-card-frame-3: url('../../assets/images/habbo-skin/touch/frame-touch-44.png');
+    width: auto;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    max-height: none !important;
+    padding: calc(var(--volt-touch-header, 44px) + 3px) 0 0 !important;
+}
+
+html[data-volt-touch='on'] .draggable-window[data-volt-window='sheet']:not([data-volt-sheet-size='half']) .volt-floorplan-window.volt-card-shell.volt-card-frame-3 {
+    --volt-card-frame-3: url('../../assets/images/habbo-skin/touch/frame-touch-48.png');
+}
+
+html[data-volt-touch='on'] .volt-floorplan-window.volt-card-shell.volt-card-frame-3 > .volt-card-header-shell .volt-card-title {
+    top: 50% !important;
+    right: 80px !important;
+    left: 80px !important;
+    width: auto !important;
+    height: 18px !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    line-height: 18px !important;
+    text-align: center !important;
+    color: #ffffff !important;
+    transform: translateY(-50%) !important;
+}
+
+html[data-volt-touch='on'] .volt-floorplan-window.volt-card-shell.volt-card-frame-3 > .volt-card-header-shell .volt-card-close-button {
+    top: 0 !important;
+    right: 0 !important;
+    width: 38px !important;
+    height: var(--volt-touch-header, 44px) !important;
+    background: url('../../assets/images/habbo-skin/touch/close-touch.png') left 4px center / 27px 28px no-repeat !important;
+}
+
+html[data-volt-touch='on'] .volt-floorplan-window.volt-card-shell.volt-card-frame-3 > .volt-card-header-shell .volt-card-header-info-habbopages {
+    top: 0 !important;
+    right: 38px !important;
+    width: 34px !important;
+    height: var(--volt-touch-header, 44px) !important;
+    background: url('../../assets/images/habbo-skin/touch/help-touch.png') right 3px center / 27px 28px no-repeat !important;
+}
+
+html[data-volt-touch='on'] .volt-floorplan-window.volt-card-shell.volt-card-frame-3 .volt-card-content-shell {
+    position: relative;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    left: auto;
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
+    margin: 0 3px 3px;
+    background: #e9e9e1 !important;
+}
+
+html[data-volt-touch='on'] .volt-floorplan-window.is-touch-legacy .volt-card-content-shell {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
+    background: #e9e9e1 !important;
+}
+
+/* ---------- Stacked touch editor layout ---------- */
+
+html[data-volt-touch='on'] .fp-bc.is-touch {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    background: #e9e9e1;
+    color: #111111;
+    font-family: HabboAirUbuntu, Ubuntu, sans-serif;
+    font-size: 13px;
+}
+
+/* Canvas stage (top, generous height) */
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-touch-stage {
+    position: relative;
+    flex: 1 1 0;
+    min-height: 200px;
+    margin: 6px 6px 0;
+    border: 2px solid #000000;
+    border-radius: 3px;
+    background: #000000;
+    overflow: hidden;
+}
+
+html[data-volt-layout='phone-landscape'] .fp-bc.is-touch .fp-touch-stage {
+    min-height: 132px;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-touch-map {
+    position: absolute;
+    inset: 0;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-touch-map::before {
+    display: none;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-scroll {
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Paint mode disables browser scroll so single-finger drag paints tiles cleanly; Pan mode enables native panning. */
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-scroll[data-pan-mode='false'],
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-bitmap[data-pan-mode='false'] {
+    touch-action: none;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-scroll[data-pan-mode='true'],
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-bitmap[data-pan-mode='true'] {
+    touch-action: pan-x pan-y;
+    cursor: grab;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-bitmap {
+    margin: 24px auto 64px;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-map-vbar,
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-map-hbar {
+    display: none;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-touch-preview {
+    position: absolute;
+    inset: 0;
+    background: #ffffff;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-preview-scroll {
+    inset: 0;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-preview-bitmap {
+    margin: 12px auto 64px;
+}
+
+/* Legacy SVG / 3D stage inside touch editor */
+html[data-volt-touch='on'] .fp-bc.is-touch.is-legacy .fp-stage {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    border-radius: 0;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch.is-legacy .fp-stage-buttons {
+    top: 6px;
+    right: 6px;
+    gap: 6px;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch.is-legacy .fp-round-btn,
+html[data-volt-touch='on'] .fp-bc.is-touch.is-legacy .fp-round-btn.is-small {
+    width: 44px;
+    height: 44px;
+    font-size: 14px;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch.is-legacy .fp-stage-toggles {
+    top: 6px;
+    bottom: auto;
+    left: 6px;
+    gap: 6px;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch.is-legacy .fp-pill {
+    min-height: 36px;
+    padding: 0 12px;
+    font-size: 12px;
+    line-height: 36px;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch.is-legacy .fp-stage-hint {
+    display: none;
+}
+
+/* Floating Paint / Pan / Zoom / Preview overlay bar on the canvas */
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-touch-stage-controls {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    left: 6px;
+    z-index: 12;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    pointer-events: none;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-touch-mode-group,
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-touch-stage-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    pointer-events: auto;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-touch-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-width: 52px;
+    height: 44px;
+    padding: 0 12px;
+    border-style: solid;
+    border-width: 0;
+    border-image: url('../../assets/images/habbo-skin/slices/button-black-default.png') 3 fill / 3px stretch;
+    background: transparent;
+    color: #e8e8e4;
+    font: 700 13px/1 HabboAirUbuntu, Ubuntu, sans-serif;
+    white-space: nowrap;
+    cursor: pointer;
+    image-rendering: pixelated;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-touch-chip:active {
+    border-image-source: url('../../assets/images/habbo-skin/slices/button-black-pressed.png');
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-touch-chip.is-active {
+    border-image-source: url('../../assets/images/habbo-skin/touch/btn-green-default-h44.png');
+    border-width: 0 5px;
+    border-image-slice: 0 5 fill;
+    border-image-width: 0 5px;
+    color: #ffffff;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-touch-chip.is-icon img {
+    width: 13px;
+    height: 22px;
+    image-rendering: pixelated;
+}
+
+/* ---------- Scrollable tool palette ---------- */
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-touch-palette {
+    flex: 0 1 auto;
+    max-height: 44%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 6px;
+}
+
+html[data-volt-layout='phone-landscape'] .fp-bc.is-touch .fp-touch-palette {
+    max-height: 48%;
+    gap: 6px;
+    padding: 6px;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-touch-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 10px;
+    background: #d8d8cf;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-touch-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 3px solid transparent;
+    border-image: url('../../assets/images/floorplan-editor/air/panel-border.png') 3 / 3px stretch;
+    pointer-events: none;
+    image-rendering: pixelated;
+}
+
+/* Draw mode toolbar */
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-group-label,
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-touch-label {
+    height: auto;
+    padding: 0;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 17px;
+    color: #111111;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-tools {
+    position: static;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    height: auto;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-tools::-webkit-scrollbar {
+    display: none;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-tool-slot {
+    display: flex;
+    flex: 1 0 auto;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-tool-divider {
+    position: static;
+    left: auto;
+    flex: 0 0 2px;
+    width: 2px;
+    height: 36px;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-tool {
+    position: relative;
+    top: auto;
+    left: auto !important;
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    min-width: 52px;
+    width: 52px;
+    height: 44px;
+    margin: 0;
+    border: 0;
+    background-position: center !important;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-tool:not(.is-extra) {
+    background: url('../../assets/images/floorplan-editor/air/toolbar_container_button_style3_51x42_default.png') center / 51px 42px no-repeat;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-tool:not(.is-extra).is-active,
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-tool:not(.is-extra):active {
+    background: url('../../assets/images/floorplan-editor/air/toolbar_container_button_style3_51x42_pressed.png') center / 51px 42px no-repeat;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-tool img {
+    position: static;
+    left: auto !important;
+    top: auto !important;
+    width: 40px;
+    height: 40px;
+    image-rendering: pixelated;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-tool.is-extra {
+    min-width: 44px;
+    width: 44px;
+    height: 44px;
+    margin: 0;
+    border-style: solid;
+    border-width: 0 5px;
+    border-image: url('../../assets/images/habbo-skin/touch/btn-default-h44.png') 0 5 fill / 0 5px stretch;
+    background: transparent;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-tool.is-extra.is-active {
+    border-image-source: url('../../assets/images/habbo-skin/touch/btn-pressed-h44.png');
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-tool.is-extra.is-disabled {
+    border-image-source: url('../../assets/images/habbo-skin/touch/btn-disabled-h44.png');
+}
+
+/* Height picker & wall height stepper rows */
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-touch-height,
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-touch-wall {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-touch-wall.is-off .fp-touch-stepper-row {
+    opacity: 0.5;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-touch-row-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-touch-area {
+    font-size: 12px;
+    color: #444440;
+    font-variant-numeric: tabular-nums;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-touch-height-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 30px;
+    height: 24px;
+    padding: 0 6px;
+    border: 1px solid #000000;
+    border-radius: 3px;
+    color: #000000;
+    font-size: 13px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 2px rgba(255, 255, 255, 0.85);
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-touch-stepper-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-colormap {
+    position: relative;
+    top: auto;
+    left: auto;
+    flex: 1 1 auto;
+    width: auto;
+    height: 44px;
+    touch-action: none;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-colormap-track {
+    position: absolute;
+    top: 8px;
+    right: 0;
+    left: 0;
+    width: 100%;
+    height: 28px;
+    border: 1px solid #2b2b2b;
+    border-radius: 3px;
+    box-sizing: border-box;
+    touch-action: none;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-colormap-thumb {
+    top: 2px;
+    width: 12px;
+    height: 16px;
+    margin-left: -6px;
+}
+
+/* Room options: entry direction & thickness dropdowns */
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-room-controls {
+    position: static;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 10px;
+    width: 100%;
+    height: auto;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-vdivider {
+    display: none;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-direction {
+    position: static;
+    display: grid;
+    grid-template-columns: 44px 52px 44px;
+    grid-template-rows: auto auto;
+    align-items: center;
+    justify-items: center;
+    gap: 4px 6px;
+    flex: 0 0 auto;
+    width: auto;
+    height: auto;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-direction .fp-bc-direction-label {
+    position: static;
+    grid-column: 1 / -1;
+    width: auto;
+    height: auto;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-dir-btn {
+    position: static;
+    top: auto;
+    left: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-style: solid;
+    border-width: 0 5px;
+    border-image: url('../../assets/images/habbo-skin/touch/btn-default-h44.png') 0 5 fill / 0 5px stretch;
+    background: transparent;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-dir-btn:active {
+    border-image-source: url('../../assets/images/habbo-skin/touch/btn-pressed-h44.png');
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-dir-btn img {
+    position: static;
+    left: auto;
+    top: auto;
+    width: 20px;
+    height: 18px;
+    image-rendering: pixelated;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-avatar {
+    position: static;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 64px;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-thickness {
+    position: static;
+    display: flex;
+    flex: 1 1 160px;
+    flex-direction: column;
+    gap: 6px;
+    width: auto;
+    min-width: 0;
+    height: auto;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-thickness .fp-bc-direction-label {
+    position: static;
+    width: auto;
+    height: auto;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: left;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-thickness-menu {
+    position: relative;
+    top: auto !important;
+    left: auto;
+    width: 100%;
+    height: 44px;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-thickness-menu.is-open {
+    z-index: 25;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-thickness .fp-bc-drop {
+    position: relative;
+    top: auto !important;
+    left: auto;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 44px;
+    padding: 0 34px 0 10px;
+    border-width: 6px;
+    background: #ffffff;
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 18px;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-thickness-menu .fp-bc-drop span {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: 0;
+    font-size: 15px;
+    line-height: 20px;
+    color: #111111;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-thickness-menu .fp-bc-drop::after {
+    top: 50%;
+    right: 4px;
+    left: auto;
+    transform: translateY(-50%);
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-drop-list {
+    top: 100%;
+    left: 0;
+    right: 0;
+    min-width: 100%;
+    margin-top: 2px;
+    padding: 4px;
+    background: #ffffff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-drop-item {
+    display: flex;
+    align-items: center;
+    height: 44px;
+    padding: 0 10px;
+    font-size: 15px;
+    line-height: 20px;
+}
+
+/* Wall height checkbox & fluid slider */
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-touch-check-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 44px;
+    padding: 0 4px;
+    border: 0;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-touch-check-box {
+    flex: 0 0 30px;
+    width: 30px;
+    height: 30px;
+    background: url('../../assets/images/floorplan-editor/air/checkbox-default.png') 0 0 / 30px 30px no-repeat;
+    image-rendering: pixelated;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-touch-check-row.is-on .fp-touch-check-box {
+    background-image: url('../../assets/images/floorplan-editor/air/checkbox-selected.png');
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-touch-wall-value {
+    margin-left: auto;
+    min-width: 28px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    background: #ffffff;
+    border: 1px solid #8a8a82;
+    color: #111111;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-wall-slider {
+    position: relative;
+    top: auto;
+    left: auto;
+    flex: 1 1 auto;
+    width: auto;
+    height: 44px;
+    touch-action: none;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-wall-slider-track {
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 44px;
+    background-size: 100% 4px;
+    touch-action: none;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-bc-wall-slider-thumb {
+    top: 14px;
+    margin-left: -6px;
+}
+
+/* Legacy live-sync / auto-pickup pills */
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-touch-toggles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-touch-pill {
+    flex: 1 1 140px;
+    min-height: 44px;
+    padding: 0 10px;
+    border-style: solid;
+    border-width: 0 5px;
+    border-image: url('../../assets/images/habbo-skin/touch/btn-default-h44.png') 0 5 fill / 0 5px stretch;
+    background: transparent;
+    color: #2b2b2b;
+    font: 700 13px/1 HabboAirUbuntu, Ubuntu, sans-serif;
+    cursor: pointer;
+    image-rendering: pixelated;
+}
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-touch-pill.is-on {
+    border-image-source: url('../../assets/images/habbo-skin/touch/btn-green-default-h44.png');
+    color: #ffffff;
+}
+
+/* ---------- Sticky footer & touch AIR buttons ---------- */
+
+html[data-volt-touch='on'] .fp-bc.is-touch .fp-touch-footer {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr);
+    gap: 8px;
+    padding: 8px 6px 8px;
+    border-top: 1px solid #b8b8ae;
+    background: #e9e9e1;
+}
+
+html[data-volt-touch='on'] .fp-touch-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    height: 44px;
+    padding: 0 10px;
+    border-style: solid;
+    border-width: 0 5px;
+    border-image: url('../../assets/images/habbo-skin/touch/btn-default-h44.png') 0 5 fill / 0 5px stretch;
+    background: transparent;
+    color: #111111;
+    font: 700 14px/1 HabboAirUbuntu, Ubuntu, sans-serif;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    image-rendering: pixelated;
+}
+
+html[data-volt-touch='on'] .fp-touch-btn:active:not(:disabled) {
+    border-image-source: url('../../assets/images/habbo-skin/touch/btn-pressed-h44.png');
+}
+
+html[data-volt-touch='on'] .fp-touch-btn:disabled {
+    border-image-source: url('../../assets/images/habbo-skin/touch/btn-disabled-h44.png');
+    color: #82827c;
+    cursor: default;
+}
+
+html[data-volt-touch='on'] .fp-touch-btn.is-step {
+    flex: 0 0 44px;
+    width: 44px;
+    padding: 0;
+    font-size: 20px;
+}
+
+html[data-volt-touch='on'] .fp-touch-btn.is-primary {
+    border-image-source: url('../../assets/images/habbo-skin/touch/btn-green-default-h44.png');
+    color: #ffffff;
+}
+
+html[data-volt-touch='on'] .fp-touch-btn.is-primary:active:not(:disabled) {
+    border-image-source: url('../../assets/images/habbo-skin/touch/btn-green-pressed-h44.png');
+}
+
+html[data-volt-touch='on'] .fp-touch-btn.is-primary:disabled {
+    border-image-source: url('../../assets/images/habbo-skin/touch/btn-disabled-h44.png');
+    color: #82827c;
+}
+
+html[data-volt-touch='on'] .fp-touch-btn.is-danger {
+    border-image-source: url('../../assets/images/habbo-skin/touch/btn-red-default-h44.png');
+    color: #ffffff;
+}
+
+/* ---------- Import / Export dialog on touch ---------- */
+
+html[data-volt-touch='on'] .volt-floorplan-import.is-touch-import.volt-card-shell.volt-card-frame-3 {
+    width: min(460px, calc(100vw - 24px)) !important;
+    height: min(440px, calc(var(--volt-visual-height, 100dvh) - 32px)) !important;
+    padding: calc(var(--volt-touch-header, 44px) + 3px) 0 0 !important;
+}
+
+html[data-volt-touch='on'] .volt-floorplan-import.is-touch-import.volt-card-shell.volt-card-frame-3 > .volt-card-header-shell .volt-card-title {
+    top: 50% !important;
+    right: 52px !important;
+    left: 52px !important;
+    width: auto !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    line-height: 18px !important;
+    text-align: center !important;
+    color: #ffffff !important;
+    transform: translateY(-50%) !important;
+}
+
+html[data-volt-touch='on'] .volt-floorplan-import.is-touch-import.volt-card-shell.volt-card-frame-3 > .volt-card-header-shell .volt-card-close-button {
+    top: 0 !important;
+    right: 0 !important;
+    width: 38px !important;
+    height: var(--volt-touch-header, 44px) !important;
+    background: url('../../assets/images/habbo-skin/touch/close-touch.png') left 4px center / 27px 28px no-repeat !important;
+}
+
+html[data-volt-touch='on'] .volt-floorplan-import.is-touch-import .volt-card-content-shell {
+    position: relative !important;
+    inset: auto !important;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    gap: 8px;
+    margin: 0 3px 3px;
+    padding: 8px !important;
+    background: #e9e9e1 !important;
+}
+
+html[data-volt-touch='on'] .volt-floorplan-import.is-touch-import .fp-bc-import-data {
+    position: static;
+    flex: 1 1 auto;
+    width: 100%;
+    height: auto;
+    min-height: 160px;
+    padding: 8px;
+    border: 1px solid #808080;
+    border-radius: 4px;
+    background: #ffffff;
+    color: #111111;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 15px;
+    line-height: 20px;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+html[data-volt-touch='on'] .fp-touch-import-actions {
+    display: flex;
+    gap: 8px;
+    flex: 0 0 auto;
+}
+
+html[data-volt-touch='on'] .fp-touch-import-actions > .fp-touch-btn {
+    flex: 1 1 0;
+}

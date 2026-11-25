@@ -23,6 +23,7 @@ type Props = {
     mode: OfficialDrawMode;
     drawingHeight: number;
     largeFloorPlans: boolean;
+    panMode?: boolean;
     onPlan: (plan: OfficialFloorPlan, limited: boolean) => void;
 };
 
@@ -119,7 +120,7 @@ const layoutTiles = (plan: OfficialFloorPlan, zoom: 1 | 2, base: HTMLImageElemen
     };
 };
 
-export const FloorplanOfficialCanvas: FC<Props> = ({ plan, zoom, mode, drawingHeight, largeFloorPlans, onPlan }) => {
+export const FloorplanOfficialCanvas: FC<Props> = ({ plan, zoom, mode, drawingHeight, largeFloorPlans, panMode = false, onPlan }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const scrollerRef = useRef<HTMLDivElement>(null);
     const imagesRef = useRef<{ base: HTMLImageElement; entry: HTMLImageElement; baseLarge: HTMLImageElement; entryLarge: HTMLImageElement } | null>(null);
@@ -127,6 +128,7 @@ export const FloorplanOfficialCanvas: FC<Props> = ({ plan, zoom, mode, drawingHe
     const rectRef = useRef(false);
     const originRef = useRef<{ x: number; y: number } | null>(null);
     const lastRef = useRef<{ x: number; y: number } | null>(null);
+    const panDragRef = useRef<{ pointerId: number; startX: number; startY: number; scrollLeft: number; scrollTop: number } | null>(null);
     const planRef = useRef(plan);
     const zoomRef = useRef(zoom);
     const centeredRef = useRef(false);
@@ -206,7 +208,24 @@ export const FloorplanOfficialCanvas: FC<Props> = ({ plan, zoom, mode, drawingHe
     };
 
     const onPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+        if (panMode) {
+            // Touch pans via native overflow scroll; mouse drag supports desktop touch-preview testing.
+            if (event.pointerType === 'mouse' && event.button === 0 && scrollerRef.current) {
+                panDragRef.current = {
+                    pointerId: event.pointerId,
+                    startX: event.clientX,
+                    startY: event.clientY,
+                    scrollLeft: scrollerRef.current.scrollLeft,
+                    scrollTop: scrollerRef.current.scrollTop
+                };
+                event.currentTarget.setPointerCapture?.(event.pointerId);
+            }
+            return;
+        }
+
         if (event.button !== 0) return;
+
+        if (event.pointerType !== 'mouse') event.preventDefault();
 
         event.currentTarget.setPointerCapture?.(event.pointerId);
 
@@ -235,6 +254,12 @@ export const FloorplanOfficialCanvas: FC<Props> = ({ plan, zoom, mode, drawingHe
     };
 
     const onPointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+        if (panDragRef.current && panDragRef.current.pointerId === event.pointerId && scrollerRef.current) {
+            scrollerRef.current.scrollLeft = panDragRef.current.scrollLeft - (event.clientX - panDragRef.current.startX);
+            scrollerRef.current.scrollTop = panDragRef.current.scrollTop - (event.clientY - panDragRef.current.startY);
+            return;
+        }
+
         if (!drawingRef.current) return;
 
         const hit = tileFromEvent(event);
@@ -277,6 +302,12 @@ export const FloorplanOfficialCanvas: FC<Props> = ({ plan, zoom, mode, drawingHe
     };
 
     const onPointerUp = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+        if (panDragRef.current && panDragRef.current.pointerId === event.pointerId) {
+            panDragRef.current = null;
+            event.currentTarget.releasePointerCapture?.(event.pointerId);
+            return;
+        }
+
         drawingRef.current = false;
         event.currentTarget.releasePointerCapture?.(event.pointerId);
 
@@ -291,10 +322,11 @@ export const FloorplanOfficialCanvas: FC<Props> = ({ plan, zoom, mode, drawingHe
 
     return (
         <>
-            <div ref={scrollerRef} className="fp-bc-scroll" data-testid="floorplan-official-scroll">
+            <div ref={scrollerRef} className="fp-bc-scroll" data-pan-mode={panMode ? 'true' : 'false'} data-testid="floorplan-official-scroll">
                 <canvas
                     ref={canvasRef}
                     className="fp-bc-bitmap"
+                    data-pan-mode={panMode ? 'true' : 'false'}
                     data-testid="floorplan-official-grid"
                     data-zoom={zoom}
                     onPointerDown={onPointerDown}

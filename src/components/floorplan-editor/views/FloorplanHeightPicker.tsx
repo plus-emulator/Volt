@@ -49,6 +49,7 @@ export const FloorplanHeightPicker: FC<Props> = ({ selectedH, onSelect, official
     const onPointerDown = useCallback(
         (e: ReactPointerEvent<HTMLDivElement>) => {
             if (e.button !== 0) return;
+            if (e.pointerType !== 'mouse') e.preventDefault();
             const next = heightFromClientX(e.clientX);
             if (next !== null && next !== selectedH) onSelect(next);
             setIsDragging(true);

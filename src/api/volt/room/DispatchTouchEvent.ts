@@ -1,4 +1,4 @@
-import { CreateLinkEvent, GetRoomEngine, MouseEventType, RoomObjectCategory, TouchEventType } from '@volt/renderer';
+import { CreateLinkEvent, GetRoomEngine, MouseEventType, RoomAreaSelectionManager, RoomObjectCategory, TouchEventType } from '@volt/renderer';
 import { applyRoomZoom, getLogicalRoomZoomScale } from '../../../components/room/widgets/room-tools/roomZoom.helpers';
 import { GetConfigurationValue } from '../GetConfigurationValue';
 
@@ -34,6 +34,12 @@ const clearLongPress = () => {
     longPressTimer = null;
 };
 
+const isAreaSelecting = () => {
+    const state = GetRoomEngine().areaSelectionManager?.areaSelectionState;
+
+    return state === RoomAreaSelectionManager.AWAITING_MOUSE_DOWN || state === RoomAreaSelectionManager.SELECTING;
+};
+
 const findObjectAt = (roomId: number, x: number, y: number) => {
     const roomEngine = GetRoomEngine();
 
@@ -66,7 +72,7 @@ const findObjectAt = (roomId: number, x: number, y: number) => {
 const onLongPress = () => {
     longPressTimer = null;
 
-    if (didMouseMove || pinch) return;
+    if (didMouseMove || pinch || isAreaSelecting()) return;
 
     const roomEngine = GetRoomEngine();
     const roomId = roomEngine.activeRoomId;
@@ -176,7 +182,7 @@ export const DispatchTouchEvent = (
             lastPoint = { x, y };
             dispatch(MouseEventType.MOUSE_DOWN);
             clearLongPress();
-            longPressTimer = setTimeout(onLongPress, LONG_PRESS_MS);
+            if (!isAreaSelecting()) longPressTimer = setTimeout(onLongPress, LONG_PRESS_MS);
             return;
         case TouchEventType.TOUCH_MOVE:
             if (pinch) {
@@ -210,6 +216,22 @@ export const DispatchTouchEvent = (
 
             if (pinch) {
                 if (!event.touches?.length) pinch = null;
+                return;
+            }
+
+            // RoomEngine commits an area selection on MOUSE_CLICK; a dragged touch normally only sends MOUSE_UP.
+            const areaState = GetRoomEngine().areaSelectionManager?.areaSelectionState;
+
+            if (areaState === RoomAreaSelectionManager.SELECTING) {
+                dispatch(MouseEventType.MOUSE_UP);
+                dispatch(MouseEventType.MOUSE_CLICK);
+                lastTapAt = 0;
+                return;
+            }
+
+            if (areaState === RoomAreaSelectionManager.AWAITING_MOUSE_DOWN) {
+                dispatch(MouseEventType.MOUSE_UP);
+                lastTapAt = 0;
                 return;
             }
 

@@ -1,5 +1,5 @@
 import { FC, KeyboardEvent, useEffect, useId, useRef, useState } from 'react';
-import { LocalizeText } from '../../../api';
+import { LocalizeText, useVoltLayout } from '../../../api';
 import { THICKNESS_NAMES } from '../state/constants';
 import { ThicknessLevel } from '../state/types';
 import { FloorplanNativeText } from './FloorplanNativeText';
@@ -14,6 +14,7 @@ type Props = {
 
 /** AIR dropmenu style 3: its expanded list replaces the closed control at the same point. */
 export const FloorplanThicknessMenu: FC<Props> = ({ value, onChange, testId, labelKeyPrefix }) => {
+    const isTouch = useVoltLayout() !== 'desktop';
     const [open, setOpen] = useState(false);
     const [highlight, setHighlight] = useState<ThicknessLevel>(value);
     const rootRef = useRef<HTMLDivElement>(null);
@@ -80,16 +81,21 @@ export const FloorplanThicknessMenu: FC<Props> = ({ value, onChange, testId, lab
                 aria-controls={`${id}-list`}
                 aria-activedescendant={open ? `${id}-${highlight}` : undefined}
                 onPointerDown={event => {
-                    if (event.button !== 0) return;
+                    if (isTouch || event.button !== 0) return;
                     event.preventDefault();
                     buttonRef.current?.focus({ preventScroll: true });
+                    if (open) setOpen(false);
+                    else show();
+                }}
+                onClick={() => {
+                    if (!isTouch) return;
                     if (open) setOpen(false);
                     else show();
                 }}
                 onKeyDown={onKeyDown}
             >
                 <span>
-                    <FloorplanNativeText background={0xffffff} text={labels[value]} />
+                    {isTouch ? labels[value] : <FloorplanNativeText background={0xffffff} text={labels[value]} />}
                 </span>
             </button>
             {open && (
@@ -104,12 +110,16 @@ export const FloorplanThicknessMenu: FC<Props> = ({ value, onChange, testId, lab
                             tabIndex={-1}
                             className={`fp-bc-drop-item ${index === highlight ? 'is-highlighted' : ''}`}
                             onPointerDown={event => {
-                                if (event.button !== 0) return;
+                                if (isTouch || event.button !== 0) return;
                                 event.preventDefault();
                                 choose(index as ThicknessLevel);
                             }}
+                            onClick={() => {
+                                if (!isTouch) return;
+                                choose(index as ThicknessLevel);
+                            }}
                         >
-                            <FloorplanNativeText background={index === value ? 0xdddddd : index === highlight ? 0xebebeb : 0xffffff} text={label} />
+                            {isTouch ? label : <FloorplanNativeText background={index === value ? 0xdddddd : index === highlight ? 0xebebeb : 0xffffff} text={label} />}
                         </button>
                     ))}
                 </div>
