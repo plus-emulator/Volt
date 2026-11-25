@@ -27,6 +27,7 @@ import { RoomKeybindView } from './RoomKeybindView';
 import { RoomFilterWordsWidgetView } from './room-filter-words/RoomFilterWordsWidgetView';
 import { RoomThumbnailWidgetView } from './room-thumbnail/RoomThumbnailWidgetView';
 import { RoomToolsWidgetView } from './room-tools/RoomToolsWidgetView';
+import { TouchPlacementView } from './touch-placement/TouchPlacementView';
 import { applyRoomZoom } from './room-tools/roomZoom.helpers';
 import { VariableLeaderboardOverlayView } from './variable-leaderboard/VariableLeaderboardOverlayView';
 import { WiredLinkWidgetView } from './wired-link/WiredLinkWidgetView';
@@ -204,6 +205,9 @@ export const RoomWidgetsView: FC<{}> = (props) => {
             </WidgetErrorBoundary>
             <WidgetErrorBoundary name="BuildHeightWidget">
                 <BuildHeightWidgetView />
+            </WidgetErrorBoundary>
+            <WidgetErrorBoundary name="TouchPlacement">
+                <TouchPlacementView />
             </WidgetErrorBoundary>
             <WidgetErrorBoundary name="RoomToolsWidget">
                 <RoomToolsWidgetView />

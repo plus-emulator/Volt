@@ -17,10 +17,12 @@ interface AvatarInfoWidgetNameViewProps {
     onClose: () => void;
     /** A friend entering the room (AvatarInfoWidget.showUserName / UserNameView): green bubble and an 8000ms delay instead of the 3000ms of a clicked avatar. */
     isFriendEntry?: boolean;
+    /** Touch layouts: the selected object keeps its name tag while its InfoStand sheet is open. */
+    persistent?: boolean;
 }
 
 export const AvatarInfoWidgetNameView: FC<AvatarInfoWidgetNameViewProps> = (props) => {
-    const { nameInfo = null, onClose = null, isFriendEntry = false } = props;
+    const { nameInfo = null, onClose = null, isFriendEntry = false, persistent = false } = props;
 
     const relationIconClass = useMemo(() => {
         switch (nameInfo.relationshipStatus) {
@@ -80,7 +82,7 @@ export const AvatarInfoWidgetNameView: FC<AvatarInfoWidgetNameViewProps> = (prop
             classNames={isFriendEntry ? ['air-name-bubble', 'air-name-bubble--friend'] : ['air-name-bubble']}
             fadeDelay={isFriendEntry ? 8000 : 3000}
             fadeLength={500}
-            fades={nameInfo.id !== GetSessionDataManager().userId}
+            fades={!persistent && nameInfo.id !== GetSessionDataManager().userId}
             maximumVerticalLeadRatio={0.05}
             objectId={nameInfo.roomIndex}
             repositionKey={bubbleWidth ?? 0}

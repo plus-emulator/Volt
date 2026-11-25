@@ -91,7 +91,7 @@ export const RoomView: FC<{}> = (props) => {
 
             if (!touch || !isMobileTouch()) return;
 
-            if (Math.abs(touch.clientX - touchStartX) > 8 || Math.abs(touch.clientY - touchStartY) > 8) touchMoved = true;
+            if (Math.abs(touch.clientX - touchStartX) > 10 || Math.abs(touch.clientY - touchStartY) > 10) touchMoved = true;
         };
 
         const onTouchEnd = (event: TouchEvent) => {
@@ -129,7 +129,7 @@ export const RoomView: FC<{}> = (props) => {
         const element = elementRef.current;
 
         if (element) {
-            canvas.classList.add('bg-black');
+            canvas.classList.add('bg-black', 'volt-room-canvas');
 
             element.appendChild(canvas);
         }

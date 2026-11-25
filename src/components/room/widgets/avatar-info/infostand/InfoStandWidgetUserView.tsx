@@ -9,24 +9,40 @@ import {
     UserRelationshipsComposer
 } from '@volt/renderer';
 import React, { Dispatch, FC, FocusEvent, KeyboardEvent, SetStateAction, useCallback, useEffect, useState } from 'react';
-import { AvatarInfoUser, CloneObject, GetConfigurationValue, GetGroupInformation, GetUserProfile, LocalizeText, localizeWithFallback, SendMessageComposer } from '../../../../../api';
+import {
+    AvatarInfoUser,
+    CloneObject,
+    GetConfigurationValue,
+    GetGroupInformation,
+    GetUserProfile,
+    IsTouchLayout,
+    LocalizeText,
+    localizeWithFallback,
+    SendMessageComposer,
+    useVoltLayout
+} from '../../../../../api';
 import homeIcon from '../../../../../assets/images/infostand/home-icon.png';
 import pencilIcon from '../../../../../assets/images/infostand/pencil-icon.png';
-import { Column, Flex, LayoutBadgeImageView, Text, UserIdentityView } from '../../../../../common';
+import { Column, Flex, LayoutAvatarImageView, LayoutBadgeImageView, Text, UserIdentityView } from '../../../../../common';
 import { useMessageEvent, useVoltEvent, useRoom } from '../../../../../hooks';
 import { InfoStandAvatarView } from './InfoStandAvatarView';
 import { InfoStandBadgeSlotView } from './InfoStandBadgeSlotView';
 import { InfoStandWidgetUserRelationshipsView } from './InfoStandWidgetUserRelationshipsView';
 import { InfoStandWidgetUserTagsView } from './InfoStandWidgetUserTagsView';
+import { TouchInfoSheetView } from './TouchInfoSheetView';
+import { TouchInfoStandUserActionsView } from './TouchInfoStandUserActionsView';
 
 interface InfoStandWidgetUserViewProps {
     avatarInfo: AvatarInfoUser;
     setAvatarInfo: Dispatch<SetStateAction<AvatarInfoUser>>;
     onClose: () => void;
+    /** Touch layouts: opens the full context menu behind the More button. */
+    onMore?: () => void;
 }
 
 export const InfoStandWidgetUserView: FC<InfoStandWidgetUserViewProps> = (props) => {
-    const { avatarInfo = null, setAvatarInfo = null, onClose = null } = props;
+    const { avatarInfo = null, setAvatarInfo = null, onClose = null, onMore = null } = props;
+    const isTouch = IsTouchLayout(useVoltLayout());
     const [motto, setMotto] = useState<string>(null);
     const [isEditingMotto, setIsEditingMotto] = useState(false);
     const [relationships, setRelationships] = useState<RelationshipStatusInfoMessageParser>(null);
@@ -136,6 +152,64 @@ export const InfoStandWidgetUserView: FC<InfoStandWidgetUserViewProps> = (props)
     const mottoMaxLength = GetConfigurationValue<number>('motto.max.length', 38);
     const showRelationships = GetConfigurationValue<boolean>('relationship.status.enabled', true);
     const showAchievementScore = GetConfigurationValue<boolean>('activity.point.display.enabled', true);
+
+    if (isTouch) {
+        const touchBadges = avatarInfo.badges.filter((code) => !!code).slice(0, 4);
+
+        return (
+            <TouchInfoSheetView className="volt-touch-infosheet--user" title={avatarInfo.name} onClose={onClose}>
+                <div className="volt-touch-infosheet__summary">
+                    <button type="button" className="volt-touch-infosheet__figure" aria-label={avatarInfo.name} onClick={handleProfileClick}>
+                        <LayoutAvatarImageView nativeCroppedHead trimmed direction={4} figure={avatarInfo.figure} scale={2} />
+                    </button>
+                    <div className="volt-touch-infosheet__info">
+                        <div className="volt-touch-infosheet__name">{avatarInfo.name}</div>
+                        {isOwnUser && isEditingMotto ? (
+                            <input
+                                autoFocus={true}
+                                className="volt-touch-infosheet__motto-input"
+                                maxLength={mottoMaxLength}
+                                type="text"
+                                value={motto ?? ''}
+                                onBlur={onMottoBlur}
+                                onChange={(event) => setMotto(event.target.value)}
+                                onKeyDown={onMottoKeyDown}
+                            />
+                        ) : (
+                            (motto || isOwnUser) && (
+                                <div
+                                    className={`volt-touch-infosheet__motto ${motto ? '' : 'is-placeholder'}`}
+                                    onClick={isOwnUser ? () => setIsEditingMotto(true) : undefined}
+                                >
+                                    {motto || LocalizeText('infostand.motto.change')}
+                                </div>
+                            )
+                        )}
+                        {(touchBadges.length > 0 || avatarInfo.groupId > 0) && (
+                            <div className="volt-touch-infosheet__badges">
+                                {touchBadges.map((code) => (
+                                    <div key={code} className="volt-touch-infosheet__badge">
+                                        <LayoutBadgeImageView badgeCode={code} showInfo={true} />
+                                    </div>
+                                ))}
+                                {avatarInfo.groupId > 0 && touchBadges.length < 4 && (
+                                    <div className="volt-touch-infosheet__badge" onClick={() => GetGroupInformation(avatarInfo.groupId)}>
+                                        <LayoutBadgeImageView badgeCode={avatarInfo.groupBadgeId} customTitle={avatarInfo.groupName} isGroup={true} showInfo={true} />
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        {showAchievementScore && (
+                            <div className="volt-touch-infosheet__meta">
+                                {LocalizeText('infostand.text.achievement_score')} {avatarInfo.achievementScore}
+                            </div>
+                        )}
+                    </div>
+                </div>
+                <TouchInfoStandUserActionsView avatarInfo={avatarInfo} onMore={onMore ?? onClose} />
+            </TouchInfoSheetView>
+        );
+    }
 
     return (
         <>

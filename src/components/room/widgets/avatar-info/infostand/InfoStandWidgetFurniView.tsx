@@ -18,7 +18,7 @@ import {
     SongInfoReceivedEvent,
     UpdateFurniturePositionComposer
 } from '@volt/renderer';
-import { FC, useCallback, useEffect, useMemo, useState } from 'react';
+import { FC, ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { FaEraser } from 'react-icons/fa';
 import { GrFormNextLink, GrRotateLeft, GrRotateRight } from 'react-icons/gr';
 import {
@@ -28,11 +28,17 @@ import {
     GetGroupInformation,
     IPhotoData,
     isSafeExternalUrl,
+    IsTouchLayout,
     LocalizeText,
     localizeWithFallback,
     RoomWidgetFurnitureRecolorEvent,
-    SendMessageComposer
+    SendMessageComposer,
+    useVoltLayout
 } from '../../../../../api';
+import rotateIcon from '../../../../../assets/images/avatareditor/arrow-right-icon.png';
+import moveIcon from '../../../../../assets/images/infostand/furni-place.png';
+import shopIcon from '../../../../../assets/images/infostand/furni-shop.png';
+import pickupIcon from '../../../../../assets/images/inventory/air/thumb-icon-recycle.png';
 import {
     Button,
     Column,
@@ -51,6 +57,7 @@ import { useFurniPickupGuard, useHasPermission, useMessageEvent, useVoltEvent, u
 import { useWiredLabelsStore } from '../../../../../hooks/rooms/widgets/useWiredLabelsState';
 import { VoltInput } from '../../../../../layout';
 import { ImagePositionEditorView } from './ImagePositionEditorView';
+import { TouchInfoSheetView, TouchSheetButton } from './TouchInfoSheetView';
 
 interface InfoStandWidgetFurniViewProps {
     avatarInfo: AvatarInfoFurni;
@@ -129,6 +136,7 @@ function getValidRoomObjectDirection(roomObject: any, isPositive: boolean) {
 export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (props) => {
     const { avatarInfo = null, onClose = null } = props;
     const { roomSession = null } = useRoom();
+    const isTouch = IsTouchLayout(useVoltLayout());
     const { openInspectionForFurni, showInspectButton, roomSettings, accountPreferences } = useWiredTools();
     const playTestMode = !!accountPreferences?.playTestMode;
     const hasWiredLabel = useWiredLabelsStore((state) => !!avatarInfo && state.labels[avatarInfo.id] !== undefined);
@@ -633,6 +641,454 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
     const showIds = canSeeFurniId;
     const showBuildtools = godMode && !avatarInfo.isWallItem && canMove;
 
+    const actions: { key: string; label: ReactNode; icon?: string; onClick: () => void }[] = [];
+
+    if (showInspectButton) actions.push({ key: 'inspect', label: 'Inspect', onClick: () => openInspectionForFurni(avatarInfo.id, avatarInfo.category) });
+
+    if (hasWiredLabel && !avatarInfo.isWallItem && roomSettings.canModify) {
+        actions.push({ key: 'label', label: localizeWithFallback('infostand.button.label_settings', 'Settings'), onClick: () => openWiredLabelSettings(avatarInfo.id) });
+    }
+
+    if (canMove) actions.push({ key: 'move', label: LocalizeText('infostand.button.move'), icon: moveIcon, onClick: () => processButtonAction('move') });
+
+    if (canRotate) actions.push({ key: 'rotate', label: LocalizeText('infostand.button.rotate'), icon: rotateIcon, onClick: () => processButtonAction('rotate') });
+
+    if (pickupMode !== PICKUP_MODE_NONE) {
+        actions.push({
+            key: 'pickup',
+            label:
+                isPlant && plantDead
+                    ? LocalizeText('generic.delete')
+                    : LocalizeText(pickupMode === PICKUP_MODE_EJECT ? 'infostand.button.eject' : 'infostand.button.pickup'),
+            icon: pickupIcon,
+            onClick: () => processButtonAction('pickup')
+        });
+    }
+
+    if (canUse) actions.push({ key: 'use', label: LocalizeText('infostand.button.use'), onClick: () => processButtonAction('use') });
+
+    // AIR InfoStandFurniView.as:673-678: Recolor follows Use.
+    if (canRecolor) actions.push({ key: 'recolor', label: LocalizeText('infostand.button.recolor'), onClick: () => processButtonAction('recolor') });
+
+    if (canRemoveBackground) {
+        actions.push({
+            key: 'remove_background',
+            label: (
+                <Flex alignItems="center" gap={1}>
+                    <FaEraser className="fa-icon" />
+                    {removeLandscapeLabel()}
+                </Flex>
+            ),
+            onClick: () => processButtonAction('remove_background')
+        });
+    }
+
+    if (hasBrandingOffsets) actions.push({ key: 'position', label: LocalizeText('image.position.editor.button'), onClick: () => setShowPositionEditor(true) });
+
+    if (furniKeys.length > 0 && furniValues.length > 0 && furniKeys.length === furniValues.length) {
+        actions.push({
+            key: 'save_branding',
+            label: localizeWithFallback('infostand.button.savebranding', 'Save changes'),
+            onClick: () => processButtonAction('save_branding_configuration')
+        });
+    }
+
+    if (customKeys.length > 0 && customValues.length > 0 && customKeys.length === customValues.length) {
+        actions.push({ key: 'save_custom', label: LocalizeText('save'), onClick: () => processButtonAction('save_custom_variables') });
+    }
+
+    const positionEditor = showPositionEditor && (
+        <ImagePositionEditorView
+            roomId={roomSession.roomId}
+            objectId={avatarInfo.id}
+            isWallItem={avatarInfo.isWallItem}
+            initialX={getBrandingOffset('offsetX')}
+            initialY={getBrandingOffset('offsetY')}
+            initialZ={getBrandingOffset('offsetZ')}
+            initialScale={getBrandingOffset('scale') || 100}
+            initialAlpha={furniKeys.indexOf('alpha') >= 0 ? getBrandingOffset('alpha') : 100}
+            onClose={() => setShowPositionEditor(false)}
+            onSave={savePositionEditor}
+        />
+    );
+
+    const preview = externalImagePhotoUrl ? (
+        <div className="bg-white p-[3px] pb-[9px] rounded-[2px] border border-[#00000080] shadow-[1px_2px_3px_rgba(0,0,0,0.5)]">
+            <img
+                alt=""
+                draggable={false}
+                src={externalImagePhotoUrl}
+                style={{ width: 64, height: 64, objectFit: 'contain', imageRendering: PIXEL_ART_RENDERING }}
+            />
+        </div>
+    ) : (
+        <LayoutRoomObjectImageView
+            category={avatarInfo.category}
+            objectId={avatarInfo.id}
+            direction={getObjectImageDirection(roomSession.roomId, avatarInfo.id, avatarInfo.category)}
+            roomId={roomSession.roomId}
+            style={{
+                width: 140,
+                maxWidth: 140,
+                maxHeight: 200,
+                backgroundSize: 'auto',
+                backgroundPosition: 'calc(50% - 0.5px) center',
+                backgroundRepeat: 'no-repeat'
+            }}
+        />
+    );
+
+    const detailBlocks = (
+        <>
+            {(isJukeBox || isSongDisk) && (
+                <div className="contents">
+                    <div className="volt-furni-infostand__rule" />
+                    {songId === -1 && (
+                        <Text small wrap variant="white">
+                            {LocalizeText('infostand.jukebox.text.not.playing')}
+                        </Text>
+                    )}
+                    {!!songName.length && (
+                        <div className="flex items-center gap-1">
+                            <div className="icon disk-icon" />
+                            <Text small wrap variant="white">
+                                {songName}
+                            </Text>
+                        </div>
+                    )}
+                    {!!songCreator.length && (
+                        <div className="flex items-center gap-1">
+                            <div className="icon disk-creator" />
+                            <Text small wrap variant="white">
+                                {songCreator}
+                            </Text>
+                        </div>
+                    )}
+                </div>
+            )}
+            <div className="contents">
+                {isCrackable && (
+                    <>
+                        <div className="volt-furni-infostand__rule" />
+                        <div className="volt-furni-infostand__text">
+                            {LocalizeText(
+                                'infostand.crackable_furni.hits_remaining',
+                                ['hits', 'target'],
+                                [(crackableHits ?? 0).toString(), (crackableTarget ?? 0).toString()]
+                            )}
+                        </div>
+                    </>
+                )}
+                {isPlant && (
+                    <>
+                        <div className="volt-furni-infostand__rule" />
+                        {plantDead ? (
+                            <Text small wrap variant="danger">
+                                {LocalizeText('infostand.plant.dead')}
+                            </Text>
+                        ) : (
+                            <div className="flex flex-col gap-1">
+                                <Flex alignItems="center" gap={1} justifyContent="between">
+                                    <Text small wrap variant="white">
+                                        {LocalizeText('infostand.plant.rewater')}
+                                    </Text>
+                                    <Text small wrap variant={plantWaterSeconds > 0 ? 'white' : 'success'}>
+                                        {plantWaterSeconds > 0
+                                            ? formatPlantDuration(plantWaterSeconds)
+                                            : LocalizeText('infostand.plant.ready')}
+                                    </Text>
+                                </Flex>
+                                <Flex alignItems="center" gap={1} justifyContent="between">
+                                    <Text small wrap variant="white">
+                                        {LocalizeText('infostand.plant.dies')}
+                                    </Text>
+                                    <Text small wrap variant={plantDeathSeconds > 0 ? 'white' : 'danger'}>
+                                        {plantDeathSeconds > 0
+                                            ? formatPlantDuration(plantDeathSeconds)
+                                            : LocalizeText('infostand.plant.needswater')}
+                                    </Text>
+                                </Flex>
+                            </div>
+                        )}
+                    </>
+                )}
+                {avatarInfo.groupId > 0 && (
+                    <>
+                        <div className="volt-furni-infostand__rule" />
+                        <div className="volt-furni-infostand__group" onClick={() => GetGroupInformation(avatarInfo.groupId)}>
+                            <div className="volt-furni-infostand__group-badge">
+                                {!!groupBadge && <LayoutBadgeImageView badgeCode={groupBadge} isGroup={true} />}
+                            </div>
+                            <span className="volt-furni-infostand__group-name">{groupName}</span>
+                        </div>
+                    </>
+                )}
+                {avatarInfo.purchaseOfferId > 0 && (
+                    <div className="volt-furni-infostand__purchase">
+                        <button type="button" className="volt-furni-infostand__shop" onClick={() => processButtonAction('buy_one')}>
+                            <span className="volt-furni-infostand__shop-icon" />
+                            <span className="volt-furni-infostand__shop-text">{LocalizeText('infostand.button.buy')}</span>
+                        </button>
+                    </div>
+                )}
+                {showIds && (
+                    <>
+                        <div className="volt-furni-infostand__rule" />
+                        <div className="volt-furni-infostand__text">id: {avatarInfo.id}</div>
+                    </>
+                )}
+                {furniKeys.length > 0 && (
+                    <div className="volt-furni-infostand__branding">
+                        {furniKeys.map((key, index) => (
+                            <label key={index} className="volt-furni-infostand__branding-field">
+                                <span className="volt-furni-infostand__branding-name">{key}</span>
+                                <textarea
+                                    className="volt-furni-infostand__branding-value"
+                                    spellCheck={false}
+                                    value={furniValues[index] ?? ''}
+                                    onChange={(event) => onFurniSettingChange(index, event.target.value)}
+                                    onKeyDown={(event) => {
+                                        if (event.key === 'Enter') event.preventDefault();
+                                    }}
+                                />
+                            </label>
+                        ))}
+                    </div>
+                )}
+                {showBuildtools && (
+                    <>
+                        <div className="volt-furni-infostand__rule" />
+                        {showBuildtools && (
+                            <div className="flex gap-1 w-full">
+                                {showBuildtools && (
+                                    <button
+                                        className="flex-1 min-w-0 text-white text-xs bg-[#2a2a3a] hover:bg-[#3a3a4a] border border-[#ffffff33] rounded px-2 py-1 cursor-pointer transition-colors"
+                                        onClick={() => setDropdownOpen(!dropdownOpen)}
+                                    >
+                                        {dropdownOpen
+                                            ? localizeWithFallback('infostand.button.buildtools.close', 'Close Buildtools')
+                                            : localizeWithFallback('infostand.button.buildtools.open', 'Open Buildtools')}
+                                    </button>
+                                )}
+                            </div>
+                        )}
+                        {showBuildtools && (
+                            <>
+                                {dropdownOpen && (
+                                    <div className="flex gap-[4px] w-full">
+                                        <div className="flex-1 bg-[#3D5D63] rounded-[6px] border border-white p-[2px] flex flex-col gap-1">
+                                            <Text small variant="white">
+                                                {LocalizeText('group.edit.badge.position')}
+                                            </Text>
+                                            <div className="flex flex-col items-center gap-[2px]">
+                                                <div className="flex gap-[0.6em]">
+                                                    <div
+                                                        className="bg-[#E55959] text-white w-[25px] h-[25px] border border-white cursor-pointer rounded-[3px] flex justify-center items-center transition-[filter] duration-300 hover:brightness-150 rotate-[225deg]"
+                                                        onClick={() => sendUpdate(-1, 0, furniLocationZ ?? 0, 0)}
+                                                    >
+                                                        <GrFormNextLink size="1.7em" />
+                                                    </div>
+                                                    <div
+                                                        className="bg-[#E55959] text-white w-[25px] h-[25px] border border-white cursor-pointer rounded-[3px] flex justify-center items-center transition-[filter] duration-300 hover:brightness-150 rotate-[315deg]"
+                                                        onClick={() => sendUpdate(0, -1, furniLocationZ ?? 0, 0)}
+                                                    >
+                                                        <GrFormNextLink size="1.7em" />
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-[0.6em]">
+                                                    <div
+                                                        className="bg-[#E55959] text-white w-[25px] h-[25px] border border-white cursor-pointer rounded-[3px] flex justify-center items-center transition-[filter] duration-300 hover:brightness-150 rotate-[135deg]"
+                                                        onClick={() => sendUpdate(0, 1, furniLocationZ ?? 0, 0)}
+                                                    >
+                                                        <GrFormNextLink size="1.7em" />
+                                                    </div>
+                                                    <div
+                                                        className="bg-[#E55959] text-white w-[25px] h-[25px] border border-white cursor-pointer rounded-[3px] flex justify-center items-center transition-[filter] duration-300 hover:brightness-150 rotate-[45deg]"
+                                                        onClick={() => sendUpdate(1, 0, furniLocationZ ?? 0, 0)}
+                                                    >
+                                                        <GrFormNextLink size="1.7em" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <Text small variant="white">
+                                                {LocalizeText('infostand.button.rotate')}
+                                            </Text>
+                                            <div className="flex justify-center gap-[0.6em]">
+                                                <div
+                                                    className="bg-[#D1A245] text-black w-[28px] h-[28px] border-2 border-[#eee] cursor-pointer rounded-full flex justify-center items-center transition-[filter] duration-300 hover:brightness-150"
+                                                    onClick={() => sendUpdate(0, 0, furniLocationZ ?? 0, -1)}
+                                                >
+                                                    <GrRotateLeft size="1.4em" />
+                                                </div>
+                                                <div
+                                                    className="bg-[#D1A245] text-black w-[28px] h-[28px] border-2 border-[#eee] cursor-pointer rounded-full flex justify-center items-center transition-[filter] duration-300 hover:brightness-150"
+                                                    onClick={() => sendUpdate(0, 0, furniLocationZ ?? 0, 1)}
+                                                >
+                                                    <GrRotateRight size="1.4em" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex-1 bg-[#3D5D63] rounded-[6px] border border-white p-[2px] flex flex-col gap-1">
+                                            <Text small variant="white">
+                                                {LocalizeText('stack.magic.tile.height.label')}
+                                            </Text>
+                                            <input
+                                                spellCheck={false}
+                                                type="number"
+                                                className="w-full text-xs bg-[#1a1a2a] text-white border border-[#ffffff44] rounded px-1 py-0.5"
+                                                value={furniLocationZ !== null ? furniLocationZ.toString() : ''}
+                                                onChange={handleHeightChange}
+                                                onBlur={handleHeightBlur}
+                                                min={0}
+                                                max={40}
+                                                step={0.1}
+                                            />
+                                            <div className="flex justify-center gap-1">
+                                                <div className="flex flex-col items-center gap-[2px]">
+                                                    <div
+                                                        className="bg-[#247FD1] text-white w-[24px] h-[24px] border border-white cursor-pointer rounded-[3px] leading-none flex justify-center items-center transition-[filter] duration-300 hover:brightness-150"
+                                                        onClick={() => adjustHeight(1)}
+                                                    >
+                                                        ↑
+                                                    </div>
+                                                    <Text small variant="white" align="center">
+                                                        █
+                                                    </Text>
+                                                    <div
+                                                        className="bg-[#44A750] text-white w-[24px] h-[24px] border border-white cursor-pointer rounded-[3px] leading-none flex justify-center items-center transition-[filter] duration-300 hover:brightness-150"
+                                                        onClick={() => adjustHeight(-1)}
+                                                    >
+                                                        ↓
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col items-center gap-[2px]">
+                                                    <div
+                                                        className="bg-[#247FD1] text-white w-[24px] h-[24px] border border-white cursor-pointer rounded-[3px] leading-none flex justify-center items-center transition-[filter] duration-300 hover:brightness-150"
+                                                        onClick={() => adjustHeight(0.1)}
+                                                    >
+                                                        ↑
+                                                    </div>
+                                                    <Text small variant="white" align="center">
+                                                        ▄
+                                                    </Text>
+                                                    <div
+                                                        className="bg-[#44A750] text-white w-[24px] h-[24px] border border-white cursor-pointer rounded-[3px] leading-none flex justify-center items-center transition-[filter] duration-300 hover:brightness-150"
+                                                        onClick={() => adjustHeight(-0.1)}
+                                                    >
+                                                        ↓
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col items-center gap-[2px]">
+                                                    <div
+                                                        className="bg-[#247FD1] text-white w-[24px] h-[24px] border border-white cursor-pointer rounded-[3px] leading-none flex justify-center items-center transition-[filter] duration-300 hover:brightness-150"
+                                                        onClick={() => adjustHeight(0.01)}
+                                                    >
+                                                        ↑
+                                                    </div>
+                                                    <Text small variant="white" align="center">
+                                                        _
+                                                    </Text>
+                                                    <div
+                                                        className="bg-[#44A750] text-white w-[24px] h-[24px] border border-white cursor-pointer rounded-[3px] leading-none flex justify-center items-center transition-[filter] duration-300 hover:brightness-150"
+                                                        onClick={() => adjustHeight(-0.01)}
+                                                    >
+                                                        ↓
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </>
+                )}
+                {customKeys.length > 0 && (
+                    <>
+                        <div className="volt-furni-infostand__rule" />
+                        <div className="flex flex-col gap-1">
+                            {customKeys.map((key, index) => {
+                                return (
+                                    <div key={index} className="flex flex-col gap-[2px]">
+                                        <Text small wrap variant="white">
+                                            {key}
+                                        </Text>
+                                        <VoltInput
+                                            inputSize="xs"
+                                            type="text"
+                                            className="text-black"
+                                            style={{ color: '#000' }}
+                                            value={customValues[index]}
+                                            onChange={(event) => onCustomVariableChange(index, event.target.value)}
+                                        />
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </>
+                )}
+            </div>
+        </>
+    );
+
+    if (isTouch) {
+        const hasDetails =
+            isJukeBox || isSongDisk || isCrackable || isPlant || avatarInfo.groupId > 0 || showIds || furniKeys.length > 0 || showBuildtools || customKeys.length > 0;
+        const touchActions =
+            avatarInfo.purchaseOfferId > 0
+                ? [...actions, { key: 'buy_one', label: LocalizeText('infostand.button.buy'), icon: shopIcon, onClick: () => processButtonAction('buy_one') }]
+                : actions;
+        const ownerName = avatarInfo.isBuildersClub
+            ? LocalizeText('builder.catalog.title')
+            : avatarInfo.isTemporary
+              ? LocalizeText('temp.catalog.title')
+              : avatarInfo.ownerName;
+
+        return (
+            <>
+                <TouchInfoSheetView className="volt-touch-infosheet--furni" title={avatarInfo.name} onClose={onClose}>
+                    <div className="volt-touch-infosheet__summary">
+                        <div className="volt-touch-infosheet__preview">{preview}</div>
+                        <div className="volt-touch-infosheet__info">
+                            <div className="volt-touch-infosheet__name">{avatarInfo.name}</div>
+                            {!!avatarInfo.description && <div className="volt-touch-infosheet__description">{avatarInfo.description}</div>}
+                            {!!ownerName && (
+                                <div className="volt-touch-infosheet__meta">
+                                    {showOwnerProfileIcon && <UserProfileIconView userId={avatarInfo.ownerId} />}
+                                    <b>{ownerName}</b>
+                                </div>
+                            )}
+                            {avatarInfo.stuffData.isUnique && (
+                                <div className="volt-touch-infosheet__meta">
+                                    <LayoutLimitedEditionCompactPlateView
+                                        uniqueNumber={avatarInfo.stuffData.uniqueNumber}
+                                        uniqueSeries={avatarInfo.stuffData.uniqueSeries}
+                                    />
+                                </div>
+                            )}
+                            {avatarInfo.stuffData.rarityLevel > -1 && (
+                                <div className="volt-touch-infosheet__meta">
+                                    <LayoutRarityLevelView level={avatarInfo.stuffData.rarityLevel} />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    {touchActions.length > 0 && (
+                        <div className="volt-touch-infosheet__actions volt-touch-infosheet__actions--3">
+                            {touchActions.map((action) => (
+                                <TouchSheetButton key={action.key} icon={action.icon} onClick={action.onClick}>
+                                    {action.label}
+                                </TouchSheetButton>
+                            ))}
+                        </div>
+                    )}
+                    {hasDetails && <div className="volt-touch-infosheet__details">{detailBlocks}</div>}
+                </TouchInfoSheetView>
+                {positionEditor}
+            </>
+        );
+    }
+
     return (
         <Column alignItems="end" className="volt-furni-infostand-stack">
             <Column
@@ -663,31 +1119,7 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
                                         <LayoutRarityLevelView level={avatarInfo.stuffData.rarityLevel} />
                                     </div>
                                 )}
-                                {externalImagePhotoUrl ? (
-                                    <div className="bg-white p-[3px] pb-[9px] rounded-[2px] border border-[#00000080] shadow-[1px_2px_3px_rgba(0,0,0,0.5)]">
-                                        <img
-                                            alt=""
-                                            draggable={false}
-                                            src={externalImagePhotoUrl}
-                                            style={{ width: 64, height: 64, objectFit: 'contain', imageRendering: PIXEL_ART_RENDERING }}
-                                        />
-                                    </div>
-                                ) : (
-                                    <LayoutRoomObjectImageView
-                                        category={avatarInfo.category}
-                                        objectId={avatarInfo.id}
-                                        direction={getObjectImageDirection(roomSession.roomId, avatarInfo.id, avatarInfo.category)}
-                                        roomId={roomSession.roomId}
-                                        style={{
-                                            width: 140,
-                                            maxWidth: 140,
-                                            maxHeight: 200,
-                                            backgroundSize: 'auto',
-                                            backgroundPosition: 'calc(50% - 0.5px) center',
-                                            backgroundRepeat: 'no-repeat'
-                                        }}
-                                    />
-                                )}
+                                {preview}
                             </div>
                             <div className="volt-furni-infostand__rule" />
                         </>
@@ -722,373 +1154,17 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
                             </span>
                         </div>
                     )}
-                    {(isJukeBox || isSongDisk) && (
-                        <div className="contents">
-                            <div className="volt-furni-infostand__rule" />
-                            {songId === -1 && (
-                                <Text small wrap variant="white">
-                                    {LocalizeText('infostand.jukebox.text.not.playing')}
-                                </Text>
-                            )}
-                            {!!songName.length && (
-                                <div className="flex items-center gap-1">
-                                    <div className="icon disk-icon" />
-                                    <Text small wrap variant="white">
-                                        {songName}
-                                    </Text>
-                                </div>
-                            )}
-                            {!!songCreator.length && (
-                                <div className="flex items-center gap-1">
-                                    <div className="icon disk-creator" />
-                                    <Text small wrap variant="white">
-                                        {songCreator}
-                                    </Text>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                    <div className="contents">
-                        {isCrackable && (
-                            <>
-                                <div className="volt-furni-infostand__rule" />
-                                <div className="volt-furni-infostand__text">
-                                    {LocalizeText(
-                                        'infostand.crackable_furni.hits_remaining',
-                                        ['hits', 'target'],
-                                        [(crackableHits ?? 0).toString(), (crackableTarget ?? 0).toString()]
-                                    )}
-                                </div>
-                            </>
-                        )}
-                        {isPlant && (
-                            <>
-                                <div className="volt-furni-infostand__rule" />
-                                {plantDead ? (
-                                    <Text small wrap variant="danger">
-                                        {LocalizeText('infostand.plant.dead')}
-                                    </Text>
-                                ) : (
-                                    <div className="flex flex-col gap-1">
-                                        <Flex alignItems="center" gap={1} justifyContent="between">
-                                            <Text small wrap variant="white">
-                                                {LocalizeText('infostand.plant.rewater')}
-                                            </Text>
-                                            <Text small wrap variant={plantWaterSeconds > 0 ? 'white' : 'success'}>
-                                                {plantWaterSeconds > 0
-                                                    ? formatPlantDuration(plantWaterSeconds)
-                                                    : LocalizeText('infostand.plant.ready')}
-                                            </Text>
-                                        </Flex>
-                                        <Flex alignItems="center" gap={1} justifyContent="between">
-                                            <Text small wrap variant="white">
-                                                {LocalizeText('infostand.plant.dies')}
-                                            </Text>
-                                            <Text small wrap variant={plantDeathSeconds > 0 ? 'white' : 'danger'}>
-                                                {plantDeathSeconds > 0
-                                                    ? formatPlantDuration(plantDeathSeconds)
-                                                    : LocalizeText('infostand.plant.needswater')}
-                                            </Text>
-                                        </Flex>
-                                    </div>
-                                )}
-                            </>
-                        )}
-                        {avatarInfo.groupId > 0 && (
-                            <>
-                                <div className="volt-furni-infostand__rule" />
-                                <div className="volt-furni-infostand__group" onClick={() => GetGroupInformation(avatarInfo.groupId)}>
-                                    <div className="volt-furni-infostand__group-badge">
-                                        {!!groupBadge && <LayoutBadgeImageView badgeCode={groupBadge} isGroup={true} />}
-                                    </div>
-                                    <span className="volt-furni-infostand__group-name">{groupName}</span>
-                                </div>
-                            </>
-                        )}
-                        {avatarInfo.purchaseOfferId > 0 && (
-                            <div className="volt-furni-infostand__purchase">
-                                <button type="button" className="volt-furni-infostand__shop" onClick={() => processButtonAction('buy_one')}>
-                                    <span className="volt-furni-infostand__shop-icon" />
-                                    <span className="volt-furni-infostand__shop-text">{LocalizeText('infostand.button.buy')}</span>
-                                </button>
-                            </div>
-                        )}
-                        {showIds && (
-                            <>
-                                <div className="volt-furni-infostand__rule" />
-                                <div className="volt-furni-infostand__text">id: {avatarInfo.id}</div>
-                            </>
-                        )}
-                        {furniKeys.length > 0 && (
-                            <div className="volt-furni-infostand__branding">
-                                {furniKeys.map((key, index) => (
-                                    <label key={index} className="volt-furni-infostand__branding-field">
-                                        <span className="volt-furni-infostand__branding-name">{key}</span>
-                                        <textarea
-                                            className="volt-furni-infostand__branding-value"
-                                            spellCheck={false}
-                                            value={furniValues[index] ?? ''}
-                                            onChange={(event) => onFurniSettingChange(index, event.target.value)}
-                                            onKeyDown={(event) => {
-                                                if (event.key === 'Enter') event.preventDefault();
-                                            }}
-                                        />
-                                    </label>
-                                ))}
-                            </div>
-                        )}
-                        {showBuildtools && (
-                            <>
-                                <div className="volt-furni-infostand__rule" />
-                                {showBuildtools && (
-                                    <div className="flex gap-1 w-full">
-                                        {showBuildtools && (
-                                            <button
-                                                className="flex-1 min-w-0 text-white text-xs bg-[#2a2a3a] hover:bg-[#3a3a4a] border border-[#ffffff33] rounded px-2 py-1 cursor-pointer transition-colors"
-                                                onClick={() => setDropdownOpen(!dropdownOpen)}
-                                            >
-                                                {dropdownOpen
-                                                    ? localizeWithFallback('infostand.button.buildtools.close', 'Close Buildtools')
-                                                    : localizeWithFallback('infostand.button.buildtools.open', 'Open Buildtools')}
-                                            </button>
-                                        )}
-                                    </div>
-                                )}
-                                {showBuildtools && (
-                                    <>
-                                        {dropdownOpen && (
-                                            <div className="flex gap-[4px] w-full">
-                                                <div className="flex-1 bg-[#3D5D63] rounded-[6px] border border-white p-[2px] flex flex-col gap-1">
-                                                    <Text small variant="white">
-                                                        {LocalizeText('group.edit.badge.position')}
-                                                    </Text>
-                                                    <div className="flex flex-col items-center gap-[2px]">
-                                                        <div className="flex gap-[0.6em]">
-                                                            <div
-                                                                className="bg-[#E55959] text-white w-[25px] h-[25px] border border-white cursor-pointer rounded-[3px] flex justify-center items-center transition-[filter] duration-300 hover:brightness-150 rotate-[225deg]"
-                                                                onClick={() => sendUpdate(-1, 0, furniLocationZ ?? 0, 0)}
-                                                            >
-                                                                <GrFormNextLink size="1.7em" />
-                                                            </div>
-                                                            <div
-                                                                className="bg-[#E55959] text-white w-[25px] h-[25px] border border-white cursor-pointer rounded-[3px] flex justify-center items-center transition-[filter] duration-300 hover:brightness-150 rotate-[315deg]"
-                                                                onClick={() => sendUpdate(0, -1, furniLocationZ ?? 0, 0)}
-                                                            >
-                                                                <GrFormNextLink size="1.7em" />
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex gap-[0.6em]">
-                                                            <div
-                                                                className="bg-[#E55959] text-white w-[25px] h-[25px] border border-white cursor-pointer rounded-[3px] flex justify-center items-center transition-[filter] duration-300 hover:brightness-150 rotate-[135deg]"
-                                                                onClick={() => sendUpdate(0, 1, furniLocationZ ?? 0, 0)}
-                                                            >
-                                                                <GrFormNextLink size="1.7em" />
-                                                            </div>
-                                                            <div
-                                                                className="bg-[#E55959] text-white w-[25px] h-[25px] border border-white cursor-pointer rounded-[3px] flex justify-center items-center transition-[filter] duration-300 hover:brightness-150 rotate-[45deg]"
-                                                                onClick={() => sendUpdate(1, 0, furniLocationZ ?? 0, 0)}
-                                                            >
-                                                                <GrFormNextLink size="1.7em" />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <Text small variant="white">
-                                                        {LocalizeText('infostand.button.rotate')}
-                                                    </Text>
-                                                    <div className="flex justify-center gap-[0.6em]">
-                                                        <div
-                                                            className="bg-[#D1A245] text-black w-[28px] h-[28px] border-2 border-[#eee] cursor-pointer rounded-full flex justify-center items-center transition-[filter] duration-300 hover:brightness-150"
-                                                            onClick={() => sendUpdate(0, 0, furniLocationZ ?? 0, -1)}
-                                                        >
-                                                            <GrRotateLeft size="1.4em" />
-                                                        </div>
-                                                        <div
-                                                            className="bg-[#D1A245] text-black w-[28px] h-[28px] border-2 border-[#eee] cursor-pointer rounded-full flex justify-center items-center transition-[filter] duration-300 hover:brightness-150"
-                                                            onClick={() => sendUpdate(0, 0, furniLocationZ ?? 0, 1)}
-                                                        >
-                                                            <GrRotateRight size="1.4em" />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="flex-1 bg-[#3D5D63] rounded-[6px] border border-white p-[2px] flex flex-col gap-1">
-                                                    <Text small variant="white">
-                                                        {LocalizeText('stack.magic.tile.height.label')}
-                                                    </Text>
-                                                    <input
-                                                        spellCheck={false}
-                                                        type="number"
-                                                        className="w-full text-xs bg-[#1a1a2a] text-white border border-[#ffffff44] rounded px-1 py-0.5"
-                                                        value={furniLocationZ !== null ? furniLocationZ.toString() : ''}
-                                                        onChange={handleHeightChange}
-                                                        onBlur={handleHeightBlur}
-                                                        min={0}
-                                                        max={40}
-                                                        step={0.1}
-                                                    />
-                                                    <div className="flex justify-center gap-1">
-                                                        <div className="flex flex-col items-center gap-[2px]">
-                                                            <div
-                                                                className="bg-[#247FD1] text-white w-[24px] h-[24px] border border-white cursor-pointer rounded-[3px] leading-none flex justify-center items-center transition-[filter] duration-300 hover:brightness-150"
-                                                                onClick={() => adjustHeight(1)}
-                                                            >
-                                                                ↑
-                                                            </div>
-                                                            <Text small variant="white" align="center">
-                                                                █
-                                                            </Text>
-                                                            <div
-                                                                className="bg-[#44A750] text-white w-[24px] h-[24px] border border-white cursor-pointer rounded-[3px] leading-none flex justify-center items-center transition-[filter] duration-300 hover:brightness-150"
-                                                                onClick={() => adjustHeight(-1)}
-                                                            >
-                                                                ↓
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex flex-col items-center gap-[2px]">
-                                                            <div
-                                                                className="bg-[#247FD1] text-white w-[24px] h-[24px] border border-white cursor-pointer rounded-[3px] leading-none flex justify-center items-center transition-[filter] duration-300 hover:brightness-150"
-                                                                onClick={() => adjustHeight(0.1)}
-                                                            >
-                                                                ↑
-                                                            </div>
-                                                            <Text small variant="white" align="center">
-                                                                ▄
-                                                            </Text>
-                                                            <div
-                                                                className="bg-[#44A750] text-white w-[24px] h-[24px] border border-white cursor-pointer rounded-[3px] leading-none flex justify-center items-center transition-[filter] duration-300 hover:brightness-150"
-                                                                onClick={() => adjustHeight(-0.1)}
-                                                            >
-                                                                ↓
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex flex-col items-center gap-[2px]">
-                                                            <div
-                                                                className="bg-[#247FD1] text-white w-[24px] h-[24px] border border-white cursor-pointer rounded-[3px] leading-none flex justify-center items-center transition-[filter] duration-300 hover:brightness-150"
-                                                                onClick={() => adjustHeight(0.01)}
-                                                            >
-                                                                ↑
-                                                            </div>
-                                                            <Text small variant="white" align="center">
-                                                                _
-                                                            </Text>
-                                                            <div
-                                                                className="bg-[#44A750] text-white w-[24px] h-[24px] border border-white cursor-pointer rounded-[3px] leading-none flex justify-center items-center transition-[filter] duration-300 hover:brightness-150"
-                                                                onClick={() => adjustHeight(-0.01)}
-                                                            >
-                                                                ↓
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </>
-                                )}
-                            </>
-                        )}
-                        {customKeys.length > 0 && (
-                            <>
-                                <div className="volt-furni-infostand__rule" />
-                                <div className="flex flex-col gap-1">
-                                    {customKeys.map((key, index) => {
-                                        return (
-                                            <div key={index} className="flex flex-col gap-[2px]">
-                                                <Text small wrap variant="white">
-                                                    {key}
-                                                </Text>
-                                                <VoltInput
-                                                    inputSize="xs"
-                                                    type="text"
-                                                    className="text-black"
-                                                    style={{ color: '#000' }}
-                                                    value={customValues[index]}
-                                                    onChange={(event) => onCustomVariableChange(index, event.target.value)}
-                                                />
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </>
-                        )}
-                    </div>
+                    {detailBlocks}
                 </div>
             </Column>
             <Flex className="volt-furni-infostand__actions" justifyContent="end">
-                {showInspectButton && (
-                    <Button variant="dark" size={null} className="habbo-btn-black" onClick={() => openInspectionForFurni(avatarInfo.id, avatarInfo.category)}>
-                        Inspect
+                {actions.map((action) => (
+                    <Button key={action.key} variant="dark" size={null} className="habbo-btn-black" onClick={action.onClick}>
+                        {action.label}
                     </Button>
-                )}
-                {hasWiredLabel && !avatarInfo.isWallItem && roomSettings.canModify && (
-                    <Button variant="dark" size={null} className="habbo-btn-black" onClick={() => openWiredLabelSettings(avatarInfo.id)}>
-                        {localizeWithFallback('infostand.button.label_settings', 'Settings')}
-                    </Button>
-                )}
-                {canMove && (
-                    <Button variant="dark" size={null} className="habbo-btn-black" onClick={(event) => processButtonAction('move')}>
-                        {LocalizeText('infostand.button.move')}
-                    </Button>
-                )}
-                {canRotate && (
-                    <Button variant="dark" size={null} className="habbo-btn-black" onClick={(event) => processButtonAction('rotate')}>
-                        {LocalizeText('infostand.button.rotate')}
-                    </Button>
-                )}
-                {pickupMode !== PICKUP_MODE_NONE && (
-                    <Button variant="dark" size={null} className="habbo-btn-black" onClick={(event) => processButtonAction('pickup')}>
-                        {isPlant && plantDead
-                            ? LocalizeText('generic.delete')
-                            : LocalizeText(pickupMode === PICKUP_MODE_EJECT ? 'infostand.button.eject' : 'infostand.button.pickup')}
-                    </Button>
-                )}
-                {canUse && (
-                    <Button variant="dark" size={null} className="habbo-btn-black" onClick={(event) => processButtonAction('use')}>
-                        {LocalizeText('infostand.button.use')}
-                    </Button>
-                )}
-                {/* AIR InfoStandFurniView.as:673-678: Recolor follows Use. */}
-                {canRecolor && (
-                    <Button variant="dark" size={null} className="habbo-btn-black" onClick={() => processButtonAction('recolor')}>
-                        {LocalizeText('infostand.button.recolor')}
-                    </Button>
-                )}
-                {canRemoveBackground && (
-                    <Button variant="dark" size={null} className="habbo-btn-black" onClick={(event) => processButtonAction('remove_background')}>
-                        <Flex alignItems="center" gap={1}>
-                            <FaEraser className="fa-icon" />
-                            {removeLandscapeLabel()}
-                        </Flex>
-                    </Button>
-                )}
-                {hasBrandingOffsets && (
-                    <Button variant="dark" size={null} className="habbo-btn-black" onClick={() => setShowPositionEditor(true)}>
-                        {LocalizeText('image.position.editor.button')}
-                    </Button>
-                )}
-                {furniKeys.length > 0 && furniValues.length > 0 && furniKeys.length === furniValues.length && (
-                    <Button variant="dark" size={null} className="habbo-btn-black" onClick={() => processButtonAction('save_branding_configuration')}>
-                        {localizeWithFallback('infostand.button.savebranding', 'Save changes')}
-                    </Button>
-                )}
-                {customKeys.length > 0 && customValues.length > 0 && customKeys.length === customValues.length && (
-                    <Button variant="dark" size={null} className="habbo-btn-black" onClick={() => processButtonAction('save_custom_variables')}>
-                        {LocalizeText('save')}
-                    </Button>
-                )}
+                ))}
             </Flex>
-            {showPositionEditor && (
-                <ImagePositionEditorView
-                    roomId={roomSession.roomId}
-                    objectId={avatarInfo.id}
-                    isWallItem={avatarInfo.isWallItem}
-                    initialX={getBrandingOffset('offsetX')}
-                    initialY={getBrandingOffset('offsetY')}
-                    initialZ={getBrandingOffset('offsetZ')}
-                    initialScale={getBrandingOffset('scale') || 100}
-                    initialAlpha={furniKeys.indexOf('alpha') >= 0 ? getBrandingOffset('alpha') : 100}
-                    onClose={() => setShowPositionEditor(false)}
-                    onSave={savePositionEditor}
-                />
-            )}
+            {positionEditor}
         </Column>
     );
 };

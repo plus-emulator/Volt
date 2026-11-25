@@ -7,19 +7,23 @@ import {
     RoomEngineEvent,
     RoomEngineObjectEvent,
     RoomEnterEffect,
+    RoomObjectCategory,
     RoomSessionDanceEvent
 } from '@volt/renderer';
-import { FC, useEffect, useState } from 'react';
+import { FC, useEffect, useRef, useState } from 'react';
 import {
     AvatarInfoFurni,
+    AvatarInfoName,
     AvatarInfoPet,
     AvatarInfoRentableBot,
     AvatarInfoUser,
     GetConfigurationValue,
+    IsTouchLayout,
     LocalizeText,
-    RoomWidgetUpdateRentableBotChatEvent
+    RoomWidgetUpdateRentableBotChatEvent,
+    useVoltLayout
 } from '../../../../api';
-import { Column, LayoutFurniIconImageView } from '../../../../common';
+import { Column } from '../../../../common';
 import { useAvatarInfoWidget, useFurniPickupGuard, useMonsterPlantBreedingWidget, useVoltEvent, useRoom, useUiEvent } from '../../../../hooks';
 import { NativeConfirmView } from '../../../notification-center/views/native/NativeConfirmView';
 import { AvatarInfoBreedMonsterPlantsConfirmView } from './AvatarInfoBreedMonsterPlantsConfirmView';
@@ -49,9 +53,10 @@ export const AvatarInfoWidgetView: FC<{}> = (props) => {
     const [isGameMode, setGameMode] = useState(false);
     const { pickupRoomObject } = useFurniPickupGuard();
     const [isDancing, setIsDancing] = useState(false);
-    const [isTouchLayout, setIsTouchLayout] = useState(false);
-    const [mobileFurniDetailsOpen, setMobileFurniDetailsOpen] = useState(false);
+    const isTouchLayout = IsTouchLayout(useVoltLayout());
     const [mobileUserDetailsOpen, setMobileUserDetailsOpen] = useState(false);
+    const touchMenuRequestRef = useRef<{ roomIndex: number; until: number }>(null);
+    const selectedUserIndexRef = useRef<number>(null);
     const [rentableBotChatEvent, setRentableBotChatEvent] = useState<RoomWidgetUpdateRentableBotChatEvent>(null);
     const {
         avatarInfo = null,
@@ -97,16 +102,6 @@ export const AvatarInfoWidgetView: FC<{}> = (props) => {
         if (!isGameMode) setGameMode(true);
     });
 
-    useEffect(() => {
-        const query = window.matchMedia('(pointer: coarse), (hover: none)');
-        const updateTouchLayout = () => setIsTouchLayout(query.matches);
-
-        updateTouchLayout();
-        query.addEventListener('change', updateTouchLayout);
-
-        return () => query.removeEventListener('change', updateTouchLayout);
-    }, []);
-
     useVoltEvent<RoomSessionDanceEvent>(RoomSessionDanceEvent.RSDE_DANCE, (event) => {
         if (event.roomIndex !== roomSession.ownRoomIndex) return;
 
@@ -116,13 +111,6 @@ export const AvatarInfoWidgetView: FC<{}> = (props) => {
     useUiEvent<RoomWidgetUpdateRentableBotChatEvent>(RoomWidgetUpdateRentableBotChatEvent.UPDATE_CHAT, (event) => setRentableBotChatEvent(event));
 
     useVoltEvent<RoomEngineObjectEvent>(RoomEngineObjectEvent.REQUEST_PICKUP, (event) => pickupRoomObject(event.objectId, event.category));
-
-    useVoltEvent<RoomEngineObjectEvent>(RoomEngineObjectEvent.REQUEST_MANIPULATION, (event) => {
-        if (!(avatarInfo instanceof AvatarInfoFurni)) return;
-        if (event.category !== avatarInfo.category || event.objectId !== avatarInfo.id) return;
-
-        setMobileFurniDetailsOpen(false);
-    });
 
     useEffect(() => {
         const linkTracker: ILinkEventTracker = {
@@ -146,6 +134,13 @@ export const AvatarInfoWidgetView: FC<{}> = (props) => {
                     case 'block-rotate':
                         updateAvatarClickControl({ suppressRotateUntil: Date.now() + BLOCK_ROTATE_WINDOW_MS });
                         return;
+                    case 'touch-menu': {
+                        const roomIndex = Number(parts[2]);
+
+                        if (roomIndex === selectedUserIndexRef.current) setMobileUserDetailsOpen(true);
+                        else touchMenuRequestRef.current = { roomIndex, until: Date.now() + 1500 };
+                        return;
+                    }
                 }
             },
             eventUrlPrefix: 'avatar-info/'
@@ -156,15 +151,26 @@ export const AvatarInfoWidgetView: FC<{}> = (props) => {
         return () => RemoveLinkEventTracker(linkTracker);
     }, [roomSession, setActiveNameBubble, setAvatarInfo]);
 
+    const selectedUserIndex = avatarInfo instanceof AvatarInfoUser && avatarInfo.type !== AvatarInfoUser.BOT ? avatarInfo.roomIndex : null;
+
+    selectedUserIndexRef.current = selectedUserIndex;
+
     useEffect(() => {
-        if (avatarInfo?.type !== AvatarInfoFurni.FURNI) {
-            setMobileFurniDetailsOpen(false);
+        const request = touchMenuRequestRef.current;
+
+        touchMenuRequestRef.current = null;
+        setMobileUserDetailsOpen(selectedUserIndex !== null && request?.roomIndex === selectedUserIndex && request.until > Date.now());
+    }, [selectedUserIndex]);
+
+    const getTouchNameTag = () => {
+        if (avatarInfo instanceof AvatarInfoUser) {
+            return new AvatarInfoName(avatarInfo.roomIndex, RoomObjectCategory.UNIT, avatarInfo.webID, avatarInfo.name, avatarInfo.userType);
         }
 
-        if (avatarInfo?.type !== AvatarInfoUser.OWN_USER && avatarInfo?.type !== AvatarInfoUser.PEER) {
-            setMobileUserDetailsOpen(false);
-        }
-    }, [avatarInfo]);
+        if (avatarInfo instanceof AvatarInfoFurni) return new AvatarInfoName(avatarInfo.id, avatarInfo.category, avatarInfo.id, avatarInfo.name, -1);
+
+        return null;
+    };
 
     const getMenuView = () => {
         if (!roomSession || isGameMode) return null;
@@ -175,12 +181,16 @@ export const AvatarInfoWidgetView: FC<{}> = (props) => {
             switch (avatarInfo.type) {
                 // AIR AvatarInfoWidget drops its view on RWFIUE_FURNI: furni actions live in the infostand, not in a bubble.
                 case AvatarInfoFurni.FURNI:
-                    return null;
+                    return isTouchLayout ? <AvatarInfoWidgetNameView persistent nameInfo={getTouchNameTag()} onClose={() => {}} /> : null;
                 case AvatarInfoUser.OWN_USER:
                 case AvatarInfoUser.PEER: {
                     const info = avatarInfo as AvatarInfoUser;
 
-                    if (isTouchLayout && !mobileUserDetailsOpen) return null;
+                    if (isTouchLayout && !mobileUserDetailsOpen) {
+                        if (info.isSpectatorMode) return null;
+
+                        return <AvatarInfoWidgetNameView persistent nameInfo={getTouchNameTag()} onClose={() => {}} />;
+                    }
 
                     if (GetConfigurationValue('user.tags.enabled')) GetSessionDataManager().getUserTags(info.roomIndex);
 
@@ -224,22 +234,17 @@ export const AvatarInfoWidgetView: FC<{}> = (props) => {
 
         switch (avatarInfo.type) {
             case AvatarInfoFurni.FURNI:
-                if (isTouchLayout && !isDecorating) {
-                    const info = avatarInfo as AvatarInfoFurni;
-
-                    if (!mobileFurniDetailsOpen) {
-                        return (
-                            <button className="volt-mobile-furni-infostand-trigger" type="button" onClick={() => setMobileFurniDetailsOpen(true)}>
-                                <LayoutFurniIconImageView productType={info.productType} productClassId={info.spriteId} />
-                            </button>
-                        );
-                    }
-                }
-
                 return <InfoStandWidgetFurniView avatarInfo={avatarInfo as AvatarInfoFurni} onClose={() => setAvatarInfo(null)} />;
             case AvatarInfoUser.OWN_USER:
             case AvatarInfoUser.PEER:
-                return <InfoStandWidgetUserView avatarInfo={avatarInfo as AvatarInfoUser} setAvatarInfo={setAvatarInfo} onClose={() => setAvatarInfo(null)} />;
+                return (
+                    <InfoStandWidgetUserView
+                        avatarInfo={avatarInfo as AvatarInfoUser}
+                        setAvatarInfo={setAvatarInfo}
+                        onClose={() => setAvatarInfo(null)}
+                        onMore={() => setMobileUserDetailsOpen(true)}
+                    />
+                );
             case AvatarInfoUser.BOT:
                 return <InfoStandWidgetBotView avatarInfo={avatarInfo as AvatarInfoUser} onClose={() => setAvatarInfo(null)} />;
             case AvatarInfoRentableBot.RENTABLE_BOT:

@@ -1,1 +1,481 @@
-/* TouchRoom */
+/* TouchRoom: room gestures, touch InfoStand sheet, touch context menus and the placement HUD. */
+
+/* The room owns every gesture on its canvas: the page never scrolls, zooms or shows a callout there. */
+.volt-room-canvas {
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+}
+
+/* ---------- Black AIR button (40 px) ---------- */
+
+.volt-touch-black-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-width: 0;
+    height: 40px;
+    padding: 0 8px;
+    border-style: solid;
+    border-width: 0;
+    border-image: url('../../assets/images/habbo-skin/slices/button-black-default.png') 3 fill / 3px stretch;
+    background: transparent;
+    color: #ffffff;
+    font: 700 13px Ubuntu, sans-serif;
+    white-space: nowrap;
+    cursor: pointer;
+    image-rendering: var(--volt-pixel-art, pixelated);
+
+    &:active {
+        border-image-source: url('../../assets/images/habbo-skin/slices/button-black-pressed.png');
+    }
+
+    img {
+        flex: none;
+        max-height: 18px;
+        image-rendering: var(--volt-pixel-art, pixelated);
+    }
+
+    span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
+/* ---------- InfoStand sheet ---------- */
+
+.volt-touch-infosheet {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 75;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(var(--volt-visual-height, 100dvh) * 0.62);
+    padding-bottom: var(--volt-safe-bottom);
+    border-style: solid;
+    border-width: 0;
+    border-image: url('../../assets/images/habbo-skin/touch/frame-touch-44.png') 44 10 10 10 fill / 44px 10px 10px 10px stretch;
+    color: #000000;
+    font: 400 13px Ubuntu, sans-serif;
+    pointer-events: auto;
+    transition: transform 200ms cubic-bezier(0.2, 0.9, 0.3, 1);
+    animation: volt-touch-infosheet-in 220ms cubic-bezier(0.2, 0.9, 0.3, 1);
+    image-rendering: var(--volt-pixel-art, pixelated);
+
+    &[data-dragging] {
+        transition: none;
+    }
+
+    /* Drag handle over the header. */
+    &::before {
+        content: '';
+        position: absolute;
+        top: 3px;
+        left: 50%;
+        width: 36px;
+        height: 4px;
+        margin-left: -18px;
+        border-radius: 2px;
+        background: rgba(255, 255, 255, 0.55);
+        pointer-events: none;
+    }
+}
+
+@keyframes volt-touch-infosheet-in {
+    from {
+        transform: translateY(40%);
+        opacity: 0;
+    }
+}
+
+.volt-touch-infosheet__header {
+    position: relative;
+    flex: none;
+    height: 44px;
+    touch-action: none;
+    cursor: grab;
+}
+
+.volt-touch-infosheet__title {
+    position: absolute;
+    top: 5px;
+    right: 50px;
+    left: 50px;
+    height: 33px;
+    overflow: hidden;
+    color: #ffffff;
+    font: 700 15px/33px Ubuntu, sans-serif;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.volt-touch-infosheet__close {
+    position: absolute;
+    top: 1px;
+    right: 0;
+    width: 38px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    background: url('../../assets/images/habbo-skin/touch/close-touch.png') 3px center / 27px 28px no-repeat;
+    cursor: pointer;
+}
+
+.volt-touch-infosheet__body {
+    flex: 1 1 auto;
+    min-height: 0;
+    margin: 1px 3px 3px;
+    padding: 10px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: #e9e9e1;
+}
+
+.volt-touch-infosheet__summary {
+    display: flex;
+    gap: 10px;
+}
+
+.volt-touch-infosheet__figure {
+    position: relative;
+    display: flex;
+    flex: 0 0 122px;
+    align-items: flex-start;
+    justify-content: center;
+    height: 178px;
+    padding: 6px 0 0;
+    overflow: hidden;
+    border-style: solid;
+    border-width: 0;
+    border-image: url('../../assets/images/habbo-skin/slices/border-colorless-3d3d3d.png') 6 fill / 6px stretch;
+    background: transparent;
+    cursor: pointer;
+
+    .avatar-image {
+        transform-origin: top center;
+    }
+}
+
+.volt-touch-infosheet__preview {
+    display: flex;
+    flex: 0 0 150px;
+    align-items: center;
+    justify-content: center;
+    height: 150px;
+    overflow: hidden;
+    border-style: solid;
+    border-width: 0;
+    border-image: url('../../assets/images/habbo-skin/slices/border-colorless-cccccc.png') 6 fill / 6px stretch;
+}
+
+.volt-touch-infosheet__info {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.volt-touch-infosheet__name {
+    overflow: hidden;
+    font: 700 17px Ubuntu, sans-serif;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.volt-touch-infosheet__description {
+    color: #333333;
+    font-size: 13px;
+    line-height: 18px;
+    overflow-wrap: anywhere;
+}
+
+.volt-touch-infosheet__motto {
+    padding: 8px 10px;
+    border-style: solid;
+    border-width: 0;
+    border-image: url('../../assets/images/habbo-skin/slices/border-colorless-cccccc.png') 6 fill / 6px stretch;
+    color: #222222;
+    font-size: 13px;
+    line-height: 17px;
+    overflow-wrap: anywhere;
+
+    &.is-placeholder {
+        color: #6b6b66;
+    }
+}
+
+.volt-touch-infosheet__motto-input {
+    width: 100%;
+    height: 44px;
+    padding: 0 10px;
+    border: 1px solid #000000;
+    border-radius: 4px;
+    background: #ffffff;
+    color: #000000;
+    font-size: 15px;
+}
+
+.volt-touch-infosheet__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.volt-touch-infosheet__badge {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-style: solid;
+    border-width: 0;
+    border-image: url('../../assets/images/habbo-skin/slices/border-slot-e0e0e0.png') 3 fill / 3px stretch;
+}
+
+.volt-touch-infosheet__meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    color: #55534c;
+    font-size: 12px;
+
+    b {
+        overflow: hidden;
+        color: #000000;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+.volt-touch-infosheet__actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    margin-top: 10px;
+
+    &:not(.volt-touch-infosheet__actions--3) > :last-child:nth-child(odd) {
+        grid-column: span 2;
+    }
+}
+
+.volt-touch-infosheet__actions--3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    .volt-touch-black-button {
+        padding: 0 6px;
+    }
+}
+
+/* The desktop furni details (jukebox, plant, branding and more) keep their dark InfoStand look. */
+.volt-touch-infosheet__details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 10px;
+    padding: 8px;
+    border-style: solid;
+    border-width: 0;
+    border-image: url('../../assets/images/habbo-skin/slices/border-colorless-3d3d3d.png') 6 fill / 6px stretch;
+    color: #fefefe;
+    font-family: Volter, monospace;
+    font-size: 9px;
+    line-height: 12px;
+
+    > .volt-furni-infostand__rule:first-child,
+    .volt-furni-infostand__purchase {
+        display: none;
+    }
+
+    textarea,
+    input {
+        font-size: 15px;
+    }
+}
+
+html[data-volt-layout='phone-landscape'] .volt-touch-infosheet {
+    top: 0;
+    left: auto;
+    width: min(400px, 55vw);
+    max-height: none;
+    padding-right: var(--volt-safe-right);
+}
+
+html[data-volt-device='tablet'] .volt-touch-infosheet {
+    right: calc(8px + var(--volt-safe-right));
+    bottom: calc(72px + var(--volt-safe-bottom));
+    left: auto;
+    width: 380px;
+    max-height: calc(var(--volt-visual-height, 100dvh) - 160px);
+    padding-bottom: 0;
+}
+
+/* ---------- Context menus ---------- */
+
+html[data-volt-touch='on'] .volt-context-menu:not(.air-name-bubble) {
+    width: 200px;
+    min-width: 200px;
+    font-size: 13px;
+
+    .volt-context-menu-header {
+        height: 24px;
+        font-size: 13px;
+        line-height: 23px;
+    }
+
+    .volt-context-menu-item {
+        height: 44px;
+        min-height: 44px;
+        font-size: 13px;
+        line-height: 44px;
+    }
+}
+
+html[data-volt-touch='on'] .volt-context-menu:is(.volt-avatar-action-menu--classic, .volt-avatar-action-menu--own) {
+    width: 180px;
+    min-width: 180px;
+    max-width: 180px;
+    font-size: 14px;
+
+    .volt-context-menu-header {
+        width: 172px;
+        min-width: 172px;
+        height: 24px;
+        min-height: 24px;
+        font-size: 14px;
+        line-height: 24px;
+    }
+
+    .volt-context-menu-header::after {
+        width: 168px;
+    }
+
+    .air-avatar-menu-buttons {
+        width: 170px;
+        gap: 2px;
+    }
+
+    .air-avatar-menu-buttons > .volt-context-menu-item {
+        width: 168px;
+        min-width: 168px;
+        max-width: 168px;
+        height: 44px;
+        min-height: 44px;
+        flex-basis: 44px;
+        font-size: 14px;
+        line-height: 16px;
+    }
+
+    .air-avatar-menu-buttons > .volt-context-menu-item::before {
+        width: 174px;
+        height: 53px;
+    }
+
+    .air-avatar-menu-toggle-label {
+        width: 140px;
+        font-size: 13px;
+    }
+}
+
+/* ---------- Placement HUD ---------- */
+
+.volt-touch-placement {
+    position: fixed;
+    inset: 0;
+    z-index: 78;
+    pointer-events: none;
+}
+
+/* The InfoStand sheet would cover the room the item is being placed in. */
+body:has(> .volt-touch-placement) > .volt-touch-infosheet {
+    display: none;
+}
+
+.volt-touch-placement__hint {
+    position: absolute;
+    top: calc(var(--volt-safe-top) + 8px);
+    right: calc(8px + var(--volt-safe-right));
+    left: calc(8px + var(--volt-safe-left));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 44px;
+    padding: 0 12px;
+    border-style: solid;
+    border-width: 0;
+    border-image: url('../../assets/images/habbo-skin/slices/border-colorless-3b3933-opaque.png') 24 fill / 6px stretch;
+    color: #ffffff;
+    font: 700 13px Ubuntu, sans-serif;
+    text-align: center;
+
+    img {
+        flex: none;
+        image-rendering: var(--volt-pixel-art, pixelated);
+    }
+}
+
+.volt-touch-placement__bar {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    gap: 8px;
+    padding: 12px calc(10px + var(--volt-safe-right)) calc(12px + var(--volt-safe-bottom)) calc(10px + var(--volt-safe-left));
+    border-top: 1px solid #000000;
+    background: rgba(46, 45, 41, 0.92);
+    pointer-events: auto;
+
+    > .volt-touch-black-button {
+        flex: 1 1 0;
+        gap: 5px;
+        height: 44px;
+        padding: 0 4px;
+        font-size: 12px;
+    }
+}
+
+.volt-touch-placement__place {
+    flex: 1.15 1 0;
+    height: 44px;
+    padding: 0 12px;
+    border-style: solid;
+    border-width: 0;
+    border-image: url('../../assets/images/habbo-skin/touch/btn-green-default-h44.png') 0 5 fill / 0 5px stretch;
+    background: transparent;
+    color: #ffffff;
+    font: 700 14px Ubuntu, sans-serif;
+    white-space: nowrap;
+    cursor: pointer;
+    image-rendering: var(--volt-pixel-art, pixelated);
+
+    &:active {
+        border-image-source: url('../../assets/images/habbo-skin/touch/btn-green-pressed-h44.png');
+    }
+
+    &:disabled {
+        border-image-source: url('../../assets/images/habbo-skin/touch/btn-disabled-h44.png');
+        color: #8a8a8a;
+        cursor: default;
+    }
+}
+
+html[data-volt-device='tablet'] .volt-touch-placement__bar {
+    right: 50%;
+    left: auto;
+    width: min(560px, calc(100vw - 16px));
+    margin-right: calc(min(560px, calc(100vw - 16px)) / -2);
+    bottom: calc(8px + var(--volt-safe-bottom));
+    padding-bottom: 12px;
+    border: 1px solid #000000;
+    border-radius: 6px;
+}
