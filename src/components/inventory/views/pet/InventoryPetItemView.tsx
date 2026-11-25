@@ -3,6 +3,7 @@ import { FC, MouseEvent, PropsWithChildren, useState } from 'react';
 import { attemptPetPlacement, IPetItem, UnseenItemCategory } from '../../../../api';
 import { useInventoryPets, useInventoryUnseenTracker } from '../../../../hooks';
 import { InventoryPetImageView } from './InventoryPetImageView';
+import { hideSheetForPlacement } from '../hideSheetForPlacement';
 
 export const InventoryPetItemView: FC<PropsWithChildren<{ petItem: IPetItem }>> = (props) => {
     const { petItem = null, children = null, ...rest } = props;
@@ -28,6 +29,7 @@ export const InventoryPetItemView: FC<PropsWithChildren<{ petItem: IPetItem }>> 
                 return;
             case 'dblclick':
                 attemptPetPlacement(petItem);
+                hideSheetForPlacement();
                 return;
         }
     };

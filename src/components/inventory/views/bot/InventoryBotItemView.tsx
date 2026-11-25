@@ -3,6 +3,7 @@ import { FC, MouseEvent, PropsWithChildren, useState } from 'react';
 import { attemptBotPlacement, IBotItem, UnseenItemCategory } from '../../../../api';
 import { useInventoryBots, useInventoryUnseenTracker } from '../../../../hooks';
 import { InventoryBotImageView } from './InventoryBotImageView';
+import { hideSheetForPlacement } from '../hideSheetForPlacement';
 
 export const InventoryBotItemView: FC<
     PropsWithChildren<{
@@ -32,6 +33,7 @@ export const InventoryBotItemView: FC<
                 return;
             case 'dblclick':
                 attemptBotPlacement(botItem);
+                hideSheetForPlacement();
                 return;
         }
     };

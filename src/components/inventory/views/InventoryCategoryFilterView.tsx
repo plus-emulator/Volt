@@ -1,6 +1,15 @@
 import { InventoryFilterSelect } from './InventoryFilterSelect';
 import { FC } from 'react';
-import { FURNI_MAIN_FILTER, FURNI_TYPE_OPTIONS, FurniMainFilter, furniMainFilterKey, furniTypeFilterKey, LocalizeText } from '../../../api';
+import {
+    FURNI_MAIN_FILTER,
+    FURNI_TYPE_OPTIONS,
+    FurniMainFilter,
+    furniMainFilterKey,
+    furniTypeFilterKey,
+    IsTouchLayout,
+    LocalizeText,
+    useVoltLayout
+} from '../../../api';
 
 export const BADGE_MAIN_ALL = 'all';
 export const BADGE_MAIN_NORMAL = 'normal';
@@ -77,6 +86,7 @@ export const InventoryCategoryFilterView: FC<InventoryCategoryFilterViewProps> =
         onTypeFilterChange = null
     } = props;
 
+    const isTouch = IsTouchLayout(useVoltLayout());
     const isBadges = currentTab === TAB_BADGES;
     const isFurniture = currentTab === TAB_FURNITURE;
     const typeOptions = isFurniture ? FURNI_TYPE_OPTIONS[(mainFilter as FurniMainFilter) || FURNI_MAIN_FILTER.ALL] || FURNI_TYPE_OPTIONS.all : [];
@@ -87,6 +97,7 @@ export const InventoryCategoryFilterView: FC<InventoryCategoryFilterViewProps> =
                 <input
                     className="volt-inventory-filter-input"
                     aria-label={localizeOr('catalog.search', 'Search inventory')}
+                    placeholder={isTouch ? localizeOr('generic.search', 'Search') : undefined}
                     onKeyDown={(event) => {
                         if (event.key === 'Enter') onSearchApply?.(searchValue);
                         if (event.key === 'Escape') {

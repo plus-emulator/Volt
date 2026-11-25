@@ -1,5 +1,5 @@
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
-import { AirSkinButton } from '../../../../common/air/AirSkinButton';
+import { InventoryActionButton } from '../InventoryActionButton';
 import { GetConfigurationValue, LocalizeBadgeDescription, LocalizeBadgeName, localizeWithFallback, UnseenItemCategory } from '../../../../api';
 import { LayoutBadgeImageView } from '../../../../common';
 import { useInventoryBadges, useInventoryUnseenTracker } from '../../../../hooks';
@@ -202,7 +202,7 @@ export const InventoryBadgeView: FC<{ filteredBadgeCodes?: string[] }> = (props)
                             </div>
                         </div>
                         <div className="volt-inventory-badges-footer-actions">
-                            <AirSkinButton
+                            <InventoryActionButton
                                 className={`volt-inventory-btn-wear ${isWearingBadge(selectedBadgeCode) ? 'is-clear' : ''}`}
                                 disabled={!isWearingBadge(selectedBadgeCode) && !canWearBadges()}
                                 onClick={() => toggleBadge(selectedBadgeCode)}
@@ -216,7 +216,7 @@ export const InventoryBadgeView: FC<{ filteredBadgeCodes?: string[] }> = (props)
                         </div>
                     </>
                 ) : (
-                    <AirSkinButton
+                    <InventoryActionButton
                         className="volt-inventory-btn-wear volt-inventory-badge-wear-empty"
                         disabled
                         height={28}

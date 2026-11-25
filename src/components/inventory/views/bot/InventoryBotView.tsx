@@ -1,5 +1,5 @@
 import { IRoomSession, RoomPreviewer } from '@volt/renderer';
-import { AirSkinButton } from '../../../../common/air/AirSkinButton';
+import { InventoryActionButton } from '../InventoryActionButton';
 import { FC, useEffect, useState } from 'react';
 import { attemptBotPlacement, LocalizeText, UnseenItemCategory } from '../../../../api';
 import { ClassicScrollAreaView } from '../../../../common/scroll-area/ClassicScrollAreaView';
@@ -8,6 +8,7 @@ import { InventoryCategoryEmptyView } from '../InventoryCategoryEmptyView';
 import { InventoryInfoTextView } from '../InventoryInfoTextView';
 import { InventoryBotImageView } from './InventoryBotImageView';
 import { InventoryBotItemView } from './InventoryBotItemView';
+import { hideSheetForPlacement } from '../hideSheetForPlacement';
 
 export const InventoryBotView: FC<{
     roomSession: IRoomSession;
@@ -56,10 +57,14 @@ export const InventoryBotView: FC<{
                 </div>
                 <InventoryInfoTextView className="volt-inventory-animal-description" height={45} text={selectedBot?.botData.motto ?? ''} width={190} />
                 <div className="volt-inventory-animal-actions">
-                    <AirSkinButton
+                    <InventoryActionButton
+                        touchGreen
                         className="volt-inventory-animal-place"
                         disabled={!selectedBot || !roomSession?.isRoomOwner}
-                        onClick={() => attemptBotPlacement(selectedBot)}
+                        onClick={() => {
+                            attemptBotPlacement(selectedBot);
+                            hideSheetForPlacement();
+                        }}
                         height={28}
                         widthMax={158}
                         widthMin={158}

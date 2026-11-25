@@ -1,5 +1,5 @@
 import { CreateLinkEvent } from '@volt/renderer';
-import { AirSkinButton } from '../../../common/air/AirSkinButton';
+import { InventoryActionButton } from './InventoryActionButton';
 import { FC } from 'react';
 import { LocalizeText } from '../../../api';
 
@@ -18,7 +18,7 @@ export const InventoryCategoryEmptyView: FC<InventoryCategoryEmptyViewProps> = (
                 <div className="volt-inventory-empty-title">{title}</div>
                 <div className="volt-inventory-empty-desc">{desc}</div>
             </div>
-            <AirSkinButton
+            <InventoryActionButton
                 className="volt-inventory-empty-shop"
                 onClick={() => CreateLinkEvent('catalog/toggle/normal')}
                 height={51}

@@ -9,8 +9,9 @@ import {
     RoomEngineObjectPlacedEvent,
     RoomSessionEvent
 } from '@volt/renderer';
-import { FC, useCallback, useEffect, useState } from 'react';
+import { FC, useCallback, useEffect, useRef, useState } from 'react';
 import { isObjectMoverRequested, setObjectMoverRequested } from '../../api';
+import { PLACING_HIDE_CODE } from './views/hideSheetForPlacement';
 import { lazyWindow } from '../../common/lazyWindow';
 import { useInventoryTrade, useMessageEvent, useVoltEvent, useWiredTrading } from '../../hooks';
 
@@ -38,6 +39,7 @@ export const InventoryView: FC<{}> = () => {
     const [roomSession, setRoomSession] = useState<IRoomSession>(null);
     const { isTrading = false, stopTrading = null } = useInventoryTrade();
     const { isOpen: isWiredTrading = false } = useWiredTrading();
+    const reopenAfterPlacementRef = useRef(false);
 
     const onClose = useCallback(() => {
         if (isTrading) stopTrading();
@@ -47,7 +49,8 @@ export const InventoryView: FC<{}> = () => {
     useVoltEvent<RoomEngineObjectPlacedEvent>(RoomEngineObjectEvent.PLACED, (event) => {
         if (!isObjectMoverRequested()) return;
         setObjectMoverRequested(false);
-        if (!event.placedInRoom) setIsVisible(true);
+        if (!event.placedInRoom || reopenAfterPlacementRef.current) setIsVisible(true);
+        reopenAfterPlacementRef.current = false;
     });
 
     useVoltEvent<RoomSessionEvent>([RoomSessionEvent.CREATED, RoomSessionEvent.ENDED], (event) => {
@@ -79,6 +82,7 @@ export const InventoryView: FC<{}> = () => {
                         if (parts[2] && TAB_BY_CODE[parts[2]]) setCurrentTab(TAB_BY_CODE[parts[2]]);
                         return;
                     case 'hide':
+                        reopenAfterPlacementRef.current = parts[2] === PLACING_HIDE_CODE;
                         setIsVisible(false);
                         return;
                     case 'toggle':

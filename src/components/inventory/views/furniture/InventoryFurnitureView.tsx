@@ -9,7 +9,7 @@ import {
     RoomPreviewer,
     Vector3d
 } from '@volt/renderer';
-import { FC, useEffect, useMemo, useState } from 'react';
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FaTrashAlt } from 'react-icons/fa';
 import {
     attemptItemPlacement,
@@ -17,9 +17,11 @@ import {
     FurniCategory,
     getGroupItemKey,
     GroupItem,
+    IsTouchLayout,
     LocalizeText,
     localizeWithFallback,
-    UnseenItemCategory
+    UnseenItemCategory,
+    useVoltLayout
 } from '../../../../api';
 import { LayoutLimitedEditionCompactPlateView, LayoutRarityLevelView, LayoutRoomPreviewerView } from '../../../../common';
 import { CatalogPostMarketplaceOfferEvent, DeleteItemConfirmEvent } from '../../../../events';
@@ -28,6 +30,7 @@ import { VoltButton } from '../../../../layout';
 import { InventoryCategoryEmptyView } from '../InventoryCategoryEmptyView';
 import { InventoryInfoTextView } from '../InventoryInfoTextView';
 import { InventoryFurnitureItemView } from './InventoryFurnitureItemView';
+import { InventoryFurnitureTouchBarView, InventoryFurnitureTouchMenuView, InventoryTouchAction } from './InventoryFurnitureTouchViews';
 import { offerGroupItemsToTrade } from './inventoryTradeOffer';
 
 const attemptPlaceMarketplaceOffer = (groupItem: GroupItem) => {
@@ -47,6 +50,8 @@ const attemptDeleteItem = (groupItem: GroupItem) => {
     if (!item) return;
     DispatchUiEvent(new DeleteItemConfirmEvent(item, groupItem.getTotalCount()));
 };
+
+const TOUCH_MENU_WIDTH = 176;
 
 const PET_PRODUCT_CATEGORIES = [
     FurniCategory.PET_SHAMPOO,
@@ -68,6 +73,10 @@ export const InventoryFurnitureView: FC<{
     const { isTrading = false, ownUser = null } = useInventoryTrade();
     const { simpleAlert = null } = useNotification();
     const [offerCount, setOfferCount] = useState('1');
+    const isTouch = IsTouchLayout(useVoltLayout());
+    const furniRef = useRef<HTMLDivElement>(null);
+    const [touchMenu, setTouchMenu] = useState<{ groupItem: GroupItem; position: { left: number; top?: number; bottom?: number } }>(null);
+    const closeTouchMenu = useCallback(() => setTouchMenu(null), []);
 
     const [page, setPage] = useState(0);
     const pageCount = Math.floor(filteredGroupItems.length / 200) + 1;
@@ -82,20 +91,77 @@ export const InventoryFurnitureView: FC<{
         return selectedItem.items.filter((item) => item.isTradable && !item.locked).length;
     }, [selectedItem]);
 
-    const productItem = selectedItem?.getLastItem() ?? null;
-    const canUseProduct = !!roomSession?.isPrivateRoom && !!productItem && PET_PRODUCT_CATEGORIES.includes(productItem.category);
+    const canUseProductOf = (groupItem: GroupItem) => {
+        const item = groupItem?.getLastItem() ?? null;
 
-    const useProduct = () => {
+        return !!roomSession?.isPrivateRoom && !!item && PET_PRODUCT_CATEGORIES.includes(item.category);
+    };
+
+    const canUseProduct = canUseProductOf(selectedItem);
+
+    const applyProductOf = (groupItem: GroupItem) => {
+        const item = groupItem.getLastItem();
+
         GetEventDispatcher().dispatchEvent(
             new RoomEngineUseProductEvent(
                 RoomEngineUseProductEvent.USE_PRODUCT_FROM_INVENTORY,
                 roomSession.roomId,
                 -1,
                 RoomObjectCategory.FLOOR,
-                productItem.ref,
-                productItem.type
+                item.ref,
+                item.type
             )
         );
+    };
+
+    const useProduct = () => applyProductOf(selectedItem);
+
+    const placeAction = (groupItem: GroupItem): InventoryTouchAction => ({
+        key: 'place',
+        caption: LocalizeText('inventory.furni.placetoroom'),
+        disabled: !roomSession || isTrading || !groupItem.getUnlockedCount(),
+        onClick: () => attemptItemPlacement(groupItem)
+    });
+
+    const getTouchMenuActions = (groupItem: GroupItem): InventoryTouchAction[] => {
+        const actions: InventoryTouchAction[] = [];
+
+        if (isTrading) {
+            actions.push({
+                key: 'offer',
+                caption: LocalizeText('inventory.trading.offer'),
+                disabled: !ownUser || ownUser.accepts || !groupItem.items.some((item) => item.isTradable && !item.locked),
+                onClick: () => offerGroupItemsToTrade(ownUser, groupItem, 1, simpleAlert)
+            });
+        } else {
+            actions.push(placeAction(groupItem));
+        }
+
+        if (groupItem.isSellable && !isTrading) {
+            actions.push({ key: 'sell', caption: LocalizeText('inventory.marketplace.sell'), onClick: () => attemptPlaceMarketplaceOffer(groupItem) });
+        }
+
+        if (canUseProductOf(groupItem)) {
+            actions.push({ key: 'use', caption: LocalizeText('inventory.furni.use'), onClick: () => applyProductOf(groupItem) });
+        }
+
+        return actions;
+    };
+
+    const openTouchMenu = (groupItem: GroupItem, element: HTMLElement) => {
+        const container = furniRef.current;
+
+        if (!container) return;
+
+        const bounds = container.getBoundingClientRect();
+        const tile = element.getBoundingClientRect();
+        const left = Math.max(4, Math.min(tile.left - bounds.left, bounds.width - TOUCH_MENU_WIDTH - 4));
+        const isLowerHalf = tile.top + tile.height / 2 > bounds.top + bounds.height / 2;
+
+        setTouchMenu({
+            groupItem,
+            position: isLowerHalf ? { left, bottom: bounds.bottom - tile.top + 4 } : { left, top: tile.bottom - bounds.top + 4 }
+        });
     };
 
     const recyclableCount = useMemo(() => {
@@ -184,7 +250,7 @@ export const InventoryFurnitureView: FC<{
     }
 
     return (
-        <div className="volt-inventory-furni">
+        <div ref={furniRef} className="volt-inventory-furni">
             <div className="volt-inventory-furni-grid">
                 <InfiniteGrid<GroupItem>
                     squareItems
@@ -198,6 +264,7 @@ export const InventoryFurnitureView: FC<{
                             groupItem={item}
                             isActive={item === selectedItem}
                             onOffer={isTrading ? (groupItem) => offerGroupItemsToTrade(ownUser, groupItem, 1, simpleAlert) : null}
+                            onLongPress={isTouch ? openTouchMenu : null}
                             onSelect={setSelectedItem}
                         />
                     )}
@@ -213,6 +280,33 @@ export const InventoryFurnitureView: FC<{
                     </div>
                 )}
             </div>
+            {isTouch && selectedItem && (
+                <InventoryFurnitureTouchBarView
+                    action={
+                        isTrading
+                            ? {
+                                  key: 'offer',
+                                  caption: LocalizeText('inventory.trading.offer'),
+                                  disabled: !tradeableCount || !ownUser || ownUser.accepts,
+                                  onClick: attemptOffer
+                              }
+                            : placeAction(selectedItem)
+                    }
+                    groupItem={selectedItem}
+                    offerCount={offerCount}
+                    recyclableCount={recyclableCount}
+                    tradeableCount={tradeableCount}
+                    onOfferCountChange={isTrading ? setOfferCount : null}
+                />
+            )}
+            {isTouch && touchMenu && (
+                <InventoryFurnitureTouchMenuView
+                    actions={getTouchMenuActions(touchMenu.groupItem)}
+                    position={touchMenu.position}
+                    title={touchMenu.groupItem.name}
+                    onClose={closeTouchMenu}
+                />
+            )}
             <div className="volt-inventory-furni-preview">
                 <div
                     className="volt-inventory-furni-preview-stage"
@@ -224,7 +318,7 @@ export const InventoryFurnitureView: FC<{
                 >
                     <LayoutRoomPreviewerView
                         fitParent
-                        roomPreviewer={roomPreviewer}
+                        roomPreviewer={isTouch ? null : roomPreviewer}
                         onPreviewClick={() => {
                             if (roomSession) attemptItemPlacement(selectedItem);
                         }}

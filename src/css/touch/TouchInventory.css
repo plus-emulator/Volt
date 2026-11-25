@@ -1,1 +1,687 @@
 /* TouchInventory */
+
+html[data-volt-touch='on'] .volt-inventory-window {
+    --inv-tile: 56px;
+    --inv-gap: 6px;
+
+    font-size: 13px;
+}
+
+html[data-volt-device='tablet'] .volt-inventory-window {
+    --inv-tile: 50px;
+}
+
+html[data-volt-device='tablet'] .draggable-window[data-volt-window='float'] .volt-inventory-window {
+    width: 384px !important;
+    min-width: 0 !important;
+    max-width: calc(100vw - 16px) !important;
+    height: 480px !important;
+    max-height: calc(var(--volt-visual-height, 100dvh) - 120px) !important;
+}
+
+/* ---------- Tabs: AIR tab sprites at 40 px ---------- */
+
+html[data-volt-touch='on'] .volt-inventory-window .volt-inventory-tabs-shell {
+    flex: 0 0 40px !important;
+    align-items: flex-end !important;
+    min-height: 40px !important;
+    max-height: 40px !important;
+    padding: 0 4px !important;
+    overflow-x: auto;
+    background: #fff !important;
+
+    &::after {
+        top: auto;
+        bottom: 0;
+        height: 1px;
+        background: #000;
+    }
+
+    .volt-card-tab-item {
+        position: relative;
+        z-index: 1;
+        flex: 0 0 auto !important;
+        align-items: center !important;
+        width: auto !important;
+        height: 36px !important;
+        min-height: 36px !important;
+        max-height: 36px !important;
+        margin-right: -1px;
+        padding: 0 14px !important;
+        border-style: solid;
+        border-width: 0;
+        border-image: url('../../assets/images/habbo-skin/slices/tab-3-default.png') 6 9 2 9 fill / 6px 9px 2px 9px stretch;
+        background: none !important;
+        color: #222;
+        font-size: 14px !important;
+        line-height: 18px !important;
+        image-rendering: pixelated;
+    }
+
+    .volt-card-tab-item.volt-card-tab-item-active {
+        z-index: 2;
+        height: 39px !important;
+        min-height: 39px !important;
+        max-height: 39px !important;
+        border-image-source: url('../../assets/images/habbo-skin/slices/tab-3-selected.png');
+        border-image-slice: 6 9 1 9 fill;
+        border-image-width: 6px 9px 1px 9px;
+        color: #000;
+        font-weight: 700;
+    }
+
+    .volt-inventory-tab-label {
+        line-height: 18px;
+    }
+}
+
+/* ---------- Body ---------- */
+
+html[data-volt-touch='on'] .volt-inventory-window {
+    .volt-inventory-body {
+        margin: 0;
+        padding: 0 4px 4px;
+        overflow: hidden;
+    }
+
+    .volt-inventory-content,
+    .volt-inventory-content.is-furniture {
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .volt-classic-scrollbar {
+        display: none !important;
+    }
+
+    .volt-classic-scroll-area-viewport {
+        overscroll-behavior: contain;
+    }
+
+    input {
+        font-size: 15px !important;
+    }
+}
+
+/* ---------- Search and filter bar ---------- */
+
+html[data-volt-touch='on'] .volt-inventory-window {
+    .volt-inventory-filter-bar {
+        display: flex;
+        flex: 0 0 auto;
+        align-items: center;
+        gap: 6px;
+        width: auto;
+        height: auto;
+        padding: 6px 0;
+
+        &::before {
+            display: none;
+        }
+    }
+
+    .volt-inventory-filter-search {
+        position: relative;
+        top: auto;
+        left: auto;
+        flex: 1 1 120px;
+        min-width: 0;
+        width: auto;
+        height: 44px;
+
+        &::before {
+            display: none;
+        }
+    }
+
+    .volt-inventory-filter-input {
+        position: static;
+        box-sizing: border-box;
+        width: 100% !important;
+        height: 44px !important;
+        min-height: 44px !important;
+        padding: 0 36px 0 32px !important;
+        border: 1px solid #000 !important;
+        border-radius: 4px !important;
+        background: #fff url('../../assets/images/navigator/air/magnifier.png') 10px center no-repeat !important;
+        box-shadow: inset 0 2px 0 #d9d9d3 !important;
+        font-size: 15px !important;
+        line-height: 20px;
+    }
+
+    .volt-inventory-filter-clear {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        left: auto;
+        width: 36px;
+        height: 36px;
+    }
+
+    .volt-inventory-filter-choice,
+    .volt-inventory-filter-choice + .volt-inventory-filter-choice {
+        position: relative;
+        top: auto;
+        left: auto;
+        flex: 0 1 112px;
+        min-width: 0;
+        width: auto;
+        height: 44px;
+    }
+
+    .volt-inventory-filter-choice::before {
+        border-width: 0 5px;
+        border-image: url('../../assets/images/habbo-skin/touch/btn-default-h44.png') 0 5 fill / 0 5px stretch;
+    }
+
+    .volt-inventory-filter-select {
+        box-sizing: border-box;
+        width: 100%;
+        height: 44px;
+        padding: 0 28px 0 12px;
+        background: url('../../assets/images/habbo-skin/slices/droplist-arrow.png') right 8px center no-repeat transparent !important;
+        font-family: HabboAirUbuntu, Ubuntu, sans-serif;
+        font-size: 14px !important;
+        font-weight: 700;
+        line-height: 44px;
+        text-overflow: ellipsis;
+    }
+}
+
+html[data-volt-touch='on'] .volt-inventory-filter-menu {
+    min-width: 160px;
+    padding: 4px 6px 6px;
+    font-family: HabboAirUbuntu, Ubuntu, sans-serif;
+    font-size: 14px !important;
+    line-height: 18px;
+
+    .volt-inventory-filter-option {
+        display: flex;
+        align-items: center;
+        min-height: 44px;
+        padding: 0 12px;
+        font-size: 14px !important;
+        line-height: 18px;
+    }
+}
+
+/* ---------- Item tiles: 56 px (50 px on tablets), icons at 1x ---------- */
+
+html[data-volt-touch='on'] .volt-inventory-window {
+    :is(.volt-inventory-furni-grid, .volt-inventory-animal-cells, .volt-inventory-badges-owned-grid, .volt-inventory-badges-wearing-grid) .volt-inventory-thumb {
+        flex: 0 0 var(--inv-tile);
+        width: var(--inv-tile) !important;
+        height: var(--inv-tile) !important;
+        -webkit-touch-callout: none;
+        user-select: none;
+
+        &::before {
+            border-style: solid;
+            border-width: 0;
+            border-image: url('../../assets/images/inventory/air/inventory-item-background.png') 6 fill / 6px stretch;
+            background: none;
+        }
+
+        &.is-unseen::before {
+            border-image-source: url('../../assets/images/inventory/air/inventory-item-unseen-background.png');
+        }
+
+        &.is-selected::after {
+            inset: 0;
+            border-style: solid;
+            border-width: 0;
+            border-image: url('../../assets/images/inventory/air/inventory-item-selected-outline.png') 7 / 7px stretch;
+            background: none;
+        }
+
+        > .bg-red-700 {
+            top: 2px;
+            right: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            min-width: 14px;
+            height: 14px;
+            padding: 0 3px;
+            border: 1px solid #000;
+            border-radius: 3px;
+            background: #fff;
+            color: #000;
+            font: 700 10px/12px HabboAirUbuntu, Ubuntu, sans-serif;
+            text-align: center;
+        }
+    }
+
+    .volt-inventory-furni-grid .grid,
+    .volt-inventory-animal-cells,
+    .volt-inventory-badges-owned-grid {
+        grid-template-columns: repeat(auto-fill, var(--inv-tile)) !important;
+        grid-auto-rows: var(--inv-tile);
+        justify-content: center;
+        gap: var(--inv-gap) !important;
+        padding: 2px 0 6px;
+    }
+
+    .volt-inventory-animal-level {
+        top: auto;
+        bottom: 3px;
+        left: calc(50% - 16px);
+    }
+}
+
+/* ---------- Furniture: grid on top, selected item bar at the bottom ---------- */
+
+html[data-volt-touch='on'] .volt-inventory-window {
+    .volt-inventory-furni {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .volt-inventory-furni-grid {
+        flex: 1 1 auto;
+        width: auto;
+        height: auto;
+        min-height: 0;
+        margin: 0;
+    }
+
+    .volt-inventory-furni-grid > .volt-inventory-pages {
+        flex: 0 0 28px;
+        height: 28px !important;
+        justify-content: center;
+        font-size: 13px;
+
+        button {
+            min-width: 28px;
+        }
+    }
+}
+
+html[data-volt-touch='on'] .volt-inventory-touch-bar {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 10px;
+    box-sizing: border-box;
+    min-height: 72px;
+    padding: 0 8px;
+    border-style: solid;
+    border-width: 0;
+    border-image: url('../../assets/images/habbo-skin/slices/border-6.png') 8 fill / 8px stretch;
+}
+
+html[data-volt-touch='on'] .volt-inventory-touch-bar-icon {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    overflow: hidden;
+    border-style: solid;
+    border-width: 0;
+    border-image: url('../../assets/images/habbo-skin/slices/border-slot-e0e0e0.png') 3 fill / 3px stretch;
+
+    img {
+        flex: none;
+        max-width: none;
+        image-rendering: pixelated;
+    }
+}
+
+html[data-volt-touch='on'] .volt-inventory-touch-bar-text {
+    flex: 1 1 auto;
+    min-width: 0;
+
+    > div {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+html[data-volt-touch='on'] .volt-inventory-touch-bar-name {
+    color: #000;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 18px;
+}
+
+html[data-volt-touch='on'] .volt-inventory-touch-bar-meta {
+    color: #55534c;
+    font-size: 12px;
+    line-height: 16px;
+}
+
+html[data-volt-touch='on'] .volt-inventory-window .volt-inventory-touch-bar-count {
+    flex: none;
+    box-sizing: border-box;
+    width: 52px;
+    height: 44px;
+    border-radius: 4px !important;
+    text-align: center;
+}
+
+html[data-volt-touch='on'] .volt-inventory-touch-button {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-sizing: border-box;
+    height: 44px;
+    padding: 0 16px;
+    border-style: solid;
+    border-width: 0;
+    border-image: url('../../assets/images/habbo-skin/touch/btn-default-h44.png') 0 5 fill / 0 5px stretch;
+    background: transparent;
+    color: #000;
+    font: 700 14px/18px HabboAirUbuntu, Ubuntu, sans-serif;
+    white-space: nowrap;
+    image-rendering: pixelated;
+    cursor: pointer;
+
+    &:active:not(:disabled) {
+        border-image-source: url('../../assets/images/habbo-skin/touch/btn-pressed-h44.png');
+    }
+
+    &.is-green {
+        color: #fff;
+        border-image-source: url('../../assets/images/habbo-skin/touch/btn-green-default-h44.png');
+    }
+
+    &.is-green:active:not(:disabled) {
+        border-image-source: url('../../assets/images/habbo-skin/touch/btn-green-pressed-h44.png');
+    }
+
+    &:disabled {
+        color: #8a8a8a;
+        border-image-source: url('../../assets/images/habbo-skin/touch/btn-disabled-h44.png');
+        cursor: default;
+    }
+}
+
+html[data-volt-touch='on'] .volt-inventory-touch-bar .volt-inventory-touch-button[data-action='place']::before {
+    content: '';
+    width: 18px;
+    height: 18px;
+    background: url('../../assets/images/infostand/furni-place.png') no-repeat;
+}
+
+/* Long press menu with the tile's other actions. */
+html[data-volt-touch='on'] .volt-inventory-touch-menu {
+    position: absolute;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    box-sizing: border-box;
+    width: 176px;
+    padding: 8px;
+    border-style: solid;
+    border-width: 0;
+    border-image: url('../../assets/images/habbo-skin/slices/border-6.png') 8 fill / 8px stretch;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+
+    .volt-inventory-touch-button {
+        width: 100%;
+    }
+}
+
+html[data-volt-touch='on'] .volt-inventory-touch-menu-title {
+    padding: 0 2px 2px;
+    overflow: hidden;
+    color: #000;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 18px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ---------- Pets and bots ---------- */
+
+html[data-volt-touch='on'] .volt-inventory-window {
+    .volt-inventory-animals {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .volt-inventory-animal-grid,
+    .volt-inventory-animals.is-pets .volt-inventory-animal-grid {
+        position: relative;
+        top: auto;
+        bottom: auto;
+        left: auto;
+        flex: 1 1 auto;
+        width: auto;
+        min-height: 0;
+    }
+
+    .volt-inventory-animal-preview,
+    .volt-inventory-animals.is-pets .volt-inventory-animal-preview {
+        position: relative;
+        top: auto;
+        right: auto;
+        display: grid;
+        flex: none;
+        grid-template-columns: 64px minmax(0, 1fr) auto;
+        grid-template-rows: auto auto;
+        align-items: center;
+        column-gap: 10px;
+        box-sizing: border-box;
+        width: auto;
+        height: auto;
+        min-height: 80px;
+        padding: 4px 8px;
+        overflow: hidden;
+        border-style: solid;
+        border-width: 0;
+        border-image: url('../../assets/images/habbo-skin/slices/border-6.png') 8 fill / 8px stretch;
+    }
+
+    .volt-inventory-animal-preview > * {
+        position: static !important;
+        max-width: 100%;
+        overflow: hidden;
+    }
+
+    .volt-inventory-animal-image,
+    .volt-inventory-animals.is-pets .volt-inventory-animal-image {
+        grid-row: 1 / span 2;
+        width: 64px;
+        height: 72px;
+    }
+
+    .volt-inventory-animal-name {
+        grid-column: 2;
+        align-self: end;
+    }
+
+    .volt-inventory-animal-description {
+        grid-column: 2;
+        align-self: start;
+    }
+
+    .volt-inventory-animal-actions {
+        grid-column: 3;
+        grid-row: 1 / span 2;
+        width: auto;
+    }
+}
+
+/* ---------- Badges ---------- */
+
+html[data-volt-touch='on'] .volt-inventory-window {
+    .volt-inventory-badges {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        width: auto;
+    }
+
+    .volt-inventory-badges-main {
+        position: relative;
+        inset: auto;
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        gap: 4px;
+        min-height: 0;
+    }
+
+    .volt-inventory-badges-owned {
+        position: relative;
+        top: auto;
+        left: auto;
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        width: auto;
+        height: auto;
+        min-height: 0;
+    }
+
+    .volt-inventory-badges-owned-grid {
+        flex: 1 1 auto;
+        height: auto;
+        min-height: 0;
+    }
+
+    .volt-inventory-badges-pages {
+        position: static;
+        justify-content: center;
+        height: 28px;
+
+        button {
+            min-width: 28px;
+            font-size: 13px;
+            line-height: 28px;
+        }
+    }
+
+    .volt-inventory-badge-cell > div {
+        inset: 0;
+        margin: auto;
+    }
+
+    .volt-inventory-badges-wearing {
+        position: static;
+        display: flex;
+        flex: none;
+        align-items: center;
+        gap: 8px;
+        width: auto;
+    }
+
+    .volt-inventory-badges-wearing-title {
+        flex: none;
+        width: auto;
+        font-size: 13px;
+    }
+
+    .volt-inventory-badges-wearing-grid {
+        display: flex;
+        flex: 1 1 auto;
+        gap: var(--inv-gap);
+        width: auto;
+        margin: 0;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+
+    .volt-inventory-badge-slot.is-empty {
+        flex: 0 0 var(--inv-tile);
+        width: var(--inv-tile);
+        height: var(--inv-tile);
+    }
+
+    .volt-inventory-badges-footer {
+        position: relative;
+        top: auto;
+        left: auto;
+        display: flex;
+        flex: none;
+        align-items: center;
+        gap: 10px;
+        width: auto;
+        height: auto;
+        min-height: 72px;
+        padding: 4px 6px;
+    }
+
+    .volt-inventory-badges-footer-image,
+    .volt-inventory-badges-footer-details,
+    .volt-inventory-badges-footer-actions,
+    .volt-inventory-badge-wear-empty {
+        position: static;
+        top: auto;
+        right: auto;
+        left: auto;
+        flex: none;
+        height: auto;
+    }
+
+    .volt-inventory-badges-footer-details {
+        flex: 1 1 auto;
+        width: auto;
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .volt-inventory-badge-wear-empty {
+        margin-left: auto;
+    }
+}
+
+/* ---------- Empty state ---------- */
+
+html[data-volt-touch='on'] .volt-inventory-window {
+    .volt-inventory-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: safe center;
+        gap: 10px;
+        box-sizing: border-box;
+        width: auto;
+        height: 100%;
+        margin: 0;
+        padding: 12px;
+        overflow-y: auto;
+        text-align: center;
+    }
+
+    .volt-inventory-empty-image,
+    .volt-inventory-empty-copy {
+        position: static;
+        flex: none;
+    }
+
+    .volt-inventory-empty-copy {
+        width: auto;
+        max-width: 280px;
+    }
+
+    .volt-inventory-empty-title {
+        font-size: 15px;
+        line-height: 20px;
+    }
+
+    .volt-inventory-empty-desc {
+        font-size: 13px;
+        line-height: 18px;
+    }
+
+    .volt-inventory-empty-shop {
+        position: static !important;
+    }
+}
+
+html[data-volt-touch='on'] .volt-inventory-window .volt-inventory-furni-preview {
+    display: none;
+}

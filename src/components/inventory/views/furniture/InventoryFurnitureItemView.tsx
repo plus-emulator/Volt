@@ -1,9 +1,12 @@
 import { MouseEventType } from '@volt/renderer';
-import { FC, MouseEvent, useState } from 'react';
+import { FC, MouseEvent, PointerEvent, useEffect, useRef, useState } from 'react';
 import { attemptItemPlacement, GroupItem } from '../../../../api';
 import { classNames, InfiniteGrid } from '../../../../layout';
 import { useRecyclerStore } from '../../../../state/recyclerStore';
 import { InventoryThumbIconView } from '../InventoryThumbIconView';
+
+const LONG_PRESS_MS = 450;
+const LONG_PRESS_SLOP = 10;
 
 export const InventoryFurnitureItemView: FC<{
     groupItem: GroupItem;
@@ -11,9 +14,39 @@ export const InventoryFurnitureItemView: FC<{
     onSelect: (groupItem: GroupItem) => void;
     // Set while a trade is open: v75 offers the item on double click and never drags it into the room.
     onOffer?: (groupItem: GroupItem) => void;
+    onLongPress?: (groupItem: GroupItem, element: HTMLElement) => void;
 }> = (props) => {
-    const { groupItem = null, isActive = false, onSelect = null, onOffer = null } = props;
+    const { groupItem = null, isActive = false, onSelect = null, onOffer = null, onLongPress = null } = props;
     const [isMouseDown, setMouseDown] = useState(false);
+    const pressRef = useRef<{ timer: number; x: number; y: number } | null>(null);
+
+    const cancelPress = () => {
+        if (pressRef.current) window.clearTimeout(pressRef.current.timer);
+        pressRef.current = null;
+    };
+
+    useEffect(() => cancelPress, []);
+
+    const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+        if (!onLongPress || event.pointerType === 'mouse') return;
+
+        cancelPress();
+
+        const element = event.currentTarget;
+        const timer = window.setTimeout(() => {
+            pressRef.current = null;
+            onSelect?.(groupItem);
+            onLongPress(groupItem, element);
+        }, LONG_PRESS_MS);
+
+        pressRef.current = { timer, x: event.clientX, y: event.clientY };
+    };
+
+    const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
+        const press = pressRef.current;
+
+        if (press && Math.hypot(event.clientX - press.x, event.clientY - press.y) > LONG_PRESS_SLOP) cancelPress();
+    };
 
     const onMouseEvent = (event: MouseEvent) => {
         switch (event.type) {
@@ -56,6 +89,12 @@ export const InventoryFurnitureItemView: FC<{
             onMouseDown={onMouseEvent}
             onMouseOut={onMouseEvent}
             onMouseUp={onMouseEvent}
+            onContextMenu={onLongPress ? (event) => event.preventDefault() : undefined}
+            onPointerCancel={cancelPress}
+            onPointerDown={onPointerDown}
+            onPointerLeave={cancelPress}
+            onPointerMove={onPointerMove}
+            onPointerUp={cancelPress}
         >
             {groupItem.stuffData.uniqueNumber <= 0 && <InventoryThumbIconView iconUrl={groupItem.iconUrl} />}
             {recyclable && <span className="volt-inventory-thumb-recyclable" />}

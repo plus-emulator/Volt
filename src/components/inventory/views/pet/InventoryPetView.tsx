@@ -1,14 +1,15 @@
 import { InventoryFilterSelect } from '../InventoryFilterSelect';
-import { AirSkinButton } from '../../../../common/air/AirSkinButton';
+import { InventoryActionButton } from '../InventoryActionButton';
 import { IRoomSession, RoomPreviewer } from '@volt/renderer';
 import { FC, useEffect, useMemo, useState } from 'react';
-import { attemptPetPlacement, LocalizeText, UnseenItemCategory } from '../../../../api';
+import { attemptPetPlacement, IsTouchLayout, LocalizeText, UnseenItemCategory, useVoltLayout } from '../../../../api';
 import { ClassicScrollAreaView } from '../../../../common/scroll-area/ClassicScrollAreaView';
 import { useInventoryPets, useInventoryUnseenTracker } from '../../../../hooks';
 import { InventoryCategoryEmptyView } from '../InventoryCategoryEmptyView';
 import { InventoryInfoTextView } from '../InventoryInfoTextView';
 import { InventoryPetImageView } from './InventoryPetImageView';
 import { InventoryPetItemView } from './InventoryPetItemView';
+import { hideSheetForPlacement } from '../hideSheetForPlacement';
 
 export const InventoryPetView: FC<{
     roomSession: IRoomSession;
@@ -19,6 +20,7 @@ export const InventoryPetView: FC<{
     const { petItems = null, selectedPet = null, setSelectedPet, activate = null, deactivate = null } = useInventoryPets();
     const { isUnseen = null, removeUnseen = null } = useInventoryUnseenTracker();
 
+    const isTouch = IsTouchLayout(useVoltLayout());
     const [searchInput, setSearchInput] = useState('');
     const [search, setSearch] = useState('');
     const [typeFilter, setTypeFilter] = useState(-1);
@@ -65,6 +67,7 @@ export const InventoryPetView: FC<{
                     <input
                         className="volt-inventory-filter-input"
                         aria-label={LocalizeText('generic.search')}
+                        placeholder={isTouch ? LocalizeText('generic.search') : undefined}
                         value={searchInput}
                         onChange={(event) => setSearchInput(event.target.value)}
                         onKeyDown={(event) => {
@@ -132,10 +135,14 @@ export const InventoryPetView: FC<{
                     width={180}
                 />
                 <div className="volt-inventory-animal-actions">
-                    <AirSkinButton
+                    <InventoryActionButton
+                        touchGreen
                         className="volt-inventory-animal-place"
                         disabled={!selectedPet || !(roomSession?.isRoomOwner || roomSession?.allowPets)}
-                        onClick={() => attemptPetPlacement(selectedPet)}
+                        onClick={() => {
+                            attemptPetPlacement(selectedPet);
+                            hideSheetForPlacement();
+                        }}
                         height={28}
                         widthMax={158}
                         widthMin={158}
