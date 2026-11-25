@@ -1,6 +1,6 @@
 import { AddLinkEventTracker, CreateLinkEvent, DailyTaskData, GetSessionDataManager, ILinkEventTracker, RemoveLinkEventTracker } from '@volt/renderer';
 import { CSSProperties, FC, useEffect, useMemo, useRef, useState } from 'react';
-import { getDailyTaskImageUrl, getDailyTasksWindowCaption, localizeWithFallback } from '../../api';
+import { getDailyTaskImageUrl, getDailyTasksWindowCaption, IsTouchLayout, localizeWithFallback, useVoltLayout } from '../../api';
 import { ClassicScrollAreaView, VoltCardHeaderView, VoltCardView } from '../../common';
 import { NativeText } from '../../common/native-text/NativeText';
 import { useDailyTasks } from '../../hooks';
@@ -241,11 +241,132 @@ const DailyTaskListView: FC<{ tasks: DailyTaskData[]; height: number; top: numbe
     );
 };
 
+/** Touch-friendly daily task card preserving the AIR palette, borders, 1x icons, and >=44px claim target. */
+const TouchDailyTaskRowView: FC<{ task: DailyTaskData; onClaim: (task: DailyTaskData) => void }> = ({ task, onClaim }) => {
+    const [claiming, setClaiming] = useState(false);
+    const [showHint, setShowHint] = useState(false);
+    const sentRef = useRef(false);
+    const inProgress = task.status === DailyTaskData.STATUS_IN_PROGRESS;
+    const claimed = task.status === DailyTaskData.STATUS_CLAIMED;
+    const [card, bar, rewardBar] = PALETTE[task.isBonus ? 'yellow' : inProgress ? 'orange' : 'green'];
+    const hintText = localizeWithFallback(task.hintLocalizationKey, '');
+    const ratio = task.requiredRepeats > 0 ? Math.max(0, Math.min(1, task.repeats / task.requiredRepeats)) : 0;
+    const percent = Math.floor(ratio * 100);
+
+    useEffect(() => {
+        sentRef.current = false;
+        setClaiming(false);
+    }, [task, task.status]);
+
+    return (
+        <div
+            className="air-dt-touch-task"
+            style={
+                {
+                    '--air-dt-card': `#${card.toString(16)}`,
+                    '--air-dt-bar': `#${bar.toString(16)}`,
+                    '--air-dt-reward-bar': `#${rewardBar.toString(16)}`
+                } as CSSProperties
+            }
+        >
+            <div className="air-dt-surface air-dt-card" />
+            <div className="air-dt-touch-inner">
+                <div className="air-dt-touch-head">
+                    <div className="air-dt-surface air-dt-touch-name">
+                        <span className="air-dt-touch-title">{localizeWithFallback(task.nameLocalizationKey, task.taskCode)}</span>
+                        {hintText && (
+                            <button
+                                type="button"
+                                className="air-dt-touch-hint-btn"
+                                aria-expanded={showHint}
+                                onClick={() => setShowHint((value) => !value)}
+                            >
+                                ?
+                            </button>
+                        )}
+                    </div>
+                </div>
+                {showHint && hintText && <div className="air-dt-touch-hint-box">{hintText}</div>}
+                <div className="air-dt-touch-body">
+                    <img
+                        className="air-dt-touch-image"
+                        src={getDailyTaskImageUrl(task)}
+                        alt=""
+                        draggable={false}
+                        onError={(event) => {
+                            event.currentTarget.style.visibility = 'hidden';
+                        }}
+                        onLoad={(event) => {
+                            event.currentTarget.style.visibility = 'visible';
+                        }}
+                    />
+                    <div className="air-dt-touch-desc-col">
+                        <p className="air-dt-touch-desc">{localizeWithFallback(task.descriptionLocalizationKey, '')}</p>
+                        {!inProgress && (
+                            <div className="air-dt-touch-complete">
+                                <img src={taskCompletedUrl} alt="" width={20} height={22} draggable={false} />
+                                <span>{localizeWithFallback('dailytasks.task.complete', 'Task complete')}</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+                <div className="air-dt-touch-footer">
+                    <div className="air-dt-touch-rewards-box">
+                        <span className="air-dt-touch-reward-label">{localizeWithFallback('dailytasks.reward', 'Reward')}</span>
+                        <div className="air-dt-touch-rewards">
+                            {task.rewards.map((reward, index) => (
+                                <div key={index} className="air-dt-touch-reward">
+                                    <div className="air-dt-touch-reward-icon">
+                                        <ProductIconView productTypeId={reward.productItemTypeId} itemTypeId={reward.rewardTypeId} extraParams={reward.extraParams} />
+                                    </div>
+                                    {reward.amount > 1 && <span className="air-dt-touch-reward-amount">x{reward.amount}</span>}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="air-dt-touch-action">
+                        {inProgress ? (
+                            <div
+                                className="air-dt-touch-progress"
+                                role="progressbar"
+                                aria-valuenow={task.repeats}
+                                aria-valuemin={0}
+                                aria-valuemax={task.requiredRepeats}
+                            >
+                                <span className="air-dt-touch-progress-fill" style={{ width: `${percent}%` }} />
+                                <span className="air-dt-touch-progress-text">
+                                    {task.repeats} / {task.requiredRepeats} ({percent}%)
+                                </span>
+                            </div>
+                        ) : (
+                            <button
+                                type="button"
+                                className="air-dt-touch-claim"
+                                disabled={claimed || claiming}
+                                onClick={() => {
+                                    if (sentRef.current) return;
+
+                                    sentRef.current = true;
+                                    setClaiming(true);
+                                    onClaim(task);
+                                }}
+                            >
+                                {claimed ? localizeWithFallback('dailytasks.claimed', 'Claimed') : localizeWithFallback('dailytasks.claim', 'Claim')}
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 /**
  * The official daily tasks window (428x?, `dailytasks/open`): the tasks of the day, the unclaimed
  * reminder for expired-but-completed tasks and the HC double-duckets footer.
  */
 export const DailyTasksView: FC<{}> = () => {
+    const isTouch = IsTouchLayout(useVoltLayout());
     const [isVisible, setIsVisible] = useState(false);
     const [showUnclaimed, setShowUnclaimed] = useState(false);
     const [position, setPosition] = useState<{ x: number; y: number }>(null);
@@ -317,6 +438,74 @@ export const DailyTasksView: FC<{}> = () => {
     if (!isVisible || !position) return null;
 
     const onClaim = (task: DailyTaskData) => claimTask && claimTask(task.taskId);
+    const caption = getDailyTasksWindowCaption(maxSecondsLeft);
+    const unclaimedCaption = localizeWithFallback('dailytasks.unclaimed', 'Unclaimed rewards');
+    const hcText = hasClub
+        ? localizeWithFallback('hc.has.double_duckets.info', 'You get double duckets as you are an HC member!')
+        : localizeWithFallback('hc.get.double_duckets.info', 'Get HC membership to gain double duckets!');
+
+    if (isTouch) {
+        return (
+            <>
+                <VoltCardView
+                    className="volt-daily-tasks-air"
+                    uniqueKey="daily-tasks"
+                    frameStyle={3}
+                    isResizable={false}
+                    initialPosition={position}
+                    onPositionChange={setPosition}
+                    unconstrainedPosition
+                >
+                    <VoltCardHeaderView headerText={caption} onCloseClick={() => setIsVisible(false)} />
+                    <div className="air-dt-touch-content volt-card-content-shell">
+                        {unclaimedTasks.length > 0 && (
+                            <div className="air-dt-touch-top-bar">
+                                <button type="button" className="air-dt-touch-unclaimed-btn" onClick={() => setShowUnclaimed(true)}>
+                                    {localizeWithFallback('dailytasks.unclaimed', 'Unclaimed tasks')} ({unclaimedTasks.length})
+                                </button>
+                            </div>
+                        )}
+                        <div className="air-dt-touch-list">
+                            {activeTasks.map((task) => (
+                                <TouchDailyTaskRowView key={task.taskId} task={task} onClaim={onClaim} />
+                            ))}
+                        </div>
+                        <div className="air-dt-touch-hc">
+                            <span className="air-dt-touch-hc-text">{hcText}</span>
+                            {!hasClub && (
+                                <button
+                                    type="button"
+                                    className="air-dt-touch-hc-btn"
+                                    onClick={() => CreateLinkEvent('catalog/open/hc_membership')}
+                                >
+                                    {localizeWithFallback('generic.get_hc', 'Get HC')}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </VoltCardView>
+                {showUnclaimed && (
+                    <VoltCardView
+                        className="volt-daily-tasks-air volt-daily-tasks-unclaimed"
+                        uniqueKey="daily-tasks-unclaimed"
+                        frameStyle={3}
+                        isResizable={false}
+                        initialPosition={position}
+                        unconstrainedPosition
+                    >
+                        <VoltCardHeaderView headerText={unclaimedCaption} onCloseClick={() => setShowUnclaimed(false)} />
+                        <div className="air-dt-touch-content volt-card-content-shell">
+                            <div className="air-dt-touch-list">
+                                {unclaimedTasks.map((task) => (
+                                    <TouchDailyTaskRowView key={task.taskId} task={task} onClaim={onClaim} />
+                                ))}
+                            </div>
+                        </div>
+                    </VoltCardView>
+                )}
+            </>
+        );
+    }
 
     return (
         <>
@@ -332,7 +521,7 @@ export const DailyTasksView: FC<{}> = () => {
                 dragStyle={{ filter: 'drop-shadow(2.828px 2.828px 2px rgba(0, 0, 0, 0.349))' }}
             >
                 <VoltCardHeaderView headerText="" onCloseClick={() => setIsVisible(false)}>
-                    <FrameTitle oddOffset text={getDailyTasksWindowCaption(maxSecondsLeft)} />
+                    <FrameTitle oddOffset text={caption} />
                 </VoltCardHeaderView>
                 <div className="air-dt-content volt-card-content-shell">
                     {unclaimedTasks.length > 0 && (

@@ -1,4 +1,5 @@
 import { FC, PointerEvent as ReactPointerEvent, ReactNode, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { IsTouchLayout, useVoltLayout } from '../../api';
 
 // scrollable_itemlist_vertical style 100, ported from the launcher scrollbar controller (class Lq) and measured on the native reward track:
 // - the scroll position is a normalized offset in [0, 1] that every input adds to as a float; the list moves to trunc(offset * range),
@@ -20,6 +21,7 @@ const clamp = (value: number) => Math.max(0, Math.min(1, value));
 
 export const RewardTrackScrollList: FC<RewardTrackScrollListProps> = ({ className, contentClassName, height, children }) =>
 {
+    const isTouch = IsTouchLayout(useVoltLayout());
     const rootRef = useRef<HTMLDivElement>(null);
     const viewportRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
@@ -32,7 +34,7 @@ export const RewardTrackScrollList: FC<RewardTrackScrollListProps> = ({ classNam
     const fraction = contentHeight > 0 ? Math.min(1, height / contentHeight) : 1;
     const liftHeight = Math.trunc(fraction * height);
     const travel = height - liftHeight;
-    const overflow = range > 0;
+    const overflow = !isTouch && range > 0;
 
     const setOffset = useCallback((value: number) =>
     {
@@ -65,10 +67,12 @@ export const RewardTrackScrollList: FC<RewardTrackScrollListProps> = ({ classNam
 
     useLayoutEffect(() =>
     {
+        if (isTouch) return;
+
         const viewport = viewportRef.current;
 
         if (viewport) viewport.scrollTop = Math.trunc(offset * range);
-    }, [offset, range, contentHeight]);
+    }, [isTouch, offset, range, contentHeight]);
 
     useEffect(() =>
     {
@@ -136,7 +140,7 @@ export const RewardTrackScrollList: FC<RewardTrackScrollListProps> = ({ classNam
     };
 
     return (
-        <div ref={rootRef} className={className}>
+        <div ref={rootRef} className={isTouch ? `${className} is-touch` : className}>
             <div ref={viewportRef} className="volt-reward-track-scroll-viewport">
                 <div ref={contentRef} className={contentClassName}>
                     {children}

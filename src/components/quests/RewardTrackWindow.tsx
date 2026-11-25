@@ -16,12 +16,15 @@ import {
     getRewardTrackTaskHintLink,
     getRewardTrackTaskText,
     getRewardTrackText,
+    IsPhoneLayout,
+    IsTouchLayout,
     layoutRewardTrackPrizes,
     localizeWithFallback,
     NotificationAlertType,
     REWARD_TRACK_THEMES,
     RewardTrackTaskFilter,
-    resolveRewardTrackTheme
+    resolveRewardTrackTheme,
+    useVoltLayout
 } from '../../api';
 import { Permission } from '../../api/permissions';
 import availableIcon from '../../assets/images/reward-track/air/available-icon.png';
@@ -364,12 +367,478 @@ interface RewardTrackWindowProps {
     onSelectTrack: (id: string) => void;
 }
 
+/** Fluid progress bar for touch layouts, reusing the AIR task progress sprites. */
+const TouchTaskProgressBar: FC<{ ratio: number }> = ({ ratio }) => {
+    const percent = Math.round(Math.max(0, Math.min(1, ratio)) * 100);
+
+    return (
+        <span className="volt-rt-touch-mini-bar">
+            {percent > 0 && (
+                <span className="volt-rt-touch-mini-bar-fill" data-complete={ratio >= 1} style={{ width: `${percent}%` }}>
+                    <span className="volt-reward-track-mini-bar-gloss" />
+                </span>
+            )}
+        </span>
+    );
+};
+
+interface TouchPrizeTileProps {
+    track: RewardTrackData;
+    prize: RewardTrackPrizeData;
+    onClaim: (prize: RewardTrackPrizeData) => void;
+    onPremium: () => void;
+}
+
+const TouchRewardTrackPrizeTile: FC<TouchPrizeTileProps> = ({ track, prize, onClaim, onPremium }) => {
+    const state = getRewardTrackPrizeState(prize, track);
+    const dimmed = !prize.hasEnoughPoints(track);
+
+    const onClick = () => {
+        if (prize.claimed || dimmed) return;
+
+        if (prize.isPremiumLocked(track)) {
+            onPremium();
+
+            return;
+        }
+
+        if (prize.isClaimable(track)) onClaim(prize);
+    };
+
+    return (
+        <button
+            type="button"
+            className="volt-rt-touch-prize"
+            data-tier={prize.premium ? 'premium' : 'free'}
+            data-state={state}
+            data-dimmed={dimmed}
+            disabled={dimmed}
+            title={getRewardTrackPrizeTooltip(state)}
+            onClick={onClick}
+        >
+            <span className="volt-rt-touch-prize-plate">
+                <span className="volt-rt-touch-prize-product" data-shifted={prize.rewardAmount > 1}>
+                    <ProductIconView productTypeId={prize.productItemTypeId} itemTypeId={prize.rewardTypeId} extraParams={prize.extraParams} />
+                </span>
+                {prize.rewardAmount > 1 && <span className="volt-rt-touch-prize-amount">{prize.rewardAmount}</span>}
+            </span>
+            {state === 'premium_locked' && (
+                <img src={lockedReward} alt="" width={18} height={22} draggable={false} className="volt-rt-touch-prize-lock" />
+            )}
+            {state === 'claimed' && <img src={checkIcon} alt="" width={17} height={15} draggable={false} className="volt-rt-touch-prize-check" />}
+            {state === 'claimable' && <span className="volt-rt-touch-prize-ready">{rewardText('dailytasks.claim', 'Claim')}</span>}
+        </button>
+    );
+};
+
+interface TouchRewardTrackBodyProps {
+    track: RewardTrackData;
+    isPhone: boolean;
+    isEditor: boolean;
+    filter: RewardTrackTaskFilter;
+    filteredTasks: RewardTrackTaskData[];
+    selectedTask: RewardTrackTaskData;
+    filterText: (value: RewardTrackTaskFilter) => string;
+    onFilter: (value: RewardTrackTaskFilter) => void;
+    onSelectTask: (taskId: string) => void;
+    onClaim: (prize: RewardTrackPrizeData) => void;
+    onPremium: () => void;
+    onOpenAdmin: () => void;
+    section: 'rewards' | 'tasks';
+    onSectionChange: (next: 'rewards' | 'tasks') => void;
+    detailOpen: boolean;
+    onDetailOpenChange: (open: boolean) => void;
+}
+
+const TouchRewardTrackBody: FC<TouchRewardTrackBodyProps> = ({
+    track,
+    isPhone,
+    isEditor,
+    filter,
+    filteredTasks,
+    selectedTask,
+    filterText,
+    onFilter,
+    onSelectTask,
+    onClaim,
+    onPremium,
+    onOpenAdmin,
+    section,
+    onSectionChange,
+    detailOpen,
+    onDetailOpenChange
+}) => {
+    const milestones = useMemo(() => {
+        const byPoints = new Map<number, { points: number; free: RewardTrackPrizeData[]; premium: RewardTrackPrizeData[] }>();
+
+        for (const prize of track.prizes) {
+            let group = byPoints.get(prize.requiredPoints);
+
+            if (!group) {
+                group = { points: prize.requiredPoints, free: [], premium: [] };
+                byPoints.set(prize.requiredPoints, group);
+            }
+
+            (prize.premium ? group.premium : group.free).push(prize);
+        }
+
+        return Array.from(byPoints.values()).sort((a, b) => a.points - b.points);
+    }, [track.prizes]);
+
+    const maxPoints = milestones.length ? Math.max(1, milestones[milestones.length - 1].points) : Math.max(1, track.points);
+    const overallPercent = Math.round(Math.max(0, Math.min(1, track.points / maxPoints)) * 100);
+    const claimablePrizes = useMemo(() => track.prizes.filter((prize) => prize.isClaimable(track)), [track]);
+    const hintLink = selectedTask ? getRewardTrackTaskHintLink(selectedTask.id) : null;
+    const showRewards = !isPhone || section === 'rewards';
+    const showTasks = !isPhone || section === 'tasks';
+    const showTaskList = !isPhone || !detailOpen || !selectedTask;
+    const showTaskDetail = (!isPhone || detailOpen) && filteredTasks.length > 0 && !!selectedTask;
+
+    const segmentFillPercent = (index: number): number => {
+        const current = milestones[index].points;
+        const previous = index > 0 ? milestones[index - 1].points : 0;
+
+        if (track.points >= current) return 100;
+        if (track.points <= previous || current <= previous) return 0;
+
+        return Math.round(((track.points - previous) / (current - previous)) * 100);
+    };
+
+    return (
+        <div className="volt-rt-touch" data-phone={isPhone}>
+            <div className="volt-rt-touch-header">
+                <div className="volt-rt-touch-profile-row">
+                    <div className="volt-rt-touch-avatar">
+                        <LayoutAvatarImageView figure={GetSessionDataManager().figure} direction={2} />
+                    </div>
+                    <div className="volt-rt-touch-info">
+                        <div className="volt-rt-touch-title">{getRewardTrackText(track.id, 'name', trackFallback(track.id, 'name'))}</div>
+                        <div className="volt-rt-touch-desc">{getRewardTrackText(track.id, 'desc', trackFallback(track.id, 'desc'))}</div>
+                    </div>
+                    <div className="volt-rt-touch-stats">
+                        <div className="volt-rt-touch-points-pill">
+                            <img src={pointLarge} alt="" width={27} height={18} draggable={false} />
+                            <span>{track.points}</span>
+                        </div>
+                        <div className="volt-rt-touch-collected-pill">
+                            <img src={checkIcon} alt="" width={17} height={15} draggable={false} />
+                            <span>
+                                {track.claimedPrizeCount} / {track.totalPrizeCount}
+                            </span>
+                        </div>
+                    </div>
+                    {isEditor && (
+                        <button
+                            type="button"
+                            className="volt-rt-touch-admin-btn"
+                            title={rewardText('reward_track.admin.open', 'Edit the reward tracks')}
+                            data-testid="reward-track-admin-toggle"
+                            onClick={onOpenAdmin}
+                        >
+                            <FaCog />
+                        </button>
+                    )}
+                </div>
+                <div className="volt-rt-touch-progress-row">
+                    <div className="volt-rt-touch-main-bar" role="progressbar" aria-valuenow={track.points} aria-valuemin={0} aria-valuemax={maxPoints}>
+                        {overallPercent > 0 && (
+                            <div className="volt-rt-touch-main-bar-fill" style={{ width: `${overallPercent}%` }}>
+                                <div className="volt-reward-track-main-bar-gloss" />
+                            </div>
+                        )}
+                    </div>
+                    <span className="volt-rt-touch-progress-label">
+                        {track.points} / {maxPoints}
+                    </span>
+                </div>
+            </div>
+
+            {isPhone && (
+                <div className="volt-rt-touch-tabs" role="tablist">
+                    <button
+                        type="button"
+                        role="tab"
+                        aria-selected={section === 'rewards'}
+                        className="volt-rt-touch-tab"
+                        data-active={section === 'rewards'}
+                        onClick={() => onSectionChange('rewards')}
+                    >
+                        <span>{rewardText('reward_track.rewards.free', 'Rewards')}</span>
+                        {claimablePrizes.length > 0 && <span className="volt-rt-touch-tab-badge">{claimablePrizes.length}</span>}
+                    </button>
+                    <button
+                        type="button"
+                        role="tab"
+                        aria-selected={section === 'tasks'}
+                        className="volt-rt-touch-tab"
+                        data-active={section === 'tasks'}
+                        onClick={() => onSectionChange('tasks')}
+                    >
+                        <span>
+                            {rewardText('reward_track.tasks', 'Track Tasks')} ({track.completedTaskCount}/{track.totalTaskCount})
+                        </span>
+                    </button>
+                </div>
+            )}
+
+            <div className="volt-rt-touch-scroll">
+                {showRewards && (
+                    <div className="volt-rt-touch-rewards-section">
+                        <div className="volt-rt-touch-strip-panel">
+                            <div className="volt-rt-touch-strip-sky" />
+                            <div className="volt-rt-touch-strip" data-premium={track.hasPremiumConfig}>
+                                <div className="volt-rt-touch-tier-col">
+                                    <div className="volt-rt-touch-tier-head" data-tier="free">
+                                        <img src={freeTrackIcon} alt="" width={49} height={48} draggable={false} />
+                                        <span>{rewardText('reward_track.rewards.free', 'Free Track')}</span>
+                                    </div>
+                                    <div className="volt-rt-touch-tier-spacer" />
+                                    {track.hasPremiumConfig && (
+                                        <div className="volt-rt-touch-tier-head" data-tier="premium">
+                                            <img src={premiumTrackIcon} alt="" width={58} height={45} draggable={false} />
+                                            <span>{rewardText('reward_track.rewards.premium', 'Premium')}</span>
+                                        </div>
+                                    )}
+                                </div>
+                                {milestones.map((milestone, index) => {
+                                    const reached = track.points >= milestone.points;
+                                    const fill = segmentFillPercent(index);
+
+                                    return (
+                                        <div key={milestone.points} className="volt-rt-touch-milestone" data-reached={reached}>
+                                            <div className="volt-rt-touch-milestone-slot" data-tier="free">
+                                                {milestone.free.map((prize) => (
+                                                    <TouchRewardTrackPrizeTile
+                                                        key={prize.id}
+                                                        track={track}
+                                                        prize={prize}
+                                                        onClaim={onClaim}
+                                                        onPremium={onPremium}
+                                                    />
+                                                ))}
+                                            </div>
+                                            <div className="volt-rt-touch-milestone-axis">
+                                                <div className="volt-rt-touch-axis-bar">
+                                                    {fill > 0 && <span className="volt-rt-touch-axis-fill" style={{ width: `${fill}%` }} />}
+                                                </div>
+                                                <img
+                                                    src={reached ? availableIcon : notAvailableIcon}
+                                                    alt=""
+                                                    width={20}
+                                                    height={20}
+                                                    draggable={false}
+                                                    className="volt-rt-touch-axis-icon"
+                                                />
+                                                <span className="volt-rt-touch-axis-points">{milestone.points}</span>
+                                            </div>
+                                            {track.hasPremiumConfig && (
+                                                <div className="volt-rt-touch-milestone-slot" data-tier="premium">
+                                                    {milestone.premium.map((prize) => (
+                                                        <TouchRewardTrackPrizeTile
+                                                            key={prize.id}
+                                                            track={track}
+                                                            prize={prize}
+                                                            onClaim={onClaim}
+                                                            onPremium={onPremium}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        <div className="volt-rt-touch-rewards-footer">
+                            {claimablePrizes.length > 0 && (
+                                <button
+                                    type="button"
+                                    className="volt-rt-touch-action-btn is-claim"
+                                    onClick={() => onClaim(claimablePrizes[0])}
+                                >
+                                    {claimablePrizes.length > 1
+                                        ? `${rewardText('dailytasks.claim', 'Claim')} (${claimablePrizes.length})`
+                                        : rewardText('dailytasks.claim', 'Claim')}
+                                </button>
+                            )}
+                            {track.hasPremiumConfig && !track.premium ? (
+                                <div className="volt-rt-touch-tip" data-upgrade="true">
+                                    <img src={rewardGiftPremium} alt="" width={41} height={36} draggable={false} />
+                                    <p>{rewardText('reward_track.tasks.tip_upgrade', 'Upgrade now for premium rewards and faster progression!')}</p>
+                                    <button type="button" className="volt-reward-track-btn volt-reward-track-btn-premium volt-rt-touch-premium-btn" onClick={onPremium}>
+                                        {rewardText('reward_track.tasks.tip_upgrade.button', 'Get Premium')}
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="volt-rt-touch-tip">
+                                    <img src={rewardGift} alt="" width={41} height={36} draggable={false} />
+                                    <p>{rewardText('reward_track.tasks.tip', 'Complete tasks to earn points and unlock rewards')}</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {showTasks && (
+                    <div className="volt-rt-touch-tasks-section">
+                        {showTaskList && (
+                            <div className="volt-rt-touch-tasks-pane">
+                                <div className="volt-rt-touch-tasks-head">
+                                    <img src={taskListIcon} alt="" width={19} height={25} draggable={false} />
+                                    <div className="volt-rt-touch-tasks-head-text">
+                                        <div className="volt-rt-touch-tasks-title">{rewardText('reward_track.tasks', 'Track Tasks')}</div>
+                                        <div className="volt-rt-touch-tasks-sub">
+                                            {rewardText('reward_track.tasks.progress', '%progress% / %total% completed', {
+                                                progress: track.completedTaskCount,
+                                                total: track.totalTaskCount
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="volt-rt-touch-filters">
+                                    {FILTERS.map((value) => (
+                                        <button
+                                            key={value}
+                                            type="button"
+                                            className="volt-rt-touch-filter"
+                                            data-active={filter === value}
+                                            onClick={() => onFilter(value)}
+                                        >
+                                            {filterText(value)}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="volt-rt-touch-task-list">
+                                    {filteredTasks.map((task) => {
+                                        const level = task.activeLevel;
+                                        const ratio = task.progressRatioFor(level);
+
+                                        return (
+                                            <button
+                                                key={task.id}
+                                                type="button"
+                                                className="volt-rt-touch-task"
+                                                data-selected={selectedTask?.id === task.id}
+                                                onClick={() => {
+                                                    onSelectTask(task.id);
+                                                    if (isPhone) onDetailOpenChange(true);
+                                                }}
+                                            >
+                                                <span className="volt-rt-touch-task-glyph">
+                                                    <TaskGlyph actionType={task.actionType} boxWidth={52} boxHeight={50} />
+                                                </span>
+                                                <span className="volt-rt-touch-task-body">
+                                                    <span className="volt-rt-touch-task-name">
+                                                        {getRewardTrackTaskText(track.id, task.id, 'name', task.id)}
+                                                    </span>
+                                                    <span className="volt-rt-touch-task-desc">
+                                                        {getRewardTrackTaskText(track.id, task.id, 'desc', '')}
+                                                    </span>
+                                                    <span className="volt-rt-touch-task-prog">
+                                                        <TouchTaskProgressBar ratio={ratio} />
+                                                        <span className="volt-rt-touch-task-count">
+                                                            {task.progressCount} / {level ? level.requiredCount : 0}
+                                                        </span>
+                                                    </span>
+                                                </span>
+                                                <span className="volt-rt-touch-task-reward">
+                                                    <span>{level ? level.pointsReward : 0}</span>
+                                                    <img src={pointSmall} alt="" width={19} height={14} draggable={false} />
+                                                </span>
+                                                {isPhone && <span className="volt-rt-touch-task-chevron" aria-hidden="true">›</span>}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {showTaskDetail && selectedTask && (
+                            <div className="volt-rt-touch-detail-pane">
+                                {isPhone && (
+                                    <button type="button" className="volt-rt-touch-back-btn" onClick={() => onDetailOpenChange(false)}>
+                                        ‹ {rewardText('reward_track.tasks', 'Track Tasks')}
+                                    </button>
+                                )}
+                                <div className="volt-rt-touch-detail-head">
+                                    <div className="volt-rt-touch-detail-glyph">
+                                        <TaskGlyph actionType={selectedTask.actionType} boxWidth={56} boxHeight={56} />
+                                    </div>
+                                    <div className="volt-rt-touch-detail-meta">
+                                        <div className="volt-rt-touch-detail-name">
+                                            {getRewardTrackTaskText(track.id, selectedTask.id, 'name', selectedTask.id)}
+                                        </div>
+                                        <div className="volt-rt-touch-detail-desc">
+                                            {getRewardTrackTaskText(track.id, selectedTask.id, 'desc', '')}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="volt-rt-touch-levels-head">{rewardText('reward_track.levels.title', 'Levels')}</div>
+                                <div className="volt-rt-touch-levels">
+                                    {selectedTask.levels.map((level, index) => {
+                                        const ratio = selectedTask.progressRatioFor(level);
+
+                                        return (
+                                            <div key={index} className="volt-rt-touch-level" data-active={index === selectedTask.activeLevelIndex}>
+                                                <div className="volt-rt-touch-level-top">
+                                                    <span className="volt-rt-touch-level-name">
+                                                        {rewardText('reward_track.levels.level', 'Level %level%', { level: index + 1 })}
+                                                    </span>
+                                                    <span className="volt-rt-touch-level-count">
+                                                        {selectedTask.progressCount} / {level.requiredCount}
+                                                    </span>
+                                                    <span className="volt-rt-touch-level-end">
+                                                        {ratio >= 1 && <img src={checkIcon} alt="" width={17} height={15} draggable={false} />}
+                                                        <span className="volt-rt-touch-level-reward">
+                                                            <span>{level.pointsReward}</span>
+                                                            <img src={pointSmall} alt="" width={19} height={14} draggable={false} />
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                                <TouchTaskProgressBar ratio={ratio} />
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <div className="volt-rt-touch-hint">
+                                    <img className="volt-rt-touch-hint-frank" src={frankTips} alt="" width={52} height={88} draggable={false} />
+                                    <div className="volt-rt-touch-hint-body">
+                                        <div className="volt-rt-touch-hint-label">{rewardText('reward_track.levels.tip', 'Tip!')}</div>
+                                        <div className="volt-rt-touch-hint-text">
+                                            {getRewardTrackTaskText(track.id, selectedTask.id, 'hint.desc', '')}
+                                        </div>
+                                        {hintLink && (
+                                            <button
+                                                type="button"
+                                                className="volt-rt-touch-action-btn"
+                                                onClick={() => CreateLinkEvent(hintLink.link)}
+                                            >
+                                                {getRewardTrackTaskText(track.id, selectedTask.id, 'hint.button_text', hintLink.fallbackText)}
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
 export const RewardTrackWindow: FC<RewardTrackWindowProps> = ({ trackId, onClose, onSelectTrack }) => {
+    const voltLayout = useVoltLayout();
+    const isTouch = IsTouchLayout(voltLayout);
+    const isPhone = IsPhoneLayout(voltLayout);
     const [filter, setFilter] = useState<RewardTrackTaskFilter>('all');
     const [selectedTaskId, setSelectedTaskId] = useState<string>(null);
     const [premiumConfirm, setPremiumConfirm] = useState(false);
     const [page, setPage] = useState(0);
     const [pageKey, setPageKey] = useState('');
+    const [touchSection, setTouchSection] = useState<'rewards' | 'tasks'>('rewards');
+    const [touchDetailOpen, setTouchDetailOpen] = useState(false);
     const isEditor = useHasPermission(Permission.RewardTrackManage);
     const [editMode, setEditMode] = useState(false);
     const { tracks = [], reloadCount = 0, pendingPurchase = null, claimPrize = null, purchasePremium = null } = useRewardTracks();
@@ -398,6 +867,7 @@ export const RewardTrackWindow: FC<RewardTrackWindowProps> = ({ trackId, onClose
         setEditMode(false);
         setFilter('all');
         setSelectedTaskId(null);
+        setTouchDetailOpen(false);
     }, [trackId]);
 
     useEffect(() => {
@@ -466,6 +936,7 @@ export const RewardTrackWindow: FC<RewardTrackWindowProps> = ({ trackId, onClose
 
         if (!next.some((task) => task.id === selectedTask?.id)) setSelectedTaskId(next[0]?.id ?? null);
 
+        setTouchDetailOpen(false);
         setFilter(value);
     };
     const onClaim = (prize: RewardTrackPrizeData) => track && claimPrize && claimPrize(track.id, prize.id);
@@ -524,7 +995,27 @@ export const RewardTrackWindow: FC<RewardTrackWindowProps> = ({ trackId, onClose
                     {!editMode && !track && (
                         <div className="volt-reward-track-loading">{rewardText('reward_track.loading', 'Loading the reward track...')}</div>
                     )}
-                    {!editMode && track && (
+                    {!editMode && track && isTouch && (
+                        <TouchRewardTrackBody
+                            track={track}
+                            isPhone={isPhone}
+                            isEditor={isEditor}
+                            filter={filter}
+                            filteredTasks={filteredTasks}
+                            selectedTask={selectedTask}
+                            filterText={filterText}
+                            onFilter={onFilter}
+                            onSelectTask={setSelectedTaskId}
+                            onClaim={onClaim}
+                            onPremium={onPremium}
+                            onOpenAdmin={() => setEditMode(true)}
+                            section={touchSection}
+                            onSectionChange={setTouchSection}
+                            detailOpen={touchDetailOpen}
+                            onDetailOpenChange={setTouchDetailOpen}
+                        />
+                    )}
+                    {!editMode && track && !isTouch && (
                         <div className="volt-reward-track-stage">
                             {/* reward_track_item / button dynamic styles: hover is RGB x1.1 + 15 */}
                             <svg className="volt-reward-track-filters-svg" aria-hidden="true" focusable="false">

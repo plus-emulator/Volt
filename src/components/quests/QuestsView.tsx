@@ -7,7 +7,7 @@ import {
     RemoveLinkEventTracker
 } from '@volt/renderer';
 import { FC, useCallback, useEffect, useState } from 'react';
-import { localizeWithFallback } from '../../api';
+import { IsTouchLayout, localizeWithFallback, useVoltLayout } from '../../api';
 import { ClassicScrollAreaView, VoltCardHeaderView, VoltCardView } from '../../common';
 import { NativeText } from '../../common/native-text/NativeText';
 import { useQuests } from '../../hooks';
@@ -36,6 +36,7 @@ const FrameTitle: FC<{ text: string }> = ({ text }) => (
  * with the quest hint, opened from the tracker.
  */
 export const QuestsView: FC<{}> = () => {
+    const isTouch = IsTouchLayout(useVoltLayout());
     const [isVisible, setIsVisible] = useState(false);
     const [position, setPosition] = useState<{ x: number; y: number }>(null);
     const [detailsQuest, setDetailsQuest] = useState<QuestMessageData>(null);
@@ -138,6 +139,65 @@ export const QuestsView: FC<{}> = () => {
     const onReject = useCallback((quest: QuestMessageData) => rejectQuest && rejectQuest(quest.id), [rejectQuest]);
 
     const sorted = [...quests].sort((a, b) => a.sortOrder - b.sortOrder);
+    const hcText = hasClub
+        ? localizeWithFallback('hc.has.double_duckets.info', 'You get double duckets as you are an HC member!')
+        : localizeWithFallback('hc.get.double_duckets.info', 'Get HC membership to gain double duckets!');
+
+    if (isTouch) {
+        return (
+            <>
+                {isVisible && position && (
+                    <VoltCardView
+                        className="volt-quests-air"
+                        uniqueKey="quests"
+                        frameStyle={3}
+                        isResizable={false}
+                        initialPosition={position}
+                        onPositionChange={setPosition}
+                        unconstrainedPosition
+                    >
+                        <VoltCardHeaderView headerText={localizeWithFallback('quests.list.caption', 'Quests')} onCloseClick={() => setIsVisible(false)} />
+                        <div className="air-quests-touch-content volt-card-content-shell">
+                            <div className="air-quests-touch-list">
+                                {sorted.map((quest) => (
+                                    <QuestEntryView key={`${quest.campaignCode}-${quest.id}`} quest={quest} onAccept={onAccept} onReject={onReject} />
+                                ))}
+                            </div>
+                            <div className="air-quests-touch-hc">
+                                <span className="air-quests-touch-hc-text">{hcText}</span>
+                                {!hasClub && (
+                                    <button
+                                        type="button"
+                                        className="air-dt-touch-hc-btn"
+                                        onClick={() => CreateLinkEvent('catalog/open/hc_membership')}
+                                    >
+                                        {localizeWithFallback('generic.get_hc', 'Get HC')}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </VoltCardView>
+                )}
+                {detailsQuest && detailsPosition && (
+                    <VoltCardView
+                        className="volt-quest-details-air"
+                        uniqueKey="quest-details"
+                        frameStyle={3}
+                        isResizable={false}
+                        touchPresentation="dialog"
+                        initialPosition={detailsPosition}
+                        onPositionChange={setDetailsPosition}
+                        unconstrainedPosition
+                    >
+                        <VoltCardHeaderView headerText={localizeWithFallback('quests.details.caption', 'Quest')} onCloseClick={() => setDetailsQuest(null)} />
+                        <div className="air-quest-details-touch-content volt-card-content-shell">
+                            <QuestEntryView quest={detailsQuest} showHint onAccept={onDetailsAccept} onReject={onReject} />
+                        </div>
+                    </VoltCardView>
+                )}
+            </>
+        );
+    }
 
     return (
         <>

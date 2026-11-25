@@ -1,1 +1,2214 @@
-/* TouchQuests */
+/* TouchQuests: responsive touch layouts for Reward Track, Premium Confirm, Reward Track Admin,
+   Daily Tasks, Quests, Quest Details, Quest Completed, and Quest Tracker. */
+
+/* ---------- Window frame resets on touch ---------- */
+
+html[data-volt-touch='on'] .draggable-window[data-volt-window='sheet']:has(
+        > :is(
+                .volt-reward-track,
+                .volt-reward-track-premium,
+                .volt-daily-tasks-air,
+                .volt-quests-air,
+                .volt-quest-details-air,
+                .volt-quest-completed-air
+            )
+    ) {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+}
+
+html[data-volt-touch='on'] .draggable-window[data-volt-window='dock']:has(
+        > :is(
+                .volt-reward-track,
+                .volt-reward-track-premium,
+                .volt-daily-tasks-air,
+                .volt-quests-air,
+                .volt-quest-details-air,
+                .volt-quest-completed-air
+            )
+    ) {
+    min-width: 0 !important;
+    max-width: none !important;
+    height: auto !important;
+}
+
+html[data-volt-touch='on'] .draggable-window[data-volt-window='dialog']:has(
+        > :is(
+                .volt-reward-track-premium,
+                .volt-quest-details-air,
+                .volt-quest-completed-air
+            )
+    ) {
+    width: min(420px, calc(100vw - 16px - var(--volt-safe-left) - var(--volt-safe-right))) !important;
+    min-width: 0 !important;
+    max-width: calc(100vw - 16px - var(--volt-safe-left) - var(--volt-safe-right)) !important;
+    height: auto !important;
+}
+
+html[data-volt-touch='on'] .draggable-window[data-volt-window='float']:has(> .volt-reward-track) {
+    width: min(860px, calc(100vw - 24px)) !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: min(680px, calc(var(--volt-visual-height, 100dvh) - 80px)) !important;
+}
+
+html[data-volt-touch='on'] .draggable-window[data-volt-window='float']:has(> .volt-reward-track-premium) {
+    width: min(400px, calc(100vw - 24px)) !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: auto !important;
+}
+
+html[data-volt-touch='on'] .draggable-window[data-volt-window='float']:has(> :is(.volt-daily-tasks-air, .volt-quests-air)) {
+    width: min(500px, calc(100vw - 24px)) !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: min(560px, calc(var(--volt-visual-height, 100dvh) - 80px)) !important;
+}
+
+html[data-volt-touch='on'] .draggable-window[data-volt-window='float']:has(> :is(.volt-quest-details-air, .volt-quest-completed-air)) {
+    width: min(440px, calc(100vw - 24px)) !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: auto !important;
+}
+
+html[data-volt-touch='on'] .draggable-window .volt-card-shell:is(
+        .volt-reward-track,
+        .volt-reward-track-premium,
+        .volt-daily-tasks-air,
+        .volt-quests-air,
+        .volt-quest-details-air,
+        .volt-quest-completed-air
+    ) {
+    display: flex;
+    flex-direction: column;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    padding: calc(var(--volt-touch-header, 44px) + 3px) 3px 3px !important;
+    overflow: hidden !important;
+}
+
+html[data-volt-touch='on'] .draggable-window[data-volt-window='float'] .volt-card-shell:is(
+        .volt-reward-track,
+        .volt-daily-tasks-air,
+        .volt-quests-air
+    ) {
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: none !important;
+}
+
+html[data-volt-touch='on'] .draggable-window:is([data-volt-window='float'], [data-volt-window='dialog']) .volt-card-shell:is(
+        .volt-reward-track-premium,
+        .volt-quest-details-air,
+        .volt-quest-completed-air
+    ) {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: calc(var(--volt-visual-height, 100dvh) - 16px - var(--volt-safe-top) - var(--volt-safe-bottom)) !important;
+}
+
+html[data-volt-touch='on'] .draggable-window .volt-card-shell:is(
+        .volt-daily-tasks-air,
+        .volt-quests-air,
+        .volt-quest-details-air,
+        .volt-quest-completed-air
+    ).volt-card-frame-3 > .volt-card-header-shell .volt-card-close-button {
+    top: 0 !important;
+    right: 0 !important;
+}
+
+/* ---------- Reward Track (touch) ---------- */
+
+html[data-volt-touch='on'] .volt-reward-track .volt-reward-track-content.volt-card-content-shell {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 8px;
+    gap: 8px;
+    overflow: hidden;
+    color: #000;
+    font-family: HabboAirUbuntu, Ubuntu, sans-serif;
+}
+
+html[data-volt-touch='on'] .volt-reward-track :is(
+        .volt-rt-touch-header,
+        .volt-rt-touch-strip-panel,
+        .volt-rt-touch-tip,
+        .volt-rt-touch-tasks-pane,
+        .volt-rt-touch-detail-pane,
+        .volt-rt-touch-task,
+        .volt-rt-touch-task-reward,
+        .volt-rt-touch-level,
+        .volt-rt-touch-points-pill
+    ) {
+    position: relative;
+    isolation: isolate;
+}
+
+html[data-volt-touch='on'] .volt-reward-track :is(
+        .volt-rt-touch-header,
+        .volt-rt-touch-strip-panel,
+        .volt-rt-touch-tip,
+        .volt-rt-touch-tasks-pane,
+        .volt-rt-touch-detail-pane,
+        .volt-rt-touch-task,
+        .volt-rt-touch-task-reward,
+        .volt-rt-touch-level,
+        .volt-rt-touch-points-pill
+    )::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border: 5px solid transparent;
+    border-image: var(--rt-border) 5 fill / 5px stretch;
+    image-rendering: pixelated;
+    pointer-events: none;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-header {
+    --rt-border: var(--rt-border-light);
+    display: flex;
+    flex-direction: column;
+    flex: none;
+    gap: 8px;
+    padding: 8px 10px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-profile-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-avatar {
+    position: relative;
+    flex: none;
+    width: 50px;
+    height: 54px;
+    overflow: hidden;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-avatar > * {
+    position: absolute;
+    top: -18px;
+    left: -20px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 2px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-title {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-desc {
+    font-size: 12px;
+    line-height: 1.25;
+    color: #2b2b2b;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+html[data-volt-layout='phone-landscape'] .volt-reward-track .volt-rt-touch-desc {
+    display: none;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-stats {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    flex: none;
+    gap: 4px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-points-pill {
+    --rt-border: var(--rt-border-medium);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 8px;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-collected-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #2b2b2b;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-admin-btn {
+    position: relative;
+    isolation: isolate;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #222;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-admin-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border: 5px solid transparent;
+    border-image: url('../../assets/images/habbo-skin/touch/btn-default-h44.png') 5 fill / 5px stretch;
+    image-rendering: pixelated;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-admin-btn:active::before {
+    border-image-source: url('../../assets/images/habbo-skin/touch/btn-pressed-h44.png');
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-progress-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-main-bar {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 13px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-main-bar::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 6px solid transparent;
+    border-image: url('../../assets/images/reward-track/air/bar-main-bg.png') 6 fill / 6px stretch;
+    image-rendering: pixelated;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-main-bar-fill {
+    position: relative;
+    height: 13px;
+    min-width: 10px;
+    max-width: 100%;
+    border: 6px solid transparent;
+    border-image: url('../../assets/images/reward-track/air/bar-main-fill.png') 6 fill / 6px stretch;
+    image-rendering: pixelated;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-progress-label {
+    flex: none;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+/* Segmented switcher on phones */
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    flex: none;
+    gap: 8px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-tab {
+    position: relative;
+    isolation: isolate;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 0 10px;
+    border: 0;
+    background: transparent;
+    color: #333;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-tab::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border: 4px solid transparent;
+    border-image: url('../../assets/images/reward-track/air/tab-default.png') 4 fill / 4px stretch;
+    image-rendering: pixelated;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-tab[data-active='true'] {
+    color: #fff;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-tab[data-active='true']::before {
+    border-width: 5px 5px 6px;
+    border-image: var(--rt-tab-selected) 5 5 6 fill / 5px 5px 6px stretch;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-tab-badge {
+    position: relative;
+    isolation: isolate;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-tab-badge::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border: solid transparent;
+    border-width: 6px 6px 7px;
+    border-image: url('../../assets/images/reward-track/air/border-7-ee2924.png') 6 6 7 fill / 6px 6px 7px stretch;
+    image-rendering: pixelated;
+}
+
+/* Main scroll container inside the sheet/dock/float */
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-scroll {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    gap: 10px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+}
+
+/* Rewards horizontal strip */
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-rewards-section {
+    display: flex;
+    flex-direction: column;
+    flex: none;
+    gap: 8px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-strip-panel {
+    --rt-border: var(--rt-border-light);
+    overflow: hidden;
+    padding: 4px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-strip-sky {
+    position: absolute;
+    inset: 2px;
+    z-index: 0;
+    background: linear-gradient(#569bd3, #0023d6);
+    opacity: 0.1;
+    pointer-events: none;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-strip {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    padding-bottom: 4px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-tier-col {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 82px;
+    background: var(--rt-light);
+    border-right: 2px solid var(--rt-light-shade-20);
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-tier-head {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    height: 86px;
+    padding: 4px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.15;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-tier-head[data-tier='free'] {
+    background: rgba(249, 239, 224, 0.72);
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-tier-head[data-tier='premium'] {
+    background: rgba(241, 222, 247, 0.72);
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-tier-spacer {
+    height: 44px;
+    background: var(--rt-medium);
+    opacity: 0.65;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-milestone {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 auto;
+    min-width: 92px;
+    scroll-snap-align: start;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-milestone-slot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: 86px;
+    padding: 6px 4px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-milestone-slot[data-tier='free'] {
+    background: rgba(249, 239, 224, 0.45);
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-milestone-slot[data-tier='premium'] {
+    background: rgba(241, 222, 247, 0.45);
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-milestone-axis {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 44px;
+    background: rgba(255, 255, 255, 0.25);
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-axis-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 10px;
+    height: 13px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-axis-bar::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 6px solid transparent;
+    border-image: url('../../assets/images/reward-track/air/bar-main-bg.png') 6 fill / 6px stretch;
+    image-rendering: pixelated;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-axis-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 13px;
+    border: 6px solid transparent;
+    border-image: url('../../assets/images/reward-track/air/bar-main-fill.png') 6 fill / 6px stretch;
+    image-rendering: pixelated;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-axis-icon {
+    position: relative;
+    z-index: 1;
+    margin-top: 2px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-axis-points {
+    position: relative;
+    z-index: 1;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 14px;
+    margin-top: 2px;
+}
+
+/* Prize tile inside horizontal strip */
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-prize {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 68px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-prize:disabled {
+    cursor: default;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-prize-plate {
+    position: relative;
+    display: block;
+    width: 56px;
+    height: 56px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-prize-plate::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 6px solid transparent;
+    border-image: url('../../assets/images/reward-track/air/border-16-f9efe0.png') 6 fill / 6px stretch;
+    image-rendering: pixelated;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-prize[data-tier='premium'] .volt-rt-touch-prize-plate::before {
+    border-image-source: url('../../assets/images/reward-track/air/border-16-f1def7.png');
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-prize[data-dimmed='true'] .volt-rt-touch-prize-plate {
+    filter: brightness(0.78);
+    opacity: 0.72;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-prize:active:not(:disabled) .volt-rt-touch-prize-plate {
+    transform: translateY(1px);
+    filter: brightness(0.85);
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-prize-product {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    overflow: hidden;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-prize-product[data-shifted='true'] {
+    top: 4px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-prize-amount {
+    position: absolute;
+    left: 50%;
+    bottom: 3px;
+    transform: translateX(-50%);
+    padding: 0 5px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.65);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 15px;
+    white-space: nowrap;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-prize-lock {
+    position: absolute;
+    right: 2px;
+    bottom: 2px;
+    pointer-events: none;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-prize-check {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    pointer-events: none;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-prize-ready {
+    position: absolute;
+    left: 50%;
+    bottom: -2px;
+    transform: translateX(-50%);
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: #1a8c1a;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 14px;
+    white-space: nowrap;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+    pointer-events: none;
+}
+
+/* Rewards footer: claim button + upgrade/tip bar */
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-rewards-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-tip {
+    --rt-border: url('../../assets/images/reward-track/air/border-15-f5e1b9.png');
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-tip[data-upgrade='true'] {
+    --rt-border: url('../../assets/images/reward-track/air/border-15-f1def7.png');
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-tip p {
+    flex: 1 1 160px;
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-premium-btn {
+    min-height: 44px;
+    padding: 0 16px;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-action-btn,
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-back-btn {
+    position: relative;
+    isolation: isolate;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 16px;
+    border: 0;
+    background: transparent;
+    color: #000;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-action-btn::before,
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-back-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border: 5px solid transparent;
+    border-image: url('../../assets/images/habbo-skin/touch/btn-default-h44.png') 5 fill / 5px stretch;
+    image-rendering: pixelated;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-action-btn:active::before,
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-back-btn:active::before {
+    border-image-source: url('../../assets/images/habbo-skin/touch/btn-pressed-h44.png');
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-action-btn.is-claim {
+    width: 100%;
+    color: #fff;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-action-btn.is-claim::before {
+    border-image-source: url('../../assets/images/habbo-skin/touch/btn-green-default-h44.png');
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-action-btn.is-claim:active::before {
+    border-image-source: url('../../assets/images/habbo-skin/touch/btn-green-pressed-h44.png');
+}
+
+/* Tasks section */
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-tasks-section {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch[data-phone='false'] .volt-rt-touch-tasks-section {
+    grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+    align-items: start;
+}
+
+html[data-volt-touch='on'] .draggable-window[data-volt-window='dock'] .volt-reward-track .volt-rt-touch[data-phone='false'] .volt-rt-touch-tasks-section {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-tasks-pane,
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-detail-pane {
+    --rt-border: url('../../assets/images/reward-track/air/border-15-f0f0f0.png');
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    min-width: 0;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-tasks-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-tasks-title {
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-tasks-sub {
+    font-size: 12px;
+    color: #3c3c3c;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-filters {
+    display: flex;
+    gap: 6px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-filter {
+    position: relative;
+    isolation: isolate;
+    flex: 1 1 0;
+    min-height: 40px;
+    padding: 0 8px;
+    border: 0;
+    background: transparent;
+    color: #444;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-filter::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border: 4px solid transparent;
+    border-image: url('../../assets/images/reward-track/air/tab-default.png') 4 fill / 4px stretch;
+    image-rendering: pixelated;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-filter[data-active='true'] {
+    color: #fff;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-filter[data-active='true']::before {
+    border-width: 5px 5px 6px;
+    border-image: var(--rt-tab-selected) 5 5 6 fill / 5px 5px 6px stretch;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-task-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-task {
+    --rt-border: url('../../assets/images/reward-track/air/border-15-f0f0f0.png');
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 64px;
+    padding: 8px 10px;
+    border: 0;
+    background: transparent;
+    color: #000;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-task[data-selected='true'] {
+    --rt-border: var(--rt-border-active);
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-task-glyph {
+    position: relative;
+    flex: none;
+    width: 52px;
+    height: 50px;
+    overflow: hidden;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-task-glyph img,
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-detail-glyph img {
+    position: absolute;
+    max-width: none;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-task-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 3px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-task-name {
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-task-desc {
+    font-size: 12px;
+    line-height: 1.25;
+    color: #333;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-task-prog {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 2px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-task-count {
+    flex: none;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-task-reward {
+    --rt-border: url('../../assets/images/reward-track/air/border-15-f0f0f0.png');
+    display: inline-flex;
+    align-items: center;
+    flex: none;
+    gap: 4px;
+    height: 32px;
+    padding: 0 8px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-task-chevron {
+    flex: none;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1;
+    color: #555;
+}
+
+/* Fluid mini progress bar */
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-mini-bar {
+    position: relative;
+    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
+    width: 100%;
+    height: 9px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-mini-bar::before,
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-mini-bar-fill::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 3px solid transparent;
+    border-image: url('../../assets/images/reward-track/air/bar-task-bg.png') 3 fill / 3px stretch;
+    image-rendering: pixelated;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-mini-bar-fill {
+    position: relative;
+    display: block;
+    height: 9px;
+    min-width: 6px;
+    max-width: 100%;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-mini-bar-fill::before {
+    border-image-source: url('../../assets/images/reward-track/air/bar-task-fill.png');
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-mini-bar-fill[data-complete='true']::before {
+    border-image-source: url('../../assets/images/reward-track/air/bar-task-fill-complete.png');
+}
+
+/* Task detail pane */
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-back-btn {
+    align-self: flex-start;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-detail-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-detail-glyph {
+    position: relative;
+    flex: none;
+    width: 56px;
+    height: 56px;
+    overflow: hidden;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-detail-meta {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 3px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-detail-name {
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-detail-desc {
+    font-size: 13px;
+    line-height: 1.35;
+    color: #2b2b2b;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-levels-head {
+    padding-top: 4px;
+    border-top: 2px solid #d6d5d3;
+    color: #124b8b;
+    font-size: 13px;
+    font-weight: 700;
+    text-shadow: 1px 1px 0 #fff;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-levels {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-level {
+    --rt-border: url('../../assets/images/reward-track/air/border-15-e3e3e3.png');
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    min-height: 52px;
+    padding: 8px 10px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-level[data-active='true'] {
+    --rt-border: var(--rt-border-active);
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-level-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-level-name {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-level-count {
+    font-size: 12px;
+    color: #333;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-level-end {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-level-reward {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-hint {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-hint::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border: 10px solid transparent;
+    border-image: url('../../assets/images/reward-track/air/border-14-e9e9e9.png') 10 fill / 10px stretch;
+    image-rendering: pixelated;
+    pointer-events: none;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-hint-frank {
+    flex: none;
+    width: 52px;
+    height: 64px;
+    object-fit: none;
+    object-position: 0 0;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-hint-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 6px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-hint-label {
+    color: #124b8b;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-hint-text {
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-rt-touch-hint-body .volt-rt-touch-action-btn {
+    align-self: flex-start;
+}
+
+/* Touch fallback for RewardTrackScrollList if mounted */
+html[data-volt-touch='on'] .volt-reward-track .volt-reward-track-task-list.is-touch {
+    position: relative;
+    left: auto;
+    top: auto;
+    width: 100%;
+    height: auto;
+}
+
+html[data-volt-touch='on'] .volt-reward-track .volt-reward-track-task-list.is-touch .volt-reward-track-scroll-viewport {
+    width: 100%;
+    height: auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ---------- Reward Track Premium Confirm (touch) ---------- */
+
+html[data-volt-touch='on'] .volt-reward-track-premium .volt-reward-track-premium-content.volt-card-content-shell {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 12px !important;
+    gap: 12px;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-premium .volt-reward-track-premium-body {
+    position: static;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: auto;
+    gap: 10px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-premium .volt-reward-track-premium-panel {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    height: auto;
+    padding: 10px 12px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-premium .volt-reward-track-premium-frame {
+    position: relative;
+    left: auto;
+    top: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 78px;
+    height: 66px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-premium .volt-reward-track-premium-frame img {
+    position: static;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-premium .volt-reward-track-premium-panel-name,
+html[data-volt-touch='on'] .volt-reward-track-premium .volt-reward-track-premium-panel-info {
+    position: static;
+    width: auto;
+    height: auto;
+    text-align: left;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-premium .volt-reward-track-premium-panel-name {
+    font-size: 16px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-premium .volt-reward-track-premium-panel-info {
+    font-size: 13px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-premium .volt-reward-track-premium-benefits {
+    position: static;
+    width: 100%;
+    gap: 6px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-premium .volt-reward-track-premium-gap {
+    display: none;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-premium .volt-reward-track-premium-desc {
+    width: 100%;
+    height: auto;
+    font-size: 13px;
+    line-height: 1.35;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-premium .volt-reward-track-premium-benefit {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    height: auto;
+    min-height: 36px;
+    padding: 6px 10px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-premium .volt-reward-track-premium-benefit img {
+    position: static;
+    flex: none;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-premium .volt-reward-track-premium-benefit span {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    white-space: normal;
+    font-size: 13px;
+    line-height: 1.3;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-premium .volt-reward-track-premium-cost {
+    position: relative;
+    top: auto;
+    left: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: auto;
+    min-height: 44px;
+    padding: 8px 12px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-premium .volt-reward-track-premium-cost > span:first-child,
+html[data-volt-touch='on'] .volt-reward-track-premium .volt-reward-track-premium-price {
+    position: static;
+    height: auto;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-premium .volt-reward-track-premium-buttons {
+    position: static;
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    height: auto;
+    margin-top: auto;
+    padding-top: 4px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-premium .volt-reward-track-premium-buttons .volt-reward-track-btn {
+    flex: 1 1 0;
+    width: auto;
+    min-height: 44px;
+    height: 44px;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+/* ---------- Reward Track Admin & Modal (touch) ---------- */
+
+html[data-volt-touch='on'] .volt-reward-track-admin-host {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-admin {
+    width: 100%;
+    max-width: 100%;
+    padding: 10px;
+    gap: 10px;
+    font-size: 14px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-admin-toolbar {
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-admin-body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+}
+
+html[data-volt-layout='tablet-landscape'] .draggable-window[data-volt-window='float'] .volt-reward-track-admin-body {
+    grid-template-columns: 240px minmax(0, 1fr);
+}
+
+html[data-volt-touch='on'] .volt-reward-track-admin-panel-head {
+    flex-wrap: wrap;
+    min-height: 44px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-admin-panel-actions {
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-admin-chevron {
+    width: 32px;
+    height: 32px;
+    font-size: 15px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-admin-filters {
+    gap: 6px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-admin-filter {
+    min-height: 40px;
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-admin-track {
+    min-height: 52px;
+    padding: 8px 10px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-admin-btn {
+    min-height: 44px !important;
+    padding: 0 14px !important;
+    font-size: 14px !important;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-admin-arrow {
+    width: 36px;
+    height: 36px;
+    font-size: 13px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-admin input:not([type='checkbox']),
+html[data-volt-touch='on'] .volt-reward-track-admin select {
+    min-height: 44px;
+    padding: 8px 10px;
+    font-size: 15px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-admin input[type='checkbox'] {
+    width: 22px;
+    height: 22px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-admin-toggle-field {
+    min-height: 44px;
+    gap: 10px;
+    font-size: 14px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-admin-grid,
+html[data-volt-touch='on'] .volt-reward-track-admin-grid.is-3,
+html[data-volt-touch='on'] .volt-reward-track-admin-grid.is-5 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+html[data-volt-device='phone'] .volt-reward-track-admin-grid,
+html[data-volt-device='phone'] .volt-reward-track-admin-grid.is-3,
+html[data-volt-device='phone'] .volt-reward-track-admin-grid.is-5 {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+html[data-volt-device='phone'] .volt-reward-track-admin-field {
+    grid-column: auto !important;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-admin-table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    font-size: 13px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-admin-table td,
+html[data-volt-touch='on'] .volt-reward-track-admin-table th {
+    padding: 8px 6px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-admin-table.is-levels input:not([type='checkbox']) {
+    width: 100%;
+    min-width: 78px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-admin-text-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-admin-furni-results {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+html[data-volt-touch='on'] .volt-reward-track-admin-furni-match {
+    min-height: 44px;
+    padding: 6px;
+    font-size: 13px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-admin-overlay {
+    padding: max(8px, var(--volt-safe-top)) max(8px, var(--volt-safe-right)) max(8px, var(--volt-safe-bottom)) max(8px, var(--volt-safe-left));
+}
+
+html[data-volt-touch='on'] .volt-reward-track-admin-modal {
+    width: 100% !important;
+    max-width: min(640px, calc(100vw - 16px - var(--volt-safe-left) - var(--volt-safe-right))) !important;
+    max-height: calc(var(--volt-visual-height, 100dvh) - 16px - var(--volt-safe-top) - var(--volt-safe-bottom)) !important;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-admin-modal-head {
+    min-height: 44px;
+    padding: 0 44px;
+    font-size: 15px;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-admin-modal-head .volt-card-close-button {
+    position: absolute !important;
+    top: 0 !important;
+    right: 0 !important;
+    width: 38px !important;
+    height: 44px !important;
+    background: url('../../assets/images/habbo-skin/touch/close-touch.png') left 4px center / 27px 28px no-repeat !important;
+    transform: none !important;
+}
+
+html[data-volt-touch='on'] .volt-reward-track-admin-modal-body {
+    padding: 12px;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+}
+
+/* ---------- Daily Tasks (touch) ---------- */
+
+html[data-volt-touch='on'] .volt-daily-tasks-air .air-dt-touch-content.volt-card-content-shell {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 0;
+    margin: 0;
+    padding: 0 !important;
+    background: #e9e9e1;
+    overflow: hidden;
+}
+
+html[data-volt-touch='on'] .air-dt-touch-top-bar {
+    display: flex;
+    justify-content: flex-end;
+    flex: none;
+    padding: 10px 10px 0;
+}
+
+html[data-volt-touch='on'] .air-dt-touch-unclaimed-btn {
+    position: relative;
+    isolation: isolate;
+    min-height: 44px;
+    padding: 0 16px;
+    border: 0;
+    background: transparent;
+    color: #000;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+html[data-volt-touch='on'] .air-dt-touch-unclaimed-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border: 5px solid transparent;
+    border-image: url('../../assets/images/habbo-skin/touch/btn-default-h44.png') 5 fill / 5px stretch;
+    image-rendering: pixelated;
+}
+
+html[data-volt-touch='on'] .air-dt-touch-unclaimed-btn:active::before {
+    border-image-source: url('../../assets/images/habbo-skin/touch/btn-pressed-h44.png');
+}
+
+html[data-volt-touch='on'] .air-dt-touch-list {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    gap: 10px;
+    padding: 10px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+}
+
+html[data-volt-touch='on'] .air-dt-touch-task {
+    position: relative;
+    width: 100%;
+    min-height: 52px;
+    padding: 8px;
+}
+
+html[data-volt-touch='on'] .air-dt-touch-inner {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+html[data-volt-touch='on'] .air-dt-touch-head {
+    width: 100%;
+}
+
+html[data-volt-touch='on'] .air-dt-touch-name {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 36px;
+    padding: 4px 8px 4px 12px;
+    --air-dt-fill: var(--air-dt-bar);
+}
+
+html[data-volt-touch='on'] .air-dt-touch-title {
+    position: relative;
+    z-index: 1;
+    flex: 1 1 auto;
+    min-width: 0;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+html[data-volt-touch='on'] .air-dt-touch-hint-btn {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 36px;
+    height: 36px;
+    margin: -4px -2px;
+    border: 0;
+    background: transparent;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+html[data-volt-touch='on'] .air-dt-touch-hint-box {
+    padding: 8px 10px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.7);
+    color: #1f1f1f;
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+html[data-volt-touch='on'] .air-dt-touch-body {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+html[data-volt-touch='on'] .air-dt-touch-image {
+    flex: none;
+    width: 64px;
+    height: 64px;
+    object-fit: none;
+    object-position: center;
+    image-rendering: pixelated;
+}
+
+html[data-volt-touch='on'] .air-dt-touch-desc-col {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 6px;
+}
+
+html[data-volt-touch='on'] .air-dt-touch-desc {
+    margin: 0;
+    color: #000;
+    font-size: 13px;
+    line-height: 1.35;
+}
+
+html[data-volt-touch='on'] .air-dt-touch-complete {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #24850b;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+html[data-volt-touch='on'] .air-dt-touch-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+html[data-volt-touch='on'] .air-dt-touch-rewards-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+html[data-volt-touch='on'] .air-dt-touch-reward-label {
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: var(--air-dt-reward-bar);
+    color: rgba(0, 0, 0, 0.72);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+html[data-volt-touch='on'] .air-dt-touch-rewards {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+html[data-volt-touch='on'] .air-dt-touch-reward {
+    position: relative;
+    width: 44px;
+    height: 48px;
+}
+
+html[data-volt-touch='on'] .air-dt-touch-reward-icon {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    margin: 0 auto;
+}
+
+html[data-volt-touch='on'] .air-dt-touch-reward-amount {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+    padding: 0 5px;
+    border-radius: 3px;
+    background: rgba(80, 80, 80, 0.9);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 15px;
+    white-space: nowrap;
+}
+
+html[data-volt-touch='on'] .air-dt-touch-action {
+    flex: 1 1 130px;
+    min-width: 120px;
+    max-width: 220px;
+    margin-left: auto;
+}
+
+html[data-volt-touch='on'] .air-dt-touch-progress {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 28px;
+    border: 2px solid #2c2c2c;
+    border-radius: 4px;
+    background: #3d3d3d;
+    overflow: hidden;
+}
+
+html[data-volt-touch='on'] .air-dt-touch-progress-fill {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    background: linear-gradient(180deg, #5cc13b 0%, #3a9622 100%);
+}
+
+html[data-volt-touch='on'] .air-dt-touch-progress-text {
+    position: relative;
+    z-index: 1;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.55);
+}
+
+html[data-volt-touch='on'] .air-dt-touch-claim,
+html[data-volt-touch='on'] .air-dt-touch-hc-btn {
+    position: relative;
+    isolation: isolate;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 16px;
+    border: 0;
+    background: transparent;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+html[data-volt-touch='on'] .air-dt-touch-claim {
+    width: 100%;
+}
+
+html[data-volt-touch='on'] .air-dt-touch-claim::before,
+html[data-volt-touch='on'] .air-dt-touch-hc-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border: 5px solid transparent;
+    border-image: url('../../assets/images/habbo-skin/touch/btn-green-default-h44.png') 5 fill / 5px stretch;
+    image-rendering: pixelated;
+}
+
+html[data-volt-touch='on'] .air-dt-touch-claim:active:not(:disabled)::before,
+html[data-volt-touch='on'] .air-dt-touch-hc-btn:active::before {
+    border-image-source: url('../../assets/images/habbo-skin/touch/btn-green-pressed-h44.png');
+}
+
+html[data-volt-touch='on'] .air-dt-touch-claim:disabled {
+    cursor: default;
+    opacity: 0.65;
+}
+
+html[data-volt-touch='on'] .air-dt-touch-hc,
+html[data-volt-touch='on'] .air-quests-touch-hc {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    flex: none;
+    gap: 8px;
+    padding: 8px 12px;
+    border-top: 1px solid #c6c6bc;
+    background: #e9e9e1;
+}
+
+html[data-volt-touch='on'] .air-dt-touch-hc-text,
+html[data-volt-touch='on'] .air-quests-touch-hc-text {
+    flex: 1 1 180px;
+    color: #222;
+    font-size: 12px;
+    line-height: 1.3;
+}
+
+/* ---------- Quests & Quest Details (touch) ---------- */
+
+html[data-volt-touch='on'] .volt-quests-air .air-quests-touch-content.volt-card-content-shell,
+html[data-volt-touch='on'] .volt-quest-details-air .air-quest-details-touch-content.volt-card-content-shell {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 0;
+    margin: 0;
+    padding: 0 !important;
+    background: #e9e9e1;
+    overflow: hidden;
+}
+
+html[data-volt-touch='on'] .volt-quest-details-air .air-quest-details-touch-content.volt-card-content-shell {
+    padding: 10px !important;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+html[data-volt-touch='on'] .air-quests-touch-list {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    gap: 10px;
+    padding: 10px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+}
+
+html[data-volt-touch='on'] .air-quest-touch-entry {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-height: 52px;
+    gap: 4px;
+}
+
+html[data-volt-touch='on'] .air-quest-touch-campaign {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border: 2px solid #646464;
+    border-radius: 5px;
+    background: linear-gradient(180deg, #bababa 0%, #bababa 50%, #ababab 50%, #ababab 100%);
+}
+
+html[data-volt-touch='on'] .air-quest-touch-entry[data-accepted='true'] .air-quest-touch-campaign {
+    border-color: #c29d3b;
+    background: linear-gradient(180deg, #ffd788 0%, #ffd788 50%, #ffc758 50%, #ffc758 100%);
+}
+
+html[data-volt-touch='on'] .air-quest-touch-campaign-img {
+    flex: none;
+    width: 60px;
+    height: 48px;
+    object-fit: none;
+    object-position: center;
+    image-rendering: pixelated;
+}
+
+html[data-volt-touch='on'] .air-quest-touch-campaign-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    color: #000;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+html[data-volt-touch='on'] .air-quest-touch-counter {
+    flex: none;
+    padding: 3px 9px;
+    border-radius: 10px;
+    background: #646464;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+html[data-volt-touch='on'] .air-quest-touch-counter[data-style='blue'] {
+    background: #2f7db3;
+}
+
+html[data-volt-touch='on'] .air-quest-touch-counter[data-style='green'] {
+    background: #2c8f22;
+}
+
+html[data-volt-touch='on'] .air-quest-touch-block {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    padding: 8px;
+    --air-round-outline: #5d5d5a;
+    --air-round-fill: #c8c8c8;
+}
+
+html[data-volt-touch='on'] .air-quest-touch-block[data-accepted='true'] {
+    --air-round-fill: #f3deb8;
+}
+
+html[data-volt-touch='on'] .air-quest-touch-block > * {
+    position: relative;
+    z-index: 1;
+}
+
+html[data-volt-touch='on'] .air-quest-touch-block-header {
+    position: relative;
+    padding: 6px 10px;
+    --air-round-outline: #505050;
+    --air-round-fill: #8d8d8d;
+    color: #373737;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+html[data-volt-touch='on'] .air-quest-touch-block[data-accepted='true'] .air-quest-touch-block-header {
+    --air-round-outline: #61594a;
+    --air-round-fill: #edb23a;
+    color: #fff;
+}
+
+html[data-volt-touch='on'] .air-quest-touch-block-header > span {
+    position: relative;
+    z-index: 1;
+}
+
+html[data-volt-touch='on'] .air-quest-touch-body,
+html[data-volt-touch='on'] .air-quest-touch-completed-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+html[data-volt-touch='on'] .air-quest-touch-image {
+    flex: none;
+    width: 68px;
+    height: 60px;
+    object-fit: none;
+    object-position: center;
+    image-rendering: pixelated;
+}
+
+html[data-volt-touch='on'] .air-quest-touch-completed-img {
+    flex: none;
+    width: 53px;
+    height: 57px;
+    image-rendering: pixelated;
+}
+
+html[data-volt-touch='on'] .air-quest-touch-copy {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 6px;
+}
+
+html[data-volt-touch='on'] .air-quest-touch-desc {
+    margin: 0;
+    color: #1a1a1a;
+    font-size: 13px;
+    line-height: 1.35;
+}
+
+html[data-volt-touch='on'] .air-quest-touch-hint {
+    margin: 0;
+    padding: 6px 8px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.65);
+    color: #222;
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+html[data-volt-touch='on'] .air-quest-touch-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+html[data-volt-touch='on'] .air-quest-touch-reward {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: #000;
+    font-size: 13px;
+}
+
+html[data-volt-touch='on'] .air-quest-touch-accept {
+    position: relative;
+    isolation: isolate;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 16px;
+    margin-left: auto;
+    border: 0;
+    background: transparent;
+    color: #000;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+html[data-volt-touch='on'] .air-quest-touch-accept::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border: 5px solid transparent;
+    border-image: url('../../assets/images/habbo-skin/touch/btn-thick-h44.png') 5 fill / 5px stretch;
+    image-rendering: pixelated;
+}
+
+html[data-volt-touch='on'] .air-quest-touch-accept:active::before {
+    filter: brightness(0.88);
+}
+
+html[data-volt-touch='on'] .air-quest-touch-cancel {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 12px;
+    margin-left: auto;
+    border: 0;
+    background: transparent;
+    color: #1f1f1f;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+/* ---------- Quest Completed (touch dialog) ---------- */
+
+html[data-volt-touch='on'] .volt-quest-completed-air .air-qc-touch-content.volt-card-content-shell {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: auto;
+    margin: 0;
+    padding: 0 !important;
+    background: #e9e9e1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+html[data-volt-touch='on'] .air-qc-touch-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 14px;
+    background: #7d7da6;
+    color: #fff;
+}
+
+html[data-volt-touch='on'] .air-qc-touch-art {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 109px;
+    height: 109px;
+    overflow: hidden;
+}
+
+html[data-volt-touch='on'] .air-qc-touch-icon,
+html[data-volt-touch='on'] .air-qc-touch-star,
+html[data-volt-touch='on'] .air-qc-touch-campaign {
+    image-rendering: pixelated;
+    object-fit: none;
+    object-position: center;
+}
+
+html[data-volt-touch='on'] .air-qc-touch-star {
+    width: 109px;
+    height: 109px;
+}
+
+html[data-volt-touch='on'] .air-qc-touch-campaign {
+    position: absolute;
+    width: 84px;
+    height: 72px;
+}
+
+html[data-volt-touch='on'] .air-qc-touch-copy {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 6px;
+}
+
+html[data-volt-touch='on'] .air-qc-touch-heading {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+html[data-volt-touch='on'] .air-qc-touch-desc {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.35;
+}
+
+html[data-volt-touch='on'] .air-qc-touch-reward {
+    font-size: 13px;
+    line-height: 1.3;
+}
+
+html[data-volt-touch='on'] .air-qc-touch-reward strong {
+    color: #7adde9;
+    font-weight: 700;
+}
+
+html[data-volt-touch='on'] .air-qc-touch-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px;
+}
+
+html[data-volt-touch='on'] .air-qc-touch-primary {
+    position: relative;
+    isolation: isolate;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 44px;
+    padding: 0 16px;
+    border: 0;
+    background: transparent;
+    color: #000;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+html[data-volt-touch='on'] .air-qc-touch-primary::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border: 5px solid transparent;
+    border-image: url('../../assets/images/habbo-skin/touch/btn-thick-h44.png') 5 fill / 5px stretch;
+    image-rendering: pixelated;
+}
+
+html[data-volt-touch='on'] .air-qc-touch-primary:active::before {
+    filter: brightness(0.88);
+}
+
+html[data-volt-touch='on'] .air-qc-touch-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 0;
+    background: transparent;
+    color: #1f1f1f;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+/* ---------- Quest Tracker (touch right-side extension) ---------- */
+
+html[data-volt-touch='on'] .air-quest-tracker {
+    margin-right: 0;
+    max-width: 100%;
+}
+
+html[data-volt-device='phone'] .air-quest-tracker {
+    animation: none;
+}
+
+/* Expand the Details hit area to 44px while keeping the label at the exact AIR pixel row. */
+html[data-volt-touch='on'] .air-quest-tracker-details {
+    top: 88px;
+    height: 44px;
+}
+
+html[data-volt-touch='on'] .air-quest-tracker-details .air-achievement-text {
+    top: 21px !important;
+}

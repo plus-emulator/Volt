@@ -1,6 +1,15 @@
 import { CreateLinkEvent, GetLocalizationManager } from '@volt/renderer';
 import { CSSProperties, FC, useEffect, useState } from 'react';
-import { getCampaignImageUrl, getCampaignName, getQuestCompletedText, getQuestingImageUrl, isQuestRewardVisible, localizeWithFallback } from '../../api';
+import {
+    getCampaignImageUrl,
+    getCampaignName,
+    getQuestCompletedText,
+    getQuestingImageUrl,
+    IsTouchLayout,
+    isQuestRewardVisible,
+    localizeWithFallback,
+    useVoltLayout
+} from '../../api';
 import { VoltCardHeaderView, VoltCardView } from '../../common';
 import { NativeText } from '../../common/native-text/NativeText';
 import { useQuests } from '../../hooks';
@@ -50,6 +59,7 @@ const RewardRun: FC<{ text: string; order: number; bold?: boolean; color: number
  * "next quest" button or, for the last quest of a campaign, the "more quests" button.
  */
 export const QuestCompletedView: FC<{}> = () => {
+    const isTouch = IsTouchLayout(useVoltLayout());
     const { completion = null, requestNextQuest = null, clearCompletion = null } = useQuests();
     const [visibleFor, setVisibleFor] = useState<number>(0);
     const [position, setPosition] = useState<{ x: number; y: number }>(null);
@@ -103,6 +113,71 @@ export const QuestCompletedView: FC<{}> = () => {
         .replace(/<[^>]+>/g, '')
         .split('%amount%');
 
+    const title = lastQuestInCampaign
+        ? localizeWithFallback('quests.completed.campaign.title', '%category% Quests Completed', ['category'], [campaignName])
+        : localizeWithFallback('quests.completed.quest.title', '%category% Quest Completed', ['category'], [campaignName]);
+    const heading = lastQuestInCampaign
+        ? localizeWithFallback('quests.completed.campaign.caption', 'Congratulations!')
+        : localizeWithFallback('quests.completed.quest.caption', 'Well done!');
+
+    if (isTouch) {
+        return (
+            <VoltCardView
+                className="volt-quest-completed-air"
+                uniqueKey="quest-completed"
+                frameStyle={3}
+                isResizable={false}
+                touchPresentation="dialog"
+                initialPosition={position}
+                onPositionChange={setPosition}
+                unconstrainedPosition
+            >
+                <VoltCardHeaderView headerText={title} onCloseClick={onNextQuest} />
+                <div className="air-qc-touch-content volt-card-content-shell">
+                    <div className="air-qc-touch-banner">
+                        <div className="air-qc-touch-art">
+                            {lastQuestInCampaign ? (
+                                <>
+                                    <img className="air-qc-touch-star" src={getQuestingImageUrl('ach_receive_star')} alt="" draggable={false} />
+                                    <img className="air-qc-touch-campaign" src={getCampaignImageUrl(quest.campaignCode)} alt="" draggable={false} />
+                                </>
+                            ) : (
+                                <img className="air-qc-touch-icon" src={getQuestingImageUrl('quest_doneicon')} alt="" draggable={false} />
+                            )}
+                        </div>
+                        <div className="air-qc-touch-copy">
+                            <div className="air-qc-touch-heading">{heading}</div>
+                            <p className="air-qc-touch-desc">{getQuestCompletedText(quest)}</p>
+                            {rewardVisible && (
+                                <div className="air-qc-touch-reward">
+                                    <span>{rewardBefore}</span>
+                                    <strong>{quest.rewardCurrencyAmount}</strong>
+                                    <span>{rewardAfter}</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    <div className="air-qc-touch-actions">
+                        {lastQuestInCampaign ? (
+                            <button type="button" className="air-qc-touch-primary" onClick={onMoreQuests}>
+                                {localizeWithFallback('quests.campaigncompleted.more', 'More Quests')}
+                            </button>
+                        ) : (
+                            <button type="button" className="air-qc-touch-primary" onClick={onNextQuest}>
+                                {localizeWithFallback('quests.completed.next', 'Activate Next Quest')}
+                            </button>
+                        )}
+                        {!lastQuestInCampaign && rewardVisible && (
+                            <button type="button" className="air-qc-touch-link" onClick={onCatalog}>
+                                {localizeWithFallback('quests.completed.cataloglink', 'Go shopping with %currencyname%').replace('%currencyname%', currencyName)}
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </VoltCardView>
+        );
+    }
+
     return (
         <VoltCardView
             className="volt-quest-completed-air"
@@ -119,11 +194,7 @@ export const QuestCompletedView: FC<{}> = () => {
                     background={0x377998}
                     className={`air-quests-native-title${lastQuestInCampaign ? ' air-quests-native-title-campaign' : ''}`}
                     overrides={{ color: 0xffffff }}
-                    text={
-                        lastQuestInCampaign
-                            ? localizeWithFallback('quests.completed.campaign.title', '%category% Quests Completed', ['category'], [campaignName])
-                            : localizeWithFallback('quests.completed.quest.title', '%category% Quest Completed', ['category'], [campaignName])
-                    }
+                    text={title}
                     textStyle="u_frame_title"
                 />
             </VoltCardHeaderView>

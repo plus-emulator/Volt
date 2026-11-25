@@ -8,11 +8,13 @@ import {
     getQuestHint,
     getQuestingImageUrl,
     getQuestListImageUrl,
-    getQuestPromptFrameUrl,
-    QUESTS_WITH_PROMPTS,
     getQuestName,
+    getQuestPromptFrameUrl,
+    IsTouchLayout,
     isQuestRewardVisible,
-    localizeWithFallback
+    localizeWithFallback,
+    QUESTS_WITH_PROMPTS,
+    useVoltLayout
 } from '../../api';
 import { AchievementText, useAirFieldWidth } from '../achievements/AchievementText';
 import { QuestButton } from './QuestButton';
@@ -37,6 +39,7 @@ const rewardIconClass = (type: number) => ({ [-1]: 'credit', 0: 'ducket', 5: 'di
  */
 export const QuestEntryView: FC<QuestEntryViewProps> = (props) => {
     const { quest, showHint = false, onAccept = null, onReject = null, onBlockHeight = null } = props;
+    const isTouch = IsTouchLayout(useVoltLayout());
     const [hintHeight, setHintHeight] = useState(0);
     const onHintHeight = useCallback(
         (rasterHeight: number) => {
@@ -61,6 +64,78 @@ export const QuestEntryView: FC<QuestEntryViewProps> = (props) => {
     const amountText = String(quest.rewardCurrencyAmount);
     const captionWidth = useAirFieldWidth(rewardCaption);
     const amountWidth = useAirFieldWidth(amountText, 12, true);
+
+    if (isTouch) {
+        return (
+            <div className="air-quest-touch-entry" data-accepted={accepted} data-completed={completedCampaign}>
+                <div className="air-quest-touch-campaign">
+                    <img
+                        className="air-quest-touch-campaign-img"
+                        src={getCampaignImageUrl(quest.campaignCode)}
+                        alt=""
+                        draggable={false}
+                        onError={(event) => {
+                            event.currentTarget.style.visibility = 'hidden';
+                        }}
+                    />
+                    <span className="air-quest-touch-campaign-name">{getCampaignName(quest.campaignCode)}</span>
+                    <span className="air-quest-touch-counter" data-style={counterStyle}>
+                        {quest.completedQuestsInCampaign}/{quest.questCountInCampaign}
+                    </span>
+                </div>
+                {completedCampaign ? (
+                    <div className="air-quest-touch-block air-quest-round" data-accepted={false}>
+                        <div className="air-quest-touch-completed-row">
+                            <p className="air-quest-touch-desc">
+                                {localizeWithFallback('quests.list.completed', 'You have completed all the quests in this category.')}
+                            </p>
+                            <img className="air-quest-touch-completed-img" src={getQuestingImageUrl('category_completed')} alt="" draggable={false} />
+                        </div>
+                    </div>
+                ) : (
+                    <div className="air-quest-touch-block air-quest-round" data-accepted={accepted}>
+                        <div className="air-quest-touch-block-header air-quest-round">
+                            <span>{getQuestName(quest)}</span>
+                        </div>
+                        <div className="air-quest-touch-body">
+                            <img
+                                className="air-quest-touch-image"
+                                src={showHint && QUESTS_WITH_PROMPTS.includes(quest.localizationCode.toUpperCase()) ? getQuestPromptFrameUrl(quest, 'a') : getQuestListImageUrl(quest)}
+                                alt=""
+                                draggable={false}
+                                onError={(event) => {
+                                    event.currentTarget.style.visibility = 'hidden';
+                                }}
+                            />
+                            <div className="air-quest-touch-copy">
+                                <p className="air-quest-touch-desc">{getQuestDescription(quest)}</p>
+                                {hint.length > 0 && <p className="air-quest-touch-hint">{hint}</p>}
+                            </div>
+                        </div>
+                        <div className="air-quest-touch-footer">
+                            {rewardVisible && (
+                                <div className="air-quest-touch-reward">
+                                    <span>{rewardCaption}</span>
+                                    <b>{amountText}</b>
+                                    <span className={`air-quest-reward-icon air-quest-reward-icon--${rewardIconClass(quest.activityPointType)}`} />
+                                </div>
+                            )}
+                            {!accepted && (
+                                <button type="button" className="air-quest-touch-accept" onClick={() => onAccept(quest)}>
+                                    {localizeWithFallback('quests.list.accept', 'Activate quest')}
+                                </button>
+                            )}
+                            {accepted && (
+                                <button type="button" className="air-quest-touch-cancel" onClick={() => onReject(quest)}>
+                                    {localizeWithFallback('quests.list.reject', 'Cancel Quest')}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
 
     return (
         <div className="air-quest-entry" data-accepted={accepted} data-completed={completedCampaign} style={{ '--air-quest-extra': `${extra}px`, '--air-quest-extra-floor': `${Math.floor(extra / 2)}px`, '--air-quest-extra-ceil': `${Math.ceil(extra / 2)}px` } as CSSProperties}>
