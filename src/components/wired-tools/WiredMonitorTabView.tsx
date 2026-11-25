@@ -1,5 +1,5 @@
 import { FC, useEffect, useState } from 'react';
-import { localizeWithFallback } from '../../api';
+import { IsTouchLayout, localizeWithFallback, useVoltLayout } from '../../api';
 import monitorElementOne from '../../assets/images/wired/native/menu_monitor_1.png';
 import monitorElementTwo from '../../assets/images/wired/native/menu_monitor_2.png';
 import { ClassicScrollAreaView } from '../../common';
@@ -65,8 +65,68 @@ const WiredMonitorStatLine: FC<{ stat: MonitorStat }> = ({ stat }) => {
 /** The "Monitor" tab (monitor_container of wired_menu_view): statistics, the monitor picture and the error log table. */
 export const WiredMonitorTabView = (props: WiredMonitorTabViewProps) => {
     const { loading, canClear, canOpenLogs, monitorStats, monitorLogs, onOpenRoomLogs, onClearMonitorLogs, onOpenMonitorErrorInfo } = props;
+    const isTouch = IsTouchLayout(useVoltLayout());
     // updateImageUI: Frank panics on a heavy room, any non-green figure or any thrown error; image 2 is the layout default.
     const panicking = loading || monitorStats.some((stat) => stat.alarm && stat.color && stat.color !== MONITOR_COLOR_GREEN) || monitorLogs.some((log) => log.amount !== '0');
+
+    const logColumns = [
+        { key: 'type', title: localizeWithFallback('wiredmenu.monitor.column.type', 'Type'), factor: 0.33 },
+        { key: 'category', title: localizeWithFallback('wiredmenu.monitor.column.category', 'Category'), factor: 0.22 },
+        { key: 'amount', title: localizeWithFallback('wiredmenu.monitor.column.occurrences', 'Amount'), factor: 0.15 },
+        { key: 'latest', title: localizeWithFallback('wiredmenu.monitor.column.latest', 'Latest occurrence'), factor: 0.3 }
+    ];
+    const logRows = monitorLogs.map((log, index) => ({
+        key: `${log.errorId}-${index}`,
+        cells: { type: log.type, category: log.category, amount: log.amount, latest: log.latest },
+        cellTitles: { latest: log.latestTooltip },
+        links: { type: () => onOpenMonitorErrorInfo(log) }
+    }));
+
+    if (isTouch) {
+        return (
+            <div className="volt-wt-tab-root volt-wt-monitor">
+                <div className="volt-wt-scroll-area">
+                    <div className="volt-wt-section">
+                        <WiredMenuTitle x={0} y={0}>
+                            {localizeWithFallback('wiredmenu.monitor.statistics', 'Statistics:')}
+                        </WiredMenuTitle>
+                        <div className="volt-wt-monitor-top">
+                            <WiredMenuPanel className="volt-wt-stats" x={0} y={0}>
+                                {monitorStats.map((stat) => (
+                                    <div key={stat.label} className="volt-wt-stat-row">
+                                        <span className="volt-wt-stat-label">{stat.label}</span>
+                                        {!!stat.value && (
+                                            <span className="volt-wt-stat-value" style={stat.color ? { color: `#${stat.color}` } : undefined}>
+                                                {stat.value}
+                                            </span>
+                                        )}
+                                    </div>
+                                ))}
+                            </WiredMenuPanel>
+                            <div className="volt-wt-monitor-art">
+                                <img alt="" draggable={false} src={panicking ? monitorElementTwo : monitorElementOne} />
+                            </div>
+                        </div>
+                    </div>
+                    <div className="volt-wt-section volt-wt-section--grow">
+                        <WiredMenuTitle x={0} y={0}>
+                            {localizeWithFallback('wiredmenu.monitor.log', 'Logs:')}
+                        </WiredMenuTitle>
+                        <WiredMenuTable columns={logColumns} rows={logRows} w={472} x={0} y={0} />
+                    </div>
+                </div>
+                <div className="volt-wt-sticky-bar">
+                    <WiredMenuButton danger={true} disabled={!canClear} x={0} y={0} onClick={onClearMonitorLogs}>
+                        {localizeWithFallback('wiredmenu.monitor.clear_all', 'Clear all')}
+                    </WiredMenuButton>
+                    <WiredMenuButton disabled={!canOpenLogs} x={0} y={0} onClick={onOpenRoomLogs}>
+                        {localizeWithFallback('wiredmenu.monitor.log_overview', 'View full logs')}
+                    </WiredMenuButton>
+                </div>
+                {loading && <div className="volt-wt-loading" />}
+            </div>
+        );
+    }
 
     return (
         <>
@@ -89,24 +149,7 @@ export const WiredMonitorTabView = (props: WiredMonitorTabViewProps) => {
             <WiredMenuTitle h={19} w={106} x={14} y={152}>
                 {localizeWithFallback('wiredmenu.monitor.log', 'Logs:')}
             </WiredMenuTitle>
-            <WiredMenuTable
-                columns={[
-                    { key: 'type', title: localizeWithFallback('wiredmenu.monitor.column.type', 'Type'), factor: 0.33 },
-                    { key: 'category', title: localizeWithFallback('wiredmenu.monitor.column.category', 'Category'), factor: 0.22 },
-                    { key: 'amount', title: localizeWithFallback('wiredmenu.monitor.column.occurrences', 'Amount'), factor: 0.15 },
-                    { key: 'latest', title: localizeWithFallback('wiredmenu.monitor.column.latest', 'Latest occurrence'), factor: 0.3 }
-                ]}
-                h={156}
-                rows={monitorLogs.map((log, index) => ({
-                    key: `${log.errorId}-${index}`,
-                    cells: { type: log.type, category: log.category, amount: log.amount, latest: log.latest },
-                    cellTitles: { latest: log.latestTooltip },
-                    links: { type: () => onOpenMonitorErrorInfo(log) }
-                }))}
-                w={472}
-                x={14}
-                y={172}
-            />
+            <WiredMenuTable columns={logColumns} h={156} rows={logRows} w={472} x={14} y={172} />
             <WiredMenuButton danger={true} disabled={!canClear} h={30} w={110} x={14} y={337} onClick={onClearMonitorLogs}>
                 {localizeWithFallback('wiredmenu.monitor.clear_all', 'Clear all')}
             </WiredMenuButton>

@@ -1,1 +1,1551 @@
-/* TouchWiredTools */
+/* TouchWiredTools: phone and tablet layouts for Wired Creator Tools, Room Logs,
+   Transaction Logs, Array Inspector, Variable Owners/Holder, Self Donation,
+   Error Info, and Variables Explorer. All rules are gated under touch layout. */
+
+/* ---------- Window frames, headers and sizing ---------- */
+
+html[data-volt-touch='on'] .draggable-window :is(
+    .volt-wired-menu,
+    .volt-wired-logs,
+    .volt-wired-txlogs,
+    .volt-wired-varmanage,
+    .volt-wired-varmanage-detail,
+    .volt-wired-error-info
+).volt-card-shell.volt-card-frame-3 {
+    display: flex;
+    flex-direction: column;
+    padding: calc(var(--volt-touch-header) + 3px) 4px 4px !important;
+    font-family: HabboAirUbuntu, Ubuntu, Arial, sans-serif;
+    font-size: 14px;
+}
+
+html[data-volt-touch='on'] .draggable-window[data-volt-window='sheet'] :is(
+    .volt-wired-menu,
+    .volt-wired-logs,
+    .volt-wired-txlogs,
+    .volt-wired-varmanage,
+    .volt-wired-varmanage-detail
+).volt-card-shell.volt-card-frame-3 {
+    padding-bottom: max(4px, var(--volt-safe-bottom)) !important;
+}
+
+html[data-volt-touch='on'] .draggable-window .volt-wired-error-info.volt-card-shell.volt-card-frame-3 {
+    width: min(360px, calc(100vw - 16px)) !important;
+    min-width: 0 !important;
+    max-width: calc(100vw - 16px) !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: calc(var(--volt-visual-height, 100dvh) - 32px) !important;
+}
+
+html[data-volt-touch='on'] .draggable-window .volt-wired-varmanage-detail.volt-card-shell.volt-card-frame-3 > .volt-card-header-shell .volt-wired-varmanage-detail__help {
+    top: 0 !important;
+    right: 38px !important;
+    width: 34px !important;
+    height: var(--volt-touch-header) !important;
+    background: url('../../assets/images/habbo-skin/touch/help-touch.png') right 3px center / 27px 28px no-repeat !important;
+    image-rendering: pixelated;
+}
+
+html[data-volt-touch='on'] .draggable-window .volt-wired-varmanage-detail.volt-card-shell.volt-card-frame-3 > .volt-card-header-shell .volt-wired-varmanage-detail__help:active {
+    filter: brightness(0.85);
+}
+
+/* Non-frame-3 windows in Wired Tools & Variables Explorer use the same 44/48 px touch header and close sprite. */
+html[data-volt-touch='on'] .draggable-window .volt-card-shell.volt-wired-touch-card {
+    --volt-touch-header: 44px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    font-family: HabboAirUbuntu, Ubuntu, Arial, sans-serif;
+}
+
+html[data-volt-touch='on'] .draggable-window[data-volt-window='sheet']:not([data-volt-sheet-size='half']) .volt-card-shell.volt-wired-touch-card {
+    --volt-touch-header: 48px;
+}
+
+html[data-volt-touch='on'] .draggable-window .volt-card-shell.volt-wired-touch-card > .volt-card-header-shell {
+    flex: none;
+    height: var(--volt-touch-header) !important;
+    min-height: var(--volt-touch-header) !important;
+    max-height: var(--volt-touch-header) !important;
+    padding: 0 48px !important;
+    touch-action: none;
+}
+
+html[data-volt-touch='on'] .draggable-window .volt-card-shell.volt-wired-touch-card > .volt-card-header-shell .volt-card-title {
+    overflow: hidden;
+    font-size: 15px !important;
+    font-weight: 700;
+    line-height: 18px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+html[data-volt-touch='on'] .draggable-window .volt-card-shell.volt-wired-touch-card > .volt-card-header-shell .volt-card-close-button {
+    top: 0 !important;
+    right: 0 !important;
+    width: 38px !important;
+    height: var(--volt-touch-header) !important;
+    background: url('../../assets/images/habbo-skin/touch/close-touch.png') left 4px center / 27px 28px no-repeat !important;
+    image-rendering: pixelated;
+    transform: none !important;
+}
+
+html[data-volt-touch='on'] .draggable-window .volt-card-shell.volt-wired-touch-card > .volt-card-header-shell .volt-card-close-button:active {
+    filter: brightness(0.85) !important;
+}
+
+html[data-volt-touch='on'] .draggable-window[data-volt-window='dialog'] .volt-variables-explorer-bulk-delete.volt-card-shell {
+    width: min(380px, calc(100vw - 16px)) !important;
+    min-width: 0 !important;
+    max-width: calc(100vw - 16px) !important;
+}
+
+/* Tablet floating dimensions stay within the viewport instead of desktop 700-880 px widths. */
+html[data-volt-device='tablet'] .draggable-window[data-volt-window='float'] {
+    .volt-wired-menu.volt-card-shell {
+        width: min(560px, calc(100vw - 16px)) !important;
+        min-width: 0 !important;
+        max-width: calc(100vw - 16px) !important;
+        height: min(620px, calc(var(--volt-visual-height, 100dvh) - 100px)) !important;
+        min-height: 360px !important;
+        max-height: calc(var(--volt-visual-height, 100dvh) - 90px) !important;
+    }
+
+    :is(.volt-wired-logs, .volt-wired-txlogs, .volt-wired-varmanage).volt-card-shell {
+        width: min(700px, calc(100vw - 16px)) !important;
+        min-width: 0 !important;
+        max-width: calc(100vw - 16px) !important;
+        height: min(580px, calc(var(--volt-visual-height, 100dvh) - 100px)) !important;
+        min-height: 360px !important;
+        max-height: calc(var(--volt-visual-height, 100dvh) - 90px) !important;
+    }
+
+    .volt-wired-varmanage-detail.volt-card-shell {
+        width: min(420px, calc(100vw - 16px)) !important;
+        min-width: 0 !important;
+        max-width: calc(100vw - 16px) !important;
+        height: min(600px, calc(var(--volt-visual-height, 100dvh) - 100px)) !important;
+        min-height: 360px !important;
+        max-height: calc(var(--volt-visual-height, 100dvh) - 90px) !important;
+    }
+
+    :is(.volt-wired-array-inspector, .volt-variables-explorer-main).volt-card-shell {
+        width: min(620px, calc(100vw - 16px)) !important;
+        min-width: 0 !important;
+        max-width: calc(100vw - 16px) !important;
+        height: min(600px, calc(var(--volt-visual-height, 100dvh) - 100px)) !important;
+        max-height: calc(var(--volt-visual-height, 100dvh) - 90px) !important;
+    }
+
+    :is(.volt-wired-self-donation, .volt-variables-explorer-connect).volt-card-shell {
+        width: min(440px, calc(100vw - 16px)) !important;
+        min-width: 0 !important;
+        max-width: calc(100vw - 16px) !important;
+        height: min(560px, calc(var(--volt-visual-height, 100dvh) - 100px)) !important;
+        max-height: calc(var(--volt-visual-height, 100dvh) - 90px) !important;
+    }
+}
+
+/* ---------- Wired Creator Tools frame: tabs, teal header, body ---------- */
+
+html[data-volt-touch='on'] .volt-wired-menu {
+    .volt-wired-menu__client {
+        position: static;
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        width: 100%;
+        height: auto;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .volt-wired-menu__tabs {
+        position: relative;
+        top: auto;
+        left: auto;
+        display: flex;
+        flex: none;
+        flex-wrap: nowrap;
+        align-items: flex-end;
+        width: 100%;
+        min-height: 40px;
+        height: 40px;
+        padding: 0 4px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        background: #fff;
+        scrollbar-width: none;
+
+        &::-webkit-scrollbar {
+            display: none;
+        }
+
+        &::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            height: 1px;
+            background: #000;
+        }
+    }
+
+    .volt-wired-menu__tab,
+    .volt-wired-menu__tab:hover {
+        position: relative;
+        top: auto;
+        left: auto;
+        z-index: 1;
+        display: inline-flex;
+        flex: 0 0 auto;
+        align-items: center;
+        justify-content: center;
+        width: auto;
+        min-width: 84px;
+        height: 36px;
+        min-height: 36px;
+        margin: 0 -1px 0 0;
+        padding: 0 14px;
+        overflow: visible;
+        border: solid transparent;
+        border-width: 6px 9px 2px;
+        border-image: url('../../assets/images/habbo-skin/slices/tab-3-default.png') 6 9 2 9 fill / 6px 9px 2px 9px stretch;
+        background: transparent;
+        color: #222;
+        font-size: 14px;
+        font-weight: 400;
+        letter-spacing: 0;
+        line-height: 20px;
+        white-space: nowrap;
+        image-rendering: pixelated;
+    }
+
+    .volt-wired-menu__tab.is-active,
+    .volt-wired-menu__tab.is-active:hover {
+        z-index: 2;
+        height: 39px;
+        min-height: 39px;
+        border-width: 6px 9px 1px;
+        border-image: url('../../assets/images/habbo-skin/slices/tab-3-selected.png') 6 9 1 9 fill / 6px 9px 1px 9px stretch;
+        color: #000;
+        font-weight: 700;
+    }
+
+    .volt-wt-tab-label {
+        pointer-events: none;
+    }
+
+    .volt-wired-menu__header {
+        position: relative;
+        top: auto;
+        left: auto;
+        display: flex;
+        flex: none;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 38px;
+        padding: 0 38px 0 12px;
+        overflow: hidden;
+        background: #486f81;
+    }
+
+    .volt-wired-menu__header-inner {
+        inset: 2px;
+        width: auto;
+        height: auto;
+    }
+
+    .volt-wt-header-title {
+        position: relative;
+        z-index: 1;
+        overflow: hidden;
+        color: #fff;
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 20px;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+
+    .volt-wired-menu__discord {
+        top: 50%;
+        right: 8px;
+        left: auto;
+        z-index: 1;
+        transform: translateY(-50%);
+    }
+
+    .volt-wired-menu__body {
+        position: relative;
+        top: auto;
+        left: auto;
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        width: 100%;
+        height: auto;
+        min-height: 0;
+        overflow: hidden;
+        background: #e9e9e1;
+    }
+}
+
+/* ---------- Shared touch primitives (.volt-wt-*) ---------- */
+
+html[data-volt-touch='on'] :is(.volt-wired-logs__client, .volt-wired-txlogs__client, .volt-wired-varmanage__client).volt-wt-window-client {
+    position: static;
+    inset: auto;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    overflow: hidden;
+    background: #e9e9e1;
+    color: #000;
+}
+
+html[data-volt-touch='on'] .volt-wt-tab-root {
+    position: relative;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    color: #000;
+}
+
+html[data-volt-touch='on'] .volt-wt-scroll-area {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+    min-height: 0;
+    padding: 10px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+html[data-volt-touch='on'] .volt-wt-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+html[data-volt-touch='on'] .volt-wt-section--grow {
+    flex: 1 1 auto;
+    min-height: 160px;
+}
+
+html[data-volt-touch='on'] .volt-wt-section-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 4px 8px;
+}
+
+html[data-volt-touch='on'] .volt-wt-title {
+    color: #111;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 18px;
+}
+
+html[data-volt-touch='on'] .volt-wt-text {
+    color: #222;
+    font-size: 13px;
+    line-height: 18px;
+}
+
+html[data-volt-touch='on'] .volt-wt-panel {
+    box-sizing: border-box;
+    padding: 8px;
+    border: 1px solid #b5b5ae;
+    border-radius: 4px;
+    background: #dadada;
+}
+
+/* Shiny AIR buttons at exact 44 px sprite height. */
+html[data-volt-touch='on'] .volt-wt-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-sizing: border-box;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 0 solid transparent;
+    border-width: 0 5px;
+    border-image: url('../../assets/images/habbo-skin/touch/btn-default-h44.png') 0 5 fill / 0 5px stretch;
+    background: none;
+    color: #000;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 18px;
+    white-space: nowrap;
+    image-rendering: pixelated;
+    cursor: pointer;
+
+    &:active:enabled,
+    &.is-selected {
+        border-image-source: url('../../assets/images/habbo-skin/touch/btn-pressed-h44.png');
+    }
+
+    &:disabled {
+        border-image-source: url('../../assets/images/habbo-skin/touch/btn-disabled-h44.png');
+        color: #777772;
+        cursor: default;
+    }
+
+    &.is-danger {
+        border-image-source: url('../../assets/images/habbo-skin/touch/btn-e33934-default-h44.png');
+        color: #fff;
+
+        &:active:enabled {
+            filter: brightness(0.86);
+        }
+
+        &:disabled {
+            opacity: 0.5;
+            color: #fff;
+        }
+    }
+}
+
+html[data-volt-touch='on'] .volt-wt-btn.volt-wt-icon-btn {
+    flex: none;
+    width: 44px;
+    min-width: 44px;
+    padding: 0;
+}
+
+html[data-volt-touch='on'] .volt-wt-btn-icon {
+    display: block;
+    max-width: none;
+    image-rendering: pixelated;
+}
+
+html[data-volt-touch='on'] .volt-wt-btn:disabled .volt-wt-btn-icon {
+    opacity: 0.5;
+}
+
+/* Checkboxes: 44 px tap row with 1x AIR checkbox sprite. */
+html[data-volt-touch='on'] .volt-wt-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    margin: 0;
+    padding: 4px 2px;
+    cursor: pointer;
+
+    &.is-disabled {
+        cursor: default;
+    }
+
+    input[type='checkbox'] {
+        flex: none;
+        appearance: none;
+        width: 20px;
+        height: 15px;
+        margin: 0;
+        border: 0;
+        background: url('../../assets/images/wired/native/menu_checkbox.png') 0 0 no-repeat;
+        image-rendering: pixelated;
+
+        &:checked {
+            background-image: url('../../assets/images/wired/native/menu_checkbox_checked.png');
+        }
+
+        &:disabled {
+            opacity: 0.5;
+        }
+    }
+}
+
+html[data-volt-touch='on'] .volt-wt-checkbox__label {
+    color: #000;
+    font-size: 14px;
+    line-height: 19px;
+
+    &.is-muted {
+        opacity: 0.5;
+    }
+}
+
+/* Inputs and selects: >=40 px tall, >=15 px font (no iOS zoom). */
+html[data-volt-touch='on'] .volt-wt-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+html[data-volt-touch='on'] .volt-wt-field__label {
+    color: #222;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 16px;
+}
+
+html[data-volt-touch='on'] .volt-wt-input,
+html[data-volt-touch='on'] .volt-wt-cell-input {
+    box-sizing: border-box;
+    width: 100%;
+    height: 42px;
+    min-height: 42px;
+    padding: 0 10px;
+    border: 1px solid #6b685f;
+    border-radius: 4px;
+    background: #fff;
+    color: #000;
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 20px;
+}
+
+html[data-volt-touch='on'] .volt-wt-cell-input {
+    min-width: 84px;
+    height: 40px;
+    min-height: 40px;
+    padding: 0 8px;
+}
+
+html[data-volt-touch='on'] .volt-wt-select-wrap {
+    position: relative;
+    width: 100%;
+
+    &::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        right: 6px;
+        width: 22px;
+        height: 20px;
+        background: url('../../assets/images/habbo-skin/slices/dropmenu-arrow.png') center no-repeat;
+        image-rendering: pixelated;
+        pointer-events: none;
+        transform: translateY(-50%);
+    }
+}
+
+html[data-volt-touch='on'] .volt-wt-select {
+    appearance: none;
+    box-sizing: border-box;
+    width: 100%;
+    height: 42px;
+    min-height: 42px;
+    padding: 0 32px 0 10px;
+    border: 1px solid #6b685f;
+    border-radius: 4px;
+    background: #fff;
+    color: #000;
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 20px;
+
+    &:disabled {
+        color: #7c7c76;
+        opacity: 0.7;
+    }
+}
+
+/* ---------- Touch tables (.volt-wt-table) ---------- */
+
+html[data-volt-touch='on'] .volt-wt-table {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 132px;
+    overflow: hidden;
+    border: 6px solid transparent;
+    border-image: var(--habbo-skin-border-white) 6 fill / 6px stretch;
+    image-rendering: pixelated;
+
+    &.is-disabled {
+        opacity: 0.55;
+    }
+}
+
+html[data-volt-touch='on'] .volt-wt-table__scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    background: #fff;
+    -webkit-overflow-scrolling: touch;
+    image-rendering: auto;
+}
+
+html[data-volt-touch='on'] .volt-wt-table__el {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+html[data-volt-touch='on'] .volt-wt-table__th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    height: 36px;
+    padding: 6px 10px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.25);
+    background: #efede5;
+    color: #000;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+html[data-volt-touch='on'] .volt-wt-table__td {
+    height: 44px;
+    min-height: 44px;
+    padding: 4px 10px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    vertical-align: middle;
+    word-break: break-word;
+}
+
+html[data-volt-touch='on'] .volt-wt-table__th.is-align-left,
+html[data-volt-touch='on'] .volt-wt-table__td.is-align-left {
+    text-align: left;
+}
+
+html[data-volt-touch='on'] .volt-wt-table__th.is-align-center,
+html[data-volt-touch='on'] .volt-wt-table__td.is-align-center {
+    text-align: center;
+}
+
+html[data-volt-touch='on'] .volt-wt-table__th.is-align-right,
+html[data-volt-touch='on'] .volt-wt-table__td.is-align-right {
+    text-align: right;
+}
+
+html[data-volt-touch='on'] .volt-wt-table__row {
+    background: #eaeaea;
+
+    &:nth-child(even) {
+        background: #f9f9f9;
+    }
+
+    &.is-selected {
+        background: #d1d1d1;
+    }
+
+    &.is-selected.is-focused {
+        background: #b8e2fc;
+    }
+}
+
+html[data-volt-touch='on'] .volt-wt-table__empty {
+    padding: 20px 12px;
+    color: #555;
+    font-size: 13px;
+    text-align: center;
+}
+
+html[data-volt-touch='on'] .volt-wt-table__link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 4px;
+    border: 0;
+    background: transparent;
+    color: #0000ee;
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+/* ---------- Sticky action bars & pagination ---------- */
+
+html[data-volt-touch='on'] .volt-wt-sticky-bar {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 8px;
+    min-height: 56px;
+    padding: 6px 10px;
+    border-top: 1px solid #b5b5ae;
+    background: #e9e9e1;
+
+    > .volt-wt-btn:not(.volt-wt-icon-btn) {
+        flex: 1 1 0;
+    }
+}
+
+html[data-volt-touch='on'] .volt-wt-paging {
+    position: static;
+    display: flex;
+    flex: none;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    width: 100%;
+    min-height: 56px;
+    padding: 6px 10px;
+    border-top: 1px solid #b5b5ae;
+    background: #e9e9e1;
+}
+
+html[data-volt-touch='on'] .volt-wt-paging__nav {
+    display: flex;
+    flex: none;
+    gap: 6px;
+}
+
+html[data-volt-touch='on'] .volt-wt-page-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    box-sizing: border-box;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0;
+    border: 0 solid transparent;
+    border-width: 0 5px;
+    border-image: url('../../assets/images/habbo-skin/touch/btn-thick-h44.png') 0 5 fill / 0 5px stretch;
+    background: none;
+    image-rendering: pixelated;
+
+    &:active:enabled {
+        filter: brightness(0.88);
+    }
+
+    &:disabled {
+        opacity: 0.45;
+    }
+
+    > img {
+        display: block;
+        max-width: none;
+        image-rendering: pixelated;
+    }
+}
+
+html[data-volt-touch='on'] .volt-wt-paging__center {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 100px;
+    font-size: 13px;
+}
+
+html[data-volt-touch='on'] .volt-wt-paging__count {
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: #d8d7ce;
+    color: #333;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+html[data-volt-touch='on'] .volt-wt-paging__of {
+    color: #333;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+html[data-volt-touch='on'] .volt-wt-page-input {
+    box-sizing: border-box;
+    width: 52px;
+    height: 40px;
+    min-height: 40px;
+    padding: 0 6px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    background: #fff;
+    color: #000;
+    font-family: inherit;
+    font-size: 15px;
+    text-align: center;
+}
+
+/* ---------- Monitor tab ---------- */
+
+html[data-volt-touch='on'] .volt-wt-monitor-top {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+html[data-volt-touch='on'] .volt-wt-stats {
+    display: flex;
+    flex: 1 1 220px;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+html[data-volt-touch='on'] .volt-wt-stat-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 13px;
+    line-height: 19px;
+}
+
+html[data-volt-touch='on'] .volt-wt-stat-value {
+    font-weight: 700;
+}
+
+html[data-volt-touch='on'] .volt-wt-monitor-art {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border: 1px solid #b5b5ae;
+    border-radius: 4px;
+    background: #dadada;
+
+    > img {
+        display: block;
+        max-width: none;
+        image-rendering: pixelated;
+    }
+}
+
+html[data-volt-device='phone'] .volt-wt-monitor-art {
+    display: none;
+}
+
+html[data-volt-touch='on'] .volt-wt-loading {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    background: rgba(233, 233, 225, 0.65);
+}
+
+/* ---------- Inspection tab ---------- */
+
+html[data-volt-touch='on'] .volt-wt-type-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+html[data-volt-touch='on'] .volt-wt-type-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+html[data-volt-touch='on'] .volt-wt-preview-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+html[data-volt-touch='on'] .volt-wt-preview-box {
+    position: relative;
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    overflow: hidden;
+    border: 1px solid #b5b5ae;
+    border-radius: 4px;
+    background: #ecece6;
+
+    > img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+}
+
+html[data-volt-touch='on'] .volt-wt-preview-meta {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+html[data-volt-touch='on'] .volt-wt-preview-name {
+    display: block;
+    overflow: hidden;
+    font-size: 14px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+html[data-volt-touch='on'] .volt-wt-preview-hint {
+    color: #555;
+    font-size: 13px;
+    line-height: 18px;
+}
+
+html[data-volt-touch='on'] .volt-wt-highlight-icon {
+    display: block;
+    width: 16px;
+    height: 14px;
+    image-rendering: pixelated;
+}
+
+html[data-volt-touch='on'] .volt-wt-give-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+    border: 1px solid #7c7a72;
+    border-radius: 6px;
+    background: #f2f2ed;
+}
+
+html[data-volt-touch='on'] .volt-wt-give-actions {
+    display: flex;
+    gap: 8px;
+
+    > .volt-wt-btn {
+        flex: 1 1 0;
+    }
+}
+
+/* ---------- Variables tab (split-pane on tablet, master-detail on phone) ---------- */
+
+html[data-volt-touch='on'] .volt-wt-variables {
+    display: grid;
+    grid-template-columns: minmax(200px, 44%) minmax(0, 1fr);
+    gap: 10px;
+    padding: 10px;
+    min-height: 0;
+}
+
+html[data-volt-touch='on'] .volt-wt-variables__master,
+html[data-volt-touch='on'] .volt-wt-variables__detail {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+}
+
+html[data-volt-touch='on'] .volt-wt-variables__detail > .volt-wt-scroll-area {
+    padding: 0;
+}
+
+html[data-volt-touch='on'] .volt-wt-variables__type-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+html[data-volt-touch='on'] .volt-wt-variables__explorer-btn {
+    flex: 1 1 auto;
+}
+
+html[data-volt-touch='on'] .volt-wt-variables__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+
+    > .volt-wt-btn:not(.volt-wt-icon-btn) {
+        flex: 1 1 auto;
+    }
+}
+
+html[data-volt-touch='on'] .volt-wt-variables.is-phone {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+
+    .volt-wt-variables__master {
+        flex: 1 1 auto;
+        padding: 10px;
+    }
+
+    .volt-wt-variables__detail {
+        flex: 1 1 auto;
+        gap: 0;
+    }
+
+    .volt-wt-variables__detail > .volt-wt-scroll-area {
+        padding: 10px;
+    }
+}
+
+html[data-volt-touch='on'] .volt-wt-master-bar {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px;
+    border-bottom: 1px solid #b5b5ae;
+    background: #dfded5;
+}
+
+html[data-volt-touch='on'] .volt-wt-back-btn {
+    flex: none;
+}
+
+html[data-volt-touch='on'] .volt-wt-master-bar__title {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    font-size: 14px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+html[data-volt-touch='on'] .volt-wt-picker-cell {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+html[data-volt-touch='on'] .volt-wt-picker-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+html[data-volt-touch='on'] .volt-wt-picker-chevron {
+    flex: none;
+    color: #555;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+/* ---------- Chests & Settings tabs ---------- */
+
+html[data-volt-touch='on'] .volt-wt-chest-controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 8px;
+}
+
+html[data-volt-touch='on'] .volt-wt-settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 8px;
+}
+
+html[data-volt-touch='on'] .volt-wt-settings-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+html[data-volt-touch='on'] .volt-wt-checkbox-list {
+    display: flex;
+    flex-direction: column;
+}
+
+html[data-volt-touch='on'] .volt-wt-btn-row {
+    display: flex;
+    gap: 8px;
+
+    > .volt-wt-btn {
+        flex: 1 1 0;
+    }
+}
+
+/* ---------- Secondary windows: Room Logs, Tx Logs, Variable Owners, Holder Detail, Error Info ---------- */
+
+html[data-volt-touch='on'] .volt-wt-info-strip,
+html[data-volt-touch='on'] .volt-wt-meta-bar {
+    display: flex;
+    flex: none;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 10px;
+    border-bottom: 1px solid #c9c7bd;
+    background: #efede5;
+}
+
+html[data-volt-touch='on'] .volt-wt-info-box {
+    flex: 1 1 200px;
+    min-width: 0;
+    font-size: 12px;
+    line-height: 17px;
+    color: #333;
+
+    p {
+        margin: 0;
+    }
+}
+
+html[data-volt-touch='on'] .volt-wt-meta-pairs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    font-size: 13px;
+}
+
+html[data-volt-touch='on'] .volt-wt-var-name-row {
+    flex: none;
+    padding: 6px 10px 0;
+    font-size: 13px;
+    word-break: break-word;
+}
+
+html[data-volt-touch='on'] .volt-wt-status-wrap {
+    flex: none;
+    padding: 6px 10px 0;
+}
+
+html[data-volt-touch='on'] .volt-wt-filters {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 10px 0;
+}
+
+html[data-volt-touch='on'] .volt-wt-filter-search {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    > .volt-wt-input {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+}
+
+html[data-volt-touch='on'] .volt-wt-filter-go {
+    flex: none;
+}
+
+html[data-volt-touch='on'] .volt-wt-filter-selects {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 8px;
+    padding: 8px 10px 0;
+}
+
+html[data-volt-touch='on'] .volt-wt-filters .volt-wt-filter-selects {
+    padding: 0;
+}
+
+html[data-volt-touch='on'] .volt-wt-table-area {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    padding: 8px 10px;
+}
+
+/* Holder detail window */
+html[data-volt-touch='on'] .volt-wt-holder-header {
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+}
+
+html[data-volt-touch='on'] .volt-wt-holder-preview {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 84px;
+    min-height: 84px;
+    padding: 4px;
+    overflow: hidden;
+    border: 6px solid transparent;
+    border-image: url('../../assets/images/habbo-skin/slices/border-colorless-dadada.png') 6 fill / 6px stretch;
+    image-rendering: pixelated;
+
+    img {
+        max-width: 100%;
+        max-height: 76px;
+        object-fit: contain;
+    }
+}
+
+html[data-volt-touch='on'] .volt-wt-holder-info {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    min-width: 0;
+    padding: 6px 8px;
+    border: 6px solid transparent;
+    border-width: 6px 6px 8px;
+    border-image: url('../../assets/images/habbo-skin/slices/border-colorless-dropshadow.png') 6 6 8 fill / 6px 6px 8px stretch;
+    font-size: 13px;
+    line-height: 18px;
+}
+
+html[data-volt-touch='on'] .volt-wt-holder-info__line {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+html[data-volt-touch='on'] .volt-wt-holder-extras {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+html[data-volt-touch='on'] .volt-wt-extra-add {
+    flex-wrap: wrap;
+    justify-content: flex-start !important;
+    font-size: 13px !important;
+
+    input {
+        width: 100px !important;
+        min-height: 40px;
+        height: 40px;
+        padding: 0 8px !important;
+        font-size: 15px !important;
+    }
+
+    button {
+        min-height: 44px;
+        padding-right: 14px;
+        padding-left: 14px;
+    }
+}
+
+/* Error info dialog */
+html[data-volt-touch='on'] .volt-wt-error-info {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    overflow-y: auto;
+    color: #000;
+}
+
+html[data-volt-touch='on'] .volt-wt-error-info__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+html[data-volt-touch='on'] .volt-wt-error-info__name {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 20px;
+    word-break: break-word;
+}
+
+html[data-volt-touch='on'] .volt-wt-error-info__icon {
+    flex: none;
+    image-rendering: pixelated;
+}
+
+html[data-volt-touch='on'] .volt-wt-error-info__text {
+    margin: 0;
+    font-size: 14px;
+    line-height: 20px;
+    white-space: pre-line;
+}
+
+/* ---------- WiredPagedTable, Array Inspector, Self Donation ---------- */
+
+html[data-volt-touch='on'] .volt-wired-paged-table {
+    min-height: 0;
+}
+
+html[data-volt-touch='on'] .volt-wired-paged-table__scroll {
+    flex: 1 1 auto;
+    height: auto !important;
+    min-height: 140px;
+    max-height: none !important;
+    overflow: auto !important;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+html[data-volt-touch='on'] .volt-wired-paged-table__table {
+    width: 100%;
+    table-layout: auto !important;
+    font-size: 13px !important;
+
+    th,
+    td {
+        min-height: 44px;
+        height: 44px;
+        padding: 6px 10px !important;
+        white-space: nowrap;
+    }
+
+    td button {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        padding: 0 6px;
+    }
+
+    td input {
+        width: 110px !important;
+        min-height: 40px;
+        height: 40px;
+        padding: 0 8px !important;
+        font-size: 15px !important;
+    }
+}
+
+html[data-volt-touch='on'] .volt-wired-paged-table__footer {
+    flex: none;
+    flex-wrap: wrap;
+    gap: 8px !important;
+    min-height: 48px;
+    padding-top: 4px;
+}
+
+html[data-volt-touch='on'] .volt-wired-paged-table__btn {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    height: 44px !important;
+    padding: 0 10px !important;
+    font-size: 16px !important;
+}
+
+html[data-volt-touch='on'] .volt-wired-paged-table__input {
+    width: 56px !important;
+    min-height: 40px !important;
+    height: 40px !important;
+    font-size: 15px !important;
+}
+
+html[data-volt-touch='on'] .volt-wired-array-inspector {
+    .volt-wired-array-inspector__content {
+        flex: 1 1 auto;
+        min-height: 0;
+        padding: 10px !important;
+        gap: 10px !important;
+    }
+
+    .volt-wired-array-inspector__banner {
+        flex-wrap: wrap;
+
+        button {
+            min-height: 44px;
+            padding-right: 14px;
+            padding-left: 14px;
+        }
+    }
+
+    .volt-wired-array-inspector__owner {
+        flex-wrap: wrap;
+        font-size: 13px !important;
+
+        input {
+            min-height: 40px;
+            height: 40px;
+            font-size: 15px !important;
+        }
+
+        button {
+            min-height: 40px;
+            padding-right: 12px;
+            padding-left: 12px;
+        }
+    }
+}
+
+html[data-volt-touch='on'] .volt-wired-self-donation {
+    .volt-wired-self-donation__content {
+        flex: 1 1 auto;
+        min-height: 0;
+        padding: 10px !important;
+        gap: 10px !important;
+    }
+
+    .volt-wired-self-donation__row {
+        flex-wrap: wrap;
+        font-size: 13px !important;
+
+        input {
+            min-height: 42px;
+            height: 42px;
+            padding: 0 10px !important;
+            font-size: 15px !important;
+        }
+    }
+
+    .volt-wired-self-donation__results {
+        flex: 1 1 auto;
+        height: auto !important;
+        min-height: 140px;
+        overflow: auto !important;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+
+        table {
+            min-width: 380px;
+            table-layout: auto !important;
+            font-size: 13px !important;
+        }
+
+        th,
+        td {
+            height: 44px;
+            padding: 6px 10px !important;
+        }
+    }
+
+    .volt-wired-self-donation__footer {
+        flex: none;
+        flex-wrap: wrap;
+        gap: 8px !important;
+
+        button {
+            min-height: 44px;
+            padding-right: 14px;
+            padding-left: 14px;
+        }
+    }
+}
+
+/* ---------- Variables Explorer (Connect, Main, Bulk Delete) ---------- */
+
+html[data-volt-touch='on'] .volt-variables-explorer-connect {
+    .volt-variables-explorer-connect__content {
+        flex: 1 1 auto;
+        min-height: 0;
+        padding: 10px !important;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    select,
+    input[type='text'],
+    input[type='password'] {
+        min-height: 44px;
+        height: 44px;
+        padding: 0 10px !important;
+        font-size: 15px !important;
+    }
+
+    label:has(input[type='checkbox']) {
+        min-height: 44px;
+    }
+
+    button {
+        min-height: 44px;
+        font-size: 15px;
+    }
+}
+
+html[data-volt-touch='on'] .volt-variables-explorer-main {
+    .volt-variables-explorer-main__content {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .volt-variables-explorer-main__banner {
+        flex: none;
+        flex-wrap: wrap;
+        margin: 8px 10px 0 !important;
+        padding: 8px 10px !important;
+        font-size: 13px !important;
+    }
+
+    .volt-variables-explorer-main__banner-actions {
+        width: auto;
+
+        button {
+            min-height: 44px;
+            padding-right: 12px;
+            padding-left: 12px;
+        }
+    }
+
+    .volt-variables-explorer-main__lookup {
+        flex: none;
+        margin: 0 !important;
+        padding: 8px 10px !important;
+        border-top: 1px solid #c8c2b2;
+        background: #efede5;
+        font-size: 13px !important;
+
+        select,
+        input {
+            min-height: 42px;
+            height: 42px;
+            padding: 0 10px !important;
+            font-size: 15px !important;
+        }
+
+        input {
+            flex: 1 1 130px;
+            width: auto !important;
+            min-width: 110px;
+        }
+
+        button {
+            min-height: 44px;
+            padding-right: 12px;
+            padding-left: 12px;
+        }
+    }
+
+    .volt-variables-explorer-main__status {
+        flex: none;
+        margin: 0 10px 8px !important;
+        min-height: 0 !important;
+
+        &:empty {
+            display: none;
+        }
+    }
+}
+
+html[data-volt-touch='on'] .volt-variables-explorer-bulk-delete {
+    .volt-variables-explorer-bulk-delete__content {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        padding: 12px !important;
+    }
+
+    input[type='text'] {
+        min-height: 44px;
+        height: 44px;
+        padding: 0 10px !important;
+        font-size: 15px !important;
+    }
+
+    button {
+        min-height: 44px;
+        font-size: 15px;
+    }
+}

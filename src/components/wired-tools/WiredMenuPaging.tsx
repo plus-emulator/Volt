@@ -1,4 +1,5 @@
 import { FC, useEffect, useRef, useState } from 'react';
+import { IsTouchLayout, useVoltLayout } from '../../api';
 import arrowLeft from '../../assets/images/wired/native/menu_page_arrow_left.png';
 import arrowRight from '../../assets/images/wired/native/menu_page_arrow_right.png';
 import { WiredMenuLabel } from '../../common/native-text/WiredMenuLabel';
@@ -54,6 +55,7 @@ export interface WiredMenuPagingFooterProps {
  * "N found. Showing page [ ] of M" list. The page field takes digits only and goes to its page on Enter or a click elsewhere.
  */
 export const WiredMenuPagingFooter: FC<WiredMenuPagingFooterProps> = ({ width, center, template, currentPage, lastPage, totalEntries, requests, className = '' }) => {
+    const isTouch = IsTouchLayout(useVoltLayout());
     const [pageInput, setPageInput] = useState(currentPage === NO_PAGE ? '1' : String(currentPage));
     const loaded = currentPage !== NO_PAGE;
     const [startTemplate, endTemplate] = template.split('%page%');
@@ -82,6 +84,50 @@ export const WiredMenuPagingFooter: FC<WiredMenuPagingFooterProps> = ({ width, c
 
         requests.requestPage(clamped);
     };
+
+    if (isTouch) {
+        return (
+            <div className={`volt-wt-paging ${className}`}>
+                <div className="volt-wt-paging__nav">
+                    <button aria-label="First page" className="volt-wt-page-btn" disabled={isFirst} title="First page" type="button" onClick={() => requests.requestFirstPage()}>
+                        <img alt="" draggable={false} src={arrowLeft} />
+                        <img alt="" draggable={false} src={arrowLeft} />
+                    </button>
+                    <button aria-label="Previous page" className="volt-wt-page-btn" disabled={isFirst} title="Previous page" type="button" onClick={() => requests.requestPreviousPage()}>
+                        <img alt="" draggable={false} src={arrowLeft} />
+                    </button>
+                </div>
+                <div className="volt-wt-paging__center">
+                    {loaded && <span className="volt-wt-paging__count">{totalEntries}</span>}
+                    <input
+                        aria-label="Page"
+                        className="volt-wt-page-input"
+                        inputMode="numeric"
+                        type="text"
+                        value={pageInput}
+                        onBlur={navigateToInputPage}
+                        onChange={(event) => setPageInput(restrictPageInput(event.target.value))}
+                        onKeyDown={(event) => {
+                            if (event.key !== 'Enter') return;
+
+                            event.preventDefault();
+                            navigateToInputPage();
+                        }}
+                    />
+                    <span className="volt-wt-paging__of">{loaded ? `/ ${Math.max(1, lastPage)}` : endText}</span>
+                </div>
+                <div className="volt-wt-paging__nav">
+                    <button aria-label="Next page" className="volt-wt-page-btn" disabled={isLast} title="Next page" type="button" onClick={() => requests.requestNextPage()}>
+                        <img alt="" draggable={false} src={arrowRight} />
+                    </button>
+                    <button aria-label="Last page" className="volt-wt-page-btn" disabled={isLast} title="Last page" type="button" onClick={() => requests.requestLastPage()}>
+                        <img alt="" draggable={false} src={arrowRight} />
+                        <img alt="" draggable={false} src={arrowRight} />
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className={`volt-wired-menu__item volt-wired-menu__paging ${className}`} style={{ left: 0, width, height: 30 }}>

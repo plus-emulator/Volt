@@ -1,4 +1,5 @@
 import { CSSProperties, FC, PropsWithChildren, ReactNode, useEffect, useRef, useState } from 'react';
+import { IsTouchLayout, useVoltLayout } from '../../api';
 import boxLines from '../../assets/images/wired/native/menu_box_lines.png';
 import discordIcon from '../../assets/images/wired/native/menu_discord.png';
 import { ClassicScrollAreaView, VoltCardHeaderView, VoltCardView } from '../../common';
@@ -14,34 +15,60 @@ interface Rect {
 
 const place = ({ x, y, w, h }: Rect): CSSProperties => ({ left: x, top: y, width: w, height: h });
 
+const colorToHex = (color?: number): string | undefined => (color ? `#${color.toString(16).padStart(6, '0')}` : undefined);
+
 /** An absolutely placed element of the wired_menu_view layout: the XML rect is the contract. */
-export const WiredMenuItem: FC<PropsWithChildren<Rect & { className?: string; style?: CSSProperties }>> = ({ x, y, w, h, className = '', style, children }) => (
-    <div className={`volt-wired-menu__item ${className}`} style={{ ...place({ x, y, w, h }), ...style }}>
-        {children}
-    </div>
-);
+export const WiredMenuItem: FC<PropsWithChildren<Rect & { className?: string; style?: CSSProperties }>> = ({ x, y, w, h, className = '', style, children }) => {
+    const isTouch = IsTouchLayout(useVoltLayout());
+
+    if (isTouch) return <div className={`volt-wt-item ${className}`}>{children}</div>;
+
+    return (
+        <div className={`volt-wired-menu__item ${className}`} style={{ ...place({ x, y, w, h }), ...style }}>
+            {children}
+        </div>
+    );
+};
 
 /** The `border` windows of the menu: a flat 0xdadada panel. */
-export const WiredMenuPanel: FC<PropsWithChildren<Rect & { className?: string }>> = ({ className = '', children, ...rect }) => (
-    <div className={`volt-wired-menu__item volt-wired-menu__panel ${className}`} style={place(rect)}>
-        {children}
-    </div>
-);
+export const WiredMenuPanel: FC<PropsWithChildren<Rect & { className?: string }>> = ({ className = '', children, ...rect }) => {
+    const isTouch = IsTouchLayout(useVoltLayout());
+
+    if (isTouch) return <div className={`volt-wt-panel ${className}`}>{children}</div>;
+
+    return (
+        <div className={`volt-wired-menu__item volt-wired-menu__panel ${className}`} style={place(rect)}>
+            {children}
+        </div>
+    );
+};
 
 const isText = (children: ReactNode): children is string | number => typeof children === 'string' || typeof children === 'number';
 
 /** A layout `text` window: plain text is drawn as the native TextField, anything else is placed as it is. */
-export const WiredMenuTitle: FC<PropsWithChildren<Rect & { className?: string }>> = ({ className = '', children, ...rect }) => (
-    <div className={`volt-wired-menu__item ${isText(children) ? '' : 'volt-wired-menu__text volt-wired-menu__text--bold'} ${className}`} style={place(rect)}>
-        {isText(children) ? <WiredMenuLabel bold text={String(children)} /> : children}
-    </div>
-);
+export const WiredMenuTitle: FC<PropsWithChildren<Rect & { className?: string }>> = ({ className = '', children, ...rect }) => {
+    const isTouch = IsTouchLayout(useVoltLayout());
 
-export const WiredMenuText: FC<PropsWithChildren<Rect & { className?: string }>> = ({ className = '', children, ...rect }) => (
-    <div className={`volt-wired-menu__item ${isText(children) ? '' : 'volt-wired-menu__text'} ${className}`} style={place(rect)}>
-        {isText(children) ? <WiredMenuLabel text={String(children)} /> : children}
-    </div>
-);
+    if (isTouch) return <div className={`volt-wt-title ${className}`}>{children}</div>;
+
+    return (
+        <div className={`volt-wired-menu__item ${isText(children) ? '' : 'volt-wired-menu__text volt-wired-menu__text--bold'} ${className}`} style={place(rect)}>
+            {isText(children) ? <WiredMenuLabel bold text={String(children)} /> : children}
+        </div>
+    );
+};
+
+export const WiredMenuText: FC<PropsWithChildren<Rect & { className?: string }>> = ({ className = '', children, ...rect }) => {
+    const isTouch = IsTouchLayout(useVoltLayout());
+
+    if (isTouch) return <div className={`volt-wt-text ${className}`}>{children}</div>;
+
+    return (
+        <div className={`volt-wired-menu__item ${isText(children) ? '' : 'volt-wired-menu__text'} ${className}`} style={place(rect)}>
+            {isText(children) ? <WiredMenuLabel text={String(children)} /> : children}
+        </div>
+    );
+};
 
 interface WiredMenuCheckboxProps extends Rect {
     checked: boolean;
@@ -54,16 +81,29 @@ interface WiredMenuCheckboxProps extends Rect {
 }
 
 /** `option_box`: a 20px checkbox window at (0,1) and its label at x=20. */
-export const WiredMenuCheckbox: FC<WiredMenuCheckboxProps> = ({ checked, disabled = false, labelDisabled = false, label, onChange, ...rect }) => (
-    <label className={`volt-wired-menu__item volt-wired-menu__option ${disabled ? 'is-disabled' : ''}`} style={place(rect)}>
-        <input checked={checked} disabled={disabled} type="checkbox" onChange={(event) => onChange(event.target.checked)} />
-        {isText(label) ? (
-            <WiredMenuLabel className="volt-wired-menu__option-label" style={labelDisabled ? { opacity: 0.5 } : undefined} text={String(label)} />
-        ) : (
-            <span className="volt-wired-menu__text">{label}</span>
-        )}
-    </label>
-);
+export const WiredMenuCheckbox: FC<WiredMenuCheckboxProps> = ({ checked, disabled = false, labelDisabled = false, label, onChange, ...rect }) => {
+    const isTouch = IsTouchLayout(useVoltLayout());
+
+    if (isTouch) {
+        return (
+            <label className={`volt-wt-checkbox ${disabled ? 'is-disabled' : ''}`}>
+                <input checked={checked} disabled={disabled} type="checkbox" onChange={(event) => onChange(event.target.checked)} />
+                {label !== null && label !== undefined && <span className={`volt-wt-checkbox__label ${labelDisabled ? 'is-muted' : ''}`}>{label}</span>}
+            </label>
+        );
+    }
+
+    return (
+        <label className={`volt-wired-menu__item volt-wired-menu__option ${disabled ? 'is-disabled' : ''}`} style={place(rect)}>
+            <input checked={checked} disabled={disabled} type="checkbox" onChange={(event) => onChange(event.target.checked)} />
+            {isText(label) ? (
+                <WiredMenuLabel className="volt-wired-menu__option-label" style={labelDisabled ? { opacity: 0.5 } : undefined} text={String(label)} />
+            ) : (
+                <span className="volt-wired-menu__text">{label}</span>
+            )}
+        </label>
+    );
+};
 
 interface WiredMenuButtonProps extends Rect {
     disabled?: boolean;
@@ -82,29 +122,48 @@ const BUTTON_CAPTION_TOP = 3;
  * The menu's `button_shiny_regular` buttons; the red ones use the 0xe33934 style 5 skin. A text caption is the button's centred label;
  * the style 5 (white caption) layout rounds a half pixel up, the style 3 one drops it.
  */
-export const WiredMenuButton: FC<PropsWithChildren<WiredMenuButtonProps>> = ({ disabled = false, danger = false, className = '', title, onClick, children, ...rect }) => (
-    <button
-        className={`volt-wired-menu__item volt-wired-menu__button ${danger ? 'is-danger' : ''} ${className}`}
-        disabled={disabled}
-        title={title}
-        style={place(rect)}
-        type="button"
-        onClick={onClick}
-    >
-        {isText(children) ? (
-            <WiredMenuLabel
-                align={danger ? 'center' : 'button'}
-                className="volt-wired-menu__button-caption"
-                color={danger ? 0xffffff : 0}
-                style={{ left: -BUTTON_BORDER, top: BUTTON_CAPTION_TOP + Math.round(((rect.h ?? 25) - 25) / 2) - BUTTON_BORDER, opacity: disabled && !danger ? 0.5 : undefined }}
-                text={String(children)}
-                width={rect.w}
-            />
-        ) : (
-            children
-        )}
-    </button>
-);
+export const WiredMenuButton: FC<PropsWithChildren<WiredMenuButtonProps>> = ({ disabled = false, danger = false, className = '', title, onClick, children, ...rect }) => {
+    const isTouch = IsTouchLayout(useVoltLayout());
+
+    if (isTouch) {
+        return (
+            <button
+                aria-label={isText(children) ? undefined : title}
+                className={`volt-wt-btn ${danger ? 'is-danger' : ''} ${className}`}
+                disabled={disabled}
+                title={title}
+                type="button"
+                onClick={onClick}
+            >
+                {children}
+            </button>
+        );
+    }
+
+    return (
+        <button
+            className={`volt-wired-menu__item volt-wired-menu__button ${danger ? 'is-danger' : ''} ${className}`}
+            disabled={disabled}
+            title={title}
+            style={place(rect)}
+            type="button"
+            onClick={onClick}
+        >
+            {isText(children) ? (
+                <WiredMenuLabel
+                    align={danger ? 'center' : 'button'}
+                    className="volt-wired-menu__button-caption"
+                    color={danger ? 0xffffff : 0}
+                    style={{ left: -BUTTON_BORDER, top: BUTTON_CAPTION_TOP + Math.round(((rect.h ?? 25) - 25) / 2) - BUTTON_BORDER, opacity: disabled && !danger ? 0.5 : undefined }}
+                    text={String(children)}
+                    width={rect.w}
+                />
+            ) : (
+                children
+            )}
+        </button>
+    );
+};
 
 interface WiredMenuButtonIconProps {
     src: string;
@@ -118,7 +177,11 @@ interface WiredMenuButtonIconProps {
 
 /** A static_bitmap inside a menu button, placed on whole pixels like the official window. */
 export const WiredMenuButtonIcon: FC<WiredMenuButtonIconProps> = ({ src, alt = '', x, y, box, className = '' }) => {
+    const isTouch = IsTouchLayout(useVoltLayout());
     const [size, setSize] = useState<{ w: number; h: number }>(null);
+
+    if (isTouch) return <img alt={alt} className={`volt-wt-btn-icon ${className}`} draggable={false} src={src} />;
+
     const left = x ?? (box && size ? Math.floor((box.w - size.w) / 2) : 0);
     const top = y ?? (box && size ? Math.floor((box.h - size.h) / 2) : 0);
 
@@ -151,48 +214,60 @@ interface WiredMenuFrameProps {
 const BOX_LINES = [8, 78, 148, 218, 288, 358, 428];
 
 /** wired_menu_view: a 500x500 frame-3 window; every child below sits at the XML's client coordinates. */
-export const WiredMenuFrame: FC<PropsWithChildren<WiredMenuFrameProps>> = ({ title, tabs, activeTab, headerTitle, onTabChange, onClose, children }) => (
-    <VoltCardView
-        className="volt-wired-menu"
-        frameStyle={3}
-        initialPosition={{ x: 36, y: 35 }}
-        isResizable={false}
-        theme="primary-slim"
-        uniqueKey="wired-creator-tools"
-    >
-        <VoltCardHeaderView headerText="" onCloseClick={onClose}>
-            <WiredMenuLabel align="center" className="volt-wired-menu__caption" color={0xffffff} text={title} textStyle="u_frame_title" width={486} />
-        </VoltCardHeaderView>
-        <div className="volt-wired-menu__client">
-            <div className="volt-wired-menu__tabs" role="tablist">
-                {tabs.map((tab, index) => (
-                    <button
-                        key={tab.key}
-                        aria-selected={tab.key === activeTab}
-                        className={`volt-wired-menu__tab ${tab.key === activeTab ? 'is-active' : ''}`}
-                        role="tab"
-                        style={{ left: 8 + index * 96 }}
-                        type="button"
-                        onClick={() => onTabChange(tab.key)}
-                    >
-                        <WiredMenuLabel align="center" className="volt-wired-menu__tab-caption" text={tab.label} width={96} />
-                    </button>
-                ))}
-            </div>
-            <div className="volt-wired-menu__header">
-                <div className="volt-wired-menu__header-inner" />
-                {BOX_LINES.map((x, index) => (
-                    <img key={x} alt="" className="volt-wired-menu__box-lines" draggable={false} src={boxLines} style={{ left: x, top: index % 2 === 0 ? 20 : -20 }} />
-                ))}
-                <SubpixelText transparent align="field" background={0x235061} className="volt-wired-menu__header-title" color={0xffffff} text={headerTitle} textStyle="u_headline_medium" width={500} />
-                <div className="volt-wired-menu__discord">
-                    <img alt="" draggable={false} src={discordIcon} />
+export const WiredMenuFrame: FC<PropsWithChildren<WiredMenuFrameProps>> = ({ title, tabs, activeTab, headerTitle, onTabChange, onClose, children }) => {
+    const isTouch = IsTouchLayout(useVoltLayout());
+
+    return (
+        <VoltCardView
+            className="volt-wired-menu"
+            frameStyle={3}
+            initialPosition={{ x: 36, y: 35 }}
+            isResizable={false}
+            theme="primary-slim"
+            uniqueKey="wired-creator-tools"
+        >
+            <VoltCardHeaderView headerText={isTouch ? title : ''} onCloseClick={onClose}>
+                {!isTouch && <WiredMenuLabel align="center" className="volt-wired-menu__caption" color={0xffffff} text={title} textStyle="u_frame_title" width={486} />}
+            </VoltCardHeaderView>
+            <div className="volt-wired-menu__client">
+                <div className="volt-wired-menu__tabs" role="tablist">
+                    {tabs.map((tab, index) => (
+                        <button
+                            key={tab.key}
+                            aria-selected={tab.key === activeTab}
+                            className={`volt-wired-menu__tab ${tab.key === activeTab ? 'is-active' : ''}`}
+                            role="tab"
+                            style={isTouch ? undefined : { left: 8 + index * 96 }}
+                            type="button"
+                            onClick={() => onTabChange(tab.key)}
+                        >
+                            {isTouch ? (
+                                <span className="volt-wt-tab-label">{tab.label}</span>
+                            ) : (
+                                <WiredMenuLabel align="center" className="volt-wired-menu__tab-caption" text={tab.label} width={96} />
+                            )}
+                        </button>
+                    ))}
                 </div>
+                <div className="volt-wired-menu__header">
+                    <div className="volt-wired-menu__header-inner" />
+                    {BOX_LINES.map((x, index) => (
+                        <img key={x} alt="" className="volt-wired-menu__box-lines" draggable={false} src={boxLines} style={{ left: x, top: index % 2 === 0 ? 20 : -20 }} />
+                    ))}
+                    {isTouch ? (
+                        <span className="volt-wt-header-title">{headerTitle}</span>
+                    ) : (
+                        <SubpixelText transparent align="field" background={0x235061} className="volt-wired-menu__header-title" color={0xffffff} text={headerTitle} textStyle="u_headline_medium" width={500} />
+                    )}
+                    <div className="volt-wired-menu__discord">
+                        <img alt="" draggable={false} src={discordIcon} />
+                    </div>
+                </div>
+                <div className="volt-wired-menu__body">{children}</div>
             </div>
-            <div className="volt-wired-menu__body">{children}</div>
-        </div>
-    </VoltCardView>
-);
+        </VoltCardView>
+    );
+};
 
 export interface WiredMenuTableColumn {
     key: string;
@@ -227,6 +302,7 @@ interface WiredMenuTableProps extends Rect {
     /** Util.disableSection: the border and every text are drawn at half opacity. */
     disabled?: boolean;
     rowClassName?: string;
+    className?: string;
 }
 
 const TABLE_MARGIN = 5;
@@ -257,7 +333,8 @@ const useRowFocus = () => {
 };
 
 /** The shared `table_view` layout (TableView): a border_white box, a 23px bold title row, a splitter and 20px rows. */
-export const WiredMenuTable: FC<WiredMenuTableProps> = ({ columns, rows, emptyText = 'Nothing to display', showTitles = true, disabled = false, rowClassName = '', ...rect }) => {
+export const WiredMenuTable: FC<WiredMenuTableProps> = ({ columns, rows, emptyText = 'Nothing to display', showTitles = true, disabled = false, rowClassName = '', className = '', ...rect }) => {
+    const isTouch = IsTouchLayout(useVoltLayout());
     const width = rect.w ?? 472;
     const height = rect.h ?? 177;
     const contentsWidth = width - TABLE_MARGIN * 2;
@@ -268,6 +345,76 @@ export const WiredMenuTable: FC<WiredMenuTableProps> = ({ columns, rows, emptyTe
     const cellWidth = (column: WiredMenuTableColumn) => Math.floor(rowWidth * column.factor);
     const { focused, setFocused, rowRef } = useRowFocus();
     const textStyle: CSSProperties = disabled ? { opacity: 0.5 } : undefined;
+
+    if (isTouch) {
+        const minTableWidth = columns.length >= 3 ? Math.max(columns.length * 108, Math.round(width * 0.85)) : undefined;
+
+        return (
+            <div className={`volt-wt-table ${disabled ? 'is-disabled' : ''} ${className}`}>
+                <div className="volt-wt-table__scroll">
+                    <table className="volt-wt-table__el" style={minTableWidth ? { minWidth: minTableWidth } : undefined}>
+                        {showTitles && (
+                            <thead>
+                                <tr>
+                                    {columns.map((column) => (
+                                        <th
+                                            key={column.key}
+                                            className={`volt-wt-table__th is-align-${column.align ?? 'center'}`}
+                                            style={{ width: `${Math.round(column.factor * 100)}%` }}
+                                        >
+                                            {column.title}
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                        )}
+                        <tbody>
+                            {rows.length === 0 && !!emptyText && (
+                                <tr>
+                                    <td className="volt-wt-table__empty" colSpan={columns.length}>
+                                        {emptyText}
+                                    </td>
+                                </tr>
+                            )}
+                            {rows.map((row) => (
+                                <tr
+                                    key={row.key}
+                                    className={`volt-wt-table__row ${rowClassName} ${row.selected ? 'is-selected' : ''} ${row.selected && focused ? 'is-focused' : ''}`}
+                                    style={row.color ? { color: colorToHex(row.color) } : undefined}
+                                    onClick={row.onSelect}
+                                    onPointerDown={() => setFocused(true)}
+                                >
+                                    {columns.map((column) => (
+                                        <td
+                                            key={column.key}
+                                            className={`volt-wt-table__td is-align-${column.align ?? 'center'}`}
+                                            title={row.cellTitles?.[column.key]}
+                                            onDoubleClick={row.onCellDoubleClick ? () => row.onCellDoubleClick(column.key) : undefined}
+                                        >
+                                            {row.links?.[column.key] ? (
+                                                <button
+                                                    className="volt-wt-table__link"
+                                                    type="button"
+                                                    onClick={(event) => {
+                                                        event.stopPropagation();
+                                                        row.links[column.key]();
+                                                    }}
+                                                >
+                                                    {row.cells[column.key]}
+                                                </button>
+                                            ) : (
+                                                row.cells[column.key]
+                                            )}
+                                        </td>
+                                    ))}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
+    }
 
     const cell = (column: WiredMenuTableColumn, content: ReactNode, bold: boolean, top: number, link = false, color = 0) => {
         const cellW = cellWidth(column);

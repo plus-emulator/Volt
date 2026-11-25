@@ -7,7 +7,7 @@ import {
     WiredTransactionLogListEvent,
 } from '@volt/renderer';
 import { FC, useCallback, useEffect, useState } from 'react';
-import { GetUserProfile, LocalizeText, localizeWithFallback, SendMessageComposer } from '../../api';
+import { GetUserProfile, IsTouchLayout, LocalizeText, localizeWithFallback, SendMessageComposer, useVoltLayout } from '../../api';
 import { useMessageEvent, useNotification, useRoom } from '../../hooks';
 import { summarizeTransactionCounts } from './WiredChestTransactionCounts';
 import { WiredMenuButton, WiredMenuPanel, WiredMenuTable, WiredMenuText, WiredMenuTitle } from './WiredMenuParts';
@@ -35,6 +35,7 @@ const summarize = (furni: number, coins: number): string =>
     });
 
 export const WiredChestsTabView: FC<{}> = () => {
+    const isTouch = IsTouchLayout(useVoltLayout());
     const { roomSession = null } = useRoom();
     const { showConfirm = null } = useNotification();
 
@@ -92,6 +93,64 @@ export const WiredChestsTabView: FC<{}> = () => {
         );
     }, [canManageAll, sendLock, showConfirm]);
 
+    const previewColumns = [
+        { key: 'type', title: 'Type', factor: 0.28 },
+        { key: 'username', title: 'Username', factor: 0.24 },
+        { key: 'withdraws', title: 'Withdrawals', factor: 0.24 },
+        { key: 'deposits', title: 'Deposits', factor: 0.24 }
+    ];
+    const previewRows = (preview ?? []).map((row) => ({
+        key: String(row.transactionId),
+        cells: {
+            type: typeLabel(row.transactionType),
+            username: row.userName,
+            withdraws: summarize(row.withdrawFurniCount, row.withdrawCoinsCount),
+            deposits: summarize(row.depositFurniCount, row.depositCoinsCount)
+        },
+        links: { username: () => GetUserProfile(row.userId) }
+    }));
+
+    if (isTouch) {
+        return (
+            <div className="volt-wt-tab-root volt-wt-chests">
+                <div className="volt-wt-scroll-area">
+                    <div className="volt-wt-section">
+                        <WiredMenuTitle x={0} y={0}>
+                            {localizeWithFallback('wiredmenu.chests.chest_control', 'Chest control:')}
+                        </WiredMenuTitle>
+                        <WiredMenuPanel className="volt-wt-chest-controls" x={0} y={0}>
+                            <WiredMenuButton disabled={!canManageOwn || lockBusy} x={0} y={0} onClick={() => sendLock(true, false)}>
+                                Lock all your chests
+                            </WiredMenuButton>
+                            <WiredMenuButton disabled={!canManageOwn || lockBusy} x={0} y={0} onClick={() => sendLock(false, false)}>
+                                Unlock all your chests
+                            </WiredMenuButton>
+                            <WiredMenuButton disabled={!canManageAll || lockBusy} x={0} y={0} onClick={lockEveryChest}>
+                                Lock all chests
+                            </WiredMenuButton>
+                        </WiredMenuPanel>
+                    </div>
+                    <div className="volt-wt-section volt-wt-section--grow">
+                        <div className="volt-wt-section-head">
+                            <WiredMenuTitle x={0} y={0}>
+                                {localizeWithFallback('wiredmenu.chests.room_logs', 'Room Transaction Logs:')}
+                            </WiredMenuTitle>
+                            <WiredMenuText className="volt-wired-menu__half" x={0} y={0}>
+                                {localizeWithFallback('wiredmenu.chests.room_logs.extra', 'PREVIEW - showing 10 most recent')}
+                            </WiredMenuText>
+                        </div>
+                        <WiredMenuTable columns={previewColumns} disabled={!preview?.length} emptyText={preview ? 'Nothing to display' : ''} rows={previewRows} w={472} x={0} y={0} />
+                    </div>
+                </div>
+                <div className="volt-wt-sticky-bar">
+                    <WiredMenuButton x={0} y={0} onClick={() => SendMessageComposer(new WiredTransactionGetRoomLogsComposer(WIRED_TRANSACTION_LOGS_PAGE_SIZE, FIRST_PAGE))}>
+                        View detailed list
+                    </WiredMenuButton>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <>
             <WiredMenuTitle h={17} w={84} x={14} y={18}>
@@ -114,30 +173,7 @@ export const WiredChestsTabView: FC<{}> = () => {
             <WiredMenuText className="volt-wired-menu__half" h={17} w={197} x={286} y={139}>
                 {localizeWithFallback('wiredmenu.chests.room_logs.extra', 'PREVIEW - showing 10 most recent')}
             </WiredMenuText>
-            <WiredMenuTable
-                columns={[
-                    { key: 'type', title: 'Type', factor: 0.28 },
-                    { key: 'username', title: 'Username', factor: 0.24 },
-                    { key: 'withdraws', title: 'Withdrawals', factor: 0.24 },
-                    { key: 'deposits', title: 'Deposits', factor: 0.24 }
-                ]}
-                disabled={!preview?.length}
-                emptyText={preview ? 'Nothing to display' : ''}
-                h={168}
-                rows={(preview ?? []).map((row) => ({
-                    key: String(row.transactionId),
-                    cells: {
-                        type: typeLabel(row.transactionType),
-                        username: row.userName,
-                        withdraws: summarize(row.withdrawFurniCount, row.withdrawCoinsCount),
-                        deposits: summarize(row.depositFurniCount, row.depositCoinsCount)
-                    },
-                    links: { username: () => GetUserProfile(row.userId) }
-                }))}
-                w={472}
-                x={14}
-                y={159}
-            />
+            <WiredMenuTable columns={previewColumns} disabled={!preview?.length} emptyText={preview ? 'Nothing to display' : ''} h={168} rows={previewRows} w={472} x={14} y={159} />
             <WiredMenuButton h={30} w={114} x={14} y={336} onClick={() => SendMessageComposer(new WiredTransactionGetRoomLogsComposer(WIRED_TRANSACTION_LOGS_PAGE_SIZE, FIRST_PAGE))}>
                 View detailed list
             </WiredMenuButton>

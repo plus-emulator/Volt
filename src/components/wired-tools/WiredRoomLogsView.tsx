@@ -1,13 +1,13 @@
 import { IWiredLogEntry, WiredLogPageEvent, WiredRoomLogsPageComposer } from '@volt/renderer';
 import { useEffect, useRef, useState } from 'react';
-import { localizeWithFallback, SendMessageComposer } from '../../api';
+import { IsTouchLayout, localizeWithFallback, SendMessageComposer, useVoltLayout } from '../../api';
 import { DraggableWindowPosition, VoltCardHeaderView, VoltCardView } from '../../common';
 import { HabboDropMenuView } from '../../common/dropmenu/HabboDropMenuView';
 import { SubpixelText } from '../../common/native-text/SubpixelText';
 import { WiredMenuLabel } from '../../common/native-text/WiredMenuLabel';
 import { useMessageEvent } from '../../hooks';
 import { useWiredPageRequests } from '../../hooks/wired-tools/useWiredPageRequests';
-import { WiredMenuCheckbox, WiredMenuItem, WiredMenuTable, WiredMenuTableColumn, WiredMenuText, WiredMenuTitle } from './WiredMenuParts';
+import { WiredMenuButton, WiredMenuCheckbox, WiredMenuItem, WiredMenuTable, WiredMenuTableColumn, WiredMenuText, WiredMenuTitle } from './WiredMenuParts';
 import { WiredMenuPagingFooter } from './WiredMenuPaging';
 import { calculateLastPage, NO_PAGE } from './WiredPaging.helpers';
 
@@ -63,6 +63,7 @@ const levelLabel = (level: number): string => {
  * filters back. A page the user asked for scrolls to the top; an auto refresh leaves it alone.
  */
 export const WiredRoomLogsView = ({ onClose }: WiredRoomLogsViewProps) => {
+    const isTouch = IsTouchLayout(useVoltLayout());
     const [page, setPage] = useState<LogPage | null>(null);
     const [source, setSource] = useState(-1);
     const [level, setLevel] = useState(-1);
@@ -196,6 +197,16 @@ export const WiredRoomLogsView = ({ onClose }: WiredRoomLogsViewProps) => {
         'An overview of the most recent System and Wired logs.\\nOnly the most recent 200 logs are stored per type.'
     ).split(/\\n|\n/);
 
+    const title = localizeWithFallback('wiredmenu.logs_overview.title', 'Wired Logs');
+    const logRows = (page?.entries ?? []).map((entry) => ({
+        key: String(entry.id),
+        cells: { timestamp: entry.timestampStr, source: sourceLabel(entry.logSource), level: levelLabel(entry.logLevel), message: entry.logMessage },
+        cellTitles: { timestamp: entry.timestampStr, message: entry.logMessage },
+        color: LEVEL_COLORS[entry.logLevel] ?? 0,
+        selected: selectedId === entry.id,
+        onSelect: () => setSelectedId(entry.id)
+    }));
+
     return (
         <VoltCardView
             className="volt-wired-logs"
@@ -205,123 +216,208 @@ export const WiredRoomLogsView = ({ onClose }: WiredRoomLogsViewProps) => {
             uniqueKey="wired-room-logs"
             windowPosition={DraggableWindowPosition.CENTER}
         >
-            <VoltCardHeaderView headerText="" onCloseClick={onClose}>
-                <WiredMenuLabel
-                    align="center"
-                    className="volt-wired-menu__caption"
-                    color={0xffffff}
-                    text={localizeWithFallback('wiredmenu.logs_overview.title', 'Wired Logs')}
-                    textStyle="u_frame_title"
-                    width={WINDOW_WIDTH - 14}
-                />
+            <VoltCardHeaderView headerText={isTouch ? title : ''} onCloseClick={onClose}>
+                {!isTouch && (
+                    <WiredMenuLabel
+                        align="center"
+                        className="volt-wired-menu__caption"
+                        color={0xffffff}
+                        text={title}
+                        textStyle="u_frame_title"
+                        width={WINDOW_WIDTH - 14}
+                    />
+                )}
             </VoltCardHeaderView>
-            <div className="volt-wired-logs__client">
-                <WiredMenuItem className="volt-wired-logs__box" h={38} w={580} x={8} y={7}>
-                    {infoLines.map((line, index) => (
-                        <SubpixelText
-                            key={index}
-                            transparent
-                            align="paragraph"
-                            background={0xffffff}
-                            style={{ position: 'absolute', left: 1, top: 3 + index * INFO_LINE_HEIGHT }}
-                            text={line}
-                            textStyle="u_regular"
-                            width={578}
-                        />
-                    ))}
-                </WiredMenuItem>
-                <WiredMenuCheckbox checked={autoRefresh} h={16} label={null} w={15} x={596} y={18} onChange={setAutoRefresh} />
-                <WiredMenuText h={29} w={90} x={614} y={18}>
-                    {localizeWithFallback('wiredmenu.logs_overview.auto_refresh', 'Auto refresh')}
-                </WiredMenuText>
-                <WiredMenuTitle h={17} w={38} x={15} y={63}>
-                    {localizeWithFallback('wiredmenu.logs_overview.filter', 'Filter:')}
-                </WiredMenuTitle>
-                <WiredMenuItem className="volt-wired-logs__box" h={25} w={269} x={60} y={60}>
-                    <label className="volt-wired-logs__input">
-                        <WiredMenuLabel style={{ position: 'absolute', left: 0, top: 0 }} text={query} />
-                        <input
-                            aria-label={localizeWithFallback('wiredmenu.logs_overview.filter', 'Filter:')}
-                            maxLength={FILTER_MAX_CHARS}
-                            type="text"
-                            value={query}
-                            onChange={(event) => setQuery(event.target.value)}
-                            onKeyDown={(event) => {
-                                if (event.key !== 'Enter') return;
-
-                                event.preventDefault();
-                                updateFilters();
-                            }}
-                        />
-                    </label>
-                </WiredMenuItem>
-                <WiredMenuTitle h={17} w={68} x={349} y={63}>
-                    {localizeWithFallback('wiredmenu.logs_overview.log_source', 'Log source:')}
-                </WiredMenuTitle>
-                <HabboDropMenuView
-                    nativeCaption
-                    label={localizeWithFallback('wiredmenu.logs_overview.log_source', 'Log source:')}
-                    options={[
-                        { value: -1, label: localizeWithFallback('wiredmenu.logs_overview.log_source.all', 'All') },
-                        ...LOG_SOURCES.map((name, index) => ({ value: index, label: sourceLabel(index) }))
-                    ]}
-                    skinStyle={3}
-                    style={{ position: 'absolute', left: 423, top: 60, width: 90, height: 25 }}
-                    value={source}
-                    onSelect={(next) => {
-                        setSource(next);
-                        updateFilters({ source: next });
-                    }}
-                />
-                <WiredMenuTitle h={17} w={56} x={534} y={63}>
-                    {localizeWithFallback('wiredmenu.logs_overview.log_level', 'Log level:')}
-                </WiredMenuTitle>
-                <HabboDropMenuView
-                    nativeCaption
-                    label={localizeWithFallback('wiredmenu.logs_overview.log_level', 'Log level:')}
-                    options={[
-                        { value: -1, label: localizeWithFallback('wiredmenu.logs_overview.log_level.all', 'All') },
-                        ...LOG_LEVELS.map((name, index) => ({ value: index, label: levelLabel(index) }))
-                    ]}
-                    skinStyle={3}
-                    style={{ position: 'absolute', left: 596, top: 60, width: 90, height: 25 }}
-                    value={level}
-                    onSelect={(next) => {
-                        setLevel(next);
-                        updateFilters({ level: next });
-                    }}
-                />
-                <div ref={setTableArea} className="volt-wired-logs__middle">
-                    {tableHeight > 0 && (
-                        <WiredMenuTable
-                            key={scrollKey}
-                            columns={columns}
-                            h={tableHeight}
-                            rows={(page?.entries ?? []).map((entry) => ({
-                                key: String(entry.id),
-                                cells: { timestamp: entry.timestampStr, source: sourceLabel(entry.logSource), level: levelLabel(entry.logLevel), message: entry.logMessage },
-                                cellTitles: { timestamp: entry.timestampStr, message: entry.logMessage },
-                                color: LEVEL_COLORS[entry.logLevel] ?? 0,
-                                selected: selectedId === entry.id,
-                                onSelect: () => setSelectedId(entry.id)
-                            }))}
-                            w={672}
-                            x={13}
+            {isTouch ? (
+                <div className="volt-wired-logs__client volt-wt-window-client">
+                    <div className="volt-wt-info-strip">
+                        <div className="volt-wt-info-box">
+                            {infoLines.map((line, index) => (
+                                <p key={index}>{line}</p>
+                            ))}
+                        </div>
+                        <WiredMenuCheckbox
+                            checked={autoRefresh}
+                            label={localizeWithFallback('wiredmenu.logs_overview.auto_refresh', 'Auto refresh')}
+                            x={0}
                             y={0}
+                            onChange={setAutoRefresh}
                         />
-                    )}
+                    </div>
+                    <div className="volt-wt-filters">
+                        <div className="volt-wt-filter-search">
+                            <input
+                                aria-label={localizeWithFallback('wiredmenu.logs_overview.filter', 'Filter:')}
+                                className="volt-wt-input"
+                                maxLength={FILTER_MAX_CHARS}
+                                placeholder={localizeWithFallback('wiredmenu.logs_overview.filter', 'Filter...')}
+                                type="text"
+                                value={query}
+                                onChange={(event) => setQuery(event.target.value)}
+                                onKeyDown={(event) => {
+                                    if (event.key !== 'Enter') return;
+
+                                    event.preventDefault();
+                                    updateFilters();
+                                }}
+                            />
+                            <WiredMenuButton className="volt-wt-filter-go" x={0} y={0} onClick={() => updateFilters()}>
+                                {localizeWithFallback('generic.search', 'Go')}
+                            </WiredMenuButton>
+                        </div>
+                        <div className="volt-wt-filter-selects">
+                            <label className="volt-wt-field">
+                                <span className="volt-wt-field__label">{localizeWithFallback('wiredmenu.logs_overview.log_source', 'Log source:')}</span>
+                                <div className="volt-wt-select-wrap">
+                                    <select
+                                        className="volt-wt-select"
+                                        value={source}
+                                        onChange={(event) => {
+                                            const next = Number(event.target.value);
+
+                                            setSource(next);
+                                            updateFilters({ source: next });
+                                        }}
+                                    >
+                                        <option value={-1}>{localizeWithFallback('wiredmenu.logs_overview.log_source.all', 'All')}</option>
+                                        {LOG_SOURCES.map((_name, index) => (
+                                            <option key={index} value={index}>
+                                                {sourceLabel(index)}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </label>
+                            <label className="volt-wt-field">
+                                <span className="volt-wt-field__label">{localizeWithFallback('wiredmenu.logs_overview.log_level', 'Log level:')}</span>
+                                <div className="volt-wt-select-wrap">
+                                    <select
+                                        className="volt-wt-select"
+                                        value={level}
+                                        onChange={(event) => {
+                                            const next = Number(event.target.value);
+
+                                            setLevel(next);
+                                            updateFilters({ level: next });
+                                        }}
+                                    >
+                                        <option value={-1}>{localizeWithFallback('wiredmenu.logs_overview.log_level.all', 'All')}</option>
+                                        {LOG_LEVELS.map((_name, index) => (
+                                            <option key={index} value={index}>
+                                                {levelLabel(index)}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    <div className="volt-wt-table-area">
+                        <WiredMenuTable key={scrollKey} columns={columns} rows={logRows} w={672} x={0} y={0} />
+                    </div>
+                    <WiredMenuPagingFooter
+                        center={{ x: 245, startText: 'X logs found. Showing page ', startWidth: 159, endText: 'of Y', endWidth: 26 }}
+                        className="volt-wired-logs__paging"
+                        currentPage={currentPage}
+                        lastPage={lastPage}
+                        requests={requests}
+                        template={localizeWithFallback('wiredmenu.logs_overview.bottom_text', '%entries_count% logs found. Showing page %page% of %page_count%')}
+                        totalEntries={page?.totalEntries ?? 0}
+                        width={WINDOW_WIDTH}
+                    />
                 </div>
-                <WiredMenuPagingFooter
-                    center={{ x: 245, startText: 'X logs found. Showing page ', startWidth: 159, endText: 'of Y', endWidth: 26 }}
-                    className="volt-wired-logs__paging"
-                    currentPage={currentPage}
-                    lastPage={lastPage}
-                    requests={requests}
-                    template={localizeWithFallback('wiredmenu.logs_overview.bottom_text', '%entries_count% logs found. Showing page %page% of %page_count%')}
-                    totalEntries={page?.totalEntries ?? 0}
-                    width={WINDOW_WIDTH}
-                />
-            </div>
+            ) : (
+                <div className="volt-wired-logs__client">
+                    <WiredMenuItem className="volt-wired-logs__box" h={38} w={580} x={8} y={7}>
+                        {infoLines.map((line, index) => (
+                            <SubpixelText
+                                key={index}
+                                transparent
+                                align="paragraph"
+                                background={0xffffff}
+                                style={{ position: 'absolute', left: 1, top: 3 + index * INFO_LINE_HEIGHT }}
+                                text={line}
+                                textStyle="u_regular"
+                                width={578}
+                            />
+                        ))}
+                    </WiredMenuItem>
+                    <WiredMenuCheckbox checked={autoRefresh} h={16} label={null} w={15} x={596} y={18} onChange={setAutoRefresh} />
+                    <WiredMenuText h={29} w={90} x={614} y={18}>
+                        {localizeWithFallback('wiredmenu.logs_overview.auto_refresh', 'Auto refresh')}
+                    </WiredMenuText>
+                    <WiredMenuTitle h={17} w={38} x={15} y={63}>
+                        {localizeWithFallback('wiredmenu.logs_overview.filter', 'Filter:')}
+                    </WiredMenuTitle>
+                    <WiredMenuItem className="volt-wired-logs__box" h={25} w={269} x={60} y={60}>
+                        <label className="volt-wired-logs__input">
+                            <WiredMenuLabel style={{ position: 'absolute', left: 0, top: 0 }} text={query} />
+                            <input
+                                aria-label={localizeWithFallback('wiredmenu.logs_overview.filter', 'Filter:')}
+                                maxLength={FILTER_MAX_CHARS}
+                                type="text"
+                                value={query}
+                                onChange={(event) => setQuery(event.target.value)}
+                                onKeyDown={(event) => {
+                                    if (event.key !== 'Enter') return;
+
+                                    event.preventDefault();
+                                    updateFilters();
+                                }}
+                            />
+                        </label>
+                    </WiredMenuItem>
+                    <WiredMenuTitle h={17} w={68} x={349} y={63}>
+                        {localizeWithFallback('wiredmenu.logs_overview.log_source', 'Log source:')}
+                    </WiredMenuTitle>
+                    <HabboDropMenuView
+                        nativeCaption
+                        label={localizeWithFallback('wiredmenu.logs_overview.log_source', 'Log source:')}
+                        options={[
+                            { value: -1, label: localizeWithFallback('wiredmenu.logs_overview.log_source.all', 'All') },
+                            ...LOG_SOURCES.map((name, index) => ({ value: index, label: sourceLabel(index) }))
+                        ]}
+                        skinStyle={3}
+                        style={{ position: 'absolute', left: 423, top: 60, width: 90, height: 25 }}
+                        value={source}
+                        onSelect={(next) => {
+                            setSource(next);
+                            updateFilters({ source: next });
+                        }}
+                    />
+                    <WiredMenuTitle h={17} w={56} x={534} y={63}>
+                        {localizeWithFallback('wiredmenu.logs_overview.log_level', 'Log level:')}
+                    </WiredMenuTitle>
+                    <HabboDropMenuView
+                        nativeCaption
+                        label={localizeWithFallback('wiredmenu.logs_overview.log_level', 'Log level:')}
+                        options={[
+                            { value: -1, label: localizeWithFallback('wiredmenu.logs_overview.log_level.all', 'All') },
+                            ...LOG_LEVELS.map((name, index) => ({ value: index, label: levelLabel(index) }))
+                        ]}
+                        skinStyle={3}
+                        style={{ position: 'absolute', left: 596, top: 60, width: 90, height: 25 }}
+                        value={level}
+                        onSelect={(next) => {
+                            setLevel(next);
+                            updateFilters({ level: next });
+                        }}
+                    />
+                    <div ref={setTableArea} className="volt-wired-logs__middle">
+                        {tableHeight > 0 && <WiredMenuTable key={scrollKey} columns={columns} h={tableHeight} rows={logRows} w={672} x={13} y={0} />}
+                    </div>
+                    <WiredMenuPagingFooter
+                        center={{ x: 245, startText: 'X logs found. Showing page ', startWidth: 159, endText: 'of Y', endWidth: 26 }}
+                        className="volt-wired-logs__paging"
+                        currentPage={currentPage}
+                        lastPage={lastPage}
+                        requests={requests}
+                        template={localizeWithFallback('wiredmenu.logs_overview.bottom_text', '%entries_count% logs found. Showing page %page% of %page_count%')}
+                        totalEntries={page?.totalEntries ?? 0}
+                        width={WINDOW_WIDTH}
+                    />
+                </div>
+            )}
         </VoltCardView>
     );
 };

@@ -1,6 +1,6 @@
 import { IWiredVariableHolder } from '@volt/renderer';
 import { ReactNode, useEffect, useState } from 'react';
-import { localizeWithFallback } from '../../api';
+import { IsTouchLayout, localizeWithFallback, useVoltLayout } from '../../api';
 import { DraggableWindowPosition, VoltCardHeaderView, VoltCardView } from '../../common';
 import { HabboDropMenuView } from '../../common/dropmenu/HabboDropMenuView';
 import { WiredMenuLabel } from '../../common/native-text/WiredMenuLabel';
@@ -92,6 +92,7 @@ export const WiredVariableOwnersPanel = <T extends number | bigint = number>(pro
         offsetLeft = 540,
         offsetTop = 60
     } = props;
+    const isTouch = IsTouchLayout(useVoltLayout());
     const [selectedKey, setSelectedKey] = useState<string>(null);
     const [tableArea, setTableArea] = useState<HTMLDivElement>(null);
     const [tableHeight, setTableHeight] = useState(0);
@@ -176,6 +177,23 @@ export const WiredVariableOwnersPanel = <T extends number | bigint = number>(pro
         </>
     );
 
+    const title = localizeWithFallback('wiredmenu.variable_management.title', 'Variable Management');
+
+    const touchFilterSelect = (filter: WiredOwnersFilter) => (
+        <label className="volt-wt-field">
+            <span className="volt-wt-field__label">{filter.label}</span>
+            <div className="volt-wt-select-wrap">
+                <select className="volt-wt-select" value={filter.value} onChange={(event) => filter.onChange(event.target.value)}>
+                    {filter.options.map((option) => (
+                        <option key={option.value} value={option.value}>
+                            {option.label}
+                        </option>
+                    ))}
+                </select>
+            </div>
+        </label>
+    );
+
     return (
         <VoltCardView
             className="volt-wired-varmanage"
@@ -187,57 +205,96 @@ export const WiredVariableOwnersPanel = <T extends number | bigint = number>(pro
             uniqueKey={uniqueKey}
             windowPosition={DraggableWindowPosition.TOP_LEFT}
         >
-            <VoltCardHeaderView headerText="" onCloseClick={onClose}>
-                <WiredMenuLabel
-                    align="center"
-                    className="volt-wired-menu__caption"
-                    color={0xffffff}
-                    text={localizeWithFallback('wiredmenu.variable_management.title', 'Variable Management')}
-                    textStyle="u_frame_title"
-                    width={WINDOW_WIDTH - 14}
-                />
+            <VoltCardHeaderView headerText={isTouch ? title : ''} onCloseClick={onClose}>
+                {!isTouch && (
+                    <WiredMenuLabel
+                        align="center"
+                        className="volt-wired-menu__caption"
+                        color={0xffffff}
+                        text={title}
+                        textStyle="u_frame_title"
+                        width={WINDOW_WIDTH - 14}
+                    />
+                )}
             </VoltCardHeaderView>
-            <div className="volt-wired-varmanage__client">
-                <WiredMenuItem className="volt-wired-varmanage__box" h={38} w={603} x={8} y={7}>
-                    <WiredMenuHtmlText lineHeight={INFO_LINE_HEIGHT} style={{ left: 1, top: 3 }} text={infoText} width={600} />
-                </WiredMenuItem>
-                <WiredMenuButton h={30} w={62} x={621} y={12} onClick={() => requests.refresh()}>
-                    {localizeWithFallback('wiredmenu.list_view.refresh', 'Refresh')}
-                </WiredMenuButton>
-                <WiredMenuTitle h={17} w={88} x={15} y={55}>
-                    {variableNameLabel}
-                </WiredMenuTitle>
-                {variableNameWidth !== null && (
-                    <WiredMenuText h={17} w={300} x={15 + variableNameWidth + KEY_VALUE_SPACING} y={55}>
-                        {variableName}
-                    </WiredMenuText>
-                )}
-                {!!status && (
-                    <WiredMenuItem h={20} w={215} x={470} y={55}>
-                        {status}
-                    </WiredMenuItem>
-                )}
-                {!!typeFilter && filterMenu(typeFilter, 15, 63, 68, 131)}
-                {filterMenu(sortFilter, 247, 47, 53, 135)}
-                <div ref={setTableArea} className="volt-wired-varmanage__middle">
-                    {tableHeight > 0 && (
-                        <WiredMenuTable key={scrollResetKey} columns={columns} h={tableHeight} rows={rows} w={672} x={13} y={0} />
-                    )}
+            {isTouch ? (
+                <div className="volt-wired-varmanage__client volt-wt-window-client">
+                    <div className="volt-wt-meta-bar">
+                        <div className="volt-wt-info-box">
+                            <p>{infoText}</p>
+                        </div>
+                        <WiredMenuButton x={0} y={0} onClick={() => requests.refresh()}>
+                            {localizeWithFallback('wiredmenu.list_view.refresh', 'Refresh')}
+                        </WiredMenuButton>
+                    </div>
+                    <div className="volt-wt-var-name-row">
+                        <b>{variableNameLabel}</b> <span>{variableName}</span>
+                    </div>
+                    {!!status && <div className="volt-wt-status-wrap">{status}</div>}
+                    <div className="volt-wt-filter-selects">
+                        {!!typeFilter && touchFilterSelect(typeFilter)}
+                        {touchFilterSelect(sortFilter)}
+                    </div>
+                    <div className="volt-wt-table-area">
+                        <WiredMenuTable key={scrollResetKey} columns={columns} rows={rows} w={672} x={0} y={0} />
+                    </div>
+                    <WiredMenuPagingFooter
+                        center={{ x: 237, startText: 'X entries found. Showing page ', startWidth: 175, endText: 'of Y', endWidth: 26 }}
+                        className="volt-wired-varmanage__paging"
+                        currentPage={currentPage}
+                        lastPage={lastPage}
+                        requests={requests}
+                        template={localizeWithFallback(
+                            'wiredmenu.variable_management.bottom_text',
+                            '%entries_count% entries found. Showing page %page% of %page_count%'
+                        )}
+                        totalEntries={totalEntries}
+                        width={WINDOW_WIDTH}
+                    />
                 </div>
-                <WiredMenuPagingFooter
-                    center={{ x: 237, startText: 'X entries found. Showing page ', startWidth: 175, endText: 'of Y', endWidth: 26 }}
-                    className="volt-wired-varmanage__paging"
-                    currentPage={currentPage}
-                    lastPage={lastPage}
-                    requests={requests}
-                    template={localizeWithFallback(
-                        'wiredmenu.variable_management.bottom_text',
-                        '%entries_count% entries found. Showing page %page% of %page_count%'
+            ) : (
+                <div className="volt-wired-varmanage__client">
+                    <WiredMenuItem className="volt-wired-varmanage__box" h={38} w={603} x={8} y={7}>
+                        <WiredMenuHtmlText lineHeight={INFO_LINE_HEIGHT} style={{ left: 1, top: 3 }} text={infoText} width={600} />
+                    </WiredMenuItem>
+                    <WiredMenuButton h={30} w={62} x={621} y={12} onClick={() => requests.refresh()}>
+                        {localizeWithFallback('wiredmenu.list_view.refresh', 'Refresh')}
+                    </WiredMenuButton>
+                    <WiredMenuTitle h={17} w={88} x={15} y={55}>
+                        {variableNameLabel}
+                    </WiredMenuTitle>
+                    {variableNameWidth !== null && (
+                        <WiredMenuText h={17} w={300} x={15 + variableNameWidth + KEY_VALUE_SPACING} y={55}>
+                            {variableName}
+                        </WiredMenuText>
                     )}
-                    totalEntries={totalEntries}
-                    width={WINDOW_WIDTH}
-                />
-            </div>
+                    {!!status && (
+                        <WiredMenuItem h={20} w={215} x={470} y={55}>
+                            {status}
+                        </WiredMenuItem>
+                    )}
+                    {!!typeFilter && filterMenu(typeFilter, 15, 63, 68, 131)}
+                    {filterMenu(sortFilter, 247, 47, 53, 135)}
+                    <div ref={setTableArea} className="volt-wired-varmanage__middle">
+                        {tableHeight > 0 && (
+                            <WiredMenuTable key={scrollResetKey} columns={columns} h={tableHeight} rows={rows} w={672} x={13} y={0} />
+                        )}
+                    </div>
+                    <WiredMenuPagingFooter
+                        center={{ x: 237, startText: 'X entries found. Showing page ', startWidth: 175, endText: 'of Y', endWidth: 26 }}
+                        className="volt-wired-varmanage__paging"
+                        currentPage={currentPage}
+                        lastPage={lastPage}
+                        requests={requests}
+                        template={localizeWithFallback(
+                            'wiredmenu.variable_management.bottom_text',
+                            '%entries_count% entries found. Showing page %page% of %page_count%'
+                        )}
+                        totalEntries={totalEntries}
+                        width={WINDOW_WIDTH}
+                    />
+                </div>
+            )}
         </VoltCardView>
     );
 };

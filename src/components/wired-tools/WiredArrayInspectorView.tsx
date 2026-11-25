@@ -1,6 +1,6 @@
 import { IWiredArrayInspectionData, WiredArrayInspectionDataEvent, WiredArrayInspectionRequestComposer, WiredArrayInspectionUpdateComposer } from '@volt/renderer';
 import { useEffect, useMemo, useState } from 'react';
-import { localizeWithFallback, SendMessageComposer, wiredArrayFieldsOf } from '../../api';
+import { IsTouchLayout, localizeWithFallback, SendMessageComposer, useVoltLayout, wiredArrayFieldsOf } from '../../api';
 import { Button, DraggableWindowPosition, VoltCardContentView, VoltCardHeaderView, VoltCardView, Text } from '../../common';
 import { useMessageEvent } from '../../hooks';
 import { useWiredPageRequests } from '../../hooks/wired-tools/useWiredPageRequests';
@@ -19,6 +19,7 @@ export interface WiredArrayInspectorViewProps {
 
 export const WiredArrayInspectorView = (props: WiredArrayInspectorViewProps) => {
     const { definitionItemId, variableName, variableType, onClose } = props;
+    const isTouch = IsTouchLayout(useVoltLayout());
     const [data, setData] = useState<IWiredArrayInspectionData | null>(null);
     const [ownerId, setOwnerId] = useState(0);
     const [ownerInput, setOwnerInput] = useState('0');
@@ -150,9 +151,15 @@ export const WiredArrayInspectorView = (props: WiredArrayInspectorViewProps) => 
               .replace('%total%', String(data.totalIndexes))
         : '';
 
+    const applyOwnerId = () => {
+        const parsed = parseInt(ownerInput.trim(), 10);
+
+        setOwnerId(Number.isFinite(parsed) ? parsed : 0);
+    };
+
     return (
         <VoltCardView
-            className="min-w-[620px] max-w-[620px] max-h-[620px]"
+            className="volt-wired-touch-card volt-wired-array-inspector min-w-[620px] max-w-[620px] max-h-[620px]"
             theme="primary-slim"
             uniqueKey="wired-array-inspector"
             windowPosition={DraggableWindowPosition.TOP_LEFT}
@@ -160,8 +167,8 @@ export const WiredArrayInspectorView = (props: WiredArrayInspectorViewProps) => 
             offsetTop={60}
         >
             <VoltCardHeaderView headerText={localizeWithFallback('wiredmenu.arrays.title', 'Array contents')} onCloseClick={onClose} />
-            <VoltCardContentView className="text-black bg-[#f4efe3] p-3 flex flex-col gap-3" overflow="hidden">
-                <div className="rounded border border-[#c8c2b2] bg-white p-3 flex items-center justify-between gap-3">
+            <VoltCardContentView className="volt-wired-array-inspector__content text-black bg-[#f4efe3] p-3 flex flex-col gap-3" overflow="hidden">
+                <div className="volt-wired-array-inspector__banner rounded border border-[#c8c2b2] bg-white p-3 flex items-center justify-between gap-3">
                     <div className="grow flex flex-col">
                         <Text>
                             <b>{localizeWithFallback('wiredmenu.variable_management.variable_name', 'Variable name:')}</b> {variableName}
@@ -173,21 +180,25 @@ export const WiredArrayInspectorView = (props: WiredArrayInspectorViewProps) => 
                     </Button>
                 </div>
 
-                <label className="flex items-center gap-2 text-[12px]">
+                <label className="volt-wired-array-inspector__owner flex items-center gap-2 text-[12px]">
                     <Text>{localizeWithFallback('wiredmenu.arrays.owner', 'Owner id')}:</Text>
                     <input
                         className="w-[110px] rounded border border-[#b8b2a4] bg-white px-2 py-[2px] text-[12px]"
+                        inputMode="numeric"
                         type="number"
                         value={ownerInput}
                         onChange={(event) => setOwnerInput(event.target.value)}
                         onKeyDown={(event) => {
                             if (event.key !== 'Enter') return;
 
-                            const parsed = parseInt(ownerInput.trim(), 10);
-
-                            setOwnerId(Number.isFinite(parsed) ? parsed : 0);
+                            applyOwnerId();
                         }}
                     />
+                    {isTouch && (
+                        <Button variant="secondary" onClick={applyOwnerId}>
+                            {localizeWithFallback('generic.load', 'Load')}
+                        </Button>
+                    )}
                     <Text small className="text-black/60">
                         {localizeWithFallback('wiredmenu.arrays.owner.hint', 'Room arrays ignore this. Press Enter to load.')}
                     </Text>

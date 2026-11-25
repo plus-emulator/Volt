@@ -231,11 +231,12 @@ export const VariablesExplorerHolderView: FC<VariablesExplorerHolderViewProps> =
             }
             extraActions={
                 canWrite && selectedEntry?.hasValue ? (
-                    <div className="flex items-center justify-end gap-2 text-[12px]">
+                    <div className="volt-wt-extra-add flex items-center justify-end gap-2 text-[12px]">
                         <span>Add to {selectedEntry.name}:</span>
                         <input
                             aria-label="Amount to add"
                             className="w-[80px] rounded border border-[#b8b2a4] bg-white px-2 py-[2px] text-[12px]"
+                            inputMode="numeric"
                             type="number"
                             value={addValue}
                             onChange={(event) => setAddValue(event.target.value)}

@@ -23,8 +23,9 @@ export const VariablesExplorerBulkDeleteView: FC<VariablesExplorerBulkDeleteView
 
     return (
         <VoltCardView
-            className="min-w-[360px] max-w-[360px]"
+            className="volt-wired-touch-card volt-variables-explorer-bulk-delete min-w-[360px] max-w-[360px]"
             theme="primary-slim"
+            touchPresentation="dialog"
             uniqueKey="variables-explorer-bulk-delete"
             windowPosition={DraggableWindowPosition.CENTER}
             isResizable={false}
@@ -33,7 +34,7 @@ export const VariablesExplorerBulkDeleteView: FC<VariablesExplorerBulkDeleteView
                 headerText={localizeWithFallback('wiredmenu.variable_overview.delete_all.title', 'Clear this variable')}
                 onCloseClick={onCancel}
             />
-            <VoltCardContentView className="text-black bg-[#f4efe3] p-3 flex flex-col gap-3">
+            <VoltCardContentView className="volt-variables-explorer-bulk-delete__content text-black bg-[#f4efe3] p-3 flex flex-col gap-3">
                 <div className="rounded border border-[#d9a3a3] bg-[#fbeaea] p-3 flex flex-col gap-2">
                     <Text bold>Delete {variableName} from every holder in this room?</Text>
                     <Text className="whitespace-pre-line">{warning}</Text>

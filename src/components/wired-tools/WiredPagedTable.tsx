@@ -71,9 +71,9 @@ export const WiredPagedTable = <T,>(props: WiredPagedTableProps<T>) => {
     };
 
     return (
-        <div className="flex flex-col gap-2 min-h-0 grow">
-            <div ref={setBodyElement} className={`overflow-y-auto border border-[#d1ccbf] rounded bg-white ${bodyClassName}`} data-testid="wired-paged-table-body">
-                <table className="w-full text-[12px] table-fixed">
+        <div className="volt-wired-paged-table flex flex-col gap-2 min-h-0 grow">
+            <div ref={setBodyElement} className={`volt-wired-paged-table__scroll overflow-y-auto border border-[#d1ccbf] rounded bg-white ${bodyClassName}`} data-testid="wired-paged-table-body">
+                <table className="volt-wired-paged-table__table w-full text-[12px] table-fixed">
                     <thead className="bg-[#efede5] sticky top-0">
                         <tr>
                             {columns.map((column) => (
@@ -111,18 +111,18 @@ export const WiredPagedTable = <T,>(props: WiredPagedTableProps<T>) => {
                     </tbody>
                 </table>
             </div>
-            <div className="flex items-center justify-between gap-3">
-                <div className="flex gap-2">
-                    <button className={PAGE_BUTTON_CLASS} disabled={isFirst} type="button" title="First page" onClick={() => requests.requestFirstPage()}>
+            <div className="volt-wired-paged-table__footer flex items-center justify-between gap-3">
+                <div className="volt-wired-paged-table__nav flex gap-2">
+                    <button className={`volt-wired-paged-table__btn ${PAGE_BUTTON_CLASS}`} disabled={isFirst} type="button" title="First page" onClick={() => requests.requestFirstPage()}>
                         &laquo;
                     </button>
-                    <button className={PAGE_BUTTON_CLASS} disabled={isFirst} type="button" title="Previous page" onClick={() => requests.requestPreviousPage()}>
+                    <button className={`volt-wired-paged-table__btn ${PAGE_BUTTON_CLASS}`} disabled={isFirst} type="button" title="Previous page" onClick={() => requests.requestPreviousPage()}>
                         &lsaquo;
                     </button>
                 </div>
-                <div className="flex items-center gap-2 text-[12px] text-[#555]">
+                <div className="volt-wired-paged-table__summary flex items-center gap-2 text-[12px] text-[#555]">
                     {currentPage !== NO_PAGE && (
-                        <span>
+                        <span className="volt-wired-paged-table__found">
                             {foundLabel ??
                                 localizeWithFallback(
                                     'wiredmenu.paged_table.found',
@@ -134,7 +134,7 @@ export const WiredPagedTable = <T,>(props: WiredPagedTableProps<T>) => {
                     )}
                     <input
                         aria-label="Page"
-                        className="w-[42px] rounded border border-[#b8b2a4] bg-white px-1 py-[2px] text-center text-[12px]"
+                        className="volt-wired-paged-table__input w-[42px] rounded border border-[#b8b2a4] bg-white px-1 py-[2px] text-center text-[12px]"
                         type="text"
                         inputMode="numeric"
                         value={pageInput}
@@ -148,14 +148,14 @@ export const WiredPagedTable = <T,>(props: WiredPagedTableProps<T>) => {
                         }}
                     />
                     {currentPage !== NO_PAGE && (
-                        <span>{localizeWithFallback('wiredmenu.paged_table.of', `of ${Math.max(1, lastPage)}`, ['page_count'], [String(Math.max(1, lastPage))])}</span>
+                        <span className="volt-wired-paged-table__of">{localizeWithFallback('wiredmenu.paged_table.of', `of ${Math.max(1, lastPage)}`, ['page_count'], [String(Math.max(1, lastPage))])}</span>
                     )}
                 </div>
-                <div className="flex gap-2">
-                    <button className={PAGE_BUTTON_CLASS} disabled={isLast} type="button" title="Next page" onClick={() => requests.requestNextPage()}>
+                <div className="volt-wired-paged-table__nav flex gap-2">
+                    <button className={`volt-wired-paged-table__btn ${PAGE_BUTTON_CLASS}`} disabled={isLast} type="button" title="Next page" onClick={() => requests.requestNextPage()}>
                         &rsaquo;
                     </button>
-                    <button className={PAGE_BUTTON_CLASS} disabled={isLast} type="button" title="Last page" onClick={() => requests.requestLastPage()}>
+                    <button className={`volt-wired-paged-table__btn ${PAGE_BUTTON_CLASS}`} disabled={isLast} type="button" title="Last page" onClick={() => requests.requestLastPage()}>
                         &raquo;
                     </button>
                 </div>

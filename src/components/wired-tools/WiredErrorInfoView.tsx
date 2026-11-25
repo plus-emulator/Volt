@@ -1,7 +1,7 @@
 import { FC } from 'react';
+import { IsTouchLayout, localizeWithFallback, useVoltLayout } from '../../api';
 import wiredErrorIcon from '../../assets/images/wiredtools/icon_wired_error.png';
 import wiredWarningIcon from '../../assets/images/wiredtools/icon_wired_warning.png';
-import { localizeWithFallback } from '../../api';
 import { VoltCardHeaderView, VoltCardView } from '../../common';
 import { NativeText } from '../../common/native-text/NativeText';
 import { WiredMenuLabel } from '../../common/native-text/WiredMenuLabel';
@@ -23,6 +23,7 @@ interface WiredErrorInfoViewProps {
 
 /** error_info_view: a 337 wide frame-3 window whose height is the contents' height + 48. */
 export const WiredErrorInfoView: FC<WiredErrorInfoViewProps> = ({ log, onClose }) => {
+    const isTouch = IsTouchLayout(useVoltLayout());
     const title = localizeWithFallback('wiredmenu.error_info.title', 'Wired Error Information');
     const icon = TYPE_ICONS[log.category.toLowerCase()];
     // An error id without a text shows an empty body.
@@ -35,19 +36,32 @@ export const WiredErrorInfoView: FC<WiredErrorInfoViewProps> = ({ log, onClose }
             initialPosition={{ x: 35, y: 30 }}
             isResizable={false}
             theme="primary-slim"
+            touchPresentation="dialog"
             uniqueKey="wired-monitor-error-info"
         >
-            <VoltCardHeaderView headerText="" onCloseClick={onClose}>
-                <WiredMenuLabel align="caption" className="volt-wired-error-info__caption" color={0xffffff} text={title} textStyle="u_frame_title" width={323} />
+            <VoltCardHeaderView headerText={isTouch ? title : ''} onCloseClick={onClose}>
+                {!isTouch && (
+                    <WiredMenuLabel align="caption" className="volt-wired-error-info__caption" color={0xffffff} text={title} textStyle="u_frame_title" width={323} />
+                )}
             </VoltCardHeaderView>
-            <div className="volt-wired-error-info__contents">
-                {!!icon && <img alt="" className="volt-wired-error-info__icon" draggable={false} src={icon} />}
-                <ErrorInfoTexts name={log.type} text={text} />
-                {/* AIR draws the texts a second time inside the bounds the window had at its layout size (337x148). */}
-                <div aria-hidden="true" className="volt-wired-error-info__layout-bounds">
-                    <ErrorInfoTexts name={log.type} text={text} />
+            {isTouch ? (
+                <div className="volt-wt-error-info">
+                    <div className="volt-wt-error-info__head">
+                        <span className="volt-wt-error-info__name">{log.type}</span>
+                        {!!icon && <img alt="" className="volt-wt-error-info__icon" draggable={false} src={icon} />}
+                    </div>
+                    {!!text && <p className="volt-wt-error-info__text">{text}</p>}
                 </div>
-            </div>
+            ) : (
+                <div className="volt-wired-error-info__contents">
+                    {!!icon && <img alt="" className="volt-wired-error-info__icon" draggable={false} src={icon} />}
+                    <ErrorInfoTexts name={log.type} text={text} />
+                    {/* AIR draws the texts a second time inside the bounds the window had at its layout size (337x148). */}
+                    <div aria-hidden="true" className="volt-wired-error-info__layout-bounds">
+                        <ErrorInfoTexts name={log.type} text={text} />
+                    </div>
+                </div>
+            )}
         </VoltCardView>
     );
 };

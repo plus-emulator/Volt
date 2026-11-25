@@ -3,7 +3,10 @@ import { ButtonHTMLAttributes, PropsWithChildren } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../api', () => ({
-    localizeWithFallback: (key: string, fallback: string) => fallback
+    IsPhoneLayout: () => false,
+    IsTouchLayout: () => false,
+    localizeWithFallback: (key: string, fallback: string) => fallback,
+    useVoltLayout: () => 'desktop'
 }));
 
 vi.mock('../../common', () => ({

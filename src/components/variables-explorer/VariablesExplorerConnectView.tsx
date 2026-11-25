@@ -81,7 +81,7 @@ export const VariablesExplorerConnectView: FC<VariablesExplorerConnectViewProps>
 
     return (
         <VoltCardView
-            className="min-w-[380px] max-w-[380px]"
+            className="volt-wired-touch-card volt-variables-explorer-connect min-w-[380px] max-w-[380px]"
             theme="primary-slim"
             uniqueKey="variables-explorer"
             windowPosition={DraggableWindowPosition.TOP_LEFT}
@@ -89,7 +89,7 @@ export const VariablesExplorerConnectView: FC<VariablesExplorerConnectViewProps>
             offsetTop={60}
         >
             <VoltCardHeaderView headerText={localizeWithFallback('wiredmenu.variables_explorer.title', 'Variables Explorer')} onCloseClick={onClose} />
-            <VoltCardContentView className="text-black bg-[#f4efe3] p-3" overflow="auto">
+            <VoltCardContentView className="volt-variables-explorer-connect__content text-black bg-[#f4efe3] p-3" overflow="auto">
                 <form
                     className="rounded border border-[#c8c2b2] bg-white p-4 flex flex-col gap-3"
                     noValidate

@@ -1,10 +1,12 @@
 import { FC, useMemo } from 'react';
 import {
     GetConfigurationValue,
+    IsTouchLayout,
     LocalizeText,
     localizeWithFallback,
     NotificationConfirmType,
     normalizeWiredStyle,
+    useVoltLayout,
     WIRED_STYLE_DEFAULT,
     WIRED_STYLE_OPTIONS,
     wiredStyleTitle
@@ -96,6 +98,7 @@ export const buildTimezoneOptions = (current: string, hotelZone: string, configu
 };
 
 export const WiredToolsSettingsTabView: FC<WiredToolsSettingsTabViewProps> = ({ onOpenSelfDonation = null }) => {
+    const isTouch = IsTouchLayout(useVoltLayout());
     const { roomSession = null } = useRoom();
     const { showConfirm = null } = useNotification();
     const { accountPreferences, roomSettings, saveRoomSettings, saveRoomTimezone, reloadRoomWired, rollbackRoomWired, updateAccountPreferences } =
@@ -171,6 +174,121 @@ export const WiredToolsSettingsTabView: FC<WiredToolsSettingsTabViewProps> = ({ 
             onChange={() => onToggle(option.bit)}
         />
     );
+
+    if (isTouch) {
+        return (
+            <div className="volt-wt-tab-root volt-wt-settings">
+                <div className="volt-wt-scroll-area">
+                    <div className="volt-wt-section">
+                        <WiredMenuTitle x={0} y={0}>
+                            Room settings:
+                        </WiredMenuTitle>
+                        <div className="volt-wt-settings-grid">
+                            <WiredMenuPanel className="volt-wt-settings-card" x={0} y={0}>
+                                <WiredMenuTitle x={0} y={0}>
+                                    Who can modify Wired:
+                                </WiredMenuTitle>
+                                <div className="volt-wt-checkbox-list">
+                                    {modifyOptions.map((option, index) => renderAccessOption(option, shownModifyMask, forced.modify, updateModifyMask, index * 19))}
+                                </div>
+                            </WiredMenuPanel>
+                            <WiredMenuPanel className="volt-wt-settings-card" x={0} y={0}>
+                                <WiredMenuTitle x={0} y={0}>
+                                    Who can inspect Wired:
+                                </WiredMenuTitle>
+                                <div className="volt-wt-checkbox-list">
+                                    {inspectOptions.map((option, index) => renderAccessOption(option, shownInspectMask, forced.inspect, updateInspectMask, index * 19))}
+                                </div>
+                            </WiredMenuPanel>
+                            <WiredMenuPanel className="volt-wt-settings-card" x={0} y={0}>
+                                <WiredMenuTitle x={0} y={0}>
+                                    Timezone:
+                                </WiredMenuTitle>
+                                <div className="volt-wt-select-wrap">
+                                    <select
+                                        aria-label="Timezone"
+                                        className="volt-wt-select"
+                                        disabled={!roomSettings.isLoaded || !canManageSettings || timezoneOptions.length < 2}
+                                        value={selectedTimeZone}
+                                        onChange={(event) => saveRoomTimezone(event.target.value)}
+                                    >
+                                        {timezoneOptions.map((zone) => (
+                                            <option key={zone} value={zone}>
+                                                {zone}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </WiredMenuPanel>
+                            <WiredMenuPanel className="volt-wt-settings-card" x={0} y={0}>
+                                <WiredMenuTitle x={0} y={0}>
+                                    Room state:
+                                </WiredMenuTitle>
+                                <div className="volt-wt-btn-row">
+                                    <WiredMenuButton disabled={!canReload} x={0} y={0} onClick={reloadRoomWired}>
+                                        Reload
+                                    </WiredMenuButton>
+                                    <WiredMenuButton danger={true} disabled={!canRollback} x={0} y={0} onClick={confirmRollback}>
+                                        Rollback
+                                    </WiredMenuButton>
+                                </div>
+                            </WiredMenuPanel>
+                        </div>
+                    </div>
+                    <div className="volt-wt-section">
+                        <WiredMenuTitle x={0} y={0}>
+                            Account preferences:
+                        </WiredMenuTitle>
+                        <div className="volt-wt-settings-grid">
+                            <WiredMenuPanel className="volt-wt-settings-card" x={0} y={0}>
+                                <WiredMenuTitle x={0} y={0}>
+                                    General:
+                                </WiredMenuTitle>
+                                <div className="volt-wt-checkbox-list">
+                                    <WiredMenuCheckbox checked={accountPreferences.showToolbarButton} label="Show wired menu in toolbar" x={0} y={0} onChange={(showToolbarButton) => updateAccountPreferences({ showToolbarButton })} />
+                                    <WiredMenuCheckbox checked={accountPreferences.showInspectButton} label="Furni/user inspect button" x={0} y={0} onChange={(showInspectButton) => updateAccountPreferences({ showInspectButton })} />
+                                    <WiredMenuCheckbox checked={accountPreferences.playTestMode} label="Enable playtesting mode" x={0} y={0} onChange={(playTestMode) => updateAccountPreferences({ playTestMode })} />
+                                    <WiredMenuCheckbox checked={accountPreferences.showSystemNotifications} label="Show all system notifications" x={0} y={0} onChange={(showSystemNotifications) => updateAccountPreferences({ showSystemNotifications })} />
+                                </div>
+                            </WiredMenuPanel>
+                            {GetConfigurationValue<boolean>('wired.ui_picker_enabled', false) && (
+                                <WiredMenuPanel className="volt-wt-settings-card" x={0} y={0}>
+                                    <WiredMenuTitle x={0} y={0}>
+                                        {localizeWithFallback('wiredmenu.settings.preferences.wired_style', 'Wired style:')}
+                                    </WiredMenuTitle>
+                                    <div className="volt-wt-select-wrap">
+                                        <select
+                                            className="volt-wt-select"
+                                            value={normalizeWiredStyle(accountPreferences.wiredStyle)}
+                                            onChange={(event) => updateAccountPreferences({ wiredStyle: normalizeWiredStyle(event.target.value) })}
+                                        >
+                                            {WIRED_STYLE_OPTIONS.map((style) => (
+                                                <option key={style} value={style}>
+                                                    {style === WIRED_STYLE_DEFAULT
+                                                        ? localizeWithFallback('wiredmenu.settings.preferences.wired_style.default', 'Default (Default)', ['name'], ['Default'])
+                                                        : wiredStyleTitle(style)}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </WiredMenuPanel>
+                            )}
+                            {showSelfDonation && (
+                                <WiredMenuPanel className="volt-wt-settings-card" x={0} y={0}>
+                                    <WiredMenuTitle x={0} y={0}>
+                                        {localizeWithFallback('selfdonation.section', 'Sandbox tools:')}
+                                    </WiredMenuTitle>
+                                    <WiredMenuButton x={0} y={0} onClick={onOpenSelfDonation}>
+                                        {localizeWithFallback('selfdonation.title', 'Sandbox donation tool')}
+                                    </WiredMenuButton>
+                                </WiredMenuPanel>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <>

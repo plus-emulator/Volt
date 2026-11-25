@@ -1,7 +1,7 @@
 import '../../css/WiredView.css';
 import { IWiredTransactionInfo, WIRED_TRANSACTION_LIST_CHEST, WiredTransactionGetChestLogsComposer, WiredTransactionGetRoomLogsComposer } from '@volt/renderer';
 import { FC, useEffect, useState } from 'react';
-import { GetUserProfile, localizeWithFallback, SendMessageComposer } from '../../api';
+import { GetUserProfile, IsTouchLayout, localizeWithFallback, SendMessageComposer, useVoltLayout } from '../../api';
 import arrowLeft from '../../assets/images/wired/native/menu_page_arrow_left.png';
 import arrowRight from '../../assets/images/wired/native/menu_page_arrow_right.png';
 import { DraggableWindowPosition, VoltCardHeaderView, VoltCardView } from '../../common';
@@ -9,6 +9,7 @@ import { WiredMenuLabel } from '../../common/native-text/WiredMenuLabel';
 import { useWiredPageRequests } from '../../hooks/wired-tools/useWiredPageRequests';
 import { summarizeTransactionCounts } from './WiredChestTransactionCounts';
 import { WiredMenuButton, WiredMenuTable, WiredMenuTableColumn, WiredMenuTableRow } from './WiredMenuParts';
+import { WiredMenuPagingFooter } from './WiredMenuPaging';
 import { useTextWindowWidths } from '../../common/native-text/useTextWindowWidths';
 import { resizeCentred, startCentred } from './nativeTextWindow';
 import { calculateLastPage, clampInputPage, NO_PAGE, parseInputPage, restrictPageInput } from './WiredPaging.helpers';
@@ -101,6 +102,7 @@ const COLUMNS: { key: string; title: string; factor: number }[] = [
  * controls under it. A chest list asks its pages from the chest, a room list from the room.
  */
 export const WiredTransactionLogsWindow: FC<WiredTransactionLogsWindowProps> = ({ data, onClose }) => {
+    const isTouch = IsTouchLayout(useVoltLayout());
     const { listType, listId, totalLogs, page, logs } = data;
     const lastPage = calculateLastPage(totalLogs, WIRED_TRANSACTION_LOGS_PAGE_SIZE);
     const [pageInput, setPageInput] = useState(String(page));
@@ -159,6 +161,27 @@ export const WiredTransactionLogsWindow: FC<WiredTransactionLogsWindowProps> = (
 
     const columns: WiredMenuTableColumn[] = COLUMNS.map((column) => ({ ...column, title: localizeWithFallback(`wiredchests.logs.col.${column.key}`, column.title) }));
 
+    const title = localizeWithFallback('wiredchests.logs.title', 'Transaction logs');
+    const listTypeLabel = localizeWithFallback('wiredchests.logs.list_type', 'List type:');
+    const listTypeValue = localizeWithFallback(`wiredchests.logs.type.${listType}`, listType === WIRED_TRANSACTION_LIST_CHEST ? 'Chest' : 'Room');
+    const idLabel =
+        listType === WIRED_TRANSACTION_LIST_CHEST
+            ? localizeWithFallback('wiredchests.logs.chest_id', 'Chest id:')
+            : localizeWithFallback('wiredchests.logs.room_id', 'Room id:');
+    const txRows: WiredMenuTableRow[] = logs.map((row) => ({
+        key: String(row.transactionId),
+        cells: {
+            type: typeLabel(row.transactionType),
+            timestamp: row.readableTimestamp,
+            username: row.userName,
+            withdraws: summarize(row.withdrawFurniCount, row.withdrawCoinsCount),
+            deposits: summarize(row.depositFurniCount, row.depositCoinsCount),
+            chests: String(row.chestCount),
+            details: null
+        },
+        links: { username: () => GetUserProfile(row.userId) }
+    }));
+
     return (
         <VoltCardView
             className="volt-wired-txlogs"
@@ -170,84 +193,86 @@ export const WiredTransactionLogsWindow: FC<WiredTransactionLogsWindowProps> = (
             uniqueKey="wired-transaction-logs"
             windowPosition={DraggableWindowPosition.TOP_LEFT}
         >
-            <VoltCardHeaderView headerText="" onCloseClick={onClose}>
-                <WiredMenuLabel
-                    align="center"
-                    className="volt-wired-menu__caption"
-                    color={0xffffff}
-                    text={localizeWithFallback('wiredchests.logs.title', 'Transaction logs')}
-                    textStyle="u_frame_title"
-                    width={WINDOW_WIDTH - 14}
-                />
+            <VoltCardHeaderView headerText={isTouch ? title : ''} onCloseClick={onClose}>
+                {!isTouch && (
+                    <WiredMenuLabel
+                        align="center"
+                        className="volt-wired-menu__caption"
+                        color={0xffffff}
+                        text={title}
+                        textStyle="u_frame_title"
+                        width={WINDOW_WIDTH - 14}
+                    />
+                )}
             </VoltCardHeaderView>
-            <div ref={setClient} className="volt-wired-txlogs__client">
-                <KeyValuePair
-                    name={localizeWithFallback('wiredchests.logs.list_type', 'List type:')}
-                    value={localizeWithFallback(`wiredchests.logs.type.${listType}`, listType === WIRED_TRANSACTION_LIST_CHEST ? 'Chest' : 'Room')}
-                    x={15}
-                    y={13}
-                />
-                <KeyValuePair
-                    name={
-                        listType === WIRED_TRANSACTION_LIST_CHEST
-                            ? localizeWithFallback('wiredchests.logs.chest_id', 'Chest id:')
-                            : localizeWithFallback('wiredchests.logs.room_id', 'Room id:')
-                    }
-                    value={String(listId)}
-                    x={15}
-                    y={35}
-                />
-                <WiredMenuButton h={30} w={62} x={801} y={13} onClick={() => requests.refresh()}>
-                    {localizeWithFallback('wiredchests.logs.refresh', 'Refresh')}
-                </WiredMenuButton>
-                <WiredMenuTable
-                    columns={columns}
-                    h={tableHeight}
-                    rows={logs.map((row): WiredMenuTableRow => ({
-                        key: String(row.transactionId),
-                        cells: {
-                            type: typeLabel(row.transactionType),
-                            timestamp: row.readableTimestamp,
-                            username: row.userName,
-                            withdraws: summarize(row.withdrawFurniCount, row.withdrawCoinsCount),
-                            deposits: summarize(row.depositFurniCount, row.depositCoinsCount),
-                            chests: String(row.chestCount),
-                            details: null
-                        },
-                        links: { username: () => GetUserProfile(row.userId) }
-                    }))}
-                    w={852}
-                    x={14}
-                    y={HEADER_HEIGHT}
-                />
-                <div className="volt-wired-txlogs__pagination">
-                    <PageButton disabled={isFirst} icon={arrowLeft} iconX={[18, 27]} title="First page" x={17} onClick={() => requests.requestFirstPage()} />
-                    <PageButton disabled={isFirst} icon={arrowLeft} iconX={[22]} title="Previous page" x={80} onClick={() => requests.requestPreviousPage()} />
-                    <PageButton disabled={isLast} icon={arrowRight} iconX={[23]} title="Next page" x={753} onClick={() => requests.requestNextPage()} />
-                    <PageButton disabled={isLast} icon={arrowRight} iconX={[18, 27]} title="Last page" x={813} onClick={() => requests.requestLastPage()} />
-                    <div className="volt-wired-menu__item" style={{ left: pagingX, top: 4, visibility: pagingWidths ? undefined : 'hidden' }}>
-                        <WiredMenuLabel className="volt-wired-txlogs__field volt-wired-txlogs__paging-text" text={pageTextStart} />
-                        <div className="volt-wired-txlogs__page-input" style={{ left: inputX }}>
-                            {pageInput !== '' && <WiredMenuLabel className="volt-wired-txlogs__field" text={pageInput} />}
-                            <input
-                                aria-label="Page"
-                                inputMode="numeric"
-                                type="text"
-                                value={pageInput}
-                                onBlur={navigateToInputPage}
-                                onChange={(event) => setPageInput(restrictPageInput(event.target.value))}
-                                onKeyDown={(event) => {
-                                    if (event.key !== 'Enter') return;
-
-                                    event.preventDefault();
-                                    navigateToInputPage();
-                                }}
-                            />
+            {isTouch ? (
+                <div className="volt-wired-txlogs__client volt-wt-window-client">
+                    <div className="volt-wt-meta-bar">
+                        <div className="volt-wt-meta-pairs">
+                            <div>
+                                <b>{listTypeLabel}</b> {listTypeValue}
+                            </div>
+                            <div>
+                                <b>{idLabel}</b> {String(listId)}
+                            </div>
                         </div>
-                        <WiredMenuLabel className="volt-wired-txlogs__field volt-wired-txlogs__paging-text" style={{ left: endX }} text={pageTextEnd} />
+                        <WiredMenuButton x={0} y={0} onClick={() => requests.refresh()}>
+                            {localizeWithFallback('wiredchests.logs.refresh', 'Refresh')}
+                        </WiredMenuButton>
+                    </div>
+                    <div className="volt-wt-table-area">
+                        <WiredMenuTable columns={columns} rows={txRows} w={852} x={0} y={0} />
+                    </div>
+                    <WiredMenuPagingFooter
+                        center={{ x: 312, startText: PAGING_TEXT.start, startWidth: 180, endText: PAGING_TEXT.end, endWidth: 26 }}
+                        currentPage={page}
+                        lastPage={lastPage}
+                        requests={requests}
+                        template={localizeWithFallback('wiredchests.logs.bottom_text', '%entries_count% transactions found. Showing page %page% of %page_count%').replace(
+                            '%transaction_count%',
+                            '%entries_count%'
+                        )}
+                        totalEntries={totalLogs}
+                        width={WINDOW_WIDTH}
+                    />
+                </div>
+            ) : (
+                <div ref={setClient} className="volt-wired-txlogs__client">
+                    <KeyValuePair name={listTypeLabel} value={listTypeValue} x={15} y={13} />
+                    <KeyValuePair name={idLabel} value={String(listId)} x={15} y={35} />
+                    <WiredMenuButton h={30} w={62} x={801} y={13} onClick={() => requests.refresh()}>
+                        {localizeWithFallback('wiredchests.logs.refresh', 'Refresh')}
+                    </WiredMenuButton>
+                    <WiredMenuTable columns={columns} h={tableHeight} rows={txRows} w={852} x={14} y={HEADER_HEIGHT} />
+                    <div className="volt-wired-txlogs__pagination">
+                        <PageButton disabled={isFirst} icon={arrowLeft} iconX={[18, 27]} title="First page" x={17} onClick={() => requests.requestFirstPage()} />
+                        <PageButton disabled={isFirst} icon={arrowLeft} iconX={[22]} title="Previous page" x={80} onClick={() => requests.requestPreviousPage()} />
+                        <PageButton disabled={isLast} icon={arrowRight} iconX={[23]} title="Next page" x={753} onClick={() => requests.requestNextPage()} />
+                        <PageButton disabled={isLast} icon={arrowRight} iconX={[18, 27]} title="Last page" x={813} onClick={() => requests.requestLastPage()} />
+                        <div className="volt-wired-menu__item" style={{ left: pagingX, top: 4, visibility: pagingWidths ? undefined : 'hidden' }}>
+                            <WiredMenuLabel className="volt-wired-txlogs__field volt-wired-txlogs__paging-text" text={pageTextStart} />
+                            <div className="volt-wired-txlogs__page-input" style={{ left: inputX }}>
+                                {pageInput !== '' && <WiredMenuLabel className="volt-wired-txlogs__field" text={pageInput} />}
+                                <input
+                                    aria-label="Page"
+                                    inputMode="numeric"
+                                    type="text"
+                                    value={pageInput}
+                                    onBlur={navigateToInputPage}
+                                    onChange={(event) => setPageInput(restrictPageInput(event.target.value))}
+                                    onKeyDown={(event) => {
+                                        if (event.key !== 'Enter') return;
+
+                                        event.preventDefault();
+                                        navigateToInputPage();
+                                    }}
+                                />
+                            </div>
+                            <WiredMenuLabel className="volt-wired-txlogs__field volt-wired-txlogs__paging-text" style={{ left: endX }} text={pageTextEnd} />
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
         </VoltCardView>
     );
 };

@@ -1,5 +1,5 @@
-import { FC } from 'react';
-import { localizeWithFallback } from '../../api';
+import { FC, useState } from 'react';
+import { IsPhoneLayout, IsTouchLayout, localizeWithFallback, useVoltLayout } from '../../api';
 import trashIcon from '../../assets/images/wired/native/menu_trash.png';
 import contextIcon from '../../assets/images/wired/native/menu_variable_context.png';
 import furniIcon from '../../assets/images/wired/native/menu_variable_furni.png';
@@ -71,6 +71,10 @@ export const WiredVariablesTabView: FC<WiredVariablesTabViewProps> = ({
     onOpenWebApiExplorer,
     emptyPickerText
 }) => {
+    const layout = useVoltLayout();
+    const isTouch = IsTouchLayout(layout);
+    const isPhone = IsPhoneLayout(layout);
+    const [mobilePane, setMobilePane] = useState<'list' | 'detail'>('list');
     const storeVariablesType = useWiredCreatorToolsUiStore((s) => s.variablesType);
     const setStoreVariablesType = useWiredCreatorToolsUiStore((s) => s.setVariablesType);
     const isControlled = controlledVariablesType !== undefined && !!onVariablesTypeChange;
@@ -78,6 +82,171 @@ export const WiredVariablesTabView: FC<WiredVariablesTabViewProps> = ({
     const setVariablesType = isControlled ? onVariablesTypeChange : setStoreVariablesType;
     const isVariableHighlightActive = useWiredCreatorToolsUiStore((s) => s.isVariableHighlightActive);
     const setIsVariableHighlightActive = useWiredCreatorToolsUiStore((s) => s.setIsVariableHighlightActive);
+
+    if (isTouch) {
+        const activePane = isPhone && selectedVariableDefinition ? mobilePane : 'list';
+        const showList = !isPhone || activePane === 'list';
+        const showDetail = !isPhone || activePane === 'detail';
+
+        const actionButtons = (
+            <div className="volt-wt-variables__actions">
+                {showHighlight && (
+                    <WiredMenuButton
+                        disabled={!canVariableHighlight}
+                        title={localizeWithFallback('wiredmenu.variable_overview.highlight_holders.tooltip', 'Highlight all users/furni inside the room that are holding this variable')}
+                        x={0}
+                        y={0}
+                        onClick={() => setIsVariableHighlightActive((value) => !value)}
+                    >
+                        {isVariableHighlightActive
+                            ? localizeWithFallback('wiredmenu.variable_overview.unhighlight_holders', 'Undo')
+                            : localizeWithFallback('wiredmenu.variable_overview.highlight_holders', 'Highlight')}
+                    </WiredMenuButton>
+                )}
+                <WiredMenuButton
+                    disabled={!variableManageCanOpen}
+                    title={localizeWithFallback('wiredmenu.variable_overview.manage.tooltip', 'Manage all users who are holding this variable')}
+                    x={0}
+                    y={0}
+                    onClick={onOpenManagePanel}
+                >
+                    Manage
+                </WiredMenuButton>
+                {showArrayInspector && arrayInspectorCanOpen && (
+                    <WiredMenuButton x={0} y={0} onClick={onOpenArrayInspector}>
+                        Contents
+                    </WiredMenuButton>
+                )}
+                <WiredMenuButton
+                    className="volt-wt-icon-btn"
+                    danger={true}
+                    disabled={!canVariableClear}
+                    title={clearLabel ?? localizeWithFallback('wiredmenu.variable_overview.delete_all.title', 'Clear this variable')}
+                    x={0}
+                    y={0}
+                    onClick={onClearVariable}
+                >
+                    <WiredMenuButtonIcon src={trashIcon} />
+                </WiredMenuButton>
+            </div>
+        );
+
+        return (
+            <div className={`volt-wt-tab-root volt-wt-variables ${isPhone ? 'is-phone' : ''}`}>
+                {showList && (
+                    <div className="volt-wt-variables__master">
+                        <div className="volt-wt-variables__type-bar">
+                            <WiredMenuPanel className="volt-wt-type-buttons" x={0} y={0}>
+                                {variableElements.map((element) => (
+                                    <WiredMenuButton
+                                        key={element.key}
+                                        className={`volt-wt-icon-btn ${variablesType === element.key ? 'is-selected' : ''}`}
+                                        disabled={element.disabled}
+                                        title={element.label}
+                                        x={0}
+                                        y={0}
+                                        onClick={() => {
+                                            setVariablesType(element.key);
+                                            setMobilePane('list');
+                                        }}
+                                    >
+                                        <WiredMenuButtonIcon alt={element.label} src={TYPE_ICONS[element.key] ?? element.icon} />
+                                    </WiredMenuButton>
+                                ))}
+                            </WiredMenuPanel>
+                            {!!onOpenWebApiExplorer && (
+                                <WiredMenuButton className="volt-wt-variables__explorer-btn" x={0} y={0} onClick={onOpenWebApiExplorer}>
+                                    {localizeWithFallback('wiredmenu.variables.web_api_explorer', 'Web API explorer')}
+                                </WiredMenuButton>
+                            )}
+                        </div>
+                        <WiredMenuTitle x={0} y={0}>
+                            Variable picker:
+                        </WiredMenuTitle>
+                        <WiredMenuTable
+                            className="volt-wt-table--picker"
+                            columns={PICKER_COLUMNS}
+                            emptyText={emptyPickerText || 'Nothing to display'}
+                            rowClassName="volt-wired-menu__picker-row volt-wt-picker-row"
+                            rows={variablePickerDefinitions.map((variable) => ({
+                                key: variable.key,
+                                cells: {
+                                    name: isPhone ? (
+                                        <span className="volt-wt-picker-cell">
+                                            <span className="volt-wt-picker-name">{variable.key}</span>
+                                            <span aria-hidden="true" className="volt-wt-picker-chevron">
+                                                &rsaquo;
+                                            </span>
+                                        </span>
+                                    ) : (
+                                        variable.key
+                                    )
+                                },
+                                selected: selectedVariableDefinition?.key === variable.key,
+                                onSelect: () => {
+                                    onPickVariable(variable.key);
+                                    if (isPhone) setMobilePane('detail');
+                                }
+                            }))}
+                            showTitles={false}
+                            w={188}
+                            x={0}
+                            y={0}
+                        />
+                        {!isPhone && actionButtons}
+                    </div>
+                )}
+                {showDetail && (
+                    <div className="volt-wt-variables__detail">
+                        {isPhone && (
+                            <div className="volt-wt-master-bar">
+                                <WiredMenuButton className="volt-wt-back-btn" x={0} y={0} onClick={() => setMobilePane('list')}>
+                                    &lsaquo; {localizeWithFallback('generic.back', 'Back')}
+                                </WiredMenuButton>
+                                <span className="volt-wt-master-bar__title">{selectedVariableDefinition?.key}</span>
+                            </div>
+                        )}
+                        <div className="volt-wt-scroll-area">
+                            <div className="volt-wt-section">
+                                <WiredMenuTitle x={0} y={0}>
+                                    Properties:
+                                </WiredMenuTitle>
+                                <WiredMenuTable
+                                    columns={[
+                                        { key: 'property', title: 'Property', factor: 0.52, align: 'left' },
+                                        { key: 'value', title: 'Value', factor: 0.48, align: 'left' }
+                                    ]}
+                                    rows={selectedVariableProperties.map((property) => ({ key: property.key, cells: { property: property.key, value: property.value } }))}
+                                    w={256}
+                                    x={0}
+                                    y={0}
+                                />
+                            </div>
+                            {showTextValues && (
+                                <div className="volt-wt-section">
+                                    <WiredMenuTitle x={0} y={0}>
+                                        Text values:
+                                    </WiredMenuTitle>
+                                    <WiredMenuTable
+                                        columns={[
+                                            { key: 'value', title: 'Value', factor: 0.25, align: 'left' },
+                                            { key: 'text', title: 'Text', factor: 0.75, align: 'right' }
+                                        ]}
+                                        disabled={textValuesDisabled}
+                                        rows={selectedVariableTextValues.map((entry, index) => ({ key: `${entry.value}-${index}`, cells: { value: entry.value, text: entry.text } }))}
+                                        w={256}
+                                        x={0}
+                                        y={0}
+                                    />
+                                </div>
+                            )}
+                        </div>
+                        {isPhone && <div className="volt-wt-sticky-bar">{actionButtons}</div>}
+                    </div>
+                )}
+            </div>
+        );
+    }
 
     return (
         <>

@@ -95,7 +95,7 @@ export const VariablesExplorerMainView: FC<VariablesExplorerMainViewProps> = ({ 
     return (
         <>
             <VoltCardView
-                className="min-w-[560px] max-w-[560px]"
+                className="volt-wired-touch-card volt-variables-explorer-main min-w-[560px] max-w-[560px]"
                 theme="primary-slim"
                 uniqueKey="variables-explorer"
                 windowPosition={DraggableWindowPosition.TOP_LEFT}
@@ -103,8 +103,8 @@ export const VariablesExplorerMainView: FC<VariablesExplorerMainViewProps> = ({ 
                 offsetTop={60}
             >
                 <VoltCardHeaderView headerText={localizeWithFallback('wiredmenu.variables_explorer.title', 'Variables Explorer')} onCloseClick={onClose} />
-                <VoltCardContentView className="text-black bg-[#e9e6d9]" gap={2}>
-                    <div className="mx-3 mt-3 rounded border border-[#c8c2b2] bg-white px-3 py-2 flex items-center justify-between gap-3 text-[12px]">
+                <VoltCardContentView className="volt-variables-explorer-main__content text-black bg-[#e9e6d9]" gap={2}>
+                    <div className="volt-variables-explorer-main__banner mx-3 mt-3 rounded border border-[#c8c2b2] bg-white px-3 py-2 flex items-center justify-between gap-3 text-[12px]">
                         <div className="flex flex-col min-w-0">
                             <Text bold truncate>
                                 {hotelName} &middot; Room {connection.roomId}
@@ -113,7 +113,7 @@ export const VariablesExplorerMainView: FC<VariablesExplorerMainViewProps> = ({ 
                                 {client.hasWriteAccess ? 'Read and write access' : 'Read-only access'}
                             </Text>
                         </div>
-                        <div className="flex gap-2 shrink-0">
+                        <div className="volt-variables-explorer-main__banner-actions flex gap-2 shrink-0">
                             <Button variant="secondary" onClick={reloadVariables}>
                                 Reload
                             </Button>
@@ -153,7 +153,7 @@ export const VariablesExplorerMainView: FC<VariablesExplorerMainViewProps> = ({ 
                         showArrayInspector={false}
                         showTextValues={false}
                     />
-                    <div className="mx-3 flex flex-wrap items-center gap-2 text-[12px]">
+                    <div className="volt-variables-explorer-main__lookup mx-3 flex flex-wrap items-center gap-2 text-[12px]">
                         <Text bold>Look up a holder:</Text>
                         <select
                             aria-label="Holder kind"
@@ -187,7 +187,7 @@ export const VariablesExplorerMainView: FC<VariablesExplorerMainViewProps> = ({ 
                             Global variables
                         </Button>
                     </div>
-                    <div className="mx-3 mb-3 min-h-[26px]">
+                    <div className="volt-variables-explorer-main__status mx-3 mb-3 min-h-[26px]">
                         {!!status && (
                             <div
                                 className={`rounded border px-2 py-1 text-[12px] ${status.isError ? 'border-[#d9a3a3] bg-[#fbeaea] text-[#8c2424]' : 'border-[#a9c9a4] bg-[#e8f4e5] text-[#2a6a24]'}`}

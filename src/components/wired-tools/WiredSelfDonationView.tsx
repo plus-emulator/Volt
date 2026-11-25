@@ -82,7 +82,7 @@ export const WiredSelfDonationView = ({ onClose }: WiredSelfDonationViewProps) =
 
     return (
         <VoltCardView
-            className="min-w-[420px] max-w-[420px] max-h-[560px]"
+            className="volt-wired-touch-card volt-wired-self-donation min-w-[420px] max-w-[420px] max-h-[560px]"
             theme="primary-slim"
             uniqueKey="wired-self-donation"
             windowPosition={DraggableWindowPosition.TOP_LEFT}
@@ -90,8 +90,8 @@ export const WiredSelfDonationView = ({ onClose }: WiredSelfDonationViewProps) =
             offsetTop={80}
         >
             <VoltCardHeaderView headerText={localizeWithFallback('selfdonation.title', 'Sandbox donation tool')} onCloseClick={onClose} />
-            <VoltCardContentView className="text-black bg-[#f4efe3] p-3 flex flex-col gap-3" overflow="hidden">
-                <label className="flex items-center gap-2 text-[12px]">
+            <VoltCardContentView className="volt-wired-self-donation__content text-black bg-[#f4efe3] p-3 flex flex-col gap-3" overflow="hidden">
+                <label className="volt-wired-self-donation__row flex items-center gap-2 text-[12px]">
                     <Text bold>{localizeWithFallback('selfdonation.amount', 'Amount')}:</Text>
                     <input
                         aria-label="Amount"
@@ -105,7 +105,7 @@ export const WiredSelfDonationView = ({ onClose }: WiredSelfDonationViewProps) =
                     />
                     <Text small>{localizeWithFallback('selfdonation.amount.range', '1 to %max%', ['max'], [String(maxAmount)])}</Text>
                 </label>
-                <label className="flex items-center gap-2 text-[12px]">
+                <label className="volt-wired-self-donation__row flex items-center gap-2 text-[12px]">
                     <Text bold>{localizeWithFallback('selfdonation.search', 'Furni')}:</Text>
                     <input
                         aria-label="Search furni"
@@ -116,7 +116,7 @@ export const WiredSelfDonationView = ({ onClose }: WiredSelfDonationViewProps) =
                         onChange={(event) => setQuery(event.target.value)}
                     />
                 </label>
-                <div className="h-[300px] overflow-y-auto border border-[#d1ccbf] rounded bg-white" data-testid="self-donation-results">
+                <div className="volt-wired-self-donation__results h-[300px] overflow-y-auto border border-[#d1ccbf] rounded bg-white" data-testid="self-donation-results">
                     <table className="w-full text-[12px] table-fixed">
                         <thead className="bg-[#efede5] sticky top-0">
                             <tr>
@@ -156,7 +156,7 @@ export const WiredSelfDonationView = ({ onClose }: WiredSelfDonationViewProps) =
                         </tbody>
                     </table>
                 </div>
-                <div className="flex items-center justify-between gap-2">
+                <div className="volt-wired-self-donation__footer flex items-center justify-between gap-2">
                     <Text small>
                         {selected
                             ? localizeWithFallback('selfdonation.selected', 'Selected: %name%', ['name'], [selected.name])

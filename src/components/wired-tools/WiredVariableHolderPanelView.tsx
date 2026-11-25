@@ -1,5 +1,5 @@
 import { KeyboardEvent, ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { localizeWithFallback } from '../../api';
+import { IsTouchLayout, localizeWithFallback, useVoltLayout } from '../../api';
 import { DraggableWindowPosition, VoltCardHeaderView, VoltCardView } from '../../common';
 import { NativeText } from '../../common/native-text/NativeText';
 import { WiredMenuLabel } from '../../common/native-text/WiredMenuLabel';
@@ -142,6 +142,7 @@ export const WiredVariableHolderPanelView = (props: WiredVariableHolderPanelView
         extraActions = null,
         uniqueKey = 'wired-variable-management-entry'
     } = props;
+    const isTouch = IsTouchLayout(useVoltLayout());
     const selectedGiveOption = giveOptions.find((option) => option.id === giveSelectedId) ?? null;
     const [tableArea, setTableArea] = useState<HTMLDivElement>(null);
     const [tableHeight, setTableHeight] = useState(0);
@@ -159,22 +160,53 @@ export const WiredVariableHolderPanelView = (props: WiredVariableHolderPanelView
 
     const valueCell = (entry: WiredHolderPanelEntry): ReactNode => {
         if (!entry.hasValue) return '';
-        if (editingId !== entry.id) return String(entry.value ?? 0);
+        if (editingId === entry.id) {
+            return (
+                <input
+                    autoFocus
+                    className={isTouch ? 'volt-wt-cell-input' : 'volt-wired-menu__cell-input'}
+                    spellCheck={false}
+                    type="text"
+                    value={editingValue}
+                    onBlur={onEditBlur}
+                    onChange={(event) => onEditingValueChange(event.target.value)}
+                    onClick={(event) => event.stopPropagation()}
+                    onKeyDownCapture={onEditKeyDown}
+                />
+            );
+        }
+        if (isTouch && canEdit && !entry.isReadOnly) {
+            return (
+                <button
+                    className="volt-wt-table__link"
+                    type="button"
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        onBeginEdit(entry);
+                    }}
+                >
+                    {String(entry.value ?? 0)}
+                </button>
+            );
+        }
 
-        return (
-            <input
-                autoFocus
-                className="volt-wired-menu__cell-input"
-                spellCheck={false}
-                type="text"
-                value={editingValue}
-                onBlur={onEditBlur}
-                onChange={(event) => onEditingValueChange(event.target.value)}
-                onClick={(event) => event.stopPropagation()}
-                onKeyDownCapture={onEditKeyDown}
-            />
-        );
+        return String(entry.value ?? 0);
     };
+
+    const tableColumns = [
+        { key: 'variable', title: localizeWithFallback('wiredmenu.inspection.variables.variable', 'Variable'), factor: 0.65, align: 'left' as const },
+        { key: 'value', title: localizeWithFallback('wiredmenu.inspection.variables.value', 'Value'), factor: 0.35, align: 'right' as const }
+    ];
+    const tableRows = entries.map((entry) => ({
+        key: entry.id,
+        selected: selectedId === entry.id,
+        onSelect: () => onSelect(entry.id),
+        onCellDoubleClick: (column: string) => {
+            if (column === 'value' && canEdit && entry.hasValue && !entry.isReadOnly) onBeginEdit(entry);
+        },
+        cells: { variable: entry.name, value: valueCell(entry) },
+        cellTitles: { variable: entry.name }
+    }));
 
     return (
         <VoltCardView
@@ -185,8 +217,10 @@ export const WiredVariableHolderPanelView = (props: WiredVariableHolderPanelView
             uniqueKey={uniqueKey}
             windowPosition={DraggableWindowPosition.CENTER}
         >
-            <VoltCardHeaderView headerText="" onCloseClick={onClose}>
-                <WiredMenuLabel align="button" className="volt-wired-menu__caption" color={0xffffff} text={title} textStyle="u_frame_title" width={WINDOW_WIDTH - 14} />
+            <VoltCardHeaderView headerText={isTouch ? title : ''} onCloseClick={onClose}>
+                {!isTouch && (
+                    <WiredMenuLabel align="button" className="volt-wired-menu__caption" color={0xffffff} text={title} textStyle="u_frame_title" width={WINDOW_WIDTH - 14} />
+                )}
                 {!!onHelp && (
                     <button
                         aria-label={localizeWithFallback('generic.help', 'Help')}
@@ -197,105 +231,170 @@ export const WiredVariableHolderPanelView = (props: WiredVariableHolderPanelView
                     />
                 )}
             </VoltCardHeaderView>
-            <div className="volt-wired-varmanage__client">
-                <WiredMenuItem className="volt-wired-varmanage__box" h={57} w={228} x={18} y={7}>
-                    <WiredMenuHtmlText wordWrap lineHeight={INFO_LINE_HEIGHT} style={{ left: 5, top: 12 }} text={infoText} width={INFO_WIDTH} />
-                </WiredMenuItem>
-                <WiredMenuButton h={30} w={62} x={259} y={20} onClick={onRefresh}>
-                    {localizeWithFallback('wiredmenu.list_view.refresh', 'Refresh')}
-                </WiredMenuButton>
-                <WiredMenuTitle h={19} w={188} x={18} y={73}>
-                    {localizeWithFallback('wiredmenu.variable_management_detail.holder_info', 'Holder info:')}
-                </WiredMenuTitle>
-                <WiredMenuItem className="volt-wired-varmanage-detail__preview" h={PREVIEW_SIZE} w={PREVIEW_SIZE} x={18} y={93}>
-                    <CentredPreview>{preview}</CentredPreview>
-                </WiredMenuItem>
-                <WiredMenuItem className="volt-wired-varmanage-detail__info-box" h={94} w={194} x={127} y={93}>
-                    <NativeText
-                        nativeResolution
-                        transparent
-                        background={0xffffff}
-                        maxWidth={182}
-                        style={{ position: 'absolute', left: 6, top: 6 }}
-                        text={infoLines.join('\n')}
-                        textStyle="u_regular"
-                    />
-                </WiredMenuItem>
-                <WiredMenuTitle h={19} w={188} x={18} y={196}>
-                    {variablesTitle}
-                </WiredMenuTitle>
-                <div ref={setTableArea} className="volt-wired-varmanage-detail__values" style={{ bottom: 52 + extrasHeight }}>
-                    {tableHeight > 0 && (
-                        <WiredMenuTable
-                            columns={[
-                                { key: 'variable', title: localizeWithFallback('wiredmenu.inspection.variables.variable', 'Variable'), factor: 0.65, align: 'left' },
-                                { key: 'value', title: localizeWithFallback('wiredmenu.inspection.variables.value', 'Value'), factor: 0.35, align: 'right' }
-                            ]}
-                            h={tableHeight}
-                            rows={entries.map((entry) => ({
-                                key: entry.id,
-                                selected: selectedId === entry.id,
-                                onSelect: () => onSelect(entry.id),
-                                onCellDoubleClick: (column) => {
-                                    if (column === 'value' && canEdit && entry.hasValue && !entry.isReadOnly) onBeginEdit(entry);
-                                },
-                                cells: { variable: entry.name, value: valueCell(entry) },
-                                cellTitles: { variable: entry.name }
-                            }))}
-                            w={303}
-                            x={0}
-                            y={0}
-                        />
-                    )}
-                </div>
-                {extrasHeight > 0 && (
-                    <div className="volt-wired-varmanage-detail__extras" style={{ height: extrasHeight }}>
-                        {status}
-                        {extraActions}
-                    </div>
-                )}
-                <div className="volt-wired-varmanage-detail__actions">
-                    <WiredMenuButton disabled={!canRemove} h={25} w={145} x={18} y={0} onClick={onRemove}>
-                        {localizeWithFallback('wiredmenu.inspection.delete', 'Remove variable')}
-                    </WiredMenuButton>
-                    <WiredMenuButton disabled={!canOpenGive} h={25} w={145} x={176} y={0} onClick={onToggleGive}>
-                        {localizeWithFallback('wiredmenu.inspection.add', 'Give variable')}
-                    </WiredMenuButton>
-                    {isGiveOpen && (
-                        <WiredMenuItem className="volt-wired-menu__bubble" h={145} w={186} x={140} y={-145}>
-                            <WiredMenuTitle h={17} w={158} x={6} y={6}>
-                                {localizeWithFallback('wiredmenu.inspection.select_variable', 'Variable:')}
-                            </WiredMenuTitle>
-                            <WiredMenuItem h={22} w={158} x={6} y={26}>
-                                <div className="volt-wired-menu__dropdown-wrap">
-                                    <select className="volt-wired-menu__dropdown" value={selectedGiveOption?.id ?? ''} onChange={(event) => onGiveSelect(event.target.value)}>
-                                        {!giveOptions.length && <option value="">No variables available</option>}
-                                        {giveOptions.map((option) => (
-                                            <option key={option.id} value={option.id}>
-                                                {option.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </WiredMenuItem>
-                            <WiredMenuTitle h={17} w={158} x={6} y={52}>
-                                {localizeWithFallback('wiredmenu.inspection.select_value', 'Value:')}
-                            </WiredMenuTitle>
-                            <WiredMenuItem className="volt-wired-menu__value-box" h={22} w={80} x={6} y={72}>
-                                <input
-                                    disabled={!selectedGiveOption?.hasValue}
-                                    type="number"
-                                    value={giveValue}
-                                    onChange={(event) => onGiveValueChange(event.target.value)}
-                                />
-                            </WiredMenuItem>
-                            <WiredMenuButton disabled={!canGive} h={25} w={158} x={6} y={100} onClick={onGive}>
-                                {localizeWithFallback('wiredmenu.inspection.create', 'Create')}
+            {isTouch ? (
+                <div className="volt-wired-varmanage__client volt-wt-window-client">
+                    <div className="volt-wt-scroll-area">
+                        <div className="volt-wt-meta-bar">
+                            <div className="volt-wt-info-box">
+                                <p>{infoText}</p>
+                            </div>
+                            <WiredMenuButton x={0} y={0} onClick={onRefresh}>
+                                {localizeWithFallback('wiredmenu.list_view.refresh', 'Refresh')}
                             </WiredMenuButton>
-                        </WiredMenuItem>
-                    )}
+                        </div>
+                        <div className="volt-wt-section">
+                            <WiredMenuTitle x={0} y={0}>
+                                {localizeWithFallback('wiredmenu.variable_management_detail.holder_info', 'Holder info:')}
+                            </WiredMenuTitle>
+                            <div className="volt-wt-holder-header">
+                                <div className="volt-wt-holder-preview">{preview}</div>
+                                <div className="volt-wt-holder-info">
+                                    {infoLines.map((line, index) => (
+                                        <div key={index} className="volt-wt-holder-info__line">
+                                            {line}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="volt-wt-section volt-wt-section--grow">
+                            <WiredMenuTitle x={0} y={0}>
+                                {variablesTitle}
+                            </WiredMenuTitle>
+                            <WiredMenuTable columns={tableColumns} rows={tableRows} w={303} x={0} y={0} />
+                        </div>
+                        {(!!status || !!extraActions) && (
+                            <div className="volt-wt-holder-extras">
+                                {status}
+                                {extraActions}
+                            </div>
+                        )}
+                        {isGiveOpen && (
+                            <div className="volt-wt-give-panel">
+                                <div className="volt-wt-field">
+                                    <label className="volt-wt-field__label">{localizeWithFallback('wiredmenu.inspection.select_variable', 'Variable:')}</label>
+                                    <div className="volt-wt-select-wrap">
+                                        <select className="volt-wt-select" value={selectedGiveOption?.id ?? ''} onChange={(event) => onGiveSelect(event.target.value)}>
+                                            {!giveOptions.length && <option value="">No variables available</option>}
+                                            {giveOptions.map((option) => (
+                                                <option key={option.id} value={option.id}>
+                                                    {option.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="volt-wt-field">
+                                    <label className="volt-wt-field__label">{localizeWithFallback('wiredmenu.inspection.select_value', 'Value:')}</label>
+                                    <input
+                                        className="volt-wt-input"
+                                        disabled={!selectedGiveOption?.hasValue}
+                                        inputMode="numeric"
+                                        type="number"
+                                        value={giveValue}
+                                        onChange={(event) => onGiveValueChange(event.target.value)}
+                                    />
+                                </div>
+                                <div className="volt-wt-give-actions">
+                                    <WiredMenuButton x={0} y={0} onClick={onToggleGive}>
+                                        {localizeWithFallback('generic.cancel', 'Cancel')}
+                                    </WiredMenuButton>
+                                    <WiredMenuButton disabled={!canGive} x={0} y={0} onClick={onGive}>
+                                        {localizeWithFallback('wiredmenu.inspection.create', 'Create')}
+                                    </WiredMenuButton>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    <div className="volt-wt-sticky-bar">
+                        <WiredMenuButton disabled={!canRemove} x={0} y={0} onClick={onRemove}>
+                            {localizeWithFallback('wiredmenu.inspection.delete', 'Remove variable')}
+                        </WiredMenuButton>
+                        <WiredMenuButton disabled={!canOpenGive} x={0} y={0} onClick={onToggleGive}>
+                            {localizeWithFallback('wiredmenu.inspection.add', 'Give variable')}
+                        </WiredMenuButton>
+                    </div>
                 </div>
-            </div>
+            ) : (
+                <div className="volt-wired-varmanage__client">
+                    <WiredMenuItem className="volt-wired-varmanage__box" h={57} w={228} x={18} y={7}>
+                        <WiredMenuHtmlText wordWrap lineHeight={INFO_LINE_HEIGHT} style={{ left: 5, top: 12 }} text={infoText} width={INFO_WIDTH} />
+                    </WiredMenuItem>
+                    <WiredMenuButton h={30} w={62} x={259} y={20} onClick={onRefresh}>
+                        {localizeWithFallback('wiredmenu.list_view.refresh', 'Refresh')}
+                    </WiredMenuButton>
+                    <WiredMenuTitle h={19} w={188} x={18} y={73}>
+                        {localizeWithFallback('wiredmenu.variable_management_detail.holder_info', 'Holder info:')}
+                    </WiredMenuTitle>
+                    <WiredMenuItem className="volt-wired-varmanage-detail__preview" h={PREVIEW_SIZE} w={PREVIEW_SIZE} x={18} y={93}>
+                        <CentredPreview>{preview}</CentredPreview>
+                    </WiredMenuItem>
+                    <WiredMenuItem className="volt-wired-varmanage-detail__info-box" h={94} w={194} x={127} y={93}>
+                        <NativeText
+                            nativeResolution
+                            transparent
+                            background={0xffffff}
+                            maxWidth={182}
+                            style={{ position: 'absolute', left: 6, top: 6 }}
+                            text={infoLines.join('\n')}
+                            textStyle="u_regular"
+                        />
+                    </WiredMenuItem>
+                    <WiredMenuTitle h={19} w={188} x={18} y={196}>
+                        {variablesTitle}
+                    </WiredMenuTitle>
+                    <div ref={setTableArea} className="volt-wired-varmanage-detail__values" style={{ bottom: 52 + extrasHeight }}>
+                        {tableHeight > 0 && <WiredMenuTable columns={tableColumns} h={tableHeight} rows={tableRows} w={303} x={0} y={0} />}
+                    </div>
+                    {extrasHeight > 0 && (
+                        <div className="volt-wired-varmanage-detail__extras" style={{ height: extrasHeight }}>
+                            {status}
+                            {extraActions}
+                        </div>
+                    )}
+                    <div className="volt-wired-varmanage-detail__actions">
+                        <WiredMenuButton disabled={!canRemove} h={25} w={145} x={18} y={0} onClick={onRemove}>
+                            {localizeWithFallback('wiredmenu.inspection.delete', 'Remove variable')}
+                        </WiredMenuButton>
+                        <WiredMenuButton disabled={!canOpenGive} h={25} w={145} x={176} y={0} onClick={onToggleGive}>
+                            {localizeWithFallback('wiredmenu.inspection.add', 'Give variable')}
+                        </WiredMenuButton>
+                        {isGiveOpen && (
+                            <WiredMenuItem className="volt-wired-menu__bubble" h={145} w={186} x={140} y={-145}>
+                                <WiredMenuTitle h={17} w={158} x={6} y={6}>
+                                    {localizeWithFallback('wiredmenu.inspection.select_variable', 'Variable:')}
+                                </WiredMenuTitle>
+                                <WiredMenuItem h={22} w={158} x={6} y={26}>
+                                    <div className="volt-wired-menu__dropdown-wrap">
+                                        <select className="volt-wired-menu__dropdown" value={selectedGiveOption?.id ?? ''} onChange={(event) => onGiveSelect(event.target.value)}>
+                                            {!giveOptions.length && <option value="">No variables available</option>}
+                                            {giveOptions.map((option) => (
+                                                <option key={option.id} value={option.id}>
+                                                    {option.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </WiredMenuItem>
+                                <WiredMenuTitle h={17} w={158} x={6} y={52}>
+                                    {localizeWithFallback('wiredmenu.inspection.select_value', 'Value:')}
+                                </WiredMenuTitle>
+                                <WiredMenuItem className="volt-wired-menu__value-box" h={22} w={80} x={6} y={72}>
+                                    <input
+                                        disabled={!selectedGiveOption?.hasValue}
+                                        type="number"
+                                        value={giveValue}
+                                        onChange={(event) => onGiveValueChange(event.target.value)}
+                                    />
+                                </WiredMenuItem>
+                                <WiredMenuButton disabled={!canGive} h={25} w={158} x={6} y={100} onClick={onGive}>
+                                    {localizeWithFallback('wiredmenu.inspection.create', 'Create')}
+                                </WiredMenuButton>
+                            </WiredMenuItem>
+                        )}
+                    </div>
+                </div>
+            )}
         </VoltCardView>
     );
 };
