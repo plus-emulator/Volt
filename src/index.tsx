@@ -82,6 +82,7 @@ import './css/common/SharedComponentStyles.css';
 import './css/common/ClassicScrollbar.css';
 
 import './css/touch/TouchWindows.css';
+import './css/touch/TouchRightSide.css';
 import './css/touch/TouchHud.css';
 import './css/touch/TouchChat.css';
 import './css/touch/TouchRoom.css';
