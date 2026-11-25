@@ -1,10 +1,10 @@
 import { AddLinkEventTracker, FollowFriendMessageComposer, GetSessionDataManager, GroupInformationComposer, ILinkEventTracker, RemoveLinkEventTracker } from '@volt/renderer';
 import { CSSProperties, FC, KeyboardEvent, PointerEvent, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { GetUserProfile, LocalizeText, ReportType, SendMessageComposer, useHabbiconCatalog } from '../../../../api';
+import { GetUserProfile, IsTouchLayout, LocalizeText, ReportType, SendMessageComposer, useHabbiconCatalog, useVoltLayout } from '../../../../api';
 import SubmitSkin from '../../../../assets/images/friends/messenger-submit.png';
 import { HabbiconsDmIcon } from '../../../../assets/images/habbicons';
-import { DraggableWindow, DraggableWindowPosition, LayoutBadgeImageView } from '../../../../common';
+import { DraggableWindow, DraggableWindowPosition, LayoutAvatarImageView, LayoutBadgeImageView } from '../../../../common';
 import { useFriends, useHelp, useMessenger } from '../../../../hooks';
 import './FriendsMessengerView.css';
 import { FriendsMessengerHabbiconPickerView } from './FriendsMessengerHabbiconPickerView';
@@ -59,12 +59,13 @@ export const FriendsMessengerView: FC = () => {
     const { report } = useHelp();
     const habbiconCatalog = useHabbiconCatalog();
     const resizeStart = useRef<{ x: number; y: number; width: number; height: number; scaleX: number; scaleY: number }>(null);
+    const isTouch = IsTouchLayout(useVoltLayout());
 
     const positionPicker = () => {
         if (!habbiconRef.current || !inputRef.current) return;
         const button = habbiconRef.current.getBoundingClientRect();
         const input = inputRef.current.getBoundingClientRect();
-        setPickerPosition({ left: button.left, top: input.top - 4 });
+        setPickerPosition({ left: isTouch ? Math.max(8, Math.min(button.left, window.innerWidth - 264)) : button.left, top: input.top - 4 });
     };
     const hideMessenger = useCallback(() => {
         if (activeThread?.threadId) setLastThreadId(activeThread.threadId);
@@ -156,7 +157,7 @@ export const FriendsMessengerView: FC = () => {
         const bar = avatarBarRef.current;
         if (!isVisible || !bar) return;
         const measure = () => {
-            const count = Math.max(1, Math.floor(bar.clientWidth / 35));
+            const count = Math.max(1, Math.floor(bar.clientWidth / (isTouch ? 54 : 35)));
             setVisibleAvatarCount(count);
             setAvatarStartIndex((current) => Math.min(current, Math.max(0, visibleThreads.length - count)));
         };
@@ -164,7 +165,7 @@ export const FriendsMessengerView: FC = () => {
         const observer = new ResizeObserver(measure);
         observer.observe(bar);
         return () => observer.disconnect();
-    }, [isVisible, visibleThreads.length]);
+    }, [isVisible, visibleThreads.length, isTouch]);
 
     const maximumAvatarStart = Math.max(0, visibleThreads.length - visibleAvatarCount);
     const displayedThreads = visibleThreads.slice(avatarStartIndex, avatarStartIndex + visibleAvatarCount);
@@ -172,7 +173,7 @@ export const FriendsMessengerView: FC = () => {
     if (!isVisible) return null;
 
     return <>
-        <DraggableWindow uniqueKey="volt-messenger" handleSelector=".messenger-drag" windowPosition={DraggableWindowPosition.TOP_CENTER} offsetTop={8}>
+        <DraggableWindow uniqueKey="volt-messenger" handleSelector=".messenger-drag" windowPosition={DraggableWindowPosition.TOP_CENTER} offsetTop={8} touchPresentation="full">
             <div ref={windowRef} className="messenger-window" onPointerDown={(event) => {
                 if (pickerPosition && !habbiconRef.current?.contains(event.target as Node)) setPickerPosition(null);
             }}>
@@ -186,7 +187,9 @@ export const FriendsMessengerView: FC = () => {
                             className={`messenger-avatar-tab${activeThread?.threadId === thread.threadId ? ' active' : ''}${thread.unread ? ' unread' : ''}`}
                             aria-label={thread.participant.name} aria-pressed={activeThread?.threadId === thread.threadId} onClick={() => { setActiveThreadId(thread.threadId); setPickerPosition(null); }}>
                             {activeThread?.threadId === thread.threadId && <MessengerBorderView tab />}
-                            {thread.participant.id > 0 ? <MessengerAvatarView figure={getFriend(thread.participant.id)?.figure || thread.participant.figure} headOnly />
+                            {thread.participant.id > 0 ? (isTouch
+                                ? <LayoutAvatarImageView classNames={['messenger-touch-head']} figure={getFriend(thread.participant.id)?.figure || thread.participant.figure} headOnly direction={2} nativeCroppedHead trimmed />
+                                : <MessengerAvatarView figure={getFriend(thread.participant.id)?.figure || thread.participant.figure} headOnly />)
                                 : <div className="messenger-group-badge"><LayoutBadgeImageView badgeCode={thread.participant.figure} isGroup showInfo={false} /></div>}
                         </button>)}
                     </div>
@@ -203,7 +206,8 @@ export const FriendsMessengerView: FC = () => {
                     <div ref={messagesBox} className="chat-messages"><FriendsMessengerThreadView thread={activeThread} /></div>
                     <div ref={inputRef} className="messenger-input-row">
                         <MessengerBorderView />
-                        <input maxLength={120} placeholder={LocalizeText('messenger.window.input.default', ['friend_name', 'FRIEND_NAME'], [activeThread.participant.name, activeThread.participant.name])} type="text" value={messageText} onChange={(event) => setMessageText(event.target.value)} onKeyDown={onKeyDown} />
+                        <input maxLength={120} placeholder={LocalizeText('messenger.window.input.default', ['friend_name', 'FRIEND_NAME'], [activeThread.participant.name, activeThread.participant.name])} type="text" value={messageText} onChange={(event) => setMessageText(event.target.value)} onKeyDown={onKeyDown}
+                            onFocus={isTouch ? () => window.setTimeout(() => messagesBox.current?.scrollTo({ top: messagesBox.current.scrollHeight }), 350) : undefined} />
                         <button type="button" className="messenger-btn send" onClick={send}><MessengerSubmitSkin /><span>{LocalizeText('widgets.chatinput.say')}</span></button>
                     </div>
                     <button ref={habbiconRef} type="button" className="messenger-btn habbicon" aria-label={LocalizeText('messenger.habbicons.tooltip')}

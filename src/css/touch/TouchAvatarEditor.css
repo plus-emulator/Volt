@@ -1,1 +1,654 @@
-/* TouchAvatarEditor */
+/* TouchAvatarEditor: the AIR avatar editor sprites at touch sizes. Phones stack everything in one column;
+   tablets keep the desktop split with the preview and Save on the right. */
+
+html[data-volt-touch='on'] .volt-avatar-editor {
+    &.volt-card-frame-3::after {
+        display: none;
+    }
+
+    .volt-avatar-editor-title {
+        top: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+    .volt-avatar-editor-content.volt-card-content-shell {
+        position: relative;
+        top: auto;
+        left: auto;
+        width: 100%;
+        height: auto;
+        max-height: none !important;
+        min-height: 0;
+        flex: 1 1 auto;
+    }
+
+    .volt-avatar-editor-stage {
+        display: flex;
+        flex-direction: column;
+        width: auto;
+        min-width: 0;
+        height: 100%;
+        flex: 1 1 auto;
+        background: #eceae0;
+
+        &::before {
+            display: none;
+        }
+    }
+
+    /* C1: teal nameplate with the name and the 56 x 40 wardrobe button. */
+    .volt-avatar-editor-nameplate {
+        position: relative;
+        left: 0;
+        flex: none;
+        width: 100%;
+        height: 88px;
+    }
+
+    .volt-avatar-editor-name-text {
+        left: 72px;
+        right: 72px;
+        top: 12px;
+        width: auto;
+    }
+
+    .volt-avatar-editor-wardrobe-toggle {
+        left: auto;
+        right: 8px;
+        top: 6px;
+        width: 56px;
+        height: 40px;
+        border-width: 0 5px;
+        border-image: url('../../assets/images/habbo-skin/touch/btn-default-h40.png') 0 5 fill / 0 5px stretch;
+    }
+
+    .volt-avatar-editor-wardrobe-toggle:is(:hover, .is-open) {
+        border-image-source: url('../../assets/images/habbo-skin/touch/btn-default-h40.png');
+    }
+
+    .volt-avatar-editor-wardrobe-toggle:is(:active, .is-open) {
+        border-image-source: url('../../assets/images/habbo-skin/touch/btn-pressed-h40.png');
+    }
+
+    .volt-avatar-editor-wardrobe-toggle:disabled {
+        border-image-source: url('../../assets/images/habbo-skin/touch/btn-disabled-h40.png');
+    }
+
+    /* C2: AIR main tabs; extra tabs scroll sideways. */
+    .volt-avatar-editor-tab-row {
+        left: 10px;
+        top: 58px;
+        width: calc(100% - 20px);
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none;
+
+        &::-webkit-scrollbar {
+            display: none;
+        }
+    }
+
+    .avatar-editor-tabs.volt-card-tabs-shell {
+        min-height: 46px;
+        max-height: 46px;
+        overflow: visible;
+    }
+
+    .avatar-editor-tabs .volt-avatar-editor-main-tab:hover {
+        background-image: url('../../assets/images/avatareditor/air/tab-default.png') !important;
+    }
+
+    .avatar-editor-tabs .volt-avatar-editor-main-tab.volt-card-tab-item-active {
+        background-image: url('../../assets/images/avatareditor/air/tab-selected.png') !important;
+    }
+
+    .volt-avatar-editor-main {
+        position: relative;
+        inset: auto;
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        min-height: 0;
+        border-top: 1px solid #000;
+        background: #eceae0;
+        box-shadow: inset 0 1px 0 #fff;
+    }
+
+    /* C4: preview strip, shoes centred on the 2x shadow, rotate arrow centred below. */
+    .volt-avatar-editor-preview-shell {
+        position: relative;
+        left: auto;
+        top: auto;
+        order: -1;
+        flex: none;
+        width: 100%;
+        height: 180px;
+        border-bottom: 1px solid #ccc9bd;
+        box-shadow: 0 1px 0 #fff;
+    }
+
+    .figure-preview-container {
+        position: absolute;
+        inset: 0;
+        width: auto;
+        height: auto;
+    }
+
+    .volt-avatar-editor-preview-shadow {
+        left: 50%;
+        top: 97px;
+        margin-left: -34px;
+    }
+
+    .figure-preview-container .avatar-image {
+        left: 50%;
+        top: 7px;
+        bottom: auto;
+        margin-left: -45px;
+        transform: none !important;
+    }
+
+    .volt-avatar-editor-effect-preview {
+        width: 100%;
+        height: 100%;
+    }
+
+    .volt-avatar-editor-effect-preview > div {
+        left: calc(50% - 62px);
+        top: 8px;
+        transform: none;
+    }
+
+    .volt-avatar-editor-rotate {
+        left: 50%;
+        top: 132px;
+        z-index: 3;
+        display: flex;
+        width: 48px;
+        height: 44px;
+        align-items: center;
+        justify-content: center;
+        margin-left: -24px;
+    }
+
+    .volt-avatar-editor-model {
+        position: relative;
+        inset: auto;
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    /* C3: subcategories at 52 x 44 with 8 px gaps. */
+    .volt-avatar-editor-subcategories {
+        position: relative;
+        left: auto;
+        top: auto;
+        flex: none;
+        width: 100%;
+        height: 44px;
+        gap: 8px;
+        margin-top: 8px;
+        padding: 0 15px;
+        scrollbar-width: none;
+
+        &::-webkit-scrollbar {
+            display: none;
+        }
+    }
+
+    .volt-avatar-editor-subcategories.is-gender {
+        gap: 8px;
+        padding-left: 15px;
+    }
+
+    .category-item,
+    .category-item .avatar-editor-icon {
+        width: 52px;
+        min-width: 52px;
+        height: 44px;
+    }
+
+    .category-item.gender-category-item {
+        width: 120px;
+        min-width: 120px;
+    }
+
+    .gender-category-item .avatar-editor-icon,
+    .gender-category-item:first-child .avatar-editor-icon {
+        left: 0;
+        top: 0;
+    }
+
+    .volt-avatar-editor-gender-text {
+        left: 54px;
+        top: 14px;
+    }
+
+    /* 5 column part grid: 67 x 62 cells, 5 px gaps, on the 50 px highlight disc. */
+    .volt-avatar-editor-parts-grid {
+        position: relative;
+        left: auto;
+        top: auto;
+        flex: 1 1 auto;
+        width: auto;
+        height: auto;
+        min-height: 129px;
+        margin: 8px 0 0 15px;
+    }
+
+    .volt-avatar-editor-parts-grid .volt-classic-scroll-area-viewport {
+        padding-right: 0;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .volt-avatar-editor-parts-grid .volt-classic-scrollbar {
+        display: none;
+    }
+
+    .volt-avatar-editor-parts-grid [data-index] {
+        grid-template-columns: repeat(5, 67px) !important;
+    }
+
+    .avatar-parts {
+        width: 67px !important;
+        min-width: 67px;
+        max-width: 67px;
+        height: 62px !important;
+        min-height: 62px;
+        max-height: 62px;
+        margin: 0;
+    }
+
+    .avatar-parts::before {
+        background-position: 8px 6px;
+    }
+
+    .avatar-parts:hover::before {
+        display: none;
+    }
+
+    .avatar-parts.part-selected::before {
+        display: block;
+    }
+
+    .avatar-parts .avatar-editor-icon {
+        width: 67px;
+        min-width: 67px;
+        height: 62px;
+    }
+
+    .avatar-editor-get-more {
+        left: 12px;
+        top: 9px;
+    }
+
+    .avatar-editor-part-hc {
+        right: 9px;
+        bottom: 7px;
+    }
+
+    .avatar-parts > .avatar-editor-sellable-icon {
+        left: 8px;
+        bottom: 6px;
+        height: 18px;
+    }
+
+    .pet-sellable-badge {
+        right: 9px;
+        bottom: 7px;
+    }
+
+    /* C5: 9 AIR swatches per row at 34 x 36, flat rows repeated. */
+    .volt-avatar-editor-palettes {
+        position: relative;
+        left: auto;
+        top: auto;
+        flex: none;
+        flex-direction: column;
+        width: auto;
+        height: auto;
+        gap: 6px;
+        margin: 12px 15px 0;
+    }
+
+    .volt-avatar-editor-palettes:empty {
+        display: none;
+    }
+
+    .volt-avatar-editor-palettes .avatar-editor-palette-set-view,
+    .volt-avatar-editor-palettes.dual-palette .avatar-editor-palette-set-view {
+        width: 100%;
+        height: 78px;
+        flex: none;
+    }
+
+    .avatar-editor-palette-grid {
+        grid-template-columns: repeat(var(--avatar-editor-palette-columns), 34px);
+        grid-auto-rows: 36px;
+        gap: 6px;
+        overscroll-behavior: contain;
+        scrollbar-gutter: auto;
+        scrollbar-width: none;
+
+        &::-webkit-scrollbar {
+            display: none;
+        }
+    }
+
+    .avatar-editor-palette-item {
+        width: 34px;
+        height: 36px;
+    }
+
+    .avatar-editor-palette-color {
+        left: 1px;
+        top: 2px;
+        width: 32px;
+        height: 30px;
+        background-image: none;
+        -webkit-mask: none;
+        mask: none;
+    }
+
+    .avatar-editor-palette-color::after {
+        content: '';
+        position: absolute;
+        inset: -2px -1px -4px;
+        border: solid transparent;
+        border-width: 3px 2px 5px;
+        border-image: url('../../assets/images/habbo-skin/touch/palette-color-touch.png') 3 2 5 2 fill / 3px 2px 5px 2px stretch;
+        mix-blend-mode: multiply;
+    }
+
+    .avatar-editor-palette-frame {
+        inset: 0;
+        width: auto;
+        height: auto;
+        border: solid transparent;
+        border-width: 4px 2px;
+        border-image: url('../../assets/images/habbo-skin/touch/palette-default-touch.png') 4 2 4 2 fill / 4px 2px 4px 2px stretch;
+    }
+
+    .avatar-editor-palette-item .avatar-editor-palette-frame,
+    .avatar-editor-palette-item:hover .avatar-editor-palette-frame {
+        background: none;
+    }
+
+    .avatar-editor-palette-item.is-selected .avatar-editor-palette-frame {
+        border-width: 2px 2px 6px;
+        border-image: url('../../assets/images/habbo-skin/touch/palette-selected-touch.png') 2 2 6 2 fill / 2px 2px 6px 2px stretch;
+    }
+
+    .avatar-editor-palette-hc {
+        left: 12px;
+        top: 20px;
+    }
+
+    /* C6: full-width 44 px shiny thick Save. */
+    .volt-avatar-editor-save {
+        position: relative;
+        left: auto;
+        top: auto;
+        flex: none;
+        width: auto;
+        min-width: 0;
+        height: 44px;
+        min-height: 44px;
+        margin: 12px 15px 8px;
+        border-width: 0 5px !important;
+        border-image: url('../../assets/images/habbo-skin/touch/btn-thick-h44.png') 0 5 fill / 0 5px stretch !important;
+    }
+
+    .volt-avatar-editor-save:hover {
+        border-image-source: url('../../assets/images/habbo-skin/touch/btn-thick-h44.png') !important;
+    }
+
+    .volt-avatar-editor-save:active {
+        border-image-source: url('../../assets/images/habbo-skin/touch/btn-pressed-h44.png') !important;
+    }
+
+    .volt-avatar-editor-save:disabled {
+        border-image-source: url('../../assets/images/habbo-skin/touch/btn-disabled-h44.png') !important;
+    }
+
+    /* Hot looks, effects and collectibles follow the same 15 px left edge. */
+    :is(.volt-avatar-editor-hotlooks, .volt-avatar-editor-effects) {
+        position: relative;
+        inset: auto;
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    .volt-avatar-editor-hotlooks-title {
+        left: 15px;
+        top: 10px;
+    }
+
+    .volt-avatar-editor-hotlooks-choose {
+        left: 15px;
+        top: 38px;
+    }
+
+    :is(.volt-avatar-editor-hotlooks-grid, .volt-avatar-editor-nfts-grid) {
+        left: 15px;
+        right: 15px;
+        top: 66px;
+        bottom: 8px;
+        width: auto;
+        height: auto;
+        gap: 9px;
+        overflow-y: auto;
+    }
+
+    .volt-avatar-editor-hotlooks-grid {
+        grid-template-columns: repeat(auto-fill, 35px);
+    }
+
+    .volt-avatar-editor-nfts-items {
+        gap: 9px;
+    }
+
+    .volt-avatar-editor-nft-info {
+        left: 15px;
+        top: auto;
+        bottom: 8px;
+    }
+
+    .volt-avatar-editor-effects {
+        display: flex;
+        flex-direction: column;
+        padding: 52px 0 60px;
+    }
+
+    .volt-avatar-editor-effects-heading {
+        left: 15px;
+        top: 8px;
+    }
+
+    .volt-avatar-editor-effects-shop {
+        left: auto;
+        right: 15px;
+        top: 10px;
+    }
+
+    .volt-avatar-editor-effects-empty {
+        left: 15px;
+        top: 52px;
+    }
+
+    .volt-avatar-editor-effects-grid {
+        margin-top: 0;
+    }
+
+    .volt-avatar-editor-effect-items {
+        grid-template-columns: repeat(5, 67px);
+        gap: 5px;
+    }
+
+    .volt-avatar-editor-effect-item > .volt-avatar-editor-effect-amount {
+        left: 46px;
+        top: 6px;
+    }
+
+    .volt-avatar-editor-effect-item > .volt-avatar-editor-effect-duration {
+        left: 12px;
+        top: 50px;
+    }
+
+    .volt-avatar-editor-effect-name {
+        left: 15px;
+        top: auto;
+        bottom: 34px;
+        justify-content: flex-start;
+    }
+
+    .volt-avatar-editor-effect-activate,
+    .volt-avatar-editor-effect-time {
+        left: 15px;
+        top: auto;
+        bottom: 8px;
+        justify-content: flex-start;
+    }
+}
+
+/* ---------- Phones: one stacked column; the wardrobe covers the editor below the tabs. ---------- */
+
+html[data-volt-layout^='phone'] .volt-avatar-editor {
+    .volt-avatar-editor-wardrobe {
+        position: absolute;
+        top: 88px;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 3;
+        width: auto;
+        height: auto;
+        margin: 0;
+        padding: 0 15px 15px;
+        overflow-y: auto;
+        border-top: 1px solid #000;
+        box-shadow: none;
+    }
+
+    .volt-avatar-editor-wardrobe-header {
+        left: 0;
+        margin-top: 14px;
+    }
+
+    .volt-avatar-editor-wardrobe-slots {
+        width: fit-content;
+        height: auto;
+        margin: 12px 0 0;
+        padding-bottom: 3px;
+    }
+}
+
+/* Phone landscape: the docked panel is short, so the whole column scrolls. */
+html[data-volt-layout='phone-landscape'] .volt-avatar-editor {
+    .volt-avatar-editor-stage {
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+
+    .volt-avatar-editor-main,
+    .volt-avatar-editor-model {
+        flex: none;
+    }
+
+    .volt-avatar-editor-parts-grid {
+        flex: none;
+        height: 196px;
+    }
+
+    :is(.volt-avatar-editor-hotlooks, .volt-avatar-editor-effects) {
+        flex: none;
+        height: 320px;
+    }
+}
+
+/* ---------- Tablets: the desktop split, touch sized. ---------- */
+
+html[data-volt-layout^='tablet'] .volt-avatar-editor {
+    width: 600px;
+    min-width: 600px;
+    max-width: 600px;
+    height: 660px;
+    min-height: 0;
+    max-height: calc(var(--volt-visual-height, 100dvh) - 16px);
+
+    &.is-wardrobe-open {
+        width: 782px;
+        min-width: 0;
+        max-width: calc(100vw - 16px);
+    }
+
+    .volt-avatar-editor-content.volt-card-content-shell {
+        height: 100%;
+    }
+
+    .volt-avatar-editor-stage {
+        min-width: 594px;
+    }
+
+    .volt-avatar-editor-main {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 200px;
+        grid-template-rows: minmax(0, 1fr) auto;
+    }
+
+    .volt-avatar-editor-main > :not(.volt-avatar-editor-preview-shell, .volt-avatar-editor-save) {
+        grid-column: 1;
+        grid-row: 1 / span 2;
+    }
+
+    .volt-avatar-editor-preview-shell {
+        grid-column: 2;
+        grid-row: 1;
+        margin-top: 20px;
+        border-bottom: 0;
+        box-shadow: none;
+    }
+
+    .volt-avatar-editor-save {
+        grid-column: 2;
+        grid-row: 2;
+        margin: 0 15px 15px 0;
+    }
+
+    .volt-avatar-editor-palettes {
+        margin-bottom: 15px;
+    }
+
+    .volt-avatar-editor-wardrobe {
+        height: auto;
+    }
+}
+
+/* Phones narrower than 390 px: cells shrink a little so 5 parts and 9 swatches still fit. */
+@media (max-width: 389px) {
+    html[data-volt-layout^='phone'] .volt-avatar-editor {
+        .volt-avatar-editor-parts-grid {
+            margin-right: 8px;
+        }
+
+        .volt-avatar-editor-parts-grid [data-index] {
+            grid-template-columns: repeat(5, minmax(0, 67px)) !important;
+        }
+
+        .avatar-parts {
+            width: 100% !important;
+            min-width: 0;
+        }
+
+        .avatar-parts::before {
+            background-position: center 6px;
+        }
+
+        .avatar-editor-palette-grid {
+            column-gap: 2px;
+        }
+    }
+}

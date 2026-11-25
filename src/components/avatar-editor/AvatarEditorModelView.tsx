@@ -1,6 +1,6 @@
 import { AvatarEditorFigureCategory, AvatarFigurePartType, FigureDataContainer } from '@volt/renderer';
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { IAvatarEditorCategory, LocalizeText } from '../../api';
+import { IAvatarEditorCategory, IsTouchLayout, LocalizeText, useVoltLayout } from '../../api';
 import { NativeText } from '../../common/native-text/NativeText';
 import { useAvatarEditor } from '../../hooks';
 import { AvatarEditorIcon } from './AvatarEditorIcon';
@@ -14,6 +14,7 @@ export const AvatarEditorModelView: FC<{
 }> = (props) => {
     const { name = '', categories = [] } = props;
     const container = useRef<HTMLDivElement>(null);
+    const isTouch = IsTouchLayout(useVoltLayout());
     const [activeSetType, setActiveSetType] = useState<string>(() => categories[0]?.setType ?? '');
     const {
         gender = null,
@@ -103,13 +104,13 @@ export const AvatarEditorModelView: FC<{
             </div>
 
             <div className="volt-avatar-editor-parts-grid">
-                <AvatarEditorFigureSetView category={activeCategory} columnCount={6} />
+                <AvatarEditorFigureSetView category={activeCategory} columnCount={isTouch ? 5 : 6} gap={isTouch ? 5 : 0} estimateSize={isTouch ? 67 : 50} />
             </div>
 
             <div className={`volt-avatar-editor-palettes${paletteCount >= 2 ? ' dual-palette' : ''}`}>
                 {paletteCount >= 1 && (
                     <div className="avatar-editor-palette-set-view">
-                        <AvatarEditorPaletteSetView category={activeCategory} columnCount={paletteCount >= 2 ? 9 : 20} paletteIndex={0} />
+                        <AvatarEditorPaletteSetView category={activeCategory} columnCount={paletteCount >= 2 || isTouch ? 9 : 20} paletteIndex={0} />
                     </div>
                 )}
                 {paletteCount >= 2 && (

@@ -9,8 +9,9 @@ export const AvatarEditorFigureSetView: FC<{
     category: IAvatarEditorCategory;
     columnCount: number;
     estimateSize?: number;
+    gap?: number;
 }> = (props) => {
-    const { category = null, columnCount = 3, estimateSize = 50 } = props;
+    const { category = null, columnCount = 3, estimateSize = 50, gap = 0 } = props;
     const { selectedParts = null, selectEditorPart } = useAvatarEditor();
 
     const isPartItemSelected = (partItem: IAvatarEditorCategoryPartItem) => {
@@ -31,8 +32,8 @@ export const AvatarEditorFigureSetView: FC<{
         <InfiniteGrid<IAvatarEditorCategoryPartItem>
             classicScrollbar
             columnCount={columnCount}
-            columnGap={0}
-            rowGap={0}
+            columnGap={gap}
+            rowGap={gap}
             estimateSize={estimateSize}
             itemRender={(item: IAvatarEditorCategoryPartItem) => {
                 if (!item) return null;

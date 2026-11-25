@@ -1,11 +1,24 @@
 import { CSSProperties, FC, PropsWithChildren, useId, useState } from 'react';
-import { LocalizeText } from '../../../../api';
+import { IsPhoneLayout, LocalizeText, useVoltLayout } from '../../../../api';
 import blueFrame from '../../../../assets/images/friends/swf/friends-blue-frame-tinted.png';
 import blueAtlas from '../../../../assets/images/habbo-skin/2249_habbo_skin_blue_png$87fbbf84559e7bad0222a9c697b1104d-1406111769.png';
 import { DraggableWindow, DraggableWindowPosition } from '../../../../common';
 import { useNotificationActions } from '../../../../hooks';
 
 export const FRIENDS_DIALOG_SIZES = { invite: { width: 211, height: 175 }, remove: { width: 160, height: 200 } };
+
+const PHONE_DIALOG_HEIGHTS = { invite: 284, remove: 240 };
+
+/** Phone sizes for the invite and remove dialogs: wide enough for 15 px text and 44 px buttons. */
+export const usePhoneDialogSize = (kind: keyof typeof FRIENDS_DIALOG_SIZES) => {
+    const isPhone = IsPhoneLayout(useVoltLayout());
+
+    if (!isPhone) return null;
+
+    const width = Math.min(340, window.innerWidth - 16);
+
+    return { width, height: PHONE_DIALOG_HEIGHTS[kind], buttonWidth: Math.floor((width - 22) / 2) };
+};
 
 export interface FriendsDialogSnapshot {
     key: number;
@@ -114,6 +127,7 @@ interface FriendsRoomInviteViewProps {
 export const FriendsRoomInviteView: FC<FriendsRoomInviteViewProps> = ({ snapshot, onCloseClick, sendRoomInvite }) => {
     const [roomInviteMessage, setRoomInviteMessage] = useState('');
     const { simpleAlert } = useNotificationActions();
+    const phone = usePhoneDialogSize('invite');
     const submit = (fromButton: boolean) => {
         if (roomInviteMessage === '') {
             simpleAlert(LocalizeText('friendlist.invite.emptyalert.text'), null, null, null, LocalizeText('friendlist.invite.emptyalert.title'));
@@ -122,9 +136,9 @@ export const FriendsRoomInviteView: FC<FriendsRoomInviteViewProps> = ({ snapshot
         }
         sendRoomInvite(roomInviteMessage, snapshot.ids);
     };
-    return <FriendsDialogFrameView kind="invite" title={LocalizeText('friendlist.invite.title')}
+    return <FriendsDialogFrameView kind="invite" size={phone ?? undefined} title={LocalizeText('friendlist.invite.title')}
         initialPosition={snapshot.initialPosition} onCloseClick={onCloseClick}>
-        <FriendsDialogBorderView width={199} height={118} />
+        <FriendsDialogBorderView width={phone ? phone.width - 12 : 199} height={phone ? 190 : 118} />
         <div className="volt-friends-room-invite-summary">{snapshot.caption}</div>
         <textarea className="volt-friends-room-invite-textarea" aria-label={LocalizeText('friendlist.invite.title')}
             value={roomInviteMessage} onChange={(event) => setRoomInviteMessage(event.target.value)}
@@ -146,8 +160,8 @@ export const FriendsRoomInviteView: FC<FriendsRoomInviteViewProps> = ({ snapshot
             }} />
         <div className="volt-friends-room-invite-note">{LocalizeText('friendlist.invite.note')}</div>
         <div className="friends-dialog-actions">
-            <FriendsDialogButtonView thick caption={LocalizeText('friendlist.invite.send')} onClick={() => submit(true)} />
-            <FriendsDialogButtonView caption={LocalizeText('generic.cancel')} onClick={onCloseClick} />
+            <FriendsDialogButtonView thick caption={LocalizeText('friendlist.invite.send')} width={phone?.buttonWidth} height={phone ? 44 : undefined} onClick={() => submit(true)} />
+            <FriendsDialogButtonView caption={LocalizeText('generic.cancel')} width={phone?.buttonWidth} height={phone ? 44 : undefined} onClick={onCloseClick} />
         </div>
     </FriendsDialogFrameView>;
 };

@@ -5,7 +5,7 @@ import {
     SetClothingChangeDataMessageComposer
 } from '@volt/renderer';
 import { Dispatch, FC, SetStateAction, useEffect, useRef, useState } from 'react';
-import { LocalizeText, SendMessageComposer } from '../../api';
+import { IsPhoneLayout, LocalizeText, SendMessageComposer } from '../../api';
 import mainGenericSrc from '../../assets/images/avatareditor/air/main-generic.png';
 import mainHeadSrc from '../../assets/images/avatareditor/air/main-head.png';
 import mainHotLooksSrc from '../../assets/images/avatareditor/air/main-hotlooks.png';
@@ -129,6 +129,7 @@ export const AvatarEditorWindow: FC<AvatarEditorWindowProps> = ({
             initialPosition={editorPosition}
             isResizable={false}
             onPositionChange={setEditorPosition}
+            touchPresentation="full"
             uniqueKey="avatar-editor"
         >
             <VoltCardHeaderView
@@ -149,7 +150,10 @@ export const AvatarEditorWindow: FC<AvatarEditorWindowProps> = ({
                                     key={modelKey}
                                     classNames={['volt-avatar-editor-main-tab', `is-${modelKey}`]}
                                     isActive={activeModelKey === modelKey}
-                                    onClick={() => setActiveModelKey(modelKey)}
+                                    onClick={() => {
+                                        setActiveModelKey(modelKey);
+                                        if (IsPhoneLayout()) setIsWardrobeOpen(false);
+                                    }}
                                 >
                                     <img className="volt-avatar-editor-main-tab-icon" src={MAIN_TAB_ICONS[modelKey]} alt="" draggable={false} />
                                 </VoltCardTabsItemView>

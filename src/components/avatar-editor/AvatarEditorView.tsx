@@ -1,5 +1,6 @@
 import { AddLinkEventTracker, AvatarFigurePartType, ILinkEventTracker, RemoveLinkEventTracker } from '@volt/renderer';
 import { FC, useCallback, useEffect, useState } from 'react';
+import { IsPhoneLayout } from '../../api';
 import { lazyWindow } from '../../common/lazyWindow';
 import { useAvatarEditor } from '../../hooks';
 
@@ -30,7 +31,7 @@ export const AvatarEditorView: FC<{}> = () => {
                             setIsWardrobeOpen(false);
                         } else {
                             setClothingChangeData(null);
-                            setIsWardrobeOpen(true);
+                            setIsWardrobeOpen(!IsPhoneLayout());
                         }
                         setIsVisible(true);
                         return;
@@ -41,7 +42,7 @@ export const AvatarEditorView: FC<{}> = () => {
                     case 'toggle':
                         setClothingChangeData(null);
                         setIsVisible((prevValue) => {
-                            if (!prevValue) setIsWardrobeOpen(true);
+                            if (!prevValue) setIsWardrobeOpen(!IsPhoneLayout());
 
                             return !prevValue;
                         });
@@ -57,7 +58,7 @@ export const AvatarEditorView: FC<{}> = () => {
                 if (url.split('/')[1] !== 'open') return;
 
                 setClothingChangeData(null);
-                setIsWardrobeOpen(true);
+                setIsWardrobeOpen(!IsPhoneLayout());
                 setIsVisible((visible) => !visible);
             }
         };

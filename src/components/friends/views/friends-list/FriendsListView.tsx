@@ -1,6 +1,6 @@
 import { AddLinkEventTracker, ILinkEventTracker, RemoveFriendComposer, RemoveLinkEventTracker, SendRoomInviteComposer } from '@volt/renderer';
 import { CSSProperties, FC, PointerEvent, ReactNode, RefObject, useCallback, useEffect, useEffectEvent, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { GetConfigurationValue, GetOptionalConfigurationValue, LocalizeText, MessengerFriend, MessengerRequest, OpenUrl, SendMessageComposer } from '../../../../api';
+import { GetConfigurationValue, GetOptionalConfigurationValue, IsPhoneLayout, LocalizeText, MessengerFriend, MessengerRequest, OpenUrl, SendMessageComposer, useVoltLayout } from '../../../../api';
 import thumbDefault from '../../../../assets/images/habbo-skin/slices/scroll-thumb-v.png';
 import thumbPressed from '../../../../assets/images/habbo-skin/slices/scroll-thumb-v-pressed.png';
 import { DraggableWindow, DraggableWindowPosition } from '../../../../common';
@@ -10,6 +10,7 @@ import './FriendsListView.css';
 import { FriendsRemoveConfirmationView } from './FriendsListRemoveConfirmationView';
 import { FRIENDS_DIALOG_SIZES, FriendsDialogSnapshot, FriendsRoomInviteView } from './FriendsListRoomInviteView';
 import { FriendsSearchView } from './FriendsListSearchView';
+import { FriendsListTouchView } from './FriendsListTouchView';
 import { FriendsListSkinView } from './friends-list-group/FriendsListGroupItemView';
 import { FriendsListGroupView } from './friends-list-group/FriendsListGroupView';
 import { FriendsListRequestView } from './friends-list-request/FriendsListRequestView';
@@ -116,6 +117,7 @@ export const FriendsListView: FC<{}> = (props) => {
     const { onlineFriends = [], offlineFriends = [], requestRows: requests = [], searchResults, settings, friendListReceived = false, requestFriend = null, requestResponse = null, clearRequestOutcomes } = useFriends();
     const categoryManagementEnabled = GetConfigurationValue<boolean>('friendship.category.management.enabled', false) && GetConfigurationValue<number>('spaweb', 0) !== 1;
     const friendListReceivedRef = useRef(false);
+    const isPhone = IsPhoneLayout(useVoltLayout());
 
     useEffect(() =>
     {
@@ -349,12 +351,15 @@ export const FriendsListView: FC<{}> = (props) => {
         <>
             <DraggableWindow
                 uniqueKey="volt-friends"
-                handleSelector=".hfl-titlebar"
+                handleSelector={isPhone ? '.vft-header' : '.hfl-titlebar'}
                 windowPosition={DraggableWindowPosition.TOP_LEFT}
                 offsetLeft={60}
                 offsetTop={0}
+                touchPresentation="full"
             >
-                <div
+                {isPhone ? <FriendsListTouchView rootRef={windowRef} panel={activePanel ?? 'friends'} onlineCaption={categories[0].name}
+                    offlineCaption={categories[1].name} selectedFriendsIds={selectedFriendsIds} changePanel={changePanel} selectFriend={selectFriend}
+                    onClose={() => changeVisibility(false)} onInvite={openRoomInvite} onHomepage={openFriendHomepage} onRemove={openRemoveConfirmation} /> : <div
                     ref={windowRef}
                     style={{ width, height: (activePanel === null ? 0 : tabHeight) + 18 * (requests.length ? 3 : 2) + 62, '--hfl-tab-height': `${tabHeight}px` } as CSSProperties}
                     className={`habbo-friend-list${requests.length ? ' has-requests' : ''}${activePanel === 'search' ? ' search-mode' : ''}${activePanel === 'requests' ? ' requests-mode' : ''}${activePanel === null ? ' collapsed-mode' : ''}`}
@@ -519,7 +524,7 @@ export const FriendsListView: FC<{}> = (props) => {
                     </div>
                     <div className="hfl-resize-handle" aria-hidden="true" onPointerDown={startResize} onPointerMove={resizeWindow}
                         onPointerUp={stopResize} onPointerCancel={stopResize} onLostPointerCapture={stopResize} />
-                </div>
+                </div>}
             </DraggableWindow>
             {roomInviteSnapshot && (
                 <FriendsRoomInviteView key={roomInviteSnapshot.key} snapshot={roomInviteSnapshot} sendRoomInvite={sendRoomInvite} onCloseClick={() => setRoomInviteSnapshot(null)} />
