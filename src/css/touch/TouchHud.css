@@ -1,1 +1,563 @@
-/* TouchHud */
+/* Room HUD on touch layouts: toolbar, chat bar slot, purse and room chip. */
+
+:root {
+    --volt-toolbar-height: 48px;
+    --volt-toolbar-width: 0px;
+    --volt-hud-strip: rgba(46, 45, 41, 0.78);
+}
+
+html[data-volt-layout='phone-portrait'],
+html[data-volt-device='tablet'] {
+    --volt-toolbar-height: calc(58px + var(--volt-safe-bottom));
+}
+
+html[data-volt-layout='phone-landscape'] {
+    --volt-toolbar-height: calc(64px + var(--volt-safe-bottom));
+    --volt-toolbar-width: calc(320px + var(--volt-safe-right));
+}
+
+/* Toolbar */
+
+.volt-touch-toolbar {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 71;
+    box-sizing: border-box;
+    height: var(--volt-toolbar-height);
+    padding-bottom: var(--volt-safe-bottom);
+    border-top: 1px solid rgba(0, 0, 0, 0.55);
+    background: var(--volt-hud-strip);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    pointer-events: auto;
+    touch-action: none;
+}
+
+.volt-touch-toolbar__group {
+    display: flex;
+    height: 100%;
+    align-items: flex-start;
+    justify-content: space-around;
+    padding: 2px calc(4px + var(--volt-safe-right)) 0 calc(4px + var(--volt-safe-left));
+}
+
+.volt-touch-toolbar__slot {
+    position: relative;
+    display: flex;
+    width: 52px;
+    height: 52px;
+    flex: 0 0 52px;
+    align-items: center;
+    justify-content: center;
+}
+
+.volt-touch-toolbar__slot > .tb-icon {
+    flex: 0 0 auto;
+}
+
+.volt-touch-toolbar__slot .tb-unseen-count {
+    top: 2px;
+    right: 0;
+}
+
+.volt-touch-toolbar__slot--me .tb-unseen-count {
+    top: -2px;
+    right: -4px;
+}
+
+.volt-touch-toolbar--tablet-landscape .volt-touch-toolbar__group,
+.volt-touch-toolbar--tablet-portrait .volt-touch-toolbar__group {
+    max-width: 760px;
+    margin: 0 auto;
+}
+
+/* Landscape: the whole row is a solid strip so taps never fall through to the tiles; the icons sit in the AIR glass group on the right. */
+.volt-touch-toolbar--phone-landscape .volt-touch-toolbar__group {
+    position: absolute;
+    top: 4px;
+    right: calc(8px + var(--volt-safe-right));
+    box-sizing: border-box;
+    width: 312px;
+    height: 56px;
+    align-items: center;
+    justify-content: space-evenly;
+    padding: 0;
+    border: 6px solid transparent;
+    border-image-source: url("../../assets/images/habbo-skin/slices/border-colorless-3b3933.png");
+    border-image-slice: 24 fill;
+    border-image-width: 6px;
+    border-image-repeat: stretch;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-touch-toolbar--phone-landscape .volt-touch-toolbar__slot {
+    width: 50px;
+    height: 50px;
+    flex-basis: 50px;
+}
+
+/* Me menu and progression menu above the toolbar */
+
+.volt-touch-toolbar__popup {
+    position: fixed;
+    right: calc(8px + var(--volt-safe-right));
+    bottom: calc(var(--volt-toolbar-height) + 8px);
+    left: calc(8px + var(--volt-safe-left));
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.volt-touch-toolbar--phone-landscape .volt-touch-toolbar__popup {
+    justify-content: flex-end;
+}
+
+.volt-touch-toolbar__popup > * {
+    pointer-events: auto;
+}
+
+.volt-touch-toolbar .volt-toolbar-me-popup {
+    max-width: 100%;
+    height: auto;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px;
+}
+
+.volt-touch-toolbar .volt-toolbar-me-popup::after {
+    display: none;
+}
+
+.volt-touch-toolbar .volt-toolbar-me-popup .tbme-item,
+.volt-touch-toolbar .volt-toolbar-me-popup .tbme-item:has(.icon-me-helper-tool) {
+    width: 68px;
+    height: 62px;
+    flex: 0 0 68px;
+}
+
+.volt-touch-toolbar .volt-toolbar-me-popup .tbme-item > .volt-icon,
+.volt-touch-toolbar .volt-toolbar-me-popup .tbme-item > [class^="icon-me-"] {
+    top: 0;
+    left: 12px;
+    width: 44px;
+    height: 44px;
+    background-position: center;
+    background-repeat: no-repeat;
+    filter: none;
+}
+
+.volt-touch-toolbar .volt-toolbar-me-popup .tbme-item > span:last-of-type {
+    top: 45px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.volt-touch-toolbar .volt-toolbar-me-popup .tbme-item .tb-unseen-count {
+    top: 0;
+    right: 6px;
+}
+
+/* Chat bar slot; the chat input itself is styled in TouchChat.css. */
+
+html[data-volt-touch='on'] .volt-touch-chat-slot {
+    position: fixed;
+    height: 44px;
+}
+
+html[data-volt-layout='phone-portrait'] .volt-touch-chat-slot {
+    right: calc(8px + var(--volt-safe-right));
+    bottom: calc(var(--volt-toolbar-height) + 6px);
+    left: calc(8px + var(--volt-safe-left));
+}
+
+html[data-volt-layout='phone-landscape'] .volt-touch-chat-slot {
+    right: calc(var(--volt-toolbar-width) + 8px);
+    bottom: calc(var(--volt-safe-bottom) + 10px);
+    left: calc(8px + var(--volt-safe-left));
+}
+
+html[data-volt-device='tablet'] .volt-touch-chat-slot {
+    bottom: calc(var(--volt-toolbar-height) + 8px);
+    left: 50%;
+    width: min(520px, calc(100vw - 32px));
+    margin-left: calc(min(520px, calc(100vw - 32px)) / -2);
+}
+
+/* Purse: compact on phones, tap for the full AIR purse. */
+
+html[data-volt-device='phone'] .volt-purse-container {
+    margin-top: calc(var(--volt-safe-top) + 13px);
+    padding-right: calc(var(--volt-safe-right) + 3px);
+}
+
+.volt-purse-compact {
+    display: flex;
+    box-sizing: border-box;
+    height: 44px;
+    align-items: center;
+    gap: 10px;
+    padding: 0 3px;
+    border: 7px solid transparent;
+    border-bottom-width: 8px;
+    border-image-source: url("../../assets/images/habbo-skin/slices/border-ubuntu-9.png");
+    border-image-slice: 28 28 32 28 fill;
+    border-image-width: 7px 7px 8px 7px;
+    border-image-repeat: stretch;
+    background: transparent;
+    color: #ffffff;
+    cursor: pointer;
+    font-family: HabboAirUbuntu, UbuntuRegular, sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 17px;
+    pointer-events: auto;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-purse-compact__currency {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.volt-purse-compact__currency > img {
+    display: block;
+    width: 15px;
+    height: 15px;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-purse-compact + .volt-purse {
+    margin-top: 2px;
+}
+
+html[data-volt-layout='phone-landscape']:has([data-volt-window='dock']) .volt-purse-compact {
+    gap: 6px;
+}
+
+html[data-volt-layout='phone-landscape']:has([data-volt-window='dock']) .volt-purse-compact__amount {
+    display: none;
+}
+
+/* Tablet: the full AIR purse with 28 px buttons. */
+
+html[data-volt-device='tablet'] .volt-purse-container {
+    margin-top: var(--volt-safe-top);
+    padding-right: var(--volt-safe-right);
+}
+
+html[data-volt-device='tablet'] .volt-purse,
+html[data-volt-device='tablet'] .volt-purse__chrome,
+html[data-volt-device='tablet'] .volt-purse__body {
+    width: 280px;
+    max-width: 280px;
+}
+
+html[data-volt-device='tablet'] .volt-purse__col--actions {
+    left: 176px;
+    top: 8px;
+    display: grid;
+    width: 92px;
+    height: auto;
+    grid-template-columns: 44px 44px;
+    grid-template-areas:
+        "help settings"
+        "logout logout";
+    gap: 4px;
+}
+
+html[data-volt-device='tablet'] .volt-purse__btn--help,
+html[data-volt-device='tablet'] .volt-purse__btn--logout,
+html[data-volt-device='tablet'] .volt-purse__btn--settings {
+    width: 44px;
+    height: 28px;
+}
+
+html[data-volt-device='tablet'] .volt-purse__btn--help {
+    grid-area: help;
+}
+
+html[data-volt-device='tablet'] .volt-purse__btn--settings {
+    grid-area: settings;
+}
+
+html[data-volt-device='tablet'] .volt-purse__btn--logout {
+    width: 92px;
+    grid-area: logout;
+}
+
+html[data-volt-device='tablet'] .volt-purse__btn--help .volt-purse__help-label {
+    top: 2px;
+}
+
+html[data-volt-device='tablet'] .volt-purse__btn--icon .volt-purse__btn-img {
+    top: 3px;
+    left: 11px;
+}
+
+html[data-volt-device='tablet'] .volt-purse__btn--logout .volt-purse__btn-img {
+    left: 35px;
+}
+
+/* Room chip and the tablet room tools column */
+
+.volt-room-hud {
+    position: fixed;
+    top: calc(var(--volt-safe-top) + 8px);
+    left: calc(var(--volt-safe-left) + 8px);
+    z-index: 71;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    pointer-events: none;
+}
+
+.volt-room-hud.has-column {
+    top: calc(var(--volt-safe-top) + 10px);
+    left: calc(var(--volt-safe-left) + 12px);
+}
+
+.volt-room-hud > * {
+    pointer-events: auto;
+}
+
+.volt-room-chip,
+.volt-room-chip-menu,
+.volt-room-tools-column {
+    box-sizing: border-box;
+    border: 6px solid transparent;
+    border-image-source: url("../../assets/images/habbo-skin/slices/border-colorless-3b3933-opaque.png");
+    border-image-slice: 24 fill;
+    border-image-width: 6px;
+    border-image-repeat: stretch;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-room-chip-wrap {
+    position: relative;
+}
+
+.volt-room-chip {
+    display: flex;
+    max-width: calc(100vw - 212px - var(--volt-safe-left) - var(--volt-safe-right));
+    height: 44px;
+    align-items: center;
+    gap: 8px;
+    padding: 0 4px 0 0;
+    background: transparent;
+    color: #ffffff;
+    cursor: pointer;
+    font-family: Ubuntu, sans-serif;
+    text-align: left;
+}
+
+html[data-volt-device='tablet'] .volt-room-chip {
+    max-width: 320px;
+}
+
+.volt-room-chip__icon {
+    display: block;
+    width: 32px;
+    height: 30px;
+    flex: 0 0 32px;
+    background: url("../../assets/images/toolbar/air/home.png") no-repeat;
+}
+
+.volt-room-chip__text {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+}
+
+.volt-room-chip__name {
+    overflow: hidden;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 15px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.volt-room-chip__meta {
+    display: flex;
+    height: 14px;
+    align-items: center;
+    gap: 4px;
+    color: #c9c5b8;
+    font-size: 11px;
+    line-height: 14px;
+}
+
+.volt-room-chip__users {
+    display: block;
+    width: 18px;
+    height: 18px;
+    margin: -2px -3px;
+    background: url("../../assets/images/navigator/air/icon-usercount.png") no-repeat;
+    filter: invert(1);
+}
+
+.volt-room-chip__fav {
+    display: block;
+    width: 13px;
+    height: 12px;
+    margin-left: 2px;
+    background: url("../../assets/images/navigator/air/icon-fav-no.png") no-repeat;
+}
+
+.volt-room-chip__fav.is-favourite {
+    background-image: url("../../assets/images/navigator/air/icon-fav-yes.png");
+}
+
+.volt-room-chip__chevron {
+    width: 0;
+    height: 0;
+    flex: 0 0 auto;
+    margin-left: 2px;
+    border-top: 6px solid #ffffff;
+    border-right: 4px solid transparent;
+    border-left: 4px solid transparent;
+}
+
+.volt-room-chip.is-open .volt-room-chip__chevron {
+    transform: rotate(180deg);
+}
+
+.volt-room-chip-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    display: flex;
+    width: 240px;
+    max-height: calc(var(--volt-visual-height, 100dvh) - var(--volt-safe-top) - var(--volt-toolbar-height) - 72px);
+    flex-direction: column;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.volt-room-chip-menu__row {
+    display: flex;
+    min-height: 44px;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 8px;
+    padding: 0 4px;
+    border: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: transparent;
+    color: #ffffff;
+    cursor: pointer;
+    font-family: Ubuntu, sans-serif;
+    font-size: 14px;
+    line-height: 18px;
+    text-align: left;
+}
+
+.volt-room-chip-menu__row:last-child {
+    border-bottom: 0;
+}
+
+.volt-room-chip-menu__row:active:not(:disabled) {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.volt-room-chip-menu__row:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.volt-room-chip-menu__icon {
+    display: flex;
+    width: 32px;
+    flex: 0 0 32px;
+    align-items: center;
+    justify-content: center;
+}
+
+.volt-room-chip-menu__label {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.volt-room-chip-menu__row--zoom,
+.volt-room-chip-menu__row--history {
+    gap: 4px;
+    cursor: default;
+}
+
+.volt-room-chip-menu__row--history {
+    justify-content: space-between;
+}
+
+.volt-room-chip-menu__row--room {
+    padding-left: 44px;
+    color: #cccccc;
+    font-size: 13px;
+}
+
+.volt-room-touch-btn {
+    display: flex;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.06);
+    background-position: center;
+    background-repeat: no-repeat;
+    cursor: pointer;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-room-touch-btn:active:not(:disabled) {
+    background-color: rgba(255, 255, 255, 0.16);
+}
+
+.volt-room-touch-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.volt-room-touch-btn.volt-icon {
+    width: 44px;
+    height: 44px;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+}
+
+.volt-room-touch-btn--zoom-in {
+    background-image: url("../../assets/images/room-tools-swf/roomtools_zoom_in.png");
+}
+
+.volt-room-touch-btn--zoom-out {
+    background-image: url("../../assets/images/room-tools-swf/roomtools_zoom_out.png");
+}
+
+.volt-room-tools-column {
+    display: flex;
+    width: 58px;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 1px;
+}
+
+.volt-room-tools-column .volt-icon,
+.volt-room-chip-menu__icon .volt-icon {
+    flex: 0 0 auto;
+    background-repeat: no-repeat;
+}
+
+.volt-touch-toolbar [data-toolbar-tooltip]::after {
+    display: none;
+}

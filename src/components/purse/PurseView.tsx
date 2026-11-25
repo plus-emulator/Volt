@@ -1,6 +1,9 @@
 import { CreateLinkEvent } from '@volt/renderer';
-import { FC, useCallback, useEffect, useMemo, useState } from 'react';
-import { FriendlyTime, GetConfigurationValue, LogOut, localizeWithFallback } from '../../api';
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FriendlyTime, GetConfigurationValue, IsPhoneLayout, LogOut, LocalizeShortNumber, localizeWithFallback, useVoltLayout } from '../../api';
+import creditsIcon from '../../assets/images/purse/air/credits.png';
+import diamondIcon from '../../assets/images/purse/air/diamond.png';
+import ducketsIcon from '../../assets/images/purse/air/duckets.png';
 import earningsIcon from '../../assets/images/purse-swf/icons/1747_icon_earnings_png$5e39e03f65fbbb9a85bedd0d577dc12d307477063.png';
 import hcIcon from '../../assets/images/purse-swf/icons/1801_hc_icon_png$2f8b554609e9c5cbbdc46bcbe5764be5-210881771.png';
 import logoutIcon from '../../assets/images/purse-swf/icons/2093_logout_icon_png.png';
@@ -36,6 +39,24 @@ const useHelpLabelWidth = (text: string) => {
 export const PurseView: FC<{}> = (props) => {
     const { purse = null, hcDisabled = false } = usePurse();
     const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
+    const isPhone = IsPhoneLayout(useVoltLayout());
+    const [isCompactOpen, setIsCompactOpen] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!isPhone || !isCompactOpen) return;
+
+        const onPointerDown = (event: PointerEvent) => {
+            if (containerRef.current?.contains(event.target as Node)) return;
+
+            setIsCompactOpen(false);
+            setSettingsMenuOpen(false);
+        };
+
+        document.addEventListener('pointerdown', onPointerDown);
+
+        return () => document.removeEventListener('pointerdown', onPointerDown);
+    }, [isPhone, isCompactOpen]);
 
     const openSettingsSection = useCallback((section: string) => {
         CreateLinkEvent('user-settings/show/' + section);
@@ -113,9 +134,41 @@ export const PurseView: FC<{}> = (props) => {
 
     if (!purse) return null;
 
+    const compactAmount = (amount: number) => (currencyDisplayNumberShort ? LocalizeShortNumber(amount).toLowerCase() : amount.toLocaleString());
+    const showFullPurse = !isPhone || isCompactOpen;
+
     return (
-        <Column alignItems="end" className="volt-purse-container" gap={0}>
-            <div className="volt-purse">
+        <Column alignItems="end" className="volt-purse-container" gap={0} innerRef={containerRef}>
+            {isPhone && (
+                <button
+                    type="button"
+                    className="volt-purse-compact"
+                    aria-expanded={isCompactOpen}
+                    aria-label={localizeWithFallback('purse_coins', 'Credits')}
+                    onClick={() => {
+                        setIsCompactOpen((value) => !value);
+                        setSettingsMenuOpen(false);
+                    }}
+                >
+                    <span className="volt-purse-compact__currency volt-purse-compact__currency--credits">
+                        <span className="volt-purse-compact__amount">{compactAmount(purse.credits)}</span>
+                        <img src={creditsIcon} alt="" />
+                    </span>
+                    {hasDuckets && (
+                        <span className="volt-purse-compact__currency volt-purse-compact__currency--duckets">
+                            <span className="volt-purse-compact__amount">{compactAmount(purse.activityPoints.get(0) || 0)}</span>
+                            <img src={ducketsIcon} alt="" />
+                        </span>
+                    )}
+                    {hasDiamonds && (
+                        <span className="volt-purse-compact__currency volt-purse-compact__currency--diamonds">
+                            <span className="volt-purse-compact__amount">{compactAmount(purse.activityPoints.get(5) || 0)}</span>
+                            <img src={diamondIcon} alt="" />
+                        </span>
+                    )}
+                </button>
+            )}
+            <div className={showFullPurse ? 'volt-purse' : 'volt-purse hidden'}>
                 <div className="volt-purse__chrome" aria-hidden="true" />
                 <div className="volt-purse__body">
                     <div className="volt-purse__currencies">
@@ -185,7 +238,7 @@ export const PurseView: FC<{}> = (props) => {
                     </div>
                 </div>
             </div>
-            {settingsMenuOpen && (
+            {showFullPurse && settingsMenuOpen && (
                 <div className="volt-purse-menu">
                     <button type="button" className="volt-purse-menu__item" onClick={() => openSettingsSection('audio')}>
                         {localizeWithFallback('widget.memenu.settings.audio', 'Sound settings')}

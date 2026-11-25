@@ -1,11 +1,12 @@
 import { CreateLinkEvent, GetGuestRoomResultEvent, GetRoomEngine, GetSessionDataManager, RateFlatMessageComposer, RoomEngineEvent } from '@volt/renderer';
 import { CSSProperties, FC, useEffect, useState } from 'react';
-import { GetConfigurationValue, LocalizeText, SendMessageComposer, TryVisitRoom } from '../../../../api';
+import { GetConfigurationValue, IsTabletLayout, IsTouchLayout, LocalizeText, SendMessageComposer, TryVisitRoom, useVoltLayout } from '../../../../api';
 import { localizeWithFallback } from '../../../../api/utils/localizeWithFallback';
 import { useAchievements, useMessageEvent, useNavigatorData, useVoltEvent, useRoom } from '../../../../hooks';
 import { classNames } from '../../../../layout';
 import { getRegisteredPlugins, IVoltPlugin, subscribePlugins } from '../../../plugins/VoltPluginApi';
 import { getRoomHistoryList, useRoomToolsHistoryStore } from './roomToolsHistoryStore';
+import { RoomToolsTouchView } from './RoomToolsTouchView';
 import { applyRoomZoom, getLogicalRoomZoomScale, getNearestZoomScale, getNextZoomScale } from './roomZoom.helpers';
 
 // UI flag 2 (SessionDataManager.setRoomToolsState): set while the room tools are expanded; new users start collapsed.
@@ -30,6 +31,7 @@ export const RoomToolsWidgetView: FC<{}> = (props) => {
     const { navigatorData } = useNavigatorData();
     const { hasWiredAchievements } = useAchievements();
     const { roomSession = null } = useRoom();
+    const layout = useVoltLayout();
 
     useEffect(() => {
         setPlugins(getRegisteredPlugins());
@@ -172,6 +174,25 @@ export const RoomToolsWidgetView: FC<{}> = (props) => {
     const toolCount = tools.length + plugins.length;
     const windowHeight = 30 + toolCount * 25 + 43;
     const historyOpen = isOpenHistory && isToolsOpen;
+
+    if (IsTouchLayout(layout)) {
+        return (
+            <RoomToolsTouchView
+                showColumn={IsTabletLayout(layout)}
+                tools={tools}
+                plugins={plugins}
+                zoomText={LocalizeText('room.zoom.text', ['zoom_level'], [getZoomText(zoomScale)])}
+                canZoomIn={canZoomIn}
+                canZoomOut={canZoomOut}
+                canGoBack={canGoBack}
+                canGoNext={canGoNext}
+                hasHistory={hasHistory}
+                isHistoryOpen={isOpenHistory}
+                roomHistory={roomHistory}
+                onTool={handleToolClick}
+            />
+        );
+    }
 
     return (
         <div
