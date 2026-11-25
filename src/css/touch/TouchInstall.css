@@ -1,1 +1,240 @@
-/* TouchInstall */
+/* TouchInstall: Add to Home Screen banner and guide, shown only when Volt runs top-level on a phone or tablet. */
+
+.volt-install-banner,
+.volt-install-guide {
+    position: fixed;
+    box-sizing: border-box;
+    padding: 44px 10px 10px;
+    border: solid transparent;
+    border-width: 44px 10px 10px;
+    border-image: url('../../assets/images/habbo-skin/touch/frame-touch-44.png') 44 10 10 10 fill / 44px 10px 10px stretch;
+    color: #000;
+    font: 400 14px Ubuntu, sans-serif;
+    image-rendering: pixelated;
+
+    * {
+        box-sizing: border-box;
+    }
+}
+
+.volt-install-banner {
+    top: calc(var(--volt-safe-top, 0px) + 8px);
+    left: 50%;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: min(440px, calc(100vw - 16px));
+    padding: 0;
+    transform: translateX(-50%);
+}
+
+.volt-install-banner-text {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+    gap: 2px;
+    padding-top: 4px;
+
+    strong {
+        position: absolute;
+        top: -44px;
+        left: 0;
+        right: 34px;
+        display: flex;
+        align-items: center;
+        height: 44px;
+        padding-left: 4px;
+        overflow: hidden;
+        color: #fff;
+        font-size: 15px;
+        font-weight: 700;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+
+    span {
+        font-size: 13px;
+        line-height: 1.3;
+    }
+}
+
+.volt-install-button {
+    flex: 0 0 auto;
+    height: 44px;
+    min-width: 96px;
+    padding: 0 14px;
+    border-style: solid;
+    border-width: 0;
+    border-image: url('../../assets/images/habbo-skin/touch/btn-green-default-h44.png') 0 5 fill / 0 5px stretch;
+    background: transparent;
+    color: #fff;
+    font: 700 14px Ubuntu, sans-serif;
+    white-space: nowrap;
+    cursor: pointer;
+
+    &:active {
+        border-image-source: url('../../assets/images/habbo-skin/touch/btn-green-pressed-h44.png');
+    }
+}
+
+.volt-install-close {
+    position: absolute;
+    top: -44px;
+    right: -8px;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    background: url('../../assets/images/habbo-skin/touch/close-touch.png') center / 27px 28px no-repeat;
+    cursor: pointer;
+}
+
+.volt-install-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10001;
+    background: rgba(0, 0, 0, 0.55);
+}
+
+.volt-install-guide {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: calc(100% - 96px);
+    padding: 4px 6px;
+
+    &.is-iphone {
+        right: 8px;
+        bottom: calc(var(--volt-safe-bottom, 0px) + 60px);
+        left: 8px;
+    }
+
+    &.is-ipad {
+        top: calc(var(--volt-safe-top, 0px) + 64px);
+        right: 16px;
+        width: min(400px, calc(100vw - 32px));
+    }
+}
+
+.volt-install-guide-header h2 {
+    position: absolute;
+    top: -44px;
+    right: 34px;
+    left: 0;
+    display: flex;
+    align-items: center;
+    height: 44px;
+    margin: 0;
+    padding-left: 4px;
+    overflow: hidden;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.volt-install-guide-body {
+    display: grid;
+    gap: 12px;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+
+    p {
+        margin: 0;
+        line-height: 1.4;
+    }
+}
+
+.volt-install-steps {
+    list-style: none;
+    counter-reset: volt-install-step;
+
+    li {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        line-height: 1.5;
+        counter-increment: volt-install-step;
+
+        &::before {
+            content: counter(volt-install-step);
+            display: grid;
+            flex: 0 0 28px;
+            height: 28px;
+            place-items: center;
+            border: 2px solid #cf9d15;
+            border-radius: 50%;
+            background: #eeb425;
+            color: #fff;
+            font-weight: 700;
+        }
+
+        &.is-note {
+            color: #555;
+            font-size: 13px;
+            counter-increment: none;
+
+            &::before {
+                visibility: hidden;
+            }
+        }
+    }
+}
+
+.volt-install-icon {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    color: #0a84ff;
+    vertical-align: middle;
+}
+
+.volt-install-guide-footer .volt-install-button {
+    width: 100%;
+}
+
+.volt-install-arrow {
+    position: absolute;
+    width: 40px;
+    height: 44px;
+    background: #ffc800;
+    clip-path: polygon(30% 0, 70% 0, 70% 55%, 100% 55%, 50% 100%, 0 55%, 30% 55%);
+    filter: drop-shadow(0 2px 0 #000);
+    animation: volt-install-bounce 1s ease-in-out infinite;
+    pointer-events: none;
+
+    &.is-bottom {
+        bottom: calc(var(--volt-safe-bottom, 0px) + 6px);
+        left: calc(50% - 20px);
+    }
+
+    &.is-bottom-right {
+        right: 18px;
+        bottom: calc(var(--volt-safe-bottom, 0px) + 6px);
+    }
+
+    &.is-top {
+        top: calc(var(--volt-safe-top, 0px) + 6px);
+        right: 96px;
+        rotate: 180deg;
+    }
+}
+
+@keyframes volt-install-bounce {
+    50% {
+        translate: 0 8px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .volt-install-arrow {
+        animation: none;
+    }
+}

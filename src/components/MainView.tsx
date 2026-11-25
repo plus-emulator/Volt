@@ -32,6 +32,7 @@ import { GuideToolView } from './guide-tool/GuideToolView';
 import { HcCenterView } from './hc-center/HcCenterView';
 import { HelpView } from './help/HelpView';
 import { HotelView } from './hotel-view/HotelView';
+import { InstallPromptView } from './install-prompt/InstallPromptView';
 import { InventoryView } from './inventory/InventoryView';
 import { ModToolsView } from './mod-tools/ModToolsView';
 import { NavigatorView } from './navigator/NavigatorView';
@@ -185,6 +186,7 @@ export const MainView: FC<{}> = (props) =>
             <FloorplanEditorView />
             <TraxEditorView />
             <ExternalPluginLoader />
+            <InstallPromptView />
         </>
     );
 };
