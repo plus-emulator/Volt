@@ -1,8 +1,9 @@
 import { AddLinkEventTracker, ILinkEventTracker, RemoveLinkEventTracker } from '@volt/renderer';
 import { FC, useEffect, useMemo, useRef, useState } from 'react';
-import { ChatEntryType } from '../../api';
+import { ChatEntryType, IsPhoneLayout, useVoltLayout } from '../../api';
 import { useChatHistory } from '../../hooks';
 import { ChatHistoryBubbleView } from './ChatHistoryBubbleView';
+import { ChatHistoryTouchView } from './ChatHistoryTouchView';
 import { getNativeChatGeometry } from '../room/widgets/chat/nativeChatScroller';
 
 export const ChatHistoryView: FC<{}> = (props) => {
@@ -10,6 +11,7 @@ export const ChatHistoryView: FC<{}> = (props) => {
     const { chatHistory = [] } = useChatHistory();
     const elementRef = useRef<HTMLDivElement>(null);
     const prevChatLength = useRef<number>(0);
+    const isPhone = IsPhoneLayout(useVoltLayout());
 
     const filteredChatHistory = useMemo(() => [...chatHistory], [chatHistory]);
 
@@ -52,6 +54,8 @@ export const ChatHistoryView: FC<{}> = (props) => {
     }, []);
 
     if (!isVisible) return null;
+
+    if (isPhone) return <ChatHistoryTouchView chatHistory={chatHistory} onClose={() => setIsVisible(false)} />;
 
     return (
         <div className="volt-chat-history">

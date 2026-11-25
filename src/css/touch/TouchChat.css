@@ -1,1 +1,449 @@
 /* TouchChat */
+
+/* Chat input inside the toolbar's chat slot: the 44 px AIR chat input bubble, with the Say / Shout / Whisper bar above it while typing. */
+.volt-touch-chat {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    font-family: Ubuntu, sans-serif;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+/* Keyboard open: the slot becomes a HUD strip on the keyboard, the bar touching it with no gap. */
+html[data-volt-touch='on'][data-volt-keyboard='open'] .volt-touch-chat-slot {
+    right: 0;
+    bottom: var(--volt-keyboard-inset, 0px);
+    left: 0;
+    width: auto;
+    height: auto;
+    margin-left: 0;
+    padding: 8px calc(8px + var(--volt-safe-right, 0px)) 0 calc(8px + var(--volt-safe-left, 0px));
+    border-top: 1px solid #000000;
+    background: var(--volt-hud-strip, rgba(46, 45, 41, 0.78));
+}
+
+html[data-volt-device='tablet'][data-volt-keyboard='open'] .volt-touch-chat {
+    max-width: 520px;
+    margin: 0 auto;
+}
+
+/* Mode bar */
+.volt-touch-chat-modes {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    height: 36px;
+}
+
+html[data-volt-keyboard='open'] .volt-touch-chat-modes,
+.volt-touch-chat:focus-within .volt-touch-chat-modes {
+    display: flex;
+}
+
+/* Hardware keyboard: the slot keeps its place, so the mode bar floats above the bar. */
+html[data-volt-keyboard='closed'] .volt-touch-chat:focus-within .volt-touch-chat-modes {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 8px);
+    left: 0;
+}
+
+.volt-touch-chat-mode-group {
+    display: flex;
+    flex: 0 1 252px;
+    min-width: 0;
+    height: 36px;
+}
+
+.volt-touch-chat-mode {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 36px;
+    margin: 0 -1px 0 0;
+    padding: 0 8px;
+    border-style: solid;
+    border-width: 0;
+    border-image: url('../../assets/images/habbo-skin/slices/button-group-center-default.png') 3 fill / 3px stretch;
+    background: transparent;
+    color: #000000;
+    font: 700 13px Ubuntu, sans-serif;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.volt-touch-chat-mode:first-child {
+    border-image-source: url('../../assets/images/habbo-skin/slices/button-group-left-default.png');
+}
+
+.volt-touch-chat-mode:last-child {
+    margin-right: 0;
+    border-image-source: url('../../assets/images/habbo-skin/slices/button-group-right-default.png');
+}
+
+.volt-touch-chat-mode.is-selected {
+    color: #ffffff;
+    border-image-source: url('../../assets/images/habbo-skin/slices/button-group-center-selected.png');
+}
+
+.volt-touch-chat-mode.is-selected:first-child {
+    border-image-source: url('../../assets/images/habbo-skin/slices/button-group-left-selected.png');
+}
+
+.volt-touch-chat-mode.is-selected:last-child {
+    border-image-source: url('../../assets/images/habbo-skin/slices/button-group-right-selected.png');
+}
+
+.volt-touch-chat-mode:disabled {
+    color: #8a8a8a;
+    cursor: default;
+}
+
+.volt-touch-chat-target {
+    display: flex;
+    flex: 0 1 auto;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    height: 36px;
+    margin-left: auto;
+    padding: 0 10px 0 4px;
+    border-style: solid;
+    border-width: 0;
+    border-image: url('../../assets/images/habbo-skin/slices/button-black-default.png') 3 fill / 3px stretch;
+    background: transparent;
+    color: #ffffff;
+    font: 700 13px Ubuntu, sans-serif;
+    white-space: nowrap;
+}
+
+.volt-touch-chat-target:active {
+    border-image-source: url('../../assets/images/habbo-skin/slices/button-black-pressed.png');
+}
+
+.volt-touch-chat-target-face {
+    flex: none;
+    width: 28px;
+    height: 28px;
+}
+
+.volt-touch-chat-target-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.volt-touch-chat-target-close {
+    position: relative;
+    flex: none;
+    width: 10px;
+    height: 10px;
+    opacity: 0.7;
+}
+
+.volt-touch-chat-target-close::before,
+.volt-touch-chat-target-close::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: -1px;
+    width: 2px;
+    height: 12px;
+    background: #ffffff;
+    transform: rotate(45deg);
+}
+
+.volt-touch-chat-target-close::after {
+    transform: rotate(-45deg);
+}
+
+/* Input bubble: chatinput_bubble left cap (no pointer), 1 px middle repeated, right cap. */
+.volt-touch-chat-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-sizing: border-box;
+    height: 44px;
+    min-width: 0;
+    padding: 0 12px;
+    background-image:
+        url('../../assets/images/habbo-skin/touch/chatinput_bubble_left_cap.png'),
+        url('../../assets/images/chat-input-swf/chatinput_bubble_right.png'),
+        url('../../assets/images/chat-input-swf/chatinput_bubble_middle.png');
+    background-position: left top, right top, left top;
+    background-repeat: no-repeat, no-repeat, repeat-x;
+    background-clip: border-box, border-box, content-box;
+}
+
+.volt-touch-chat-bar .swf-chat-style-trigger {
+    position: relative;
+    flex: none;
+    width: 34px;
+    height: 44px;
+    margin-left: -4px;
+}
+
+.volt-touch-chat-bar .swf-chat-style-arrow {
+    display: none;
+}
+
+.volt-touch-chat-bar .swf-chat-style-icon {
+    position: absolute;
+    left: 8px;
+    top: 12px;
+    width: 17px;
+    height: 19px;
+    background: url('../../assets/images/chat-input-swf/chat_styles.png') 0 0 no-repeat;
+}
+
+.volt-touch-chat-field {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    min-width: 0;
+    height: 44px;
+}
+
+.volt-touch-chat-input {
+    width: 100%;
+    min-width: 0;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: #000000;
+    font: 400 16px Ubuntu, sans-serif;
+}
+
+.volt-touch-chat-input::placeholder {
+    color: #8b8a85;
+    opacity: 1;
+}
+
+.volt-touch-chat-flood {
+    overflow: hidden;
+    color: #c62725;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.volt-touch-chat-bar .habbicon-chat-trigger {
+    flex: none;
+    width: 36px;
+    height: 44px;
+}
+
+.volt-touch-chat-bar .habbicon-chat-trigger:not(:has(img)) {
+    background: url('../../assets/images/chat-input-swf/sticky_note.png') center / 36px 38px no-repeat;
+}
+
+/* AIR shiny green button at its real 30 px height, centred in a 44 px hit area. */
+.volt-touch-chat-send {
+    position: relative;
+    isolation: isolate;
+    display: none;
+    flex: none;
+    min-width: 64px;
+    height: 44px;
+    margin-right: -6px;
+    padding: 0 14px;
+    border: 0;
+    background: transparent;
+    color: #ffffff;
+    font: 700 13px Ubuntu, sans-serif;
+    white-space: nowrap;
+}
+
+.volt-touch-chat-send::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    left: 0;
+    right: 0;
+    top: 7px;
+    height: 30px;
+    border-style: solid;
+    border-width: 0;
+    border-image: url('../../assets/images/habbo-skin/touch/btn-green-default-h30.png') 0 5 fill / 0 5px stretch;
+}
+
+.volt-touch-chat-send:active::before {
+    border-image-source: url('../../assets/images/habbo-skin/touch/btn-green-pressed-h30.png');
+}
+
+.volt-touch-chat-send:disabled {
+    color: #8a8a8a;
+}
+
+.volt-touch-chat-send:disabled::before {
+    border-image-source: url('../../assets/images/habbo-skin/touch/btn-disabled-h30.png');
+}
+
+html[data-volt-keyboard='open'] .volt-touch-chat-send,
+.volt-touch-chat:focus-within .volt-touch-chat-send,
+.volt-touch-chat-bar:has(.volt-touch-chat-input:not(:placeholder-shown)) .volt-touch-chat-send {
+    display: block;
+}
+
+/* Room bubbles: lanes start under the HUD row; while typing they stay above the chat dock. */
+html[data-volt-touch='on'] .volt-chat-viewer {
+    top: calc(60px + var(--volt-safe-top, 0px));
+}
+
+html[data-volt-touch='on'][data-volt-keyboard='open'] .volt-chat-viewer {
+    top: min(calc(60px + var(--volt-safe-top, 0px)), calc(var(--volt-visual-height, 100vh) - 104px - var(--volt-chat-viewer-height, 0px)));
+}
+
+/* Chat history sheet (phones) */
+.volt-chat-history-sheet-body {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    background: #f6f6f1;
+    font-family: Ubuntu, sans-serif;
+}
+
+.volt-chat-history-filters {
+    display: flex;
+    flex: none;
+    gap: 6px;
+    padding: 8px;
+    border-bottom: 1px solid #b2b0a6;
+    background: #e9e8e1;
+}
+
+.volt-chat-history-filter {
+    height: 44px;
+    padding: 0 14px;
+    border-style: solid;
+    border-width: 0;
+    border-image: url('../../assets/images/habbo-skin/touch/btn-default-h44.png') 0 5 fill / 0 5px stretch;
+    background: transparent;
+    color: #000000;
+    font: 700 13px Ubuntu, sans-serif;
+    white-space: nowrap;
+}
+
+.volt-chat-history-filter.is-selected {
+    color: #ffffff;
+    border-image-source: url('../../assets/images/habbo-skin/touch/btn-green-default-h44.png');
+}
+
+.volt-chat-history-lines {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-bottom: var(--volt-safe-bottom, 0px);
+}
+
+.volt-chat-history-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 30px;
+    padding: 0 10px;
+    border-bottom: 1px solid #b2b0a6;
+    background: #d9d8cf;
+    color: #000000;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.volt-chat-history-section-time {
+    margin-left: auto;
+    color: #77756d;
+    font-weight: 400;
+}
+
+.volt-chat-history-line {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 46px;
+    padding: 4px 10px;
+    border-bottom: 1px solid #d3d1c7;
+    background: #f6f6f1;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+}
+
+.volt-chat-history-line.is-whisper {
+    background: #eef6fa;
+}
+
+.volt-chat-history-line.is-copied {
+    background: #dff0d0;
+}
+
+.volt-chat-history-line-time {
+    flex: none;
+    width: 34px;
+    color: #77756d;
+    font-size: 11px;
+}
+
+.volt-chat-history-line-face {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 30px;
+    overflow: hidden;
+}
+
+.volt-chat-history-line-face img {
+    max-width: none;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-chat-history-line-face img.is-2x {
+    zoom: 0.5;
+}
+
+.volt-chat-history-line-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    color: #000000;
+    font-size: 14px;
+    line-height: 18px;
+    overflow-wrap: anywhere;
+}
+
+.volt-chat-history-line.is-whisper .volt-chat-history-line-text {
+    font-style: italic;
+}
+
+.volt-chat-history-line.is-whisper .volt-chat-history-line-text b {
+    font-style: normal;
+}
+
+.volt-chat-history-line-copied {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    padding: 2px 8px;
+    border-radius: 3px;
+    background: #5bb239;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    transform: translateY(-50%);
+}
+
+.volt-chat-history-empty {
+    padding: 24px 12px;
+    color: #77756d;
+    font-size: 14px;
+    text-align: center;
+}

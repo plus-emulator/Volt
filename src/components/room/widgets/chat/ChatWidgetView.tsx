@@ -49,6 +49,7 @@ export const ChatWidgetView: FC<{}> = (props) => {
             const configuredHeightPercentage = GetConfigurationValue<number>('chat.viewer.height.percentage', 0.25);
             const newHeight = getChatViewerHeight(document.body.offsetHeight, configuredHeightPercentage);
             element.style.height = `${newHeight}px`;
+            element.style.setProperty('--volt-chat-viewer-height', `${newHeight}px`);
             scroller.resize(newHeight, document.body.offsetWidth);
         };
         window.addEventListener('resize', resize);
@@ -113,7 +114,7 @@ export const ChatWidgetView: FC<{}> = (props) => {
     return (
         <div
             ref={elementRef}
-            className="absolute flex justify-center items-center w-full top-0 min-h-px z-(--chat-zindex) bg-transparent roundehidden shadow-none pointer-events-none"
+            className="volt-chat-viewer absolute flex justify-center items-center w-full top-0 min-h-px z-(--chat-zindex) bg-transparent roundehidden shadow-none pointer-events-none"
         >
             {!chatWindowEnabled &&
                 chatMessages.map((chat) => (
