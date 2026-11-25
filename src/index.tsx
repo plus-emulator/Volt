@@ -92,6 +92,10 @@ import './css/touch/TouchInventory.css';
 import './css/touch/TouchSocial.css';
 import './css/touch/TouchAvatarEditor.css';
 import './css/touch/TouchInstall.css';
+import './css/touch/TouchWired.css';
+import './css/touch/TouchWiredTools.css';
+import './css/touch/TouchFloorplan.css';
+import './css/touch/TouchQuests.css';
 
 // bootstrap.ts mounts the app once the configuration has loaded.
 export const mountApp = () => {
