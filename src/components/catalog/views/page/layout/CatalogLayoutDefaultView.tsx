@@ -1,5 +1,5 @@
 import { FC, ReactNode, SyntheticEvent, useState } from 'react';
-import { CatalogType, GetConfigurationValue, IPurchasableOffer, LocalizeText, ProductTypeEnum } from '../../../../../api';
+import { CatalogType, GetConfigurationValue, IPurchasableOffer, LocalizeText, ProductTypeEnum, useVoltLayout, VoltLayout } from '../../../../../api';
 import { NativeText } from '../../../../../common/native-text/NativeText';
 import { getCatalogGridMetrics, useCatalogData, useCatalogDisplayPreferences, useCatalogUiState } from '../../../../../hooks';
 import { getCatalogPlainText } from '../../../catalogLocalization.helpers';
@@ -28,6 +28,12 @@ interface CatalogLayoutDefaultViewProps extends CatalogLayoutProps {
     previewHeight?: number;
 }
 
+/** Phones keep the page and the pinned buy bar on screen with a shorter room preview. */
+const TOUCH_PREVIEW_HEIGHTS: Partial<Record<VoltLayout, number>> = {
+    'phone-portrait': 168,
+    'phone-landscape': 120
+};
+
 /** LocalizationCatalogWidget.setElementImage: the teaser keeps its own size, centred on whole pixels in the product view. */
 const CatalogTeaserImageView: FC<{ src: string }> = ({ src }) => {
     const [offset, setOffset] = useState<{ left: number; top: number }>(null);
@@ -54,7 +60,9 @@ const CatalogTeaserImageView: FC<{ src: string }> = ({ src }) => {
 };
 
 export const CatalogLayoutDefaultView: FC<CatalogLayoutDefaultViewProps> = (props) => {
-    const { page = null, gridOffers, isGridOfferActive, colourGrid = null, layoutClassName = '', previewHeight = 240 } = props;
+    const { page = null, gridOffers, isGridOfferActive, colourGrid = null, layoutClassName = '', previewHeight: pagePreviewHeight = 240 } = props;
+    const touchPreviewHeight = TOUCH_PREVIEW_HEIGHTS[useVoltLayout()];
+    const previewHeight = touchPreviewHeight ? Math.min(touchPreviewHeight, pagePreviewHeight) : pagePreviewHeight;
     const { currentOffer = null, currentPage = null, roomPreviewer = null } = useCatalogData();
     const { currentType = CatalogType.NORMAL } = useCatalogUiState();
     const isBuilder = currentType === CatalogType.BUILDER;

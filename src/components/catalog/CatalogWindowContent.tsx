@@ -8,8 +8,8 @@ import '../../css/catalog/CatalogAirGuild.css';
 import '../../css/catalog/CatalogAirClub.css';
 import '../../css/catalog/CatalogAirBc.css';
 import '../../css/catalog/CatalogAirInfo.css';
-import { FC, useCallback, useEffect, useRef } from 'react';
-import { CatalogType, GetConfigurationValue, LocalizeShortNumber, LocalizeText } from '../../api';
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { CatalogType, GetConfigurationValue, ICatalogNode, LocalizeShortNumber, LocalizeText, useVoltLayout } from '../../api';
 import { LayoutCurrencyIcon, VoltCardContentView, VoltCardHeaderView, VoltCardTabsItemView, VoltCardTabsView, VoltCardView } from '../../common';
 import { NativeCenteredField } from '../../common/native-text/NativeCenteredField';
 import { NativeText } from '../../common/native-text/NativeText';
@@ -22,6 +22,7 @@ import { CatalogBuilderHeaderView } from './views/catalog-header/CatalogBuilderH
 import { CatalogIconView } from './views/catalog-icon/CatalogIconView';
 import { CatalogBreadcrumbView } from './views/navigation/CatalogBreadcrumbView';
 import { CatalogNavigationView } from './views/navigation/CatalogNavigationView';
+import { CatalogTouchBackBar } from './views/navigation/CatalogTouchBackBar';
 import { CatalogSearchView } from './views/page/common/CatalogSearchView';
 import { GetCatalogLayout } from './views/page/layout/GetCatalogLayout';
 import { catalogPageHidesLeftPane } from './views/page/layout/catalogLayoutRegistry';
@@ -43,6 +44,24 @@ const catalogWindowPosition = { x: 100, y: 5 };
 
 const TAB_WIDTH = 110;
 const TAB_STRIP_WIDTH = 560;
+
+type CatalogTouchStep = 'list' | 'page';
+
+const hasVisibleChildren = (node: ICatalogNode) => node.children.some((child) => child.isVisible);
+
+/** The page a tab opens by itself (CatalogNavigator.getPathToNodeWithLayout). */
+const getFirstPageNode = (node: ICatalogNode): ICatalogNode | null => {
+    for (const child of node.children) {
+        if (!child.isVisible) continue;
+        if (child.pageId > -1) return child;
+
+        const found = child.isBranch ? getFirstPageNode(child) : null;
+
+        if (found) return found;
+    }
+
+    return null;
+};
 
 /** The tab caption (u_regular, black), centred on the tab and drawn for the inactive, hovered and selected skins it can sit on. */
 const CatalogTabLabel: FC<{ text: string; width: number }> = ({ text, width }) => (
@@ -83,6 +102,11 @@ export const CatalogWindowContent: FC<{}> = () => {
     const isBuilder = currentType === CatalogType.BUILDER;
     const { showTab = null, getNodeById = null, retryCurrentPage = null } = useCatalogActions();
     const { purse = null } = usePurse();
+    const layout = useVoltLayout();
+    const isTouch = layout !== 'desktop';
+    // Phone portrait shows the category list and the page as two steps instead of two panes.
+    const usesSteps = layout === 'phone-portrait';
+    const [touchStep, setTouchStep] = useState<CatalogTouchStep>('list');
     const displayedCurrencies = GetConfigurationValue<number[]>('system.currency.types', []);
     // The header belongs to the open page: a folder (pageId -1) can be active without opening one.
     const pageId = currentPage?.pageId ?? -1;
@@ -115,6 +139,20 @@ export const CatalogWindowContent: FC<{}> = () => {
 
     const hideCatalogNavigation = useCallback(() => setNavigationHidden(true), [setNavigationHidden]);
 
+    const activeLeaf = activeNodes.at(-1) ?? null;
+    const tabFirstPage = useMemo(() => (currentTab ? getFirstPageNode(currentTab) : null), [currentTab]);
+
+    // A page opened from a link or an offer goes straight to the page step; the page a tab opens by itself does not.
+    useEffect(() => {
+        if (!usesSteps || pageId < 0 || !activeLeaf || hasVisibleChildren(activeLeaf) || activeLeaf === tabFirstPage) return;
+
+        setTouchStep('page');
+    }, [usesSteps, pageId, activeLeaf, tabFirstPage]);
+
+    const onNodeActivated = useCallback((node: ICatalogNode) => {
+        if (node.pageId > -1 && !hasVisibleChildren(node)) setTouchStep('page');
+    }, []);
+
     const visibleTabs = rootNode?.children.filter((child) => child.isVisible) ?? [];
     // tab_button is 110px; when more tabs than fit the 560px strip they share it on whole pixels.
     const tabWidth = Math.min(TAB_WIDTH, Math.floor(TAB_STRIP_WIDTH / Math.max(1, visibleTabs.length)));
@@ -130,6 +168,7 @@ export const CatalogWindowContent: FC<{}> = () => {
         <VoltCardView
                     classNames={['volt-catalog-window', ...(isBuilder ? ['is-builder'] : [])]}
                     frameStyle={3}
+                    touchPresentation="full"
                     initialPosition={initialPosition.current}
                     isResizable
                     resizeAxis="vertical"
@@ -169,10 +208,12 @@ export const CatalogWindowContent: FC<{}> = () => {
                                 <VoltCardTabsItemView
                                     key={child.id}
                                     isActive={child === currentTab}
-                                    style={{ width: tabWidth, flexBasis: tabWidth }}
+                                    style={isTouch ? undefined : { width: tabWidth, flexBasis: tabWidth }}
                                     title={child.localization}
                                     onClick={() => {
                                         if (searchResult) setSearchResult(null);
+
+                                        setTouchStep('list');
 
                                         showTab(child);
                                     }}
@@ -228,20 +269,42 @@ export const CatalogWindowContent: FC<{}> = () => {
                         </div>
                     </div>
                     <VoltCardContentView classNames={['volt-catalog-content-shell']}>
-                        <div className={`volt-catalog-stage ${sidebarHidden ? 'is-navigation-hidden' : ''}`}>
+                        <div
+                            className={`volt-catalog-stage ${sidebarHidden ? 'is-navigation-hidden' : ''}`}
+                            data-touch-step={usesSteps ? (sidebarHidden ? 'page' : touchStep) : undefined}
+                        >
                             {!sidebarHidden && (
                                 <div className="volt-catalog-sidebar">
                                     <div className="volt-catalog-search-shell">
                                         <CatalogSearchView />
                                     </div>
+                                    {usesSteps && searchResult && (
+                                        <button className="volt-catalog-touch-results" type="button" onClick={() => setTouchStep('page')}>
+                                            {LocalizeText('catalog.search.results', ['count', 'needle'], [String(searchResult.offers.length), searchResult.searchValue])}
+                                        </button>
+                                    )}
                                     <div className="volt-catalog-navigation-shell">
-                                        {currentTab && <CatalogNavigationView isBuilder={isBuilder} node={currentTab} />}
+                                        {currentTab && (
+                                            <CatalogNavigationView isBuilder={isBuilder} node={currentTab} onActivate={usesSteps ? onNodeActivated : undefined} />
+                                        )}
                                     </div>
                                 </div>
                             )}
                             <div aria-busy={isBusy} className="volt-catalog-layout-shell">
                                 <div className="volt-catalog-layout-header-shell">
-                                    <CatalogBreadcrumbView />
+                                    {usesSteps && !sidebarHidden ? (
+                                        <CatalogTouchBackBar
+                                            backLabel={getSwfTabLabel((activeNodes.at(-2) ?? currentTab)?.localization ?? LocalizeText('catalog.title'))}
+                                            title={
+                                                searchResult
+                                                    ? LocalizeText('catalog.search.header')
+                                                    : getSwfTabLabel(activeCatalogNode?.localization ?? LocalizeText('catalog.title'))
+                                            }
+                                            onBack={() => setTouchStep('list')}
+                                        />
+                                    ) : (
+                                        <CatalogBreadcrumbView />
+                                    )}
                                     <div className="volt-catalog-layout-hero">
                                         {!!currentPage?.localization?.getImage(0) && <img alt="" src={currentPage.localization.getImage(0)} />}
                                     </div>

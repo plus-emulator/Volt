@@ -1,5 +1,5 @@
 import { FC, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { GetConfigurationValue, LocalizeText } from '../../../../../api';
+import { GetConfigurationValue, LocalizeText, useVoltLayout } from '../../../../../api';
 import { NativeText } from '../../../../../common/native-text/NativeText';
 import { getCatalogBundleDiscountFlatPriceSteps, getCatalogBundleDiscountItemCount } from '../../../../../api/catalog/CatalogBundleDiscount';
 import { useCatalogBundleDiscountRuleset, useCatalogData, useCatalogUiState } from '../../../../../hooks';
@@ -33,6 +33,7 @@ export const CatalogSpinnerWidgetView: FC<{}> = () => {
     const { purchaseOptions = null, setPurchaseOptions = null } = useCatalogUiState();
     const { data: bundleDiscountRuleset = null } = useCatalogBundleDiscountRuleset();
     const quantityInputId = useId();
+    const isTouch = useVoltLayout() !== 'desktop';
     const quantity = purchaseOptions?.quantity ?? MIN_VALUE;
     const maxPurchaseSize = Math.max(MIN_VALUE, Math.trunc(bundleDiscountRuleset?.maxPurchaseSize ?? MAX_VALUE));
     const freeItemCount = currentOffer?.bundlePurchaseAllowed ? getCatalogBundleDiscountItemCount(quantity, bundleDiscountRuleset) : 0;
@@ -121,6 +122,15 @@ export const CatalogSpinnerWidgetView: FC<{}> = () => {
                     <span aria-hidden="true" className="volt-catalog-standard-spinner-discount-star" />
                 </div>
             )}
+            {isTouch && (
+                <button
+                    aria-label="-"
+                    className="volt-catalog-touch-stepper is-minus"
+                    disabled={quantity <= MIN_VALUE}
+                    type="button"
+                    onClick={() => stepQuantity(-1)}
+                />
+            )}
             <div className="volt-catalog-standard-spinner-input-frame">
                 <input
                     id={quantityInputId}
@@ -139,6 +149,15 @@ export const CatalogSpinnerWidgetView: FC<{}> = () => {
                     }}
                 />
             </div>
+            {isTouch && (
+                <button
+                    aria-label="+"
+                    className="volt-catalog-touch-stepper is-plus"
+                    disabled={quantity >= maxPurchaseSize}
+                    type="button"
+                    onClick={() => stepQuantity(1)}
+                />
+            )}
         </div>
     );
 };

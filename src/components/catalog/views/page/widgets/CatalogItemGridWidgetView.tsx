@@ -1,11 +1,21 @@
 import { InfiniteGrid } from '@layout/InfiniteGrid';
 import { CSSProperties, FC, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { IPurchasableOffer, Offer } from '../../../../../api';
+import { IPurchasableOffer, Offer, useVoltLayout, VoltLayout } from '../../../../../api';
 import { AutoGrid, AutoGridProps, ClassicScrollAreaView } from '../../../../../common';
 import { useCatalogActions, useCatalogData, useScrollWindow } from '../../../../../hooks';
 import { CatalogGridOfferView } from '../common/CatalogGridOfferView';
 import { getAirCatalogColumnCount, getVisibleAirGridEntries, isAirBaseCatalogOffer, layoutAirCatalogOffers } from '../common/catalogAirGrid.helpers';
 import { shouldVirtualizeCatalogOffers } from './catalogGridPerformance.helpers';
+
+/** Touch layouts use a fixed number of wider tiles so icons can show at 2x. */
+const TOUCH_COLUMN_COUNTS: Partial<Record<VoltLayout, number>> = {
+    'phone-portrait': 5,
+    'phone-landscape': 4,
+    'tablet-portrait': 6,
+    'tablet-landscape': 6
+};
+
+const TOUCH_TILE_HEIGHT = 88;
 
 interface CatalogItemGridWidgetViewProps extends AutoGridProps {
     showPrices?: boolean;
@@ -44,9 +54,11 @@ export const CatalogItemGridWidgetView: FC<CatalogItemGridWidgetViewProps> = (pr
     const gridClassName =
         `${baseGridClassName} ${usesAirBaseGridTemplate ? 'uses-base-grid-template' : ''} ${usesAirMixedGridTemplate ? 'uses-mixed-grid-template' : ''}`.trim();
     const useVirtualGrid = shouldVirtualizeCatalogOffers(offers.length) && !usesAirMixedGridTemplate;
+    const layout = useVoltLayout();
+    const touchColumnCount = isAirStandardDensity && !usesAirMixedGridTemplate ? (TOUCH_COLUMN_COUNTS[layout] ?? null) : null;
     const airGridStyle = {
         ...style,
-        ...(isAirStandardDensity && { '--volt-air-column-count': airColumnCount.toString() })
+        ...(isAirStandardDensity && { '--volt-air-column-count': (touchColumnCount ?? airColumnCount).toString() })
     } as CSSProperties;
     const mixedLayout = useMemo(() => layoutAirCatalogOffers(offers, airColumnCount), [airColumnCount, offers]);
     const bundleCounterByOffer = useMemo(() => {
@@ -171,9 +183,9 @@ export const CatalogItemGridWidgetView: FC<CatalogItemGridWidgetViewProps> = (pr
                     classicScrollbar
                     airColumnAdmission={isAirStandardDensity}
                     columnGap={3}
-                    columnCount={columnCount}
-                    estimateSize={effectiveColumnMinHeight}
-                    itemMinWidth={effectiveColumnMinWidth}
+                    columnCount={touchColumnCount ?? columnCount}
+                    estimateSize={touchColumnCount ? TOUCH_TILE_HEIGHT : effectiveColumnMinHeight}
+                    itemMinWidth={touchColumnCount ? 0 : effectiveColumnMinWidth}
                     items={offers}
                     overscan={4}
                     rowGap={isAirStandardDensity ? 0 : 3}

@@ -1,6 +1,6 @@
 import { GetSessionDataManager, RoomDataParser } from '@volt/renderer';
 import { FC, KeyboardEvent, MouseEvent } from 'react';
-import { CreateRoomSession, DoorStateType, TryVisitRoom } from '../../../../api';
+import { CreateRoomSession, DoorStateType, IsPhoneLayout, TryVisitRoom, useVoltLayout } from '../../../../api';
 import { LayoutBadgeImageView, LayoutRoomThumbnailView } from '../../../../common';
 import { NativeText } from '../../../../common/native-text/NativeText';
 import { useDoorState, useNavigatorRoomInfoPopupStore } from '../../../../hooks';
@@ -17,6 +17,7 @@ export interface NavigatorSearchResultItemViewProps {
 export const NavigatorSearchResultItemView: FC<NavigatorSearchResultItemViewProps> = (props) => {
     const { roomData = null, thumbnail = false, eventTitle = false, stripe = false } = props;
     const { setSnapshot: setDoorData } = useDoorState();
+    const isPhone = IsPhoneLayout(useVoltLayout());
     const title = eventTitle && roomData.roomAdName ? roomData.roomAdName : roomData.roomName;
 
     const doorClass = () => {
@@ -104,10 +105,12 @@ export const NavigatorSearchResultItemView: FC<NavigatorSearchResultItemViewProp
             onKeyDown={handleKeyDown}
             onMouseEnter={retargetPopup}
         >
+            {isPhone && <LayoutRoomThumbnailView className="volt-navigator-air__row-thumb" customUrl={roomData.officialRoomPicRef} roomId={roomData.roomId} />}
             <NavigatorUserCountView userCount={roomData.userCount} maxUserCount={roomData.maxUserCount} />
             <span className="volt-navigator-air__row-name">
                 <NativeText text={title} textStyle="u_regular" background={stripe ? 0xffffff : 0xd6eeff} nativeResolution />
             </span>
+            {isPhone && roomData.showOwner && !!roomData.ownerName && <span className="volt-navigator-air__row-owner">{roomData.ownerName}</span>}
             {roomData.doorMode !== RoomDataParser.OPEN_STATE && <i className={`volt-navigator-air__row-door ${doorClass()}`} />}
             {roomData.habboGroupId > 0 && <i className="volt-navigator-air__row-group volt-navigator-air__group" />}
             <NavigatorSearchResultItemInfoView roomData={roomData} />

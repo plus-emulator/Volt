@@ -1,5 +1,5 @@
 import { CSSProperties, FC, KeyboardEvent, useCallback, useEffect, useRef } from 'react';
-import { CatalogType, ICatalogNode } from '../../../../api';
+import { CatalogType, ICatalogNode, useVoltLayout } from '../../../../api';
 import { NativeText } from '../../../../common/native-text/NativeText';
 import { useCatalogNodeState, useCatalogUiState } from '../../../../hooks';
 import { CatalogIconView } from '../catalog-icon/CatalogIconView';
@@ -8,6 +8,16 @@ import { CatalogNavigationSetView } from './CatalogNavigationSetView';
 
 /** border style 6 at blend 0.5 over the frame: the list's surface colour. */
 const NAVIGATION_BACKGROUND = 0xd1d0ca;
+
+const HINT_CHILD_COUNT = 4;
+
+/** Phone rows show the names of the visible sub pages as a one line hint. */
+const getNodeHint = (node: ICatalogNode) =>
+    node.children
+        .filter((child) => child.isVisible)
+        .slice(0, HINT_CHILD_COUNT)
+        .map((child) => child.localization)
+        .join(', ');
 
 export interface CatalogNavigationItemViewProps {
     node: ICatalogNode;
@@ -23,6 +33,7 @@ export const CatalogNavigationItemView: FC<CatalogNavigationItemViewProps> = (pr
     const { isActive, isOpen } = useCatalogNodeState(node);
     const { currentType = null } = useCatalogUiState();
     const isBuilder = currentType === CatalogType.BUILDER;
+    const hint = useVoltLayout() === 'phone-portrait' && searchDepth === null ? getNodeHint(node) : '';
     const itemRef = useRef<HTMLDivElement>(null);
     // Strip only technical technical suffixes; labels such as
     // "Flags (Wall)" or "Forest (Blue)" are meaningful catalog names.
@@ -87,6 +98,7 @@ export const CatalogNavigationItemView: FC<CatalogNavigationItemViewProps> = (pr
                         textStyle={child ? 'u_bold_italic' : 'u_bold'}
                     />
                 </span>
+                {!!hint && <span className="volt-catalog-navigation-hint">{hint}</span>}
                 {node.isBranch && <span aria-hidden="true" className="volt-catalog-navigation-caret" />}
             </div>
             {searchDepth === null && isOpen && node.isBranch && <CatalogNavigationSetView child={true} node={node} runtime={runtime} />}

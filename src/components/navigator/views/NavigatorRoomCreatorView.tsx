@@ -283,7 +283,7 @@ export const NavigatorRoomCreatorView: FC = () => {
     if (!isCreatorOpen || !position) return null;
 
     return (
-        <VoltCardView key={showVersion} uniqueKey="navigator-room-creator" handleSelector=".volt-room-creator-air__caption" frameStyle={3} isResizable={false} dragStyle={{ filter: 'drop-shadow(2.828px 2.828px 2px rgba(0, 0, 0, 0.349))' }} initialPosition={position} unconstrainedPosition={true} onPositionChange={onPositionChange} className="volt-room-creator-air" role="dialog" aria-label={LocalizeText('navigator.createroom.title')}>
+        <VoltCardView key={showVersion} uniqueKey="navigator-room-creator" handleSelector=".volt-room-creator-air__caption" frameStyle={3} isResizable={false} touchPresentation="full" dragStyle={{ filter: 'drop-shadow(2.828px 2.828px 2px rgba(0, 0, 0, 0.349))' }} initialPosition={position} unconstrainedPosition={true} onPositionChange={onPositionChange} className="volt-room-creator-air" role="dialog" aria-label={LocalizeText('navigator.createroom.title')}>
             <div className="volt-card-header-shell volt-room-creator-air__caption">
                 <span className="volt-card-title volt-room-creator-air__title">
                     <NativeCenteredField className="volt-room-creator-air__title-field" width={565}>

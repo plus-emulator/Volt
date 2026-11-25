@@ -12,7 +12,7 @@ import {
     RoomSessionEvent
 } from '@volt/renderer';
 import { CSSProperties, FC, PointerEvent, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { CreateLinkEvent, LocalizeText, localizeWithFallback, SendMessageComposer, TryVisitRoom } from '../../api';
+import { CreateLinkEvent, IsPhoneLayout, LocalizeText, localizeWithFallback, SendMessageComposer, TryVisitRoom, useVoltLayout } from '../../api';
 import createRoomImg from '../../assets/images/navigator/air/create-room.png';
 import promoteRoomImg from '../../assets/images/navigator/air/promote-room.png';
 import quicklinkAdd from '../../assets/images/navigator/air/quicklink-add.png';
@@ -76,6 +76,9 @@ export const NavigatorView: FC<{}> = () => {
     const [tabFont, setTabFont] = useState<NativeFont | null>(null);
     const tabsRef = useRef<HTMLDivElement>(null);
     const resizeRef = useRef<{ y: number; height: number; scale: number } | null>(null);
+    // Phones always show the saved searches, as a row of chips above the results.
+    const isPhone = IsPhoneLayout(useVoltLayout());
+    const showsSavedSearches = isOpenSavesSearches || isPhone;
     const onPositionChange = useCallback((position: { x: number; y: number }) => {
         useNavigatorUiStore.setState({ windowX: position.x, windowY: position.y });
         requestAnimationFrame(() => persistNavigatorBounds(frameRef.current));
@@ -310,6 +313,7 @@ export const NavigatorView: FC<{}> = () => {
                     handleSelector=".volt-navigator-air__caption"
                     initialPosition={{ x: windowX, y: windowY }}
                     constrainToViewport={true}
+                    touchPresentation="full"
                     onPositionChange={onPositionChange}
                 >
                     <div
@@ -390,7 +394,7 @@ export const NavigatorView: FC<{}> = () => {
                         </div>
                         <div className="volt-navigator-air__body">
                             <div className="volt-navigator-air__workspace">
-                                {isOpenSavesSearches && (
+                                {showsSavedSearches && (
                                     <nav className="volt-navigator-air__quick-links" aria-label={quickLinksLabel}>
                                         <NavigatorSearchSavesResultView searches={navigatorSearches || []} />
                                     </nav>

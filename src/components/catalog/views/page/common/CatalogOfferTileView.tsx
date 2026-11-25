@@ -26,6 +26,10 @@ const CatalogPriceText: FC<{ text: string }> = ({ text }) => (
     <SubpixelText transparent background={0xd2d1cb} text={text} textStyle="u_bold" />
 );
 
+/** Touch grids draw an icon at 2x when it fits the 64 x 56 icon box, else at 1x. */
+const ICON_2X_MAX_WIDTH = 32;
+const ICON_2X_MAX_HEIGHT = 28;
+
 const HasActivityPointIconStyle = (type: number) => !!ACTIVITY_POINT_ICON_REGIONS[GetActivityPointIconStyle(type, false)];
 
 export interface CatalogOfferTileViewProps extends LayoutGridItemProps {
@@ -167,6 +171,11 @@ export const CatalogOfferTileView: FC<CatalogOfferTileViewProps> = (props) => {
                         className="volt-catalog-grid-offer-icon"
                         src={iconUrl}
                         draggable={false}
+                        onLoad={(event) => {
+                            const image = event.currentTarget;
+
+                            image.dataset.fits2x = String(image.naturalWidth <= ICON_2X_MAX_WIDTH && image.naturalHeight <= ICON_2X_MAX_HEIGHT);
+                        }}
                         onError={(event) => {
                             if (offer.pricingModel === Offer.PRICING_MODEL_BUNDLE) return;
 

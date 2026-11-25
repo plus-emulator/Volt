@@ -10,14 +10,24 @@ export interface CatalogNavigationViewProps {
     node: ICatalogNode;
     /** The Builders Club list: orange selection and sub-item colours (builders_club_*_template). */
     isBuilder?: boolean;
+    /** Called after a row is activated, so touch layouts can move from the list to the page. */
+    onActivate?: (node: ICatalogNode) => void;
 }
 
 export const CatalogNavigationView: FC<CatalogNavigationViewProps> = (props) => {
-    const { node = null, isBuilder = false } = props;
+    const { node = null, isBuilder = false, onActivate = null } = props;
     const { searchResult = null } = useCatalogData();
     const { activateNode = null } = useCatalogActions();
 
-    const runtime = useMemo<CatalogNavigationRuntime>(() => ({ activateNode }), [activateNode]);
+    const runtime = useMemo<CatalogNavigationRuntime>(
+        () => ({
+            activateNode: (target: ICatalogNode) => {
+                activateNode(target);
+                onActivate?.(target);
+            }
+        }),
+        [activateNode, onActivate]
+    );
 
     return (
         <ClassicScrollAreaView

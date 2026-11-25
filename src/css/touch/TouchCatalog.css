@@ -1,1 +1,912 @@
-/* TouchCatalog */
+/* TouchCatalog: the shop on phones and tablets. Phone portrait shows the category list and the page as two steps;
+   phone landscape and tablets keep two panes. Sprites draw at 1x or 2x only. */
+
+/* ---------- Window size ---------- */
+
+html[data-volt-touch='on'] .draggable-window:is([data-volt-window='sheet'], [data-volt-window='dock']):has(> .volt-catalog-window) {
+    min-width: 0 !important;
+    max-width: none !important;
+}
+
+html[data-volt-touch='on'] .draggable-window[data-volt-window='sheet']:has(> .volt-catalog-window) {
+    width: auto !important;
+}
+
+html[data-volt-touch='on'] .draggable-window[data-volt-window='dock']:has(> .volt-catalog-window) {
+    width: min(var(--volt-dock-width), 60vw) !important;
+}
+
+html[data-volt-layout='phone-landscape'] .draggable-window[data-volt-window='dock']:has(> .volt-catalog-window) {
+    width: min(var(--volt-dock-width), calc(100vw - 120px)) !important;
+}
+
+html[data-volt-device='tablet'] .draggable-window[data-volt-window='float']:has(> .volt-catalog-window) {
+    width: min(780px, calc(100vw - 16px)) !important;
+    min-width: 0 !important;
+    max-width: none !important;
+}
+
+html[data-volt-device='tablet'] .draggable-window[data-volt-window='float'] > .volt-catalog-window {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: min(720px, calc(var(--volt-visual-height, 100dvh) - 24px));
+    min-height: 0 !important;
+    max-height: calc(var(--volt-visual-height, 100dvh) - 16px) !important;
+}
+
+/* ---------- Shared touch layout ---------- */
+
+html[data-volt-touch='on'] .volt-catalog-window {
+    --catalog-touch-tree: 230px;
+    --catalog-touch-row: 44px;
+    --catalog-touch-preview: 240px;
+}
+
+html[data-volt-layout='phone-portrait'] .volt-catalog-window {
+    --catalog-touch-row: 56px;
+    --catalog-touch-preview: 168px;
+}
+
+html[data-volt-layout='phone-landscape'] .volt-catalog-window {
+    --catalog-touch-tree: 150px;
+    --catalog-touch-preview: 120px;
+}
+
+/* The caption keeps its native text; it is centred on the touch header instead of the 556 px AIR bar. */
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-title {
+    top: 50% !important;
+    right: 0;
+    left: 0 !important;
+    width: fit-content;
+    margin: -9px auto 0;
+}
+
+/* Phones hide the 90 px AIR header; the page step shows the page's own header art instead. */
+html[data-volt-device='phone'] .volt-catalog-window .volt-catalog-standard-header {
+    display: none;
+}
+
+html[data-volt-device='tablet'] .volt-catalog-window .volt-catalog-standard-header {
+    width: auto;
+    margin: 0 1px;
+}
+
+/* Tabs: AIR tab sprites at 40 px, sized to their caption, scrolling sideways. */
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-tabs-shell {
+    flex: 0 0 40px;
+    width: auto;
+    height: 40px;
+    min-height: 40px !important;
+    max-height: 40px !important;
+    padding: 0 4px !important;
+    overflow-x: auto;
+    overflow-y: hidden;
+    background: #fff;
+    scrollbar-width: none;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-tabs-shell::-webkit-scrollbar {
+    display: none;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-tabs-shell .volt-card-tab-item {
+    flex: 0 0 auto !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+    margin-right: -1px;
+    padding: 0 14px !important;
+    overflow: visible;
+    background: none !important;
+    border-style: solid !important;
+    border-width: 6px 9px 2px !important;
+    border-image: url('../../assets/images/habbo-skin/slices/tab-3-default.png') 6 9 2 9 fill / 6px 9px 2px 9px stretch !important;
+    image-rendering: pixelated;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-tabs-shell .volt-card-tab-item.volt-card-tab-item-active {
+    z-index: 2;
+    height: 39px !important;
+    min-height: 39px !important;
+    max-height: 39px !important;
+    border-width: 6px 9px 1px !important;
+    border-image: url('../../assets/images/habbo-skin/slices/tab-3-selected.png') 6 9 1 9 fill / 6px 9px 1px 9px stretch !important;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-tabs-shell .volt-card-tab-item > .volt-card-tab-item-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-tab-label {
+    position: static !important;
+    left: auto !important;
+}
+
+/* No sticky hover on touch: the caption keeps its default or selected state. */
+html[data-volt-touch='on'] .volt-card-tab-item:not(.volt-card-tab-item-active):hover .volt-catalog-tab-label > .volt-catalog-tab-label-default {
+    display: inline-block !important;
+}
+
+html[data-volt-touch='on'] .volt-card-tab-item:not(.volt-card-tab-item-active):hover .volt-catalog-tab-label > .volt-catalog-tab-label-hover {
+    display: none !important;
+}
+
+/* Two panes: tree on the left, page on the right. */
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-content-shell {
+    padding: 6px 6px 6px 8px !important;
+    overflow: hidden !important;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-stage {
+    display: grid;
+    grid-template-columns: var(--catalog-touch-tree) minmax(0, 1fr);
+    gap: 8px;
+    height: 100%;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-stage.is-navigation-hidden {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-sidebar {
+    gap: 6px;
+    max-height: none;
+    min-height: 0;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-layout-shell {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* Fixed AIR page layouts keep their size, centred, and scroll when the pane is smaller. */
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-layout-container {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-layout-container > * {
+    margin-inline: auto;
+}
+
+/* ---------- Search field (44 px) ---------- */
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-search-shell {
+    flex: 0 0 44px;
+    height: 44px;
+    border: 1px solid #000;
+    border-radius: 4px;
+    background: #fff url('../../assets/images/navigator/air/magnifier.png') 10px center no-repeat;
+    box-shadow: inset 0 2px 0 #d9d9d3;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-search-shell .volt-catalog-search-input {
+    top: 0;
+    left: 30px;
+    width: calc(100% - 74px) !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    color: #000 !important;
+    font-size: 15px !important;
+    line-height: 42px !important;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-search-helper {
+    top: 12px;
+    left: 32px;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-search-pen {
+    top: 0;
+    right: 0;
+    left: auto;
+    width: 44px;
+    height: 42px;
+    background-position: center;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-touch-results {
+    flex: 0 0 44px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 4px;
+    background: #418db0;
+    color: #fff;
+    font: 700 14px/44px HabboAirUbuntu, Ubuntu, sans-serif;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ---------- Category rows ---------- */
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-navigation-shell {
+    padding: 4px 3px;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-navigation-node {
+    min-height: 0;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-navigation-item {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) 12px;
+    grid-template-rows: 1fr auto auto 1fr;
+    grid-template-areas:
+        'icon . caret'
+        'icon label caret'
+        'icon hint caret'
+        'icon . caret';
+    align-items: center;
+    gap: 0 10px;
+    height: var(--catalog-touch-row);
+    min-height: var(--catalog-touch-row);
+    padding: 0 8px 0 4px;
+    border-bottom: 1px solid #c9c7bd !important;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-navigation-node.is-child .volt-catalog-navigation-item {
+    padding-left: calc(20px + var(--volt-catalog-navigation-indent, 0px));
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-navigation-item::before,
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-navigation-node.is-child .volt-catalog-navigation-item::before {
+    inset: 0;
+    width: auto;
+    height: auto;
+    background: linear-gradient(
+        180deg,
+        var(--catalog-standard-select-outer) 0 2px,
+        var(--catalog-standard-select) 2px calc(100% - 3px),
+        var(--catalog-standard-select-outer) calc(100% - 3px) calc(100% - 1px),
+        #b4b4ae calc(100% - 1px)
+    );
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-navigation-item:hover:not(.is-active)::before {
+    display: none;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-navigation-item:hover:not(.is-active) .volt-catalog-navigation-label-normal {
+    display: inline-block !important;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-navigation-item:hover:not(.is-active) .volt-catalog-navigation-label-selected {
+    display: none !important;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-navigation-icon,
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-navigation-node.is-child .volt-catalog-navigation-icon {
+    grid-area: icon;
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+    margin: 0;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-navigation-icon :is(img, canvas) {
+    max-width: 20px;
+    max-height: 20px;
+    zoom: 2;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-navigation-item .volt-catalog-navigation-label,
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-navigation-node.is-child .volt-catalog-navigation-label {
+    position: relative;
+    top: auto;
+    left: auto;
+    grid-area: label;
+    height: 19px;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-navigation-hint {
+    position: relative;
+    z-index: 1;
+    grid-area: hint;
+    overflow: hidden;
+    color: #55534c;
+    font: 400 12px/15px HabboAirUbuntu, Ubuntu, sans-serif;
+    font-style: normal;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-navigation-item.is-active .volt-catalog-navigation-hint {
+    color: #fff;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-navigation-caret {
+    position: relative;
+    top: auto;
+    left: auto;
+    grid-area: caret;
+    justify-self: end;
+    width: 5px;
+    height: 10px;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-navigation-item.is-open .volt-catalog-navigation-caret {
+    width: 10px;
+    height: 5px;
+}
+
+/* Phone portrait: a page row pushes the page, so it gets the same chevron as a folder. */
+html[data-volt-layout='phone-portrait'] .volt-catalog-window .volt-catalog-navigation-item.is-leaf::after {
+    content: '';
+    position: relative;
+    z-index: 1;
+    grid-area: caret;
+    justify-self: end;
+    width: 5px;
+    height: 10px;
+    background-color: #999;
+    mask: url('../../assets/images/catalog/air/skin/icon-triangle-right.png') 0 0 no-repeat;
+}
+
+/* ---------- Default page: preview, grid and the pinned buy bar ---------- */
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-layout-container:has(> .volt-catalog-default-layout:not(.is-recolorable)) {
+    flex: 1 1 auto;
+    overflow: hidden;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-default-layout:not(.is-recolorable) {
+    display: grid !important;
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    column-gap: 6px;
+    row-gap: 6px;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* The buy bar frame: AIR border style 6 behind the price and purchase rows. */
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-default-layout:not(.is-recolorable)::after {
+    content: '';
+    z-index: 0;
+    grid-row: 4;
+    grid-column: 1 / -1;
+    border: 8px solid transparent;
+    border-image: url('../../assets/images/habbo-skin/slices/border-6.png') 8 fill / 8px stretch;
+    image-rendering: pixelated;
+    pointer-events: none;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-default-layout:not(.is-recolorable) .volt-catalog-product-view {
+    grid-row: 1;
+    grid-column: 1 / -1;
+    height: var(--catalog-touch-preview);
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-default-layout:not(.is-recolorable) .volt-catalog-offer-preview > .shadow-room-previewer {
+    height: var(--catalog-touch-preview) !important;
+    min-height: var(--catalog-touch-preview) !important;
+    max-height: var(--catalog-touch-preview) !important;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-default-layout:not(.is-recolorable) .volt-catalog-grid-shell,
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-default-layout.has-colour-grid:not(.is-recolorable) .volt-catalog-grid-shell {
+    position: relative;
+    top: auto;
+    bottom: auto;
+    left: auto;
+    grid-row: 2;
+    grid-column: 1 / -1;
+    width: auto !important;
+    height: auto;
+    min-height: 0;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-default-layout:not(.is-recolorable) .volt-catalog-colour-grid-shell {
+    position: relative;
+    top: auto;
+    left: auto;
+    grid-row: 3;
+    grid-column: 1 / -1;
+    width: auto;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-default-layout:not(.is-recolorable) .volt-catalog-price-row {
+    position: relative;
+    z-index: 1;
+    bottom: auto;
+    left: auto;
+    display: flex !important;
+    grid-row: 4;
+    grid-column: 1;
+    align-items: center;
+    gap: 6px;
+    width: auto !important;
+    height: 60px;
+    padding: 0 0 0 8px;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-default-layout:not(.is-recolorable) .volt-catalog-purchase-row {
+    position: relative;
+    z-index: 1;
+    bottom: auto;
+    left: auto;
+    display: flex !important;
+    grid-row: 4;
+    grid-column: 2;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    width: auto !important;
+    height: 60px;
+    padding: 0 8px 0 0;
+    overflow: visible;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-default-layout:not(.is-recolorable) .volt-catalog-purchase-selection-prompt {
+    width: auto;
+    margin-left: 8px;
+}
+
+html[data-volt-touch='on'] .volt-catalog-default-layout .volt-catalog-total-price-slot {
+    position: static;
+    order: 1;
+    width: auto;
+    min-width: 0;
+    height: auto;
+}
+
+html[data-volt-touch='on'] .volt-catalog-default-layout .volt-catalog-total-price-label {
+    display: none;
+}
+
+html[data-volt-touch='on'] .volt-catalog-default-layout .volt-catalog-total-price-value {
+    position: static !important;
+    width: auto;
+}
+
+html[data-volt-touch='on'] .volt-catalog-default-layout .volt-catalog-spinner-slot {
+    position: static;
+    order: 2;
+    width: auto;
+    height: auto;
+}
+
+/* Quantity: 44 px minus and plus (the AIR 22 px sprites at 2x) around the field. */
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-standard-spinner {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    width: auto;
+    height: 44px;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-standard-spinner-label {
+    display: none;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-standard-spinner-input-frame {
+    position: relative;
+    top: auto;
+    left: auto;
+    flex: 0 0 40px;
+    width: 40px;
+    height: 36px;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-standard-spinner-value {
+    top: 0;
+    left: 0;
+    width: 100% !important;
+    height: 100% !important;
+    font-size: 15px !important;
+    font-weight: 700;
+    line-height: 36px !important;
+    text-align: center;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-standard-spinner-discount {
+    position: relative;
+    top: auto;
+    left: auto;
+    order: 3;
+    width: 72px;
+    height: 25px;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-standard-spinner-discount-copy {
+    left: 4px;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-standard-spinner-discount-star {
+    left: 46px;
+}
+
+html[data-volt-layout='phone-portrait'] .volt-catalog-window .volt-catalog-standard-spinner-discount {
+    display: none;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-touch-stepper {
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    background: var(--habbo-stepper-minus) 0 0 / 44px 44px no-repeat;
+    image-rendering: pixelated;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-touch-stepper:active {
+    background-image: var(--habbo-stepper-minus-pressed);
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-touch-stepper:disabled {
+    background-image: var(--habbo-stepper-minus-disabled);
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-touch-stepper.is-plus {
+    background-image: var(--habbo-stepper-plus);
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-touch-stepper.is-plus:active {
+    background-image: var(--habbo-stepper-plus-pressed);
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-touch-stepper.is-plus:disabled {
+    background-image: var(--habbo-stepper-plus-disabled);
+}
+
+/* Gift and Buy as 44 px touch AIR buttons. */
+html[data-volt-touch='on'] .volt-catalog-default-layout .volt-catalog-purchase-row .volt-catalog-offer-actions {
+    align-items: center;
+    gap: 6px !important;
+    width: auto;
+    height: 44px;
+    margin: 0;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-default-layout .volt-catalog-purchase-row :is(.volt-catalog-standard-buy-button, .volt-catalog-standard-gift-button) {
+    width: auto !important;
+    min-width: 64px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    padding: 0 12px !important;
+    overflow: hidden;
+    border-width: 0 5px !important;
+    border-image-source: url('../../assets/images/habbo-skin/touch/btn-default-h44.png') !important;
+    border-image-slice: 0 5 fill !important;
+    border-image-width: 0 5px !important;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-default-layout .volt-catalog-purchase-row .volt-catalog-standard-buy-button {
+    width: 104px !important;
+    border-image-source: url('../../assets/images/habbo-skin/touch/btn-green-default-h44.png') !important;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-default-layout .volt-catalog-purchase-row .volt-catalog-standard-gift-button:active {
+    border-image-source: url('../../assets/images/habbo-skin/touch/btn-pressed-h44.png') !important;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-default-layout .volt-catalog-purchase-row .volt-catalog-standard-buy-button:active {
+    border-image-source: url('../../assets/images/habbo-skin/touch/btn-green-pressed-h44.png') !important;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-default-layout .volt-catalog-purchase-row :is(.volt-catalog-standard-buy-button, .volt-catalog-standard-gift-button):disabled {
+    border-image-source: url('../../assets/images/habbo-skin/touch/btn-disabled-h44.png') !important;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-purchase-row :is(.volt-catalog-buy-caption, .volt-catalog-gift-caption) {
+    position: static !important;
+    left: auto !important;
+    flex: none;
+    margin: 0;
+}
+
+/* ---------- Product grid: wider tiles, icons at 2x when they fit ---------- */
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-grid-density-standard:not(.uses-mixed-grid-template),
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-grid-virtual.volt-catalog-grid-density-standard .grid {
+    grid-template-columns: repeat(var(--volt-air-column-count, 5), minmax(0, 1fr)) !important;
+    grid-auto-rows: 88px;
+    column-gap: 4px !important;
+    row-gap: 4px !important;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-grid-density-standard:not(.uses-mixed-grid-template) [role='option'] {
+    position: relative;
+    height: 88px;
+}
+
+/* The AIR item tile behind each offer. */
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-grid-density-standard:not(.uses-mixed-grid-template) [role='option']::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 6px solid transparent;
+    border-image: url('../../assets/images/inventory/air/inventory-item-background.png') 6 fill / 6px stretch;
+    image-rendering: pixelated;
+    pointer-events: none;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-grid-density-standard:not(.uses-mixed-grid-template) .layout-grid-item {
+    --volt-grid-column-min-height: 88px;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-grid-density-standard:not(.uses-mixed-grid-template) .layout-grid-item.uses-base-grid-template {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 88px !important;
+    min-height: 88px !important;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-grid-density-standard:not(.uses-mixed-grid-template) .layout-grid-item.is-active::before,
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-grid-density-standard:not(.uses-mixed-grid-template) .layout-grid-item.is-active.uses-single-price-template::before,
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-grid-density-standard:not(.uses-mixed-grid-template) .layout-grid-item.is-active.uses-base-grid-template::before {
+    width: 100%;
+    height: 100%;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-grid-density-standard:not(.uses-mixed-grid-template) .layout-grid-item > .volt-catalog-grid-offer-icon,
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-grid-density-standard:not(.uses-mixed-grid-template) .layout-grid-item.uses-base-grid-template:not(.unique-item) > .volt-catalog-grid-offer-icon {
+    top: 2px;
+    left: calc(50% - 32px);
+    width: 64px !important;
+    height: 56px !important;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-grid-density-standard:not(.uses-mixed-grid-template) .layout-grid-item > .volt-catalog-grid-offer-icon[data-fits2x='true'] {
+    top: 16px;
+    left: calc(50% - 16px);
+    width: 32px !important;
+    height: 28px !important;
+    transform: scale(2);
+    transform-origin: center;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-grid-density-standard:not(.uses-mixed-grid-template) .layout-grid-item > :is(.avatar-image, .volt-catalog-grid-habbicon-icon) {
+    left: calc(50% - 18px) !important;
+    top: 12px !important;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-grid-density-standard:not(.uses-mixed-grid-template) .volt-catalog-grid-price.is-single-price {
+    top: 62px;
+    left: 0;
+    width: 100%;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-grid-density-standard:not(.uses-mixed-grid-template) .volt-catalog-grid-price.is-single-price .volt-catalog-grid-price-entry {
+    justify-content: center;
+    width: 100%;
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-grid-density-standard:not(.uses-mixed-grid-template) .volt-catalog-grid-price.is-multi-price {
+    top: 52px;
+    left: calc(50% - 22px);
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-grid-density-standard:not(.uses-mixed-grid-template) .volt-catalog-multi-count {
+    top: 44px;
+    left: calc(50% + 10px);
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-grid-density-standard:not(.uses-mixed-grid-template) .volt-catalog-grid-club-level {
+    top: 4px;
+    left: 4px;
+}
+
+/* ---------- Phone portrait: list step and page step ---------- */
+
+html[data-volt-layout='phone-portrait'] .volt-catalog-window .volt-catalog-content-shell {
+    padding: 0 !important;
+}
+
+html[data-volt-layout='phone-portrait'] .volt-catalog-window .volt-catalog-stage,
+html[data-volt-layout='phone-portrait'] .volt-catalog-window .volt-catalog-stage.is-navigation-hidden {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    height: 100%;
+}
+
+html[data-volt-layout='phone-portrait'] .volt-catalog-window .volt-catalog-stage[data-touch-step='list'] > .volt-catalog-layout-shell,
+html[data-volt-layout='phone-portrait'] .volt-catalog-window .volt-catalog-stage[data-touch-step='page'] > .volt-catalog-sidebar {
+    display: none;
+}
+
+html[data-volt-layout='phone-portrait'] .volt-catalog-window .volt-catalog-sidebar {
+    flex: 1 1 auto;
+    gap: 8px;
+    padding: 8px 8px 0;
+}
+
+html[data-volt-layout='phone-portrait'] .volt-catalog-window .volt-catalog-navigation-shell {
+    margin: 0 -8px;
+    padding: 0;
+}
+
+html[data-volt-layout='phone-portrait'] .volt-catalog-window .volt-catalog-navigation-shell::before {
+    display: none;
+}
+
+html[data-volt-layout='phone-portrait'] .volt-catalog-window .volt-catalog-navigation-item {
+    grid-template-columns: 40px minmax(0, 1fr) 12px;
+    padding: 0 14px 0 10px;
+    background: #f6f6f1;
+}
+
+html[data-volt-layout='phone-portrait'] .volt-catalog-window .volt-catalog-layout-shell {
+    flex: 1 1 auto;
+}
+
+/* Page step header: back chip and page name, then the page's header art. */
+html[data-volt-layout='phone-portrait'] .volt-catalog-window .volt-catalog-layout-header-shell {
+    display: flex !important;
+    flex: 0 0 auto;
+    flex-direction: column;
+}
+
+html[data-volt-layout='phone-portrait'] .volt-catalog-window .volt-catalog-stage.is-navigation-hidden .volt-catalog-layout-header-shell {
+    display: none !important;
+}
+
+html[data-volt-layout='phone-portrait'] .volt-catalog-window .volt-catalog-layout-hero:has(> img) {
+    display: flex !important;
+    justify-content: center;
+    max-height: 62px;
+    overflow: hidden;
+    border-bottom: 1px solid #000;
+    background: #000;
+}
+
+html[data-volt-layout='phone-portrait'] .volt-catalog-window .volt-catalog-layout-hero > img {
+    flex: none;
+    max-width: none;
+}
+
+.volt-catalog-touch-back-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 44px;
+    padding: 0 8px;
+    border-bottom: 1px solid #000;
+    background: #fff;
+}
+
+.volt-catalog-touch-back {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 7px;
+    max-width: 45%;
+    height: 32px;
+    padding: 0 10px;
+    border-style: solid;
+    border-width: 3px;
+    border-image: url('../../assets/images/habbo-skin/slices/button-black-default.png') 3 fill / 3px stretch;
+    background: none;
+    color: #fff;
+    font: 700 12px HabboAirUbuntu, Ubuntu, sans-serif;
+    image-rendering: pixelated;
+}
+
+.volt-catalog-touch-back:active {
+    border-image-source: url('../../assets/images/habbo-skin/slices/button-black-pressed.png');
+}
+
+.volt-catalog-touch-back > img {
+    flex: none;
+    filter: brightness(10);
+}
+
+.volt-catalog-touch-back > span,
+.volt-catalog-touch-back-title {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.volt-catalog-touch-back-title {
+    min-width: 0;
+    color: #000;
+    font: 700 14px HabboAirUbuntu, Ubuntu, sans-serif;
+}
+
+html[data-volt-layout='phone-portrait'] .volt-catalog-window .volt-catalog-layout-container {
+    flex: 1 1 auto;
+    padding: 6px 4px 0;
+}
+
+html[data-volt-layout='phone-portrait'] .volt-catalog-window .volt-catalog-default-layout:not(.is-recolorable) {
+    padding-bottom: 2px;
+}
+
+/* Front page on phones: the promos stack in one column. */
+html[data-volt-device='phone'] .volt-catalog-window .volt-cfp {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    width: 100%;
+    max-width: 360px;
+    height: auto;
+    overflow: visible;
+}
+
+html[data-volt-device='phone'] .volt-catalog-window .volt-cfp-list {
+    position: static;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+}
+
+html[data-volt-device='phone'] .volt-catalog-window .volt-cfp-item {
+    width: 100%;
+}
+
+html[data-volt-device='phone'] .volt-catalog-window .volt-cfp-item.is-first {
+    position: relative;
+    order: 2;
+    flex: 0 0 460px;
+    width: 100%;
+}
+
+html[data-volt-device='phone'] .volt-catalog-window .volt-cfp-voucher {
+    position: relative;
+    top: auto;
+    left: auto;
+    order: 3;
+    flex: 0 0 61px;
+    width: 345px;
+    margin: 0 auto 8px;
+}
+
+/* ---------- Phone landscape: compact two panes in the dock ---------- */
+
+html[data-volt-layout='phone-landscape'] .volt-catalog-window .volt-catalog-navigation-item {
+    grid-template-columns: 40px minmax(0, 1fr) 6px;
+    column-gap: 4px;
+    padding-right: 4px;
+}
+
+html[data-volt-layout='phone-landscape'] .volt-catalog-window .volt-catalog-search-helper {
+    display: none;
+}
+
+/* The dock is too narrow for one buy bar row and too short for a fixed grid: the page scrolls as one and the price and
+   purchase rows stick to its bottom. */
+html[data-volt-layout='phone-landscape'] .volt-catalog-window .volt-catalog-default-layout:not(.is-recolorable) {
+    grid-template-rows: repeat(5, auto);
+    row-gap: 4px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+html[data-volt-layout='phone-landscape'] .volt-catalog-window .volt-catalog-default-layout:not(.is-recolorable)::after {
+    display: none;
+}
+
+html[data-volt-layout='phone-landscape'] .volt-catalog-window .volt-catalog-default-layout:not(.is-recolorable) .volt-catalog-grid-shell {
+    overflow: visible;
+}
+
+html[data-volt-layout='phone-landscape'] .volt-catalog-window .volt-catalog-default-layout:not(.is-recolorable) :is(.volt-catalog-price-row, .volt-catalog-purchase-row) {
+    position: sticky;
+    grid-column: 1 / -1;
+    height: 52px;
+    background: var(--catalog-standard-bg);
+}
+
+html[data-volt-layout='phone-landscape'] .volt-catalog-window .volt-catalog-default-layout:not(.is-recolorable) .volt-catalog-price-row {
+    bottom: 52px;
+}
+
+html[data-volt-layout='phone-landscape'] .volt-catalog-window .volt-catalog-default-layout:not(.is-recolorable) .volt-catalog-purchase-row {
+    grid-row: 5;
+    bottom: 0;
+    padding-left: 8px;
+}

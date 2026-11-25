@@ -1,8 +1,10 @@
 import { NavigatorDeleteSavedSearchComposer, NavigatorSavedSearch } from '@volt/renderer';
-import { FC, MouseEvent } from 'react';
-import { LocalizeText, localizeWithFallback, SendMessageComposer } from '../../../../api';
+import { FC, MouseEvent, useEffect, useRef } from 'react';
+import { IsPhoneLayout, LocalizeText, localizeWithFallback, SendMessageComposer, useVoltLayout } from '../../../../api';
 import { NativeText } from '../../../../common/native-text/NativeText';
 import { useNavigatorUiStore } from '../../../../hooks';
+
+const LONG_PRESS_MS = 550;
 
 export interface NavigatorSearchSavesResultItemViewProps {
     search: NavigatorSavedSearch;
@@ -22,8 +24,36 @@ const savedSearchLabel = (search: NavigatorSavedSearch) => {
 export const NavigatorSearchSavesResultItemView: FC<NavigatorSearchSavesResultItemViewProps> = (props) => {
     const { search = null } = props;
     const title = savedSearchLabel(search);
+    const isPhone = IsPhoneLayout(useVoltLayout());
+    const pressTimer = useRef<ReturnType<typeof setTimeout>>(null);
+    const pressFired = useRef(false);
+
+    const cancelPress = () => {
+        if (pressTimer.current) clearTimeout(pressTimer.current);
+
+        pressTimer.current = null;
+    };
+
+    useEffect(() => cancelPress, []);
+
+    // Phones show saved searches as chips: a tap runs the search, a long press deletes it.
+    const startPress = () => {
+        if (!isPhone) return;
+
+        cancelPress();
+        pressFired.current = false;
+        pressTimer.current = setTimeout(() => {
+            pressFired.current = true;
+            SendMessageComposer(new NavigatorDeleteSavedSearchComposer(search.id));
+        }, LONG_PRESS_MS);
+    };
 
     const openSearch = () => {
+        if (pressFired.current) {
+            pressFired.current = false;
+            return;
+        }
+
         useNavigatorUiStore.getState().setSearch(search.code, search.filter || '');
         useNavigatorUiStore.getState().show();
     };
@@ -35,9 +65,19 @@ export const NavigatorSearchSavesResultItemView: FC<NavigatorSearchSavesResultIt
 
     return (
         <div className="saved-search-row">
-            <button type="button" className="saved-search-row__open" title={LocalizeText('navigator.tooltip.open.saved.search')} onClick={openSearch}>
+            <button
+                type="button"
+                className="saved-search-row__open"
+                title={LocalizeText('navigator.tooltip.open.saved.search')}
+                onClick={openSearch}
+                onContextMenu={isPhone ? (event) => event.preventDefault() : undefined}
+                onPointerCancel={cancelPress}
+                onPointerDown={startPress}
+                onPointerLeave={cancelPress}
+                onPointerUp={cancelPress}
+            >
                 <span className="saved-search-row__label">
-                    <NativeText text={title} textStyle="u_regular" background={0xffffff} nativeResolution />
+                    <NativeText text={title} textStyle="u_regular" background={isPhone ? 0xe6e6e6 : 0xffffff} transparent={isPhone} nativeResolution />
                 </span>
             </button>
             <button
