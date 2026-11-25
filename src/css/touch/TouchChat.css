@@ -236,6 +236,7 @@ html[data-volt-keyboard='closed'] .volt-touch-chat:focus-within .volt-touch-chat
     flex: none;
     width: 36px;
     height: 44px;
+    margin-right: 10px;
 }
 
 .volt-touch-chat-bar .habbicon-chat-trigger:not(:has(img)) {
