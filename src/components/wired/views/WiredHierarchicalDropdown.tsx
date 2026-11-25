@@ -1,5 +1,6 @@
 import { FC, useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { IsTouchLayout, useVoltLayout } from '../../../api';
 import { NativeText } from '../../../common/native-text/NativeText';
 import { WiredInputBorderSkin } from './WiredInputBorderSkin';
 import { useWiredNative } from './WiredNativeContext';
@@ -59,18 +60,23 @@ const hex = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
 export const WiredHierarchicalDropdown: FC<WiredHierarchicalDropdownProps> = ({ options, value, caption, disabled = false, onChange }) =>
 {
     const isNative = useWiredNative();
+    const isTouch = IsTouchLayout(useVoltLayout());
     const fieldRef = useRef<HTMLButtonElement>(null);
     const popupRef = useRef<HTMLDivElement>(null);
     const [columns, setColumns] = useState<Column[]>([]);
     const [hovered, setHovered] = useState<number[]>([]);
+    const [touchOpenRect, setTouchOpenRect] = useState<{ left: number; top: number; width: number; maxHeight: number } | null>(null);
+    const [touchStack, setTouchStack] = useState<WiredHierarchicalOption[]>([]);
     const path = value === null ? null : findPath(options, value);
     const label = path ? path.map(option => option.label).join(' > ') : caption;
-    const isOpen = columns.length > 0 && !disabled;
+    const isOpen = (isTouch ? touchOpenRect !== null : columns.length > 0) && !disabled;
 
     const close = useCallback(() =>
     {
         setColumns([]);
         setHovered([]);
+        setTouchOpenRect(null);
+        setTouchStack([]);
     }, []);
 
     const columnSize = (count: number) =>
@@ -87,6 +93,26 @@ export const WiredHierarchicalDropdown: FC<WiredHierarchicalDropdownProps> = ({ 
         if (disabled || !options.length || !fieldRef.current) return;
 
         const field = fieldRef.current.getBoundingClientRect();
+
+        if (isTouch)
+        {
+            const vh = window.visualViewport?.height ?? window.innerHeight;
+            const vw = window.innerWidth;
+            const margin = 8;
+            const width = Math.min(vw - margin * 2, Math.max(260, Math.round(field.width)));
+            const maxHeight = Math.min(360, Math.max(180, Math.floor(vh * 0.6)));
+            const left = Math.max(margin, Math.min(Math.round(field.left), vw - width - margin));
+            let top = Math.round(field.bottom + 4);
+            if (top + maxHeight > vh - margin)
+            {
+                const above = Math.round(field.top - maxHeight - 4);
+                top = above >= margin ? above : Math.max(margin, vh - maxHeight - margin);
+            }
+            setTouchStack([]);
+            setTouchOpenRect({ left, top, width, maxHeight });
+            return;
+        }
+
         const { width, height } = columnSize(options.length);
         let top = field.bottom;
 
@@ -181,6 +207,55 @@ export const WiredHierarchicalDropdown: FC<WiredHierarchicalDropdownProps> = ({ 
             window.removeEventListener('resize', close);
         };
     }, [isOpen, close]);
+
+    if (isTouch)
+    {
+        const activeParent = touchStack.length ? touchStack[touchStack.length - 1] : null;
+        const visibleOptions = activeParent ? activeParent.children : options;
+        const selectedValue = path ? path[path.length - 1].value : null;
+
+        return (
+            <>
+                <button ref={fieldRef} type="button" className="volt-wired-touch-dropdown" aria-label={caption} aria-expanded={isOpen} disabled={disabled}
+                    onClick={() => (isOpen ? close() : open())}>
+                    <span className="volt-wired-touch-dropdown__label">{label}</span>
+                    <span className="volt-wired-touch-dropdown__arrow" aria-hidden="true" />
+                </button>
+                {isOpen && touchOpenRect && createPortal(
+                    <div ref={popupRef} role="listbox" aria-label={caption} className="volt-wired-touch-dropdown__popup"
+                        style={{ left: touchOpenRect.left, top: touchOpenRect.top, width: touchOpenRect.width, maxHeight: touchOpenRect.maxHeight }}>
+                        {activeParent && (
+                            <button type="button" className="volt-wired-touch-dropdown__back" onClick={() => setTouchStack(current => current.slice(0, -1))}>
+                                ‹ {activeParent.label}
+                            </button>
+                        )}
+                        {visibleOptions.map((option, index) =>
+                        {
+                            const branch = isBranch(option);
+                            const disabledRow = !branch && option.value === null;
+                            const isSelected = !branch && selectedValue !== null && option.value === selectedValue;
+
+                            return (
+                                <button key={index} type="button" role="option" aria-selected={isSelected} disabled={disabledRow}
+                                    className={`volt-wired-touch-dropdown__row ${isSelected ? 'is-selected' : ''}`}
+                                    onClick={() =>
+                                    {
+                                        if (branch) { setTouchStack(current => [...current, option]); return; }
+                                        if (option.value === null) return;
+                                        close();
+                                        onChange(option.value);
+                                    }}>
+                                    <span className="volt-wired-touch-dropdown__row-label">{option.label}</span>
+                                    {branch && <span className="volt-wired-touch-dropdown__chevron" aria-hidden="true">›</span>}
+                                </button>
+                            );
+                        })}
+                    </div>,
+                    document.body
+                )}
+            </>
+        );
+    }
 
     if (!isNative)
         return (

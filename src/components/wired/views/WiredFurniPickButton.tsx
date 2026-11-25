@@ -16,7 +16,7 @@ export const WiredFurniPickButton: FC<{ kind: 'primary' | 'secondary'; active: b
     const [pressed, setPressed] = useState(false);
     const selected = !disabled && active;
     const hovered = !disabled && hover;
-    return <button type="button" aria-label={`${LocalizeText('wiredfurni.params.furni_picking.tooltip')} ${kind === 'primary' ? 1 : 2}`} title={LocalizeText('wiredfurni.params.furni_picking.tooltip')} aria-pressed={active} disabled={disabled}
+    return <button type="button" className={`volt-wired__furni-pick-btn volt-wired__furni-pick-btn--${kind} ${selected ? 'is-selected' : ''}`} aria-label={`${LocalizeText('wiredfurni.params.furni_picking.tooltip')} ${kind === 'primary' ? 1 : 2}`} title={LocalizeText('wiredfurni.params.furni_picking.tooltip')} aria-pressed={active} disabled={disabled}
         style={{ position: 'relative', display: 'inline-block', flex: '0 0 19px', width: 19, height: 19, border: 0, padding: 0, background: 'transparent', opacity: disabled ? 0.5 : 1 }}
         onMouseEnter={() => setHover(true)} onMouseLeave={() => { setHover(false); setPressed(false); }} onPointerDown={() => setPressed(true)} onPointerUp={() => setPressed(false)} onClick={() => { if (!active) onClick(); }}>
         <NativeSkinView skin={skin} layout="illumina_light_button_plain" atlas={atlas} width={19} height={19} state={selected || (!disabled && pressed) ? 'pressed' : hovered ? 'hovering' : 'default'} color={selected ? COLORS[kind].selected : hovered ? COLORS[kind].hover : 0xffffff} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
@@ -29,7 +29,7 @@ export const WiredMiniIconButton: FC<{ icon: string; label: string; disabled?: b
     const [hover, setHover] = useState(false);
     const [pressed, setPressed] = useState(false);
     const hovered = !disabled && hover;
-    return <button type="button" aria-label={label} title={label || undefined} disabled={disabled}
+    return <button type="button" className="volt-wired__mini-icon-btn" aria-label={label} title={label || undefined} disabled={disabled}
         style={{ position: 'relative', display: 'block', flex: '0 0 19px', width: 19, height: 19, border: 0, padding: 0, background: 'transparent', opacity: disabled ? 0.5 : 1 }}
         onMouseEnter={() => setHover(true)} onMouseLeave={() => { setHover(false); setPressed(false); }} onPointerDown={() => setPressed(true)} onPointerUp={() => setPressed(false)} onClick={onClick}>
         <NativeSkinView skin={skin} layout="illumina_light_button_plain" atlas={atlas} width={19} height={19} state={!disabled && pressed ? 'pressed' : hovered ? 'hovering' : 'default'} color={0xffffff} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />

@@ -1,5 +1,5 @@
 import { CSSProperties, FC, PointerEvent as ReactPointerEvent, ReactNode, useLayoutEffect, useRef, useState } from 'react';
-import { LocalizeText, WiredSliderConverter, WIRED_SLIDER_ECHO } from '../../../api';
+import { IsTouchLayout, LocalizeText, useVoltLayout, WiredSliderConverter, WIRED_SLIDER_ECHO } from '../../../api';
 import { Slider, SliderProps } from '../../../common';
 import sliderTrack from '../../../assets/images/wired/native/slider_track.png';
 import sliderThumb from '../../../assets/images/wired/native/slider_obj.png';
@@ -11,6 +11,7 @@ import { WiredSection, WiredSectionProps } from './WiredSection';
 import { WiredShellButton } from './WiredShellHeaderView';
 
 const THUMB_WIDTH = 12;
+const TOUCH_THUMB_WIDTH = 28;
 
 export interface WiredSliderProps {
     min: number;
@@ -23,8 +24,10 @@ export interface WiredSliderProps {
 
 /** SliderPreset: arrow buttons around a 12px thumb that travels the track width minus its own width. */
 export const WiredSlider: FC<WiredSliderProps> = ({ min, max, step = 1, value, disabled = false, onChange }) => {
+    const isTouch = IsTouchLayout(useVoltLayout());
     const areaRef = useRef<HTMLDivElement>(null);
     const drag = useRef<{ startX: number; startValue: number } | null>(null);
+    const trackDrag = useRef(false);
     const [areaWidth, setAreaWidth] = useState(148);
 
     // AIR retains its layout width when folded. DOM children measure zero until their section opens.
@@ -38,14 +41,53 @@ export const WiredSlider: FC<WiredSliderProps> = ({ min, max, step = 1, value, d
         observer.observe(area);
         return () => observer.disconnect();
     }, []);
-    useLayoutEffect(() => { if (disabled) drag.current = null; }, [disabled]);
+    useLayoutEffect(() => {
+        if (disabled) {
+            drag.current = null;
+            trackDrag.current = false;
+        }
+    }, [disabled]);
 
+    const thumbWidth = isTouch ? TOUCH_THUMB_WIDTH : THUMB_WIDTH;
     const isDisabled = () => disabled || !!areaRef.current?.closest('fieldset:disabled, [inert]');
     const clamp = (next: number) => Math.min(max, Math.max(min, next));
-    const travel = Math.max(0, areaWidth - THUMB_WIDTH);
+    const travel = Math.max(0, areaWidth - thumbWidth);
     const position = max === min ? 0 : Math.trunc(travel * ((clamp(value) - min) / (max - min)));
 
+    const valueFromClientX = (clientX: number) => {
+        const area = areaRef.current;
+        if (!area || travel === 0 || max === min || step === 0) return value;
+        const rect = area.getBoundingClientRect();
+        const x = Math.min(travel, Math.max(0, clientX - rect.left - thumbWidth / 2));
+        const raw = (x / travel) * (max - min) + min;
+        return clamp(Math.round(raw / step) * step);
+    };
+
+    const onAreaDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+        if (!isTouch || isDisabled() || event.button !== 0 || step === 0 || max === min || travel === 0) return;
+
+        event.currentTarget.setPointerCapture(event.pointerId);
+        trackDrag.current = true;
+        const next = valueFromClientX(event.clientX);
+        if (next !== value) onChange(next);
+    };
+
+    const onAreaMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+        if (!trackDrag.current || isDisabled() || step === 0 || max === min || travel === 0) {
+            trackDrag.current = false;
+            return;
+        }
+
+        const next = valueFromClientX(event.clientX);
+        if (next !== value) onChange(next);
+    };
+
+    const onAreaUp = () => {
+        trackDrag.current = false;
+    };
+
     const onThumbDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+        if (isTouch) return;
         if (isDisabled() || event.button !== 0 || step === 0 || max === min || travel === 0) return;
 
         event.currentTarget.setPointerCapture(event.pointerId);
@@ -73,6 +115,7 @@ export const WiredSlider: FC<WiredSliderProps> = ({ min, max, step = 1, value, d
 
     const moveByStep = (direction: number) => {
         drag.current = null;
+        trackDrag.current = false;
         if (!isDisabled() && step !== 0) onChange(clamp(value + direction * step));
     };
 
@@ -82,7 +125,14 @@ export const WiredSlider: FC<WiredSliderProps> = ({ min, max, step = 1, value, d
                 <img alt="" draggable={false} src={arrowLeft} />
             </WiredShellButton>
             <div className="volt-wired__slider" style={{ '--wired-slider-bg': `url(${sliderTrack})` } as CSSProperties}>
-                <div className="volt-wired__slider-area" ref={areaRef}>
+                <div
+                    className="volt-wired__slider-area"
+                    ref={areaRef}
+                    onPointerCancel={onAreaUp}
+                    onPointerDown={onAreaDown}
+                    onPointerMove={onAreaMove}
+                    onPointerUp={onAreaUp}
+                >
                     <div
                         className="volt-wired__slider-thumb"
                         style={{ left: position, backgroundImage: `url(${sliderThumb})` }}

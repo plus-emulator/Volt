@@ -1,8 +1,9 @@
 import { GetRoomEngine, RoomAreaSelectionManager } from '@volt/renderer';
 import { FC, useCallback, useEffect, useRef, useState } from 'react';
-import { LocalizeText } from '../../../../api';
+import { IsTouchLayout, LocalizeText, useVoltLayout } from '../../../../api';
 import { useWired } from '../../../../hooks';
 import { WiredButtonRow } from '../WiredButtonRow';
+import { useWiredTouchCollapse } from '../WiredNativeContext';
 import { WiredSection } from '../WiredSection';
 import { WiredText } from '../WiredText';
 import { WiredSelectorBaseView } from './WiredSelectorBaseView';
@@ -11,6 +12,9 @@ import { WiredSelectorOptionsSection } from './WiredSelectorOptionsSection';
 /** AIR InArea (FurniInArea, UsersInArea): one area section with Select Area / Clear, the area kept as [x, y, width, height]. */
 export const WiredSelectorInAreaView: FC<{}> = () =>
 {
+    const layout = useVoltLayout();
+    const isTouch = IsTouchLayout(layout);
+    const { setAreaSelection } = useWiredTouchCollapse();
     const [rootX, setRootX] = useState(0);
     const [rootY, setRootY] = useState(0);
     const [areaWidth, setAreaWidth] = useState(0);
@@ -20,6 +24,7 @@ export const WiredSelectorInAreaView: FC<{}> = () =>
     const [isSelecting, setIsSelecting] = useState(false);
     // True only while this window's own activate() succeeded: another selector's activation is never touched, cleared or deactivated from here.
     const ownsAreaSelection = useRef(false);
+    const cancellingSelection = useRef<{ x: number; y: number; w: number; h: number } | null>(null);
     const { trigger = null, setIntParams } = useWired();
 
     // Filter and inverse are category fields of the selector save, not owned ints.
@@ -32,11 +37,28 @@ export const WiredSelectorInAreaView: FC<{}> = () =>
         // InArea.onAreaSelected: the manager reports the dragged area, and (0, 0, 0, 0) after Clear.
         const callback = (x: number, y: number, w: number, h: number) =>
         {
-            setRootX(x);
-            setRootY(y);
-            setAreaWidth(w);
-            setAreaHeight(h);
+            const cancelled = cancellingSelection.current;
+            cancellingSelection.current = null;
+
+            if(cancelled)
+            {
+                setRootX(cancelled.x);
+                setRootY(cancelled.y);
+                setAreaWidth(cancelled.w);
+                setAreaHeight(cancelled.h);
+                if(ownsAreaSelection.current && cancelled.w > 0 && cancelled.h > 0)
+                    GetRoomEngine().areaSelectionManager.setHighlight(cancelled.x, cancelled.y, cancelled.w, cancelled.h);
+            }
+            else
+            {
+                setRootX(x);
+                setRootY(y);
+                setAreaWidth(w);
+                setAreaHeight(h);
+            }
+
             setIsSelecting(false);
+            setAreaSelection(false);
         };
 
         const manager = GetRoomEngine().areaSelectionManager;
@@ -55,14 +77,30 @@ export const WiredSelectorInAreaView: FC<{}> = () =>
 
         setIsAreaActive(activated);
         setIsSelecting(false);
+        setAreaSelection(false);
 
         return () =>
         {
+            cancellingSelection.current = null;
+            setAreaSelection(false);
             if(ownsAreaSelection.current) GetRoomEngine().areaSelectionManager.deactivate();
 
             ownsAreaSelection.current = false;
         };
-    }, [trigger]);
+    }, [trigger, setAreaSelection]);
+
+    const cancelSelectArea = useCallback(() =>
+    {
+        if(!ownsAreaSelection.current)
+        {
+            setIsSelecting(false);
+            setAreaSelection(false);
+            return;
+        }
+
+        cancellingSelection.current = { x: rootX, y: rootY, w: areaWidth, h: areaHeight };
+        GetRoomEngine().areaSelectionManager.clearHighlight();
+    }, [rootX, rootY, areaWidth, areaHeight, setAreaSelection]);
 
     const selectArea = () =>
     {
@@ -70,6 +108,7 @@ export const WiredSelectorInAreaView: FC<{}> = () =>
         if(!ownsAreaSelection.current || GetRoomEngine().areaSelectionManager.areaSelectionState !== RoomAreaSelectionManager.NOT_SELECTING_AREA) return;
 
         setIsSelecting(true);
+        if(isTouch) setAreaSelection(true, cancelSelectArea);
         GetRoomEngine().areaSelectionManager.startSelecting();
     };
 

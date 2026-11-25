@@ -1,4 +1,5 @@
 import { FC, PropsWithChildren, ReactNode } from 'react';
+import { IsTouchLayout, useVoltLayout } from '../../../api';
 import { Text } from '../../../common';
 import { useWiredNative } from './WiredNativeContext';
 import { WiredText } from './WiredText';
@@ -21,6 +22,7 @@ export const WiredSplitter: FC<{ className?: string }> = ({ className = '' }) =>
 export const WiredSection: FC<PropsWithChildren<WiredSectionProps>> = ({ title = null, headerOption = null, headerOptionsRight = null, titleOffset = 0, splitter = true, className = '', children = null }) =>
 {
     const isNative = useWiredNative();
+    const isTouch = IsTouchLayout(useVoltLayout());
 
     // The other frames keep their own divider and plain section body; the Illumina section chrome is drawn for the Illumina frame only.
     if (!isNative)
@@ -48,7 +50,7 @@ export const WiredSection: FC<PropsWithChildren<WiredSectionProps>> = ({ title =
                     <div className="volt-wired__native-section-header">
                         {title !== null &&
                             (typeof title === 'string' ? (
-                                <WiredText bold className={titleOffset ? 'volt-wired__native-text--offset' : ''} text={title} />
+                                <WiredText bold wrap={isTouch} className={titleOffset ? 'volt-wired__native-text--offset' : ''} text={title} />
                             ) : (
                                 <span className="volt-wired__text volt-wired__text--bold" style={titleOffset ? { marginTop: titleOffset } : undefined}>
                                     {title}

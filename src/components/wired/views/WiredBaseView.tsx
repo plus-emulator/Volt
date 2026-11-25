@@ -1,11 +1,14 @@
 import { CreateLinkEvent, GetRoomEngine, GetSessionDataManager } from '@volt/renderer';
 import { CSSProperties, FC, PropsWithChildren, ReactNode, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
+    IsTouchLayout,
     isWiredVolterStyle,
     LocalizeText,
     localizeWithFallback,
     resolveWiredStyle,
     unreleasedWiredTitleKey,
+    useVoltLayout,
     WiredFurniType,
     WiredSelectionVisualizer,
     wiredStyleClassName,
@@ -17,7 +20,7 @@ import volterAtlas from '../../../assets/images/wired/volter_shell_atlas.png';
 import { VoltCardContentView, VoltCardView, Text } from '../../../common';
 import { useWired, useWiredTools } from '../../../hooks';
 import { WiredBannerCanvas } from './WiredBannerCanvas';
-import { WiredNativeContext } from './WiredNativeContext';
+import { useWiredTouchCollapse, WiredNativeContext } from './WiredNativeContext';
 import { WiredFurniSelectorSection, WiredFurniSelectorView } from './WiredFurniSelectorView';
 import { WiredSection, WiredSplitter } from './WiredSection';
 import { WiredShellButton, WiredShellHeaderView } from './WiredShellHeaderView';
@@ -82,6 +85,9 @@ export const WiredBaseView: FC<PropsWithChildren<WiredBaseViewProps>> = (props) 
     const [keepOpenOnSave, setKeepOpenOnSave] = useState<boolean>(false);
     const [showFooter, setShowFooter] = useState(false);
     const [pasteInto, setPasteInto] = useState(false);
+    const layout = useVoltLayout();
+    const isTouch = IsTouchLayout(layout);
+    const { areaSelectionActive, cancelAreaSelection, roomPickCollapsed, setRoomPickCollapsed } = useWiredTouchCollapse();
     const {
         trigger = null,
         setTrigger = null,
@@ -90,6 +96,7 @@ export const WiredBaseView: FC<PropsWithChildren<WiredBaseViewProps>> = (props) 
         setFurniIds = null,
         furniIds = [],
         secondaryFurniIds = [],
+        activePickSlot = 0,
         setAllowsFurni = null,
         saveWired = null,
         saveWiredAndKeepOpen = null,
@@ -243,10 +250,18 @@ export const WiredBaseView: FC<PropsWithChildren<WiredBaseViewProps>> = (props) 
     const resolvedCardStyle: CSSProperties = { ...cardStyle };
 
     const cardWidth = Math.trunc(wiredStyleWidth(shellStyle) * wiredWidthMultiplier(wiredType, trigger?.code) * widthMultiplier);
-    resolvedCardStyle.width = cardWidth;
-    resolvedCardStyle.minWidth = cardWidth;
-    resolvedCardStyle.maxWidth = cardWidth;
+    if (!isTouch) {
+        resolvedCardStyle.width = cardWidth;
+        resolvedCardStyle.minWidth = cardWidth;
+        resolvedCardStyle.maxWidth = cardWidth;
+    }
     resolvedCardStyle.resize = 'none';
+
+    const supportsFurniPicking = requiresFurni > WiredFurniType.STUFF_SELECTION_OPTION_NONE;
+    const isTouchCollapsed = isTouch && (areaSelectionActive || roomPickCollapsed);
+    const activePickCount = (activePickSlot === 1 ? secondaryFurniIds : furniIds).length;
+    const activePickLimit = trigger?.maximumItemSelectionCount ?? 0;
+    const pickCountText = activePickLimit > 0 ? `${activePickCount}/${activePickLimit}` : `${activePickCount}`;
 
     const advancedLabel = LocalizeText(showFooter ? 'wiredfurni.params.sources.collapse' : 'wiredfurni.params.sources.expand');
     const advancedToggle = (
@@ -258,7 +273,7 @@ export const WiredBaseView: FC<PropsWithChildren<WiredBaseViewProps>> = (props) 
     const bodySections = isNative ? (
         <>
             {nativeLayout ? children : !!children && <WiredSection className="volt-wired__section--body">{children}</WiredSection>}
-            {showSelection && requiresFurni > WiredFurniType.STUFF_SELECTION_OPTION_NONE && (selectionPreview || <WiredFurniSelectorSection />)}
+            {showSelection && supportsFurniPicking && (selectionPreview || <WiredFurniSelectorSection />)}
             {delay}
             {footer &&
                 (advancedAlwaysVisible ? (
@@ -284,7 +299,7 @@ export const WiredBaseView: FC<PropsWithChildren<WiredBaseViewProps>> = (props) 
         <>
             {!!children && <div className="volt-wired__divider" />}
             {!!children && <div className="volt-wired__section volt-wired__section--body">{children}</div>}
-            {showSelection && requiresFurni > WiredFurniType.STUFF_SELECTION_OPTION_NONE && (
+            {showSelection && supportsFurniPicking && (
                 <>
                     <div className="volt-wired__divider" />
                     <div className="volt-wired__section volt-wired__section--selector">{selectionPreview || <WiredFurniSelectorView />}</div>
@@ -309,13 +324,25 @@ export const WiredBaseView: FC<PropsWithChildren<WiredBaseViewProps>> = (props) 
         </>
     );
 
+    const actionButtons = (
+        <div className="flex items-center gap-1 volt-wired__actions">
+            <WiredShellButton shellStyle={shellStyle} disabled={!roomSettings.canModify} onClick={() => onSave(false)}>
+                {LocalizeText('wiredfurni.ready')}
+            </WiredShellButton>
+            <WiredShellButton shellStyle={shellStyle} onClick={onClose}>
+                {LocalizeText('cancel')}
+            </WiredShellButton>
+        </div>
+    );
+
     return (
         <WiredNativeContext.Provider value={isNative}>
         <VoltCardView
-            className={`volt-wired volt-wired--official ${isNative ? 'volt-wired--native-layout' : ''} ${wiredStyleClassName(shellStyle)} ${isVolter ? 'volt-wired--volter' : ''} ${isVolter && shellStyle !== 'volter' ? 'volt-wired--volter-colour' : ''}`}
+            className={`volt-wired volt-wired--official ${isNative ? 'volt-wired--native-layout' : ''} ${wiredStyleClassName(shellStyle)} ${isVolter ? 'volt-wired--volter' : ''} ${isVolter && shellStyle !== 'volter' ? 'volt-wired--volter-colour' : ''} ${isTouchCollapsed ? 'volt-wired--touch-collapsed' : ''}`}
             theme="primary-slim"
             uniqueKey="volt-wired"
             isResizable={false}
+            touchPresentation={isTouch ? (supportsFurniPicking ? 'half' : 'full') : undefined}
             style={resolvedCardStyle}
             initialPosition={{ x: Math.round((window.innerWidth - cardWidth) / 2), y: Math.round((window.innerHeight - WIRED_OPEN_HEIGHT) / 2) }}
         >
@@ -353,25 +380,56 @@ export const WiredBaseView: FC<PropsWithChildren<WiredBaseViewProps>> = (props) 
                     </div>
                     {headerControls && <div className="volt-wired__header-controls" style={{ position: 'relative', zIndex: 1, marginLeft: 'auto', flexShrink: 0 }}>{headerControls}</div>}
                 </div>
+                {isTouch && supportsFurniPicking && (
+                    <div className="volt-wired__touch-pick-strip">
+                        <span className="volt-wired__touch-pick-count">
+                            {`${localizeWithFallback('wiredfurni.touch.selected_furni', 'Selected')}: ${pickCountText}`}
+                        </span>
+                        <button className="volt-wired__touch-pick-pill" type="button" onClick={() => setRoomPickCollapsed(true)}>
+                            {localizeWithFallback('wiredfurni.touch.pick_in_room', 'Pick in room')}
+                        </button>
+                    </div>
+                )}
                 <div className="volt-wired__body">
                     {isWiredVolterStyle(shellStyle) && shellStyle !== 'volter' ? (
                         <WiredVolterBorderView shellStyle={shellStyle}>{bodySections}</WiredVolterBorderView>
                     ) : bodySections}
-                    {!isNative && <div className="volt-wired__divider volt-wired__footer-divider" />}
-                    <div className={isNative ? 'volt-wired__native-footer' : 'contents'}>
-                        {isNative && <WiredSplitter />}
-                        <div className="flex items-center gap-1 volt-wired__actions">
-                            <WiredShellButton shellStyle={shellStyle} disabled={!roomSettings.canModify} onClick={() => onSave(false)}>
-                                {LocalizeText('wiredfurni.ready')}
-                            </WiredShellButton>
-                            <WiredShellButton shellStyle={shellStyle} onClick={onClose}>
-                                {LocalizeText('cancel')}
-                            </WiredShellButton>
-                        </div>
-                    </div>
+                    {!isTouch && (
+                        <>
+                            {!isNative && <div className="volt-wired__divider volt-wired__footer-divider" />}
+                            <div className={isNative ? 'volt-wired__native-footer' : 'contents'}>
+                                {isNative && <WiredSplitter />}
+                                {actionButtons}
+                            </div>
+                        </>
+                    )}
                 </div>
+                {isTouch && (
+                    <div className="volt-wired__touch-footer">
+                        {actionButtons}
+                    </div>
+                )}
             </VoltCardContentView>
         </VoltCardView>
+        {isTouchCollapsed &&
+            typeof document !== 'undefined' &&
+            createPortal(
+                <div className="volt-wired__touch-floating-bar" role="status">
+                    <span className="volt-wired__touch-floating-copy">
+                        {areaSelectionActive
+                            ? localizeWithFallback('wiredfurni.touch.select_area_hint', 'Drag in room to select area')
+                            : `${(summaryName || wiredName).trim()} (${pickCountText})`}
+                    </span>
+                    <button
+                        className="volt-wired__touch-floating-btn"
+                        type="button"
+                        onClick={() => (areaSelectionActive ? cancelAreaSelection?.() : setRoomPickCollapsed(false))}
+                    >
+                        {areaSelectionActive ? LocalizeText('cancel') : localizeWithFallback('wiredfurni.touch.show_editor', 'Show editor')}
+                    </button>
+                </div>,
+                document.body
+            )}
         </WiredNativeContext.Provider>
     );
 };

@@ -1,6 +1,6 @@
 import { FC, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { localizeWithFallback } from '../../../../api';
+import { IsTouchLayout, localizeWithFallback, useVoltLayout } from '../../../../api';
 import { Text, VoltCardView } from '../../../../common';
 import { WiredTextArea } from '../WiredTextArea';
 import { useWiredNative, WiredNativeContext } from '../WiredNativeContext';
@@ -63,6 +63,7 @@ interface WiredMessageEditorProps {
  * and a character counter.
  */
 export const WiredMessageEditor: FC<WiredMessageEditorProps> = ({ value, onChange, placeholderNames = [], rows = 4, previewStyle = 34, previewUsername = '', previewType = 0, previewWidth = 0, maxLength = WIRED_MESSAGE_EDITOR_MAX_LENGTH, maxLines = WIRED_MESSAGE_EDITOR_MAX_LINES, height, disabled = false, showCompactCounter = true }) => {
+    const isTouch = IsTouchLayout(useVoltLayout());
     const native = useWiredNative();
     const [open, setOpen] = useState(false);
     const [paletteOpen, setPaletteOpen] = useState(false);
@@ -124,8 +125,14 @@ export const WiredMessageEditor: FC<WiredMessageEditorProps> = ({ value, onChang
     const popup = open && !disabled
         ? createPortal(
               <WiredNativeContext.Provider value={true}>
-              <VoltCardView className="volt-wired volt-wired--official volt-wired--style-illumina volt-wired-message-editor" theme="primary-slim" isResizable={false} style={{ width: POPUP_WIDTH, minWidth: POPUP_WIDTH, maxWidth: POPUP_WIDTH }}>
-                  <div role="dialog" aria-label={localizeWithFallback('wiredfurni.params.message_editor.title', 'Message editor')}>
+              <VoltCardView
+                  className="volt-wired volt-wired--official volt-wired--style-illumina volt-wired-message-editor"
+                  theme="primary-slim"
+                  isResizable={false}
+                  touchPresentation={isTouch ? 'full' : undefined}
+                  style={isTouch ? undefined : { width: POPUP_WIDTH, minWidth: POPUP_WIDTH, maxWidth: POPUP_WIDTH }}
+              >
+                  <div role="dialog" className="volt-wired-message-editor__dialog" aria-label={localizeWithFallback('wiredfurni.params.message_editor.title', 'Message editor')}>
                   <WiredShellHeaderView shellStyle="illumina" title={localizeWithFallback('wiredfurni.params.message_editor.title', 'Message editor')} onClose={() => setOpen(false)} menuItems={[]} showMenu={false} />
                   <div className="volt-wired-message-editor__body">
                   <div className="volt-wired-message-editor__toolbar">
@@ -208,7 +215,7 @@ export const WiredMessageEditor: FC<WiredMessageEditorProps> = ({ value, onChang
                 />}
                 <button
                     type="button"
-                    className={native ? "shrink-0 p-0" : "px-1"}
+                    className={native ? "volt-wired-message-editor__popout shrink-0 p-0" : "volt-wired-message-editor__popout px-1"}
                     disabled={disabled}
                     aria-label={localizeWithFallback('wiredfurni.params.message_editor.open.tooltip', 'Open the message editor')}
                     title={localizeWithFallback('wiredfurni.params.message_editor.open.tooltip', 'Open the message editor')}

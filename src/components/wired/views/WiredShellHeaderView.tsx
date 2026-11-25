@@ -1,6 +1,6 @@
 import { ButtonHTMLAttributes, FC, KeyboardEvent, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { isWiredVolterStyle, localizeWithFallback, WiredShellStyle } from '../../../api';
+import { IsTouchLayout, isWiredVolterStyle, localizeWithFallback, WiredShellStyle } from '../../../api';
 import blueSkin from '../../../assets/images/habbo-skin/2249_habbo_skin_blue_png$87fbbf84559e7bad0222a9c697b1104d-1406111769.png';
 import plainButton from '../../../assets/images/wired/illumina_light_button_unetched.png';
 import volterAtlas from '../../../assets/images/wired/volter_shell_atlas.png';
@@ -46,18 +46,22 @@ export const WiredShellHeaderView: FC<WiredShellHeaderViewProps> = ({ shellStyle
             toggleRef.current?.focus();
         };
         const closeMenu = () => setMenuPosition(null);
+        const onScroll = (event: Event) => {
+            if (event.target instanceof Node && menuRef.current?.contains(event.target)) return;
+            closeMenu();
+        };
 
         menuRef.current?.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus();
         document.addEventListener('pointerdown', onPointerDown, true);
         document.addEventListener('keydown', onKeyDown, true);
         window.addEventListener('resize', closeMenu);
-        window.addEventListener('scroll', closeMenu, true);
+        window.addEventListener('scroll', onScroll, true);
 
         return () => {
             document.removeEventListener('pointerdown', onPointerDown, true);
             document.removeEventListener('keydown', onKeyDown, true);
             window.removeEventListener('resize', closeMenu);
-            window.removeEventListener('scroll', closeMenu, true);
+            window.removeEventListener('scroll', onScroll, true);
         };
     }, [menuPosition]);
 
@@ -110,13 +114,21 @@ export const WiredShellHeaderView: FC<WiredShellHeaderViewProps> = ({ shellStyle
                     }}
                     onClick={(event) => {
                         const rect = event.currentTarget.getBoundingClientRect();
-                        setMenuPosition((position) => (position ? null : { left: rect.left, top: rect.bottom }));
+                        setMenuPosition((position) => {
+                            if (position) return null;
+                            if (!IsTouchLayout()) return { left: rect.left, top: rect.bottom };
+                            const menuWidth = Math.min(260, window.innerWidth - 16);
+                            const left = Math.max(8, Math.min(rect.left, window.innerWidth - menuWidth - 8));
+                            const top = Math.max(8, Math.min(rect.bottom + 4, window.innerHeight - 260));
+                            return { left, top };
+                        });
                     }}
                 />
             )}
             <button
                 aria-label={localizeWithFallback('generic.close', 'Close')}
                 className="volt-wired__shell-close"
+                data-volt-close=""
                 type="button"
                 onPointerDown={(event) => event.stopPropagation()}
                 onClick={onClose}

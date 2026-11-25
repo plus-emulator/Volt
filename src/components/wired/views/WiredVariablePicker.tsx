@@ -1,6 +1,6 @@
 import { CSSProperties, FC, KeyboardEvent, MouseEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { GetRoomSession, LocalizeText } from '../../../api';
+import { GetRoomSession, IsTouchLayout, LocalizeText, useVoltLayout } from '../../../api';
 import cancelSearchIcon from '../../../assets/images/wired/var/ar_picker_cancel_search.png';
 import allIcon from '../../../assets/images/wired/var/var_picker_all.png';
 import internalIcon from '../../../assets/images/wired/var/var_picker_internal.png';
@@ -176,6 +176,63 @@ interface INodeListProps {
     onSelect: (entry: IWiredVariablePickerEntry) => void;
 }
 
+const TouchWiredVariableNodeList: FC<{ nodes: IWiredVariableNode[]; onSelect: (entry: IWiredVariablePickerEntry) => void }> = ({ nodes, onSelect }) => {
+    const [stack, setStack] = useState<IWiredVariableNode[]>([]);
+    const activeParent = stack.length ? stack[stack.length - 1] : null;
+    const visibleNodes = activeParent ? [...activeParent.children.values()] : nodes;
+
+    return (
+        <div className="volt-wired__vpicker-touch-list" role="listbox">
+            {activeParent && (
+                <button
+                    type="button"
+                    className="volt-wired__vpicker-touch-back"
+                    onClick={() => setStack((current) => current.slice(0, -1))}
+                >
+                    <span>‹ {activeParent.name}</span>
+                </button>
+            )}
+            {visibleNodes.map((node, index) => {
+                const selectable = canSelectWiredVariableNode(node);
+                const disabled = isWiredVariableNodeDisabled(node);
+                const hasChildren = node.children.size > 0;
+
+                return (
+                    <div
+                        key={`${index}:${node.name}`}
+                        aria-disabled={!selectable && !hasChildren}
+                        className={`volt-wired__vpicker-touch-row ${selectable ? 'is-selectable' : ''}`}
+                        role="option"
+                        style={{ background: index % 2 === 0 ? NODE_MODE1_BG : NODE_MODE2_BG }}
+                    >
+                        <button
+                            type="button"
+                            className="volt-wired__vpicker-touch-row-main"
+                            style={{ opacity: disabled ? NODE_DISABLED_BLEND : 1 }}
+                            onClick={() => {
+                                if (selectable) onSelect(node.entry);
+                                else if (hasChildren) setStack((current) => [...current, node]);
+                            }}
+                        >
+                            {node.name}
+                        </button>
+                        {hasChildren && (
+                            <button
+                                type="button"
+                                aria-label={node.name}
+                                className="volt-wired__vpicker-touch-drill"
+                                onClick={() => setStack((current) => [...current, node])}
+                            >
+                                <span aria-hidden="true" className="volt-wired__vpicker-node-arrow" />
+                            </button>
+                        )}
+                    </div>
+                );
+            })}
+        </div>
+    );
+};
+
 /** VariableNodeListView + VariableNodeView: one list level; hovering a node with children opens its sub-list beside it. */
 const WiredVariableNodeList: FC<INodeListProps> = ({ nodes, width, isRoot, position, onSelect }) => {
     const [hover, setHover] = useState<{ index: number; left: number; top: number } | null>(null);
@@ -277,6 +334,7 @@ export const WiredVariablePicker: FC<WiredVariablePickerProps> = (props) => {
         placeholder = LocalizeText('wiredfurni.variable_picker.search'),
         emptyText = LocalizeText('wiredfurni.variable_picker.empty')
     } = props;
+    const isTouch = IsTouchLayout(useVoltLayout());
     const containerRef = useRef<HTMLDivElement>(null);
     const panelRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -287,7 +345,7 @@ export const WiredVariablePicker: FC<WiredVariablePickerProps> = (props) => {
     const [text, setText] = useState('');
     // NewVariablePicker.var_1006: the field was typed in since the last selection.
     const [dirty, setDirty] = useState(false);
-    const [panelRect, setPanelRect] = useState<{ left: number; top: number; width: number } | null>(null);
+    const [panelRect, setPanelRect] = useState<{ left: number; top: number; width: number; maxHeight?: number } | null>(null);
     const portalTarget = typeof document !== 'undefined' ? (document.getElementById('draggable-windows-container') ?? document.body) : null;
 
     // NewVariablePicker.filteredAllVariables (NewVariablePicker.as:256-274): every variable with a name; invisible
@@ -349,9 +407,22 @@ export const WiredVariablePicker: FC<WiredVariablePickerProps> = (props) => {
 
         const rect = embedded ? null : containerRef.current?.getBoundingClientRect();
 
-        // NewVariablePicker.expandView (NewVariablePicker.as:355-383): the popup takes the picker's width and sits so
-        // that its search field covers the collapsed field.
-        setPanelRect(embedded ? { left: 0, top: 0, width: embedded.width } : rect ? { left: rect.left, top: rect.top, width: Math.round(rect.width) } : { left: 0, top: 0, width: 0 });
+        if (!embedded && isTouch) {
+            const vw = window.innerWidth;
+            const vh = window.visualViewport?.height ?? window.innerHeight;
+            const margin = 8;
+            const width = Math.min(vw - margin * 2, Math.max(280, rect ? Math.round(rect.width) : 280));
+            const maxHeight = Math.min(400, Math.max(200, vh - margin * 2));
+            const left = rect ? Math.max(margin, Math.min(Math.round(rect.left), vw - width - margin)) : margin;
+            let top = rect ? Math.round(rect.top) : margin;
+            if (top + maxHeight > vh - margin) top = Math.max(margin, vh - maxHeight - margin);
+            setPanelRect({ left, top, width, maxHeight });
+        } else {
+            // NewVariablePicker.expandView (NewVariablePicker.as:355-383): the popup takes the picker's width and sits so
+            // that its search field covers the collapsed field.
+            setPanelRect(embedded ? { left: 0, top: 0, width: embedded.width } : rect ? { left: rect.left, top: rect.top, width: Math.round(rect.width) } : { left: 0, top: 0, width: 0 });
+        }
+
         setIsExpanded(true);
         setDirty(false);
 
@@ -364,7 +435,7 @@ export const WiredVariablePicker: FC<WiredVariablePickerProps> = (props) => {
         if (nextTabId !== tabId || reload) setTabLoad((value) => value + 1);
 
         setTabId(nextTabId);
-        inputRef.current?.focus();
+        if (!isTouch) inputRef.current?.focus();
     };
 
     // An embedded picker is the owner's open popup: it is expanded for as long as it is mounted.
@@ -374,15 +445,15 @@ export const WiredVariablePicker: FC<WiredVariablePickerProps> = (props) => {
 
     // The single input moves between the collapsed and the expanded wrapper and keeps focus (NewVariablePicker.as:375-376, 413-419).
     useLayoutEffect(() => {
-        if (isExpanded) inputRef.current?.focus();
-    }, [isExpanded]);
+        if (isExpanded && !isTouch) inputRef.current?.focus();
+    }, [isExpanded, isTouch]);
 
     // NewVariablePicker.onDeactivate/completeDeactivation (NewVariablePicker.as:421-467).
     useEffect(() => {
         // An embedded picker's owner closes its popup on outside clicks.
         if (!isExpanded || embedded) return;
 
-        const onMouseDown = (event: globalThis.MouseEvent) => {
+        const onOutside = (event: Event) => {
             const target = event.target as Node;
 
             if (panelRef.current?.contains(target) || containerRef.current?.contains(target)) return;
@@ -404,9 +475,10 @@ export const WiredVariablePicker: FC<WiredVariablePickerProps> = (props) => {
             collapse();
         };
 
-        document.addEventListener('mousedown', onMouseDown);
+        const eventName = isTouch ? 'pointerdown' : 'mousedown';
+        document.addEventListener(eventName, onOutside, isTouch);
 
-        return () => document.removeEventListener('mousedown', onMouseDown);
+        return () => document.removeEventListener(eventName, onOutside, isTouch);
     });
 
     const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -521,7 +593,11 @@ export const WiredVariablePicker: FC<WiredVariablePickerProps> = (props) => {
             <div className="volt-wired__vpicker-search">{input}</div>
             <div className="volt-wired__vpicker-content">
                 {rootNodes.length ? (
-                    <WiredVariableNodeList key={`${tabId}:${tabLoad}`} isRoot nodes={rootNodes} width={panelRect.width - 2} onSelect={select} />
+                    isTouch ? (
+                        <TouchWiredVariableNodeList key={`${tabId}:${tabLoad}`} nodes={rootNodes} onSelect={select} />
+                    ) : (
+                        <WiredVariableNodeList key={`${tabId}:${tabLoad}`} isRoot nodes={rootNodes} width={panelRect.width - 2} onSelect={select} />
+                    )
                 ) : (
                     <div className="volt-wired__vpicker-empty">{emptyText}</div>
                 )}
@@ -532,7 +608,7 @@ export const WiredVariablePicker: FC<WiredVariablePickerProps> = (props) => {
     if (embedded) {
         return (
             // `width` is the popup's outer width, like the external popup's border; the list sits inside its 1px frame.
-            <div ref={panelRef} className="volt-wired__vpicker volt-wired__vpicker-embedded" style={{ width: embedded.width - 2 }}>
+            <div ref={panelRef} className="volt-wired__vpicker volt-wired__vpicker-embedded" style={{ width: isTouch ? '100%' : embedded.width - 2 }}>
                 {isExpanded && expandedView}
             </div>
         );
@@ -552,7 +628,7 @@ export const WiredVariablePicker: FC<WiredVariablePickerProps> = (props) => {
                         <div
                             ref={panelRef}
                             className="volt-wired__vpicker-expanded"
-                            style={{ left: panelRect.left, top: panelRect.top, width: panelRect.width }}
+                            style={{ left: panelRect.left, top: panelRect.top, width: panelRect.width, maxHeight: panelRect.maxHeight }}
                         >
                             <WiredInputBorderSkin />
                             {expandedView}

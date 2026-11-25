@@ -1,6 +1,6 @@
 import { FurnitureType, GetSessionDataManager, IFurnitureData, IWiredContractContents, IWiredContractNode, IWiredContractRule } from '@volt/renderer';
 import { FC, PropsWithChildren, ReactNode, useMemo, useState } from 'react';
-import { LocalizeText, localizeWithFallback } from '../../api';
+import { IsTouchLayout, LocalizeText, localizeWithFallback, useVoltLayout } from '../../api';
 import { LayoutFurniImageView, VoltCardContentView, VoltCardHeaderView, VoltCardView } from '../../common';
 import { HabboDropMenuView } from '../../common/dropmenu/HabboDropMenuView';
 import { NativeText } from '../../common/native-text/NativeText';
@@ -34,7 +34,23 @@ const CollapsedSection: FC<PropsWithChildren<{ title: string; disabled?: boolean
     return <fieldset className="wired-contract__section" disabled={disabled}><button className="wired-contract__fold" type="button" aria-expanded={open} onClick={() => setOpen(value => !value)}><T text={title} bold /><span aria-hidden>{open ? '▾' : '▸'}</span></button><div hidden={!open}>{children}</div></fieldset>;
 };
 const Footer: FC<{ disabled?: boolean; onSave: () => void; onClose: () => void }> = ({ disabled, onSave, onClose }) => <div className="wired-contract__footer"><ChestButton wide disabled={disabled} onClick={onSave}>{L('wiredfurni.ready')}</ChestButton><ChestButton wide onClick={onClose}>{L('cancel')}</ChestButton></div>;
-const Frame: FC<PropsWithChildren<{ title: string; width?: number; onClose: () => void; footer: ReactNode; className?: string }>> = ({ title, width = 262, onClose, footer, className = '', children }) => <VoltCardView frameStyle={3} isResizable={false} theme="primary-slim" offsetLeft={width === 420 ? 375 : 0} className={`wired-contract ${className}`} style={{ width }}><VoltCardHeaderView headerText={title} onCloseClick={onClose} /><VoltCardContentView>{children}{footer}</VoltCardContentView></VoltCardView>;
+const Frame: FC<PropsWithChildren<{ title: string; width?: number; onClose: () => void; footer: ReactNode; className?: string }>> = ({ title, width = 262, onClose, footer, className = '', children }) => {
+    const isTouch = IsTouchLayout(useVoltLayout());
+    return (
+        <VoltCardView
+            frameStyle={3}
+            isResizable={false}
+            theme="primary-slim"
+            offsetLeft={isTouch ? 0 : width === 420 ? 375 : 0}
+            touchPresentation={isTouch ? 'full' : undefined}
+            className={`wired-contract ${className}`}
+            style={isTouch ? undefined : { width }}
+        >
+            <VoltCardHeaderView headerText={title} onCloseClick={onClose} />
+            <VoltCardContentView>{children}{footer}</VoltCardContentView>
+        </VoltCardView>
+    );
+};
 
 interface RuleViewProps {
     title: string;
@@ -113,6 +129,7 @@ const itemKey = (item: IWiredContractNode['itemType']) => item ? `${item.isWallI
 
 /** AIR AddEditContractElement: type/amount across the top; code, search and a 234px furniture table. */
 export const ContractElementEditor: FC<{ initial: IWiredContractNode | null; canWrite: boolean; onSave: (node: IWiredContractNode) => void; onClose: () => void }> = ({ initial, canWrite, onSave, onClose }) => {
+    const isTouch = IsTouchLayout(useVoltLayout());
     const [type, setType] = useState<0 | 1>(initial?.type ?? 0);
     const [amount, setAmount] = useState(String(initial?.amount ?? 1));
     const [selected, setSelected] = useState(initial?.itemType ?? null);
@@ -123,8 +140,10 @@ export const ContractElementEditor: FC<{ initial: IWiredContractNode | null; can
     const filtered = useMemo(() => query.length < 2 ? candidates : candidates.filter(candidate => `${candidate.name} ${candidate.code}`.toLowerCase().includes(query.toLowerCase())), [candidates, query]);
     const number = Number(amount);
     const valid = /^\d+$/.test(amount) && Number.isInteger(number) && number >= 1 && number <= (type === 0 ? 100000 : 500) && (type === 0 || !!selectedCandidate?.tradeable);
-    const first = Math.max(0, Math.floor(scrollTop / 20) - 2);
-    const visible = filtered.slice(first, first + 18);
+    const rowHeight = isTouch ? 44 : 20;
+    const visibleCount = isTouch ? 14 : 18;
+    const first = Math.max(0, Math.floor(scrollTop / rowHeight) - 2);
+    const visible = filtered.slice(first, first + visibleCount);
     return <Frame width={420} className="wired-contract--element" title={L(initial ? 'wiredcontracts.edit_element.title' : 'wiredcontracts.add_element.title')} onClose={onClose} footer={<Footer disabled={!canWrite || !valid} onClose={onClose} onSave={() => { if (canWrite && valid) onSave({ type, amount: number, itemType: type === 1 ? selected : null }); }} />}>
         <fieldset disabled={!canWrite} className="wired-contract__editable">
             <div className="wired-contract__element-top"><Section title={L('wiredcontracts.element.type')}>{([0, 1] as const).map(value => <label className="wired-contract__choice" key={value}><input type="radio" name="wired-contract-element-type" checked={type === value} onChange={() => setType(value)} /><T text={L(`wiredcontracts.element.type.${value}`)} /></label>)}</Section><Section title={L('wiredcontracts.element.amount')}><input className="wired-contract__input" style={{ width: 88 }} inputMode="numeric" value={amount} aria-invalid={!valid} aria-label={L('wiredcontracts.element.amount')} onChange={event => setAmount(event.target.value)} /></Section></div>
@@ -133,7 +152,7 @@ export const ContractElementEditor: FC<{ initial: IWiredContractNode | null; can
                 <label className="wired-contract__named"><T text={L('wiredcontracts.element.itemtype.search')} /><input className="wired-contract__input" style={{ width: 158 }} aria-label={L('wiredcontracts.element.itemtype.search')} maxLength={220} value={query} onChange={event => { setQuery(event.target.value); setScrollTop(0); }} /></label>
                 <div className="wired-contract__item-table"><Skin type="table" width={404} height={234} />
                     <div className="wired-contract__item-heading">{['furni_name', 'furni_code', 'furni_type'].map(key => <span key={key}><T text={L(`wiredcontracts.element.itemtype.col.${key}`)} bold background={0xffffff} /></span>)}</div>
-                    <div className="wired-contract__item-scroll" onScroll={event => setScrollTop(event.currentTarget.scrollTop)}><div role="listbox" aria-label={L('wiredcontracts.element.itemtype.selection')} style={{ height: filtered.length * 20, position: 'relative' }}>{visible.map((candidate, index) => <button role="option" aria-selected={itemKey(candidate.itemType) === itemKey(selected)} key={itemKey(candidate.itemType)} type="button" className="wired-contract__item-row" data-even={(first + index) % 2 === 0} style={{ top: (first + index) * 20 }} onClick={() => setSelected(candidate.itemType)}><span>{candidate.name}</span><span>{candidate.code}</span><span>{L(candidate.itemType.isWallItem ? 'inventory.furni.tab.wall' : 'inventory.furni.tab.floor')}</span></button>)}</div></div>
+                    <div className="wired-contract__item-scroll" onScroll={event => setScrollTop(event.currentTarget.scrollTop)}><div role="listbox" aria-label={L('wiredcontracts.element.itemtype.selection')} style={{ height: filtered.length * rowHeight, position: 'relative' }}>{visible.map((candidate, index) => <button role="option" aria-selected={itemKey(candidate.itemType) === itemKey(selected)} key={itemKey(candidate.itemType)} type="button" className="wired-contract__item-row" data-even={(first + index) % 2 === 0} style={{ top: (first + index) * rowHeight }} onClick={() => setSelected(candidate.itemType)}><span>{candidate.name}</span><span>{candidate.code}</span><span>{L(candidate.itemType.isWallItem ? 'inventory.furni.tab.wall' : 'inventory.furni.tab.floor')}</span></button>)}</div></div>
                 </div>
                 <T text={L('wiredcontracts.element.show_count', ['amount'], [String(filtered.length)])} />
             </Section>

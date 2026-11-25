@@ -1,5 +1,5 @@
 import { GetRoomEngine } from '@volt/renderer';
-import { CSSProperties, Dispatch, FC, Fragment, MouseEvent as ReactMouseEvent, SetStateAction, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { CSSProperties, Dispatch, FC, Fragment, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, SetStateAction, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { LocalizeText, WiredFurniType } from '../../../../api';
 import { useWired } from '../../../../hooks';
 import { WiredNumberInput } from '../WiredNumberInput';
@@ -143,7 +143,7 @@ const NeighborhoodGrid: FC<{ selectedTiles: Tile[]; root: Tile; radius: number; 
         return () => window.removeEventListener('mouseup', stop);
     }, []);
     // FloorDrawingPreset.editorWindowProcedure / transformFromScreenSpace: the pointer relative to the bitmap centre, truncated like AS3 int().
-    const address = (event: ReactMouseEvent<SVGSVGElement>): Tile => {
+    const address = (event: { clientX: number; clientY: number; currentTarget: SVGSVGElement }): Tile => {
         const bounds = event.currentTarget.getBoundingClientRect();
         const scaleX = bounds.width ? width / bounds.width : 1, scaleY = bounds.height ? height / bounds.height : 1;
         const localX = Math.trunc((event.clientX - bounds.left) * scaleX), localY = Math.trunc((event.clientY - bounds.top) * scaleY);
@@ -166,13 +166,12 @@ const NeighborhoodGrid: FC<{ selectedTiles: Tile[]; root: Tile; radius: number; 
             return result;
         });
     };
-    const onMouseDown = (event: ReactMouseEvent<SVGSVGElement>) => {
-        event.preventDefault();
+    const startStroke = (event: { clientX: number; clientY: number; shiftKey: boolean; currentTarget: SVGSVGElement }) => {
         const cell = address(event);
         drag.current = { start: cell, last: cell, original: selectedTiles, rectangle: event.shiftKey };
         apply([cell]);
     };
-    const onMouseMove = (event: ReactMouseEvent<SVGSVGElement>) => {
+    const moveStroke = (event: { clientX: number; clientY: number; currentTarget: SVGSVGElement }) => {
         const action = drag.current;
         if (!action) return;
         const cell = address(event);
@@ -187,12 +186,31 @@ const NeighborhoodGrid: FC<{ selectedTiles: Tile[]; root: Tile; radius: number; 
         }
         action.last = cell;
     };
+    const onMouseDown = (event: ReactMouseEvent<SVGSVGElement>) => {
+        event.preventDefault();
+        startStroke(event);
+    };
+    const onMouseMove = (event: ReactMouseEvent<SVGSVGElement>) => moveStroke(event);
+    const onPointerDown = (event: ReactPointerEvent<SVGSVGElement>) => {
+        if (event.pointerType === 'mouse') return;
+        event.preventDefault();
+        try { event.currentTarget.setPointerCapture(event.pointerId); } catch {}
+        startStroke(event);
+    };
+    const onPointerMove = (event: ReactPointerEvent<SVGSVGElement>) => {
+        if (event.pointerType === 'mouse') return;
+        moveStroke(event);
+    };
+    const onPointerEnd = (event: ReactPointerEvent<SVGSVGElement>) => {
+        if (event.pointerType === 'mouse') return;
+        drag.current = null;
+    };
     const borders: Array<{ x: number; y: number; image: string }> = [];
     for (let index = 0; index < dimension; index++) {
         borders.push({ x: index, y: -1, image: BORDERS[0] }, { x: index, y: dimension, image: BORDERS[4] }, { x: -1, y: index, image: BORDERS[6] }, { x: dimension, y: index, image: BORDERS[2] });
     }
     borders.push({ x: -1, y: -1, image: BORDERS[7] }, { x: dimension, y: -1, image: BORDERS[1] }, { x: dimension, y: dimension, image: BORDERS[3] }, { x: -1, y: dimension, image: BORDERS[5] });
-    return <svg data-testid="neighborhood-grid" data-radius={radius} width={width} height={height} style={{ display: 'block', flexShrink: 0, imageRendering: 'pixelated', background: '#ccc', cursor: 'pointer' }} onContextMenu={event => event.preventDefault()} onMouseDown={onMouseDown} onMouseMove={onMouseMove}>
+    return <svg className="volt-wired__neighborhood-grid" data-testid="neighborhood-grid" data-radius={radius} width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: 'block', flexShrink: 0, imageRendering: 'pixelated', background: '#ccc', cursor: 'pointer' }} onContextMenu={event => event.preventDefault()} onMouseDown={onMouseDown} onMouseMove={onMouseMove} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerEnd} onPointerCancel={onPointerEnd}>
         <defs>
             <filter id={`${id}-selected`} colorInterpolationFilters="sRGB"><feColorMatrix type="matrix" values="0 0 0 0 0  0 0.4 0 0 0  0 0 0.8 0 0  0 0 0 1 0" /></filter>
             <filter id={`${id}-empty`} colorInterpolationFilters="sRGB"><feColorMatrix type="matrix" values="0.2 0 0 0 0  0 0.2 0 0 0  0 0 0.2 0 0  0 0 0 1 0" /></filter>
@@ -245,19 +263,19 @@ export const WiredNeighborhoodSelectorView: FC = () => {
     const tools: Array<{ mode: DrawMode; image: string; label: string }> = [{ mode: 'add', image: addAsset, label: 'Add tiles' }, { mode: 'remove', image: removeAsset, label: 'Remove tiles' }, { mode: 'root', image: referenceAsset, label: 'Set root tile' }];
     return <WiredSelectorBaseView advancedAlwaysVisible nativeLayout hasSpecialInput requiresFurni={!usersAnchor && sourceValue === 100 ? WiredFurniType.STUFF_SELECTION_OPTION_BY_ID : WiredFurniType.STUFF_SELECTION_OPTION_NONE} selectionPreview={<></>} widthMultiplier={bigMode ? 1.7 : 1} save={save} footerCollapsible={false}
         footer={<><WiredSection title={LocalizeText('wiredfurni.params.sources.merged.title.neighborhood')} headerOption={<WiredSourceTypeSelector types={['furni', 'user']} value={usersAnchor ? 'user' : 'furni'} onChange={type => { const users = type === 'user'; if (users !== usersAnchor) { setUsersAnchor(users); setSourceValue((users ? availableUserSources : furniOptions)[0]?.value ?? (users ? 0 : 100)); } }} />}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, minHeight: 31 }}>
+            <div className="volt-wired__neighborhood-source-row" style={{ display: 'flex', alignItems: 'center', gap: 5, minHeight: 31 }}>
                 <WiredShellButton shellStyle="illumina" className="volt-wired__icon-button" aria-label="Previous source" onClick={() => cycleSource(-1)}><img src={arrowLeft} alt="" /></WiredShellButton>
                 <span style={{ flex: 1, minWidth: 0, textAlign: 'center' }}><WiredText wrap text={options[sourceIndex] ? LocalizeText(options[sourceIndex].label) : ''} /></span>
                 <WiredShellButton shellStyle="illumina" className="volt-wired__icon-button" aria-label="Next source" onClick={() => cycleSource(1)}><img src={arrowRight} alt="" /></WiredShellButton>
             </div>
         </WiredSection></>}>
         <WiredSection title={LocalizeText('wiredfurni.params.neighborhood_selection')}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                {tools.map(tool => <Fragment key={tool.mode}><WiredShellButton shellStyle="illumina" aria-label={tool.label} aria-pressed={mode === tool.mode} className={mode === tool.mode ? 'is-selected' : ''} style={{ width: 25, height: 25, minWidth: 25, flex: '0 0 25px', padding: 0, ...(mode === tool.mode ? { '--wired-button-offset-y': '-50px' } : {}) } as CSSProperties} onClick={() => setMode(tool.mode)}><img src={tool.image} alt="" style={{ imageRendering: 'pixelated' }} /></WiredShellButton>{tool.mode === 'remove' && <span aria-hidden style={{ width: 2, height: 25, background: 'linear-gradient(to right, #777 0 1px, #fff 1px 2px)' }} />}</Fragment>)}
-                <WiredShellButton shellStyle="illumina" aria-label={bigMode ? 'Small neighborhood' : 'Large neighborhood'} disabled={!smallAllowed} style={{ width: 25, height: 25, minWidth: 25, flex: '0 0 25px', padding: 0, marginLeft: 'auto' }} onClick={() => { if (smallAllowed) setBigMode(value => !value); }}><img src={bigMode ? reduceAsset : enlargeAsset} alt="" /></WiredShellButton>
+            <div className="volt-wired__neighborhood-toolbar" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                {tools.map(tool => <Fragment key={tool.mode}><WiredShellButton shellStyle="illumina" aria-label={tool.label} aria-pressed={mode === tool.mode} className={`volt-wired__neighborhood-tool ${mode === tool.mode ? 'is-selected' : ''}`} style={{ width: 25, height: 25, minWidth: 25, flex: '0 0 25px', padding: 0, ...(mode === tool.mode ? { '--wired-button-offset-y': '-50px' } : {}) } as CSSProperties} onClick={() => setMode(tool.mode)}><img src={tool.image} alt="" style={{ imageRendering: 'pixelated' }} /></WiredShellButton>{tool.mode === 'remove' && <span className="volt-wired__neighborhood-sep" aria-hidden style={{ width: 2, height: 25, background: 'linear-gradient(to right, #777 0 1px, #fff 1px 2px)' }} />}</Fragment>)}
+                <WiredShellButton shellStyle="illumina" aria-label={bigMode ? 'Small neighborhood' : 'Large neighborhood'} disabled={!smallAllowed} className="volt-wired__neighborhood-tool" style={{ width: 25, height: 25, minWidth: 25, flex: '0 0 25px', padding: 0, marginLeft: 'auto' }} onClick={() => { if (smallAllowed) setBigMode(value => !value); }}><img src={bigMode ? reduceAsset : enlargeAsset} alt="" /></WiredShellButton>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'center', padding: 4, borderStyle: 'solid', borderWidth: 1, borderColor: 'transparent', borderImage: `${frameSkin ?? 'none'} 6 fill / 6px` }}><NeighborhoodGrid selectedTiles={selectedTiles} root={root} radius={bigMode ? 10 : 5} mode={mode} onChange={setSelectedTiles} onRoot={setRoot} /></div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 5 }}>
+            <div className="volt-wired__neighborhood-frame" style={{ display: 'flex', justifyContent: 'center', padding: 4, borderStyle: 'solid', borderWidth: 1, borderColor: 'transparent', borderImage: `${frameSkin ?? 'none'} 6 fill / 6px` }}><NeighborhoodGrid selectedTiles={selectedTiles} root={root} radius={bigMode ? 10 : 5} mode={mode} onChange={setSelectedTiles} onRoot={setRoot} /></div>
+            <div className="volt-wired__neighborhood-coords" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 5 }}>
                 <WiredText text="x:" /><WiredNumberInput ariaLabel="Root x" width={20} min={-64} max={64} value={root.x} onChange={x => setRoot(current => ({ ...current, x }))} />
                 <WiredText text="y:" /><WiredNumberInput ariaLabel="Root y" width={20} min={-64} max={64} value={root.y} onChange={y => setRoot(current => ({ ...current, y }))} />
             </div>

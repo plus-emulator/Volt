@@ -1,5 +1,5 @@
 import { FC, useState } from 'react';
-import { localizeWithFallback, resolveWiredStyle, wiredStyleClassName } from '../../../../api';
+import { IsTouchLayout, localizeWithFallback, resolveWiredStyle, useVoltLayout, wiredStyleClassName } from '../../../../api';
 import { VoltCardView } from '../../../../common';
 import { useWiredTools } from '../../../../hooks';
 import { WiredVariablePicker } from '../WiredVariablePicker';
@@ -21,6 +21,7 @@ interface Props {
 
 /** VariableFxAudienceVariablePopup: changes are local until Save, never applied by Cancel. */
 export const WiredVariableFxAudienceView: FC<Props> = ({ entries, initialToken, initialMatchValue, initialValue, onClose, onSave }) => {
+    const isTouch = IsTouchLayout(useVoltLayout());
     const [token, setToken] = useState(initialToken);
     const [matchValue, setMatchValue] = useState(initialMatchValue);
     const [value, setValue] = useState(initialValue);
@@ -32,7 +33,13 @@ export const WiredVariableFxAudienceView: FC<Props> = ({ entries, initialToken, 
 
     return (
         <WiredNativeContext.Provider value={shellStyle === 'illumina'}>
-            <VoltCardView className={`volt-wired volt-wired--official ${wiredStyleClassName(shellStyle)} volt-wired-fx-audience`} theme="primary-slim" isResizable={false} style={{ width: 300, minWidth: 300, maxWidth: 300 }}>
+            <VoltCardView
+                className={`volt-wired volt-wired--official ${wiredStyleClassName(shellStyle)} volt-wired-fx-audience`}
+                theme="primary-slim"
+                isResizable={false}
+                touchPresentation={isTouch ? 'half' : undefined}
+                style={isTouch ? undefined : { width: 300, minWidth: 300, maxWidth: 300 }}
+            >
                 <div role="dialog" aria-label={title}>
                     <WiredShellHeaderView shellStyle={shellStyle} title={title} onClose={onClose} menuItems={[]} showMenu={false} />
                     <div className="volt-wired-fx-audience__body">

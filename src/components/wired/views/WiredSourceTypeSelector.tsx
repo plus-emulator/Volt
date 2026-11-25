@@ -55,7 +55,7 @@ export const WiredSourceTypeSelector = ({ types, value, onChange, disabled = fal
     const activeHover = disabled ? null : hovered;
 
     return (
-        <div role="group" aria-label={localizeWithFallback('wiredfurni.params.variables.variable_selection', 'Variable selection:')} style={{ display: 'inline-flex', alignItems: 'center', gap: 0, height: 19, flexShrink: 0 }}>
+        <div className="volt-wired__source-type-group" role="group" aria-label={localizeWithFallback('wiredfurni.params.variables.variable_selection', 'Variable selection:')} style={{ display: 'inline-flex', alignItems: 'center', gap: 0, height: 19, flexShrink: 0 }}>
             {types.map((type, index) => {
                 const side = index === 0 ? 'left' : index === types.length - 1 ? 'right' : 'middle';
                 const width = side === 'middle' ? 14 : 17;
@@ -69,6 +69,7 @@ export const WiredSourceTypeSelector = ({ types, value, onChange, disabled = fal
                     <Fragment key={type}>
                         <button
                             type="button"
+                            className={`volt-wired__source-type-btn volt-wired__source-type-btn--${type} ${selected ? 'is-selected' : ''}`}
                             aria-label={label}
                             aria-pressed={selected}
                             title={label}
@@ -81,7 +82,7 @@ export const WiredSourceTypeSelector = ({ types, value, onChange, disabled = fal
                             <NativeSkinView skin={SKINS[side]} layout={`illumina_light_button_multi_${side}`} state={typeDisabled ? 'disabled' : selected ? 'pressed' : hovering ? 'hovering' : 'default'} atlas={atlas} width={width} height={19} color={color} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
                             <img src={descriptor.icon} alt="" draggable={false} style={{ position: 'absolute', left: side === 'left' ? 6 : side === 'right' ? 4 : 3, top: Math.trunc(10 - (descriptor.height + 1) / 2), maxWidth: 'none', imageRendering: 'pixelated', filter: 'drop-shadow(0 -1px 0 #00000048)', pointerEvents: 'none' }} />
                         </button>
-                        {index < types.length - 1 && <span aria-hidden="true" style={{ display: 'block', width: 1, height: 19, flexShrink: 0, background: `linear-gradient(to bottom, ${hex(wiredSourceSplitterColor(type, types[index + 1], value, activeHover))} 0 18px, #f2f2f2 18px 19px)` }} />}
+                        {index < types.length - 1 && <span className="volt-wired__source-type-sep" aria-hidden="true" style={{ display: 'block', width: 1, height: 19, flexShrink: 0, background: `linear-gradient(to bottom, ${hex(wiredSourceSplitterColor(type, types[index + 1], value, activeHover))} 0 18px, #f2f2f2 18px 19px)` }} />}
                     </Fragment>
                 );
             })}

@@ -11,7 +11,7 @@ import { WiredCheckboxOption } from '../WiredOptions';
 import { parseWiredLiteral } from '../../../../api/wired/WiredLiteral';
 import { WiredSurfaceContext } from '../WiredSurface';
 import { WiredText } from '../WiredText';
-import { localizeWithFallback, WIRED_NATIVE_VARIABLE_TARGET } from '../../../../api';
+import { IsTouchLayout, localizeWithFallback, useVoltLayout, WIRED_NATIVE_VARIABLE_TARGET } from '../../../../api';
 import contextVariableIcon from '../../../../assets/images/wired/var/icon_source_context_clean.png';
 import furniVariableIcon from '../../../../assets/images/wired/var/icon_source_furni.png';
 import globalVariableIcon from '../../../../assets/images/wired/var/icon_source_global.png';
@@ -195,6 +195,7 @@ export const WiredActionValueOrVariableSection: FC<WiredActionValueOrVariableSec
 
 /** AIR25 ValueOrVariableInputPreset: an editable number/name field with a reference chooser. */
 const NativeValueOrVariable: FC<WiredActionValueOrVariableSectionProps & { entries: ReturnType<typeof buildWiredVariablePickerEntries> }> = (props) => {
+    const isTouch = IsTouchLayout(useVoltLayout());
     const { title, targetTitle, recentScope, option, literal, min, max, target, variableToken, entries, disabled = false, onOptionChange, onLiteralChange, onTargetChange, onVariableTokenChange, onValidityChange } = props;
     const targetTypes = props.targetTypes ?? ALL_TARGET_TYPES;
     const flatEntries = flattenWiredVariablePickerEntries(entries);
@@ -210,11 +211,24 @@ const NativeValueOrVariable: FC<WiredActionValueOrVariableSectionProps & { entri
     const [open, setOpen] = useState(false);
     const anchorRef = useRef<HTMLDivElement>(null);
     const popupRef = useRef<HTMLDivElement>(null);
-    const [popupRect, setPopupRect] = useState<{ left: number; top: number; width: number } | null>(null);
+    const [popupRect, setPopupRect] = useState<{ left: number; top: number; width: number; maxHeight?: number } | null>(null);
     const portalTarget = typeof document !== 'undefined' ? (document.getElementById('draggable-windows-container') ?? document.body) : null;
     const toggle = () => {
         if (open) { setOpen(false); return; }
         const rect = anchorRef.current?.getBoundingClientRect();
+        if (isTouch) {
+            const vw = window.innerWidth;
+            const vh = window.visualViewport?.height ?? window.innerHeight;
+            const margin = 8;
+            const width = Math.min(vw - margin * 2, Math.max(280, rect ? Math.round(rect.width) : 280));
+            const maxHeight = Math.min(440, Math.max(220, vh - margin * 2));
+            const left = rect ? Math.max(margin, Math.min(Math.round(rect.left), vw - width - margin)) : margin;
+            let top = rect ? Math.round(rect.bottom + 4) : margin;
+            if (top + maxHeight > vh - margin) top = Math.max(margin, vh - maxHeight - margin);
+            setPopupRect({ left, top, width, maxHeight });
+            setOpen(true);
+            return;
+        }
         // expandView: the popup takes the field's width and starts at the field's bottom (NewVariablePicker.as:366-372).
         setPopupRect(rect ? { left: rect.left, top: rect.bottom, width: Math.round(rect.width) } : { left: 0, top: 0, width: 260 });
         setOpen(true);
@@ -222,15 +236,16 @@ const NativeValueOrVariable: FC<WiredActionValueOrVariableSectionProps & { entri
     // NewVariablePicker.onDeactivate: a click outside the popup, the field and the picker's sub-lists hides it.
     useEffect(() => {
         if (!open) return;
-        const onMouseDown = (event: globalThis.MouseEvent) => {
+        const onOutside = (event: Event) => {
             const node = event.target as Node;
             if (popupRef.current?.contains(node) || anchorRef.current?.contains(node)) return;
             if ((node as HTMLElement)?.closest?.('.volt-wired__vpicker-list')) return;
             setOpen(false);
         };
-        document.addEventListener('mousedown', onMouseDown);
-        return () => document.removeEventListener('mousedown', onMouseDown);
-    }, [open]);
+        const eventName = isTouch ? 'pointerdown' : 'mousedown';
+        document.addEventListener(eventName, onOutside, isTouch);
+        return () => document.removeEventListener(eventName, onOutside, isTouch);
+    }, [open, isTouch]);
     useEffect(() => {
         if (publishedKey.current === wireKey) return;
         publishedKey.current = wireKey;
@@ -287,7 +302,7 @@ const NativeValueOrVariable: FC<WiredActionValueOrVariableSectionProps & { entri
                 <div ref={anchorRef} className={`volt-wired__input-box ${valid ? '' : 'is-invalid'}`} style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
                     <input className="volt-wired__input-field volt-wired__input-field--stretch volt-wired__value-input" type="text" style={{ width: `calc(100% - ${option === WIRED_VALUE_OPTION_VARIABLE ? 46 : 27}px)` }} aria-label={title} disabled={disabled} value={text} onChange={event => edit(event.target.value)} />
                     {option === WIRED_VALUE_OPTION_VARIABLE && <span title={target} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 19, minWidth: 19, zIndex: 1 }}><img src={{ furni: nativeFurniIcon, user: nativeUserIcon, global: nativeGlobalIcon, context: nativeContextIcon }[target]} alt={target} draggable={false} style={{ imageRendering: 'pixelated' }} /></span>}
-                    <button type="button" aria-label={localizeWithFallback('wiredfurni.params.variables.reference_value.popup', 'Choose variable')} disabled={disabled} onClick={toggle} style={{ width: 19, minWidth: 19, border: 0, padding: 0, background: 'transparent', zIndex: 1 }}>
+                    <button type="button" className="volt-wired__value-picker-btn" aria-label={localizeWithFallback('wiredfurni.params.variables.reference_value.popup', 'Choose variable')} disabled={disabled} onClick={toggle} style={{ width: 19, minWidth: 19, border: 0, padding: 0, background: 'transparent', zIndex: 1 }}>
                         <img src={variableIcon} alt="" draggable={false} style={{ imageRendering: 'pixelated' }} />
                     </button>
                 </div>
@@ -296,7 +311,7 @@ const NativeValueOrVariable: FC<WiredActionValueOrVariableSectionProps & { entri
                         {/* AIR ValueOrVariablePopupPreset (uibuilder/presets/ValueOrVariablePopupPreset.as): the reference picker's
                             expanded view opens under the field with the field's width (configureExternalPopup, NewVariablePicker.as:355-383),
                             and the preset's header list sits above its tab row (L76-99). */}
-                        <div ref={popupRef} role="dialog" aria-label={targetTitle} className="volt-wired__vpicker-expanded volt-wired__value-popup" style={{ left: popupRect.left, top: popupRect.top, width: popupRect.width }}>
+                        <div ref={popupRef} role="dialog" aria-label={targetTitle} className="volt-wired__vpicker-expanded volt-wired__value-popup" style={{ left: popupRect.left, top: popupRect.top, width: popupRect.width, maxHeight: popupRect.maxHeight }}>
                             <WiredInputBorderSkin />
                             <WiredSurfaceContext.Provider value={0xffffff}>
                                 <div className="volt-wired__value-popup-header">

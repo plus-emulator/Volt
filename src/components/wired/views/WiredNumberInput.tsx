@@ -1,5 +1,5 @@
 import { ChangeEvent, FC, useEffect, useRef, useState } from 'react';
-import { localizeWithFallback } from '../../../api';
+import { IsTouchLayout, localizeWithFallback, useVoltLayout } from '../../../api';
 
 export interface WiredNumberInputProps {
     value: number;
@@ -87,6 +87,7 @@ const rangeMessage = (min: number, max: number, precision: number): string => {
 
 /** NumberInputPreset: the typed text drives the value, bad input only tints the field until it is valid again. */
 export const WiredNumberInput: FC<WiredNumberInputProps> = ({ value, min, max, precision = 0, endsWithFive = false, width = 40, ariaLabel, disabled = false, onChange }) => {
+    const isTouch = IsTouchLayout(useVoltLayout());
     const scale = endsWithFive ? 5 : 1;
     const [text, setText] = useState(() => displayValue(value * scale, precision));
     const [error, setError] = useState<string | null>(null);
@@ -115,10 +116,11 @@ export const WiredNumberInput: FC<WiredNumberInputProps> = ({ value, min, max, p
     };
 
     return (
-        <div className={`volt-wired__input-box ${error ? 'is-invalid' : ''}`} style={{ width: width < 0 ? '100%' : width + 8 }} title={error ?? undefined}>
+        <div className={`volt-wired__input-box volt-wired__number-input ${error ? 'is-invalid' : ''}`} style={{ width: width < 0 ? '100%' : width + 8 }} title={error ?? undefined}>
             <input
                 className="volt-wired__input-field"
                 disabled={disabled}
+                inputMode={isTouch ? (precision > 0 || min < 0 ? 'decimal' : 'numeric') : undefined}
                 spellCheck={false}
                 aria-label={ariaLabel}
                 style={{ width: width < 0 ? '100%' : width }}
