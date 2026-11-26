@@ -92,9 +92,9 @@ html[data-volt-touch='on'] .draggable-window[data-volt-window='dock'] {
     padding-right: var(--volt-safe-right);
 }
 
-/* Landscape phones are short, so docked windows trade width for height: about two thirds of the screen. */
+/* Landscape phones are short, so docked windows take the width right of the toolbar icons and keep them usable. */
 html[data-volt-layout='phone-landscape'] .draggable-window[data-volt-window='dock'] {
-    width: min(max(var(--volt-dock-width), 66vw), 760px, calc(100vw - 96px - var(--volt-safe-left)));
+    width: min(760px, calc(100vw - var(--volt-toolbar-width, 300px) - 4px));
 }
 
 html[data-volt-touch='on'] .draggable-window[data-volt-window='dialog'] {
