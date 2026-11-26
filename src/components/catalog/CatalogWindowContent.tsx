@@ -64,7 +64,7 @@ const getFirstPageNode = (node: ICatalogNode): ICatalogNode | null => {
 };
 
 /** The tab caption (u_regular, black), centred on the tab and drawn for the inactive, hovered and selected skins it can sit on. */
-const CatalogTabLabel: FC<{ text: string; width: number }> = ({ text, width }) => (
+const CatalogTabLabel: FC<{ text: string; width: number; isTouch?: boolean }> = ({ text, width, isTouch = false }) => (
     <NativeCenteredField className="volt-catalog-tab-label" width={width}>
         {(
             [
@@ -77,6 +77,7 @@ const CatalogTabLabel: FC<{ text: string; width: number }> = ({ text, width }) =
                 key={state}
                 ariaHidden={state !== 'default'}
                 nativeResolution
+                transparent={isTouch}
                 background={background}
                 className={`volt-catalog-tab-label-${state}`}
                 text={text}
@@ -161,6 +162,7 @@ export const CatalogWindowContent: FC<{}> = () => {
     const searchKeepsOpenPane = !!searchResult && currentPage?.pageId === -1;
     const paneLayoutCode = searchKeepsOpenPane ? loadedPage?.layoutCode : currentPage?.layoutCode;
     const sidebarHidden = catalogPageHidesLeftPane(paneLayoutCode);
+    const tabHasNoChildren = !!currentTab && !hasVisibleChildren(currentTab);
 
     if (!isVisible) return null;
 
@@ -218,7 +220,7 @@ export const CatalogWindowContent: FC<{}> = () => {
                                         showTab(child);
                                     }}
                                 >
-                                    <CatalogTabLabel text={getSwfTabLabel(child.localization)} width={tabWidth} />
+                                    <CatalogTabLabel isTouch={isTouch} text={getSwfTabLabel(child.localization)} width={tabWidth} />
                                 </VoltCardTabsItemView>
                             ))}
                         </VoltCardTabsView>
@@ -271,12 +273,12 @@ export const CatalogWindowContent: FC<{}> = () => {
                     <VoltCardContentView classNames={['volt-catalog-content-shell']}>
                         <div
                             className={`volt-catalog-stage ${sidebarHidden ? 'is-navigation-hidden' : ''}`}
-                            data-touch-step={usesSteps ? (sidebarHidden ? 'page' : touchStep) : undefined}
+                            data-touch-step={usesSteps ? (sidebarHidden || tabHasNoChildren ? 'page' : touchStep) : undefined}
                         >
                             {!sidebarHidden && (
                                 <div className="volt-catalog-sidebar">
                                     <div className="volt-catalog-search-shell">
-                                        <CatalogSearchView />
+                                        <CatalogSearchView onSearchSubmit={usesSteps ? () => setTouchStep('page') : undefined} />
                                     </div>
                                     {usesSteps && searchResult && (
                                         <button className="volt-catalog-touch-results" type="button" onClick={() => setTouchStep('page')}>

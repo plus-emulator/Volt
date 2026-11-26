@@ -101,6 +101,7 @@ export const CatalogPurchaseConfirmView: FC<CatalogPurchaseConfirmViewProps> = (
             style={tintedFrame ? ({ '--volt-card-frame-3': tintedFrame } as CSSProperties) : undefined}
             tabIndex={-1}
             theme="primary-slim"
+            touchPresentation="dialog"
             onKeyDown={onKeyDown}
         >
             <VoltCardHeaderView headerText={title} onCloseClick={onCancel} />

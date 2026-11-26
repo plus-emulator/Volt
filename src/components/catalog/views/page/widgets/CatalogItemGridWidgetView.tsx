@@ -1,6 +1,6 @@
 import { InfiniteGrid } from '@layout/InfiniteGrid';
 import { CSSProperties, FC, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { IPurchasableOffer, Offer, useVoltLayout, VoltLayout } from '../../../../../api';
+import { IPurchasableOffer, IsTouchLayout, Offer, useVoltLayout, VoltLayout } from '../../../../../api';
 import { AutoGrid, AutoGridProps, ClassicScrollAreaView } from '../../../../../common';
 import { useCatalogActions, useCatalogData, useScrollWindow } from '../../../../../hooks';
 import { CatalogGridOfferView } from '../common/CatalogGridOfferView';
@@ -9,7 +9,7 @@ import { shouldVirtualizeCatalogOffers } from './catalogGridPerformance.helpers'
 
 /** Touch layouts use a fixed number of wider tiles so icons can show at 2x. */
 const TOUCH_COLUMN_COUNTS: Partial<Record<VoltLayout, number>> = {
-    'phone-portrait': 5,
+    'phone-portrait': 4,
     'phone-landscape': 4,
     'tablet-portrait': 6,
     'tablet-landscape': 6
@@ -44,17 +44,18 @@ export const CatalogItemGridWidgetView: FC<CatalogItemGridWidgetViewProps> = (pr
     const baseGridClassName = columnCount > 1 && !className.split(/\s+/).includes('volt-catalog-grid') ? `${className} volt-catalog-grid`.trim() : className;
     const isAirStandardDensity = className.split(/\s+/).includes('volt-catalog-grid-density-standard');
 
+    const layout = useVoltLayout();
+    const isTouch = IsTouchLayout(layout);
     const offers = offersOverride ?? currentPage?.offers ?? [];
     const hasAirBaseOffer = offers.some((offer) => isAirBaseCatalogOffer(offer));
     const hasAirPricedOffer = offers.some((offer) => !isAirBaseCatalogOffer(offer));
-    const usesAirMixedGridTemplate = isAirStandardDensity && hasAirBaseOffer && hasAirPricedOffer;
+    const usesAirMixedGridTemplate = !isTouch && isAirStandardDensity && hasAirBaseOffer && hasAirPricedOffer;
     const usesAirBaseGridTemplate = isAirStandardDensity && offers.length > 0 && hasAirBaseOffer && !hasAirPricedOffer;
     const effectiveColumnMinHeight = usesAirBaseGridTemplate ? 36 : columnMinHeight;
     const effectiveColumnMinWidth = usesAirBaseGridTemplate ? 36 : columnMinWidth;
     const gridClassName =
         `${baseGridClassName} ${usesAirBaseGridTemplate ? 'uses-base-grid-template' : ''} ${usesAirMixedGridTemplate ? 'uses-mixed-grid-template' : ''}`.trim();
     const useVirtualGrid = shouldVirtualizeCatalogOffers(offers.length) && !usesAirMixedGridTemplate;
-    const layout = useVoltLayout();
     const touchColumnCount = isAirStandardDensity && !usesAirMixedGridTemplate ? (TOUCH_COLUMN_COUNTS[layout] ?? null) : null;
     const airGridStyle = {
         ...style,
@@ -202,7 +203,7 @@ export const CatalogItemGridWidgetView: FC<CatalogItemGridWidgetViewProps> = (pr
             <AutoGrid
                 aria-label="Catalog items"
                 className={gridClassName}
-                columnCount={columnCount}
+                columnCount={touchColumnCount ?? columnCount}
                 columnMinHeight={effectiveColumnMinHeight}
                 columnMinWidth={effectiveColumnMinWidth}
                 fullHeight={false}

@@ -29,7 +29,11 @@ const getSearchTerms = (furniture: IFurnitureData): string[] => [
     (GetProductDataForLocalization(furniture.fullName) ?? GetProductDataForLocalization(furniture.className))?.name
 ];
 
-export const CatalogSearchView: FC<{}> = () => {
+export interface CatalogSearchViewProps {
+    onSearchSubmit?: () => void;
+}
+
+export const CatalogSearchView: FC<CatalogSearchViewProps> = ({ onSearchSubmit }) => {
     const [searchValue, setSearchValue] = useState('');
     const searchTimeout = useRef<ReturnType<typeof setTimeout>>(null);
     const { rootNode = null } = useCatalogData();
@@ -115,6 +119,11 @@ export const CatalogSearchView: FC<{}> = () => {
 
         event.preventDefault();
         scheduleSearch(searchValue, true);
+
+        if (onSearchSubmit) {
+            inputRef.current?.blur();
+            onSearchSubmit();
+        }
     };
 
     const clearSearch = () => {

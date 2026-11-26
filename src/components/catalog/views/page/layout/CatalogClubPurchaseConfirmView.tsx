@@ -72,6 +72,7 @@ export const CatalogClubPurchaseConfirmView: FC<CatalogClubPurchaseConfirmViewPr
             role="dialog"
             style={layoutVars}
             theme="primary-slim"
+            touchPresentation="dialog"
         >
             <VoltCardHeaderView headerText={title} onCloseClick={onCancel} />
             <VoltCardContentView classNames={['volt-club-purchase-confirm-content']} overflow="hidden">

@@ -1,5 +1,5 @@
 import { CSSProperties, FC, KeyboardEvent, useCallback, useEffect, useRef } from 'react';
-import { CatalogType, ICatalogNode, useVoltLayout } from '../../../../api';
+import { CatalogType, ICatalogNode, IsTouchLayout, useVoltLayout } from '../../../../api';
 import { NativeText } from '../../../../common/native-text/NativeText';
 import { useCatalogNodeState, useCatalogUiState } from '../../../../hooks';
 import { CatalogIconView } from '../catalog-icon/CatalogIconView';
@@ -33,7 +33,9 @@ export const CatalogNavigationItemView: FC<CatalogNavigationItemViewProps> = (pr
     const { isActive, isOpen } = useCatalogNodeState(node);
     const { currentType = null } = useCatalogUiState();
     const isBuilder = currentType === CatalogType.BUILDER;
-    const hint = useVoltLayout() === 'phone-portrait' && searchDepth === null ? getNodeHint(node) : '';
+    const layout = useVoltLayout();
+    const isTouch = IsTouchLayout(layout);
+    const hint = layout === 'phone-portrait' && searchDepth === null ? getNodeHint(node) : '';
     const itemRef = useRef<HTMLDivElement>(null);
     // Strip only technical technical suffixes; labels such as
     // "Flags (Wall)" or "Forest (Blue)" are meaningful catalog names.
@@ -81,6 +83,7 @@ export const CatalogNavigationItemView: FC<CatalogNavigationItemViewProps> = (pr
                     {/* ITEM_TITLE u_bold (u_bold italic below the top level) on the list, then white with the etching over SELECTION_HILIGHT. */}
                     <NativeText
                         nativeResolution
+                        transparent={isTouch}
                         background={NAVIGATION_BACKGROUND}
                         className="volt-catalog-navigation-label-normal"
                         overrides={{ color: child ? (isBuilder ? 0xb77734 : 0x52819a) : 0x666666 }}

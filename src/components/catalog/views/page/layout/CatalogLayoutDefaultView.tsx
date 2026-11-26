@@ -30,8 +30,8 @@ interface CatalogLayoutDefaultViewProps extends CatalogLayoutProps {
 
 /** Phones keep the page and the pinned buy bar on screen with a shorter room preview. */
 const TOUCH_PREVIEW_HEIGHTS: Partial<Record<VoltLayout, number>> = {
-    'phone-portrait': 168,
-    'phone-landscape': 120
+    'phone-portrait': 148,
+    'phone-landscape': 108
 };
 
 /** LocalizationCatalogWidget.setElementImage: the teaser keeps its own size, centred on whole pixels in the product view. */
@@ -72,6 +72,8 @@ export const CatalogLayoutDefaultView: FC<CatalogLayoutDefaultViewProps> = (prop
     // PageLocalization: text 1 is ctlg_description, the line in the product view before an offer is picked.
     const teaserText = (page?.localization.getText(1) ?? '').replace(/\r\n?/g, '\n');
     const hasTeaserText = !!teaserText.replace(/<[^>]*>/g, '').trim();
+    const hasTeaserImage = !!page?.localization.getImage(1);
+    const isEmptyWelcome = !currentOffer && !hasTeaserImage && !hasTeaserText;
     // SpinnerCatalogWidget and TotalPriceWidget hide themselves on Builders Club pages.
     const showBundlePurchase =
         !isBuilder &&
@@ -80,7 +82,9 @@ export const CatalogLayoutDefaultView: FC<CatalogLayoutDefaultViewProps> = (prop
     const isBundleOffer = currentOffer?.pricingModel === 'pricing_model_bundle';
 
     return (
-        <div className={`volt-catalog-default-layout flex flex-col h-full gap-2 ${colourGrid ? 'has-colour-grid' : ''} ${layoutClassName}`}>
+        <div
+            className={`volt-catalog-default-layout flex flex-col h-full gap-2 ${colourGrid ? 'has-colour-grid' : ''} ${currentOffer ? 'has-offer' : 'no-offer'} ${isEmptyWelcome ? 'is-empty-welcome' : ''} ${layoutClassName}`}
+        >
             <div className="volt-catalog-product-view">
                 {currentOffer && (
                     <div className="volt-catalog-offer-panel flex gap-0">
