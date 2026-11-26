@@ -217,11 +217,25 @@ export const ToolbarTouchView: FC<ToolbarTouchViewProps> = (props) => {
             }, 200);
         };
 
+        // The room canvas cancels touches, so a tap there never blurs the input.
+        const onPointerDown = (event: PointerEvent) => {
+            const target = event.target as Element;
+            const input = container.querySelector('input');
+
+            if (!root.dataset.voltChatOpen || input?.value) return;
+            if (container.contains(target) || target.closest?.('[data-radix-popper-content-wrapper], .volt-touch-chat-open')) return;
+
+            input?.blur();
+            delete root.dataset.voltChatOpen;
+        };
+
         container.addEventListener('focusout', onFocusOut);
+        document.addEventListener('pointerdown', onPointerDown, true);
 
         return () => {
             window.clearTimeout(timer);
             container.removeEventListener('focusout', onFocusOut);
+            document.removeEventListener('pointerdown', onPointerDown, true);
             delete root.dataset.voltChatOpen;
         };
     }, [layout]);
