@@ -66,10 +66,11 @@ export const NavigatorSearchResultView: FC<NavigatorSearchResultViewProps> = (pr
     const listViewLabel = localizeWithFallback('navigator.viewmode.list', 'Show rooms as a list');
     const tileViewLabel = localizeWithFallback('navigator.viewmode.tiles', 'Show rooms as tiles');
     const hideSave = parentCode.includes('official_view');
+    const featured = parentCode === 'official_view' && searchResult.rooms.length <= 3;
     const eventTitle = isEventView(searchResult.code) || isEventView(parentCode);
 
     return (
-        <section className={`volt-navigator-air__category${isExtended ? '' : ' is-collapsed'}`}>
+        <section data-featured={featured || undefined} className={`volt-navigator-air__category${isExtended ? '' : ' is-collapsed'}`}>
             <header className="volt-navigator-air__category-header">
                 <button
                     type="button"

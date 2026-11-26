@@ -1,0 +1,124 @@
+html[data-volt-device='phone'] .volt-navigator-air__category .volt-navigator-air__category-header {
+    gap: 4px;
+    padding: 0 2px;
+    border-bottom: 1px solid #cbd4d8;
+}
+
+html[data-volt-device='phone'] .volt-navigator-air__category-header .volt-navigator-air__category-toggle {
+    flex: 1;
+    max-width: none;
+    overflow: hidden;
+}
+
+html[data-volt-device='phone'] .volt-navigator-air__category-header .volt-navigator-air__category-controls {
+    position: static;
+    flex-shrink: 0;
+}
+
+html[data-volt-device='phone'] .volt-navigator-air__category-controls button {
+    display: grid;
+    place-items: center;
+}
+
+html[data-volt-device='phone'] .volt-navigator-air__category :is(.volt-navigator-air__tiles, .volt-navigator-air__rows) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    padding: 4px;
+    gap: 5px;
+}
+
+html[data-volt-device='phone'] .volt-navigator-air__category .volt-navigator-air__tiles:has(> :nth-child(2)) {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 138px), 1fr));
+}
+
+.volt-navigator-air__phone-room {
+    display: flex;
+    position: relative;
+    min-width: 0;
+    padding: 4px;
+    border: 1px solid #b8cbd4;
+    border-radius: 4px;
+    background: #edf6fa;
+}
+
+.volt-navigator-air__phone-visit {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    color: #174961;
+    text-align: left;
+    cursor: pointer;
+}
+
+.volt-navigator-air__phone-room .volt-navigator-air__phone-art {
+    flex: 0 0 auto;
+    width: 56px;
+    height: 56px;
+    border-radius: 3px;
+    background-size: cover;
+    image-rendering: pixelated;
+}
+
+[data-featured] .volt-navigator-air__phone-art {
+    width: clamp(76px, 25vw, 110px);
+    height: 88px;
+}
+
+.volt-navigator-air__phone-details {
+    display: grid;
+    min-width: 0;
+    gap: 3px;
+    font: 15px/1.2 HabboAirUbuntu, Ubuntu, sans-serif;
+}
+
+.volt-navigator-air__phone-details strong {
+    overflow-wrap: anywhere;
+}
+
+.volt-navigator-air__phone-details small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #475458;
+}
+
+.volt-navigator-air__phone-status {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.volt-navigator-air__phone-room > .volt-navigator-air__room-info {
+    align-self: stretch;
+    flex: 0 0 44px;
+    width: 44px;
+    height: auto;
+    margin-left: 4px;
+    border-left: 1px solid #c6d8e0;
+}
+
+.volt-navigator-air__tiles:has(> :nth-child(2)) .volt-navigator-air__phone-visit {
+    display: grid;
+    gap: 6px;
+}
+
+.volt-navigator-air__tiles:has(> :nth-child(2)) .volt-navigator-air__phone-art {
+    width: 100%;
+    height: 84px;
+}
+
+.volt-navigator-air__tiles:has(> :nth-child(2)) .volt-navigator-air__phone-details {
+    padding: 0 42px 2px 3px;
+}
+
+.volt-navigator-air__tiles:has(> :nth-child(2)) .volt-navigator-air__room-info {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    height: 44px;
+}

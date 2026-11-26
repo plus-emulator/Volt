@@ -34,7 +34,7 @@ import {
     SendMessageComposer
 } from '../../../../../api';
 import { IsTouchLayout, useVoltLayout } from '../../../../../api/touch';
-import rotateIcon from '../../../../../assets/images/avatareditor/arrow-right-icon.png';
+import rotateIcon from '../../../../../assets/images/wired/icon_wired_rotate_clockwise.png';
 import moveIcon from '../../../../../assets/images/infostand/furni-place.png';
 import shopIcon from '../../../../../assets/images/infostand/furni-shop.png';
 import pickupIcon from '../../../../../assets/images/inventory/air/thumb-icon-recycle.png';

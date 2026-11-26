@@ -1,3 +1,5 @@
+@import './TouchNavigatorResults.css';
+
 html[data-volt-device='phone'] .volt-navigator-air {
     --nav-touch-header: var(--volt-screen-header);
     filter: none;
@@ -376,110 +378,36 @@ html[data-volt-device='phone'] .volt-navigator-air__tiles {
     justify-content: center;
 }
 
-/* Room rows: 56 px with the real thumbnail, owner, coloured user count and a 44 px info button. */
-html[data-volt-device='phone'] .volt-navigator-air__row {
-    flex: 0 0 56px;
-    width: auto;
-    min-width: 0;
-    max-width: none;
-    height: 56px;
-    min-height: 56px;
-}
-
-/* The 110 px thumbnail is cropped at 1x, never scaled. */
-html[data-volt-device='phone'] .volt-navigator-air__row-thumb {
-    position: absolute !important;
-    top: 3px;
-    left: 3px;
-    width: 48px !important;
-    height: 48px !important;
-    background-size: auto !important;
-}
-
-html[data-volt-device='phone'] .volt-navigator-air__row-thumb > img {
-    object-fit: none !important;
-    object-position: center;
-    image-rendering: pixelated;
-}
-
-html[data-volt-device='phone'] .volt-navigator-air__row-name {
-    top: 10px;
-    right: 104px;
-    left: 62px;
-    width: auto;
-    height: 17px;
-}
-
-html[data-volt-device='phone'] .volt-navigator-air__row-owner {
-    position: absolute;
-    top: 30px;
-    right: 104px;
-    left: 62px;
-    overflow: hidden;
-    color: #55534c;
-    font: 400 12px/15px HabboAirUbuntu, Ubuntu, sans-serif;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-}
-
-html[data-volt-device='phone'] .volt-navigator-air__row .volt-navigator-air__usercount {
-    top: 19px;
-    right: 48px;
-    left: auto;
-}
-
-html[data-volt-device='phone'] .volt-navigator-air__row .volt-navigator-air__row-door {
-    top: 20px;
-    right: 90px;
-    left: auto;
-}
-
-html[data-volt-device='phone'] .volt-navigator-air__row .volt-navigator-air__row-group {
-    top: 21px;
-    right: 106px;
-    left: auto;
-}
-
-html[data-volt-device='phone'] .volt-navigator-air__row:has(.volt-navigator-air__row-door) :is(.volt-navigator-air__row-name, .volt-navigator-air__row-owner) {
-    right: 108px;
-}
-
-html[data-volt-device='phone'] .volt-navigator-air__row:has(.volt-navigator-air__row-group) :is(.volt-navigator-air__row-name, .volt-navigator-air__row-owner) {
-    right: 124px;
-}
-
-html[data-volt-device='phone'] .volt-navigator-air__row .volt-navigator-air__room-info {
-    top: 6px;
-    right: 2px;
-    left: auto;
-    width: 44px;
-    height: 44px;
-}
-
-/* Create and Random: the real AIR buttons side by side, sharing the width. */
 html[data-volt-device='phone'] .volt-navigator-air__actions {
     display: flex;
     order: 4;
-    flex: 0 0 60px;
+    flex: 0 0 44px;
     gap: 8px;
     width: auto;
     min-width: 0;
     max-width: none;
-    margin: 8px 0 0;
+    height: 44px;
+    min-height: 44px;
+    margin: 6px 0 0;
 }
 
 html[data-volt-device='phone'] .volt-navigator-air__action {
-    position: relative;
-    left: auto;
+    position: static;
     flex: 1 1 0;
     width: auto;
     min-width: 0;
-    max-width: 189px;
-    overflow: hidden;
+    max-width: none;
+    height: 44px;
+    padding-inline: 4px;
+    color: #252522;
+    font-size: 14px;
+    border-style: solid;
+    border-width: 0 5px;
+    border-image: url('../../assets/images/habbo-skin/touch/btn-default-h44.png') 0 5 fill / 0 5px stretch;
 }
 
-html[data-volt-device='phone'] .volt-navigator-air__action-content {
-    width: calc(100% - 4px);
+html[data-volt-device='phone'] .volt-navigator-air__action:active {
+    border-image-source: url('../../assets/images/habbo-skin/touch/btn-pressed-h44.png');
 }
 
 /* The room info bubble opens centred over the list instead of beside the row. */
@@ -557,8 +485,6 @@ html[data-volt-layout='phone-landscape'] .volt-navigator-air__actions {
 }
 
 html[data-volt-layout='phone-landscape'] .volt-navigator-air__action {
-    flex: 0 0 60px;
-    width: 189px;
-    max-width: 189px;
-    height: 60px;
+    flex: 0 0 44px;
+    width: 100%;
 }

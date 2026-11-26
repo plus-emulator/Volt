@@ -418,69 +418,26 @@ export const NavigatorView: FC<{}> = () => {
                                     </div>
                                     {isFetching && <div className="volt-navigator-air__busy-mask" aria-hidden="true" />}
                                     <div className="volt-navigator-air__actions">
-                                        <button type="button" className="volt-navigator-air__action volt-navigator-air__action--create" onClick={onCreateRoom}>
-                                            <div className="volt-navigator-air__action-content">
-                                                <img src={createRoomImg} alt="" />
-                                                <span>
-                                                    <NativeText
-                                                        text={localizeWithFallback('navigator.create.room', LocalizeText('navigator.createroom.create'))}
-                                                        textStyle="id_heading_2"
-                                                        background={0}
-                                                        transparent
-                                                        width={125}
-                                                        align="center"
-                                                        nativeResolution
-                                                    />
-                                                </span>
-                                            </div>
-                                            <i className="volt-navigator-air__action-border" aria-hidden="true" />
-                                        </button>
-                                        {!showPromote && (
-                                            <button
-                                                type="button"
-                                                className="volt-navigator-air__action volt-navigator-air__action--random"
-                                                onClick={onRandomRoom}
-                                            >
-                                                <div className="volt-navigator-air__action-content">
-                                                    <img src={randomRoomImg} alt="" />
-                                                    <span>
-                                                        <NativeText
-                                                            text={LocalizeText('navigator.random.room')}
-                                                            textStyle="id_heading_2"
-                                                            background={0}
-                                                            transparent
-                                                            width={125}
-                                                            align="center"
-                                                            nativeResolution
-                                                        />
-                                                    </span>
-                                                </div>
-                                                <i className="volt-navigator-air__action-border" aria-hidden="true" />
+                                        {[
+                                            { type: 'create', label: localizeWithFallback('navigator.create.room', LocalizeText('navigator.createroom.create')), image: createRoomImg, open: onCreateRoom },
+                                            showPromote
+                                                ? { type: 'promote', label: LocalizeText('navigator.promote.room'), image: promoteRoomImg, open: onPromoteRoom }
+                                                : { type: 'random', label: LocalizeText('navigator.random.room'), image: randomRoomImg, open: onRandomRoom }
+                                        ].map(({ type, label, image, open }) => (
+                                            <button key={type} type="button" className={`volt-navigator-air__action volt-navigator-air__action--${type}`} onClick={open}>
+                                                {isPhone ? <span>{label}</span> : (
+                                                    <>
+                                                        <div className="volt-navigator-air__action-content">
+                                                            <img src={image} alt="" />
+                                                            <span>
+                                                                <NativeText text={label} textStyle="id_heading_2" background={0} transparent width={125} align="center" nativeResolution />
+                                                            </span>
+                                                        </div>
+                                                        <i className="volt-navigator-air__action-border" aria-hidden="true" />
+                                                    </>
+                                                )}
                                             </button>
-                                        )}
-                                        {showPromote && (
-                                            <button
-                                                type="button"
-                                                className="volt-navigator-air__action volt-navigator-air__action--promote"
-                                                onClick={onPromoteRoom}
-                                            >
-                                                <div className="volt-navigator-air__action-content">
-                                                    <img src={promoteRoomImg} alt="" />
-                                                    <span>
-                                                        <NativeText
-                                                            text={LocalizeText('navigator.promote.room')}
-                                                            textStyle="id_heading_2"
-                                                            background={0}
-                                                            transparent
-                                                            width={125}
-                                                            align="center"
-                                                            nativeResolution
-                                                        />
-                                                    </span>
-                                                </div>
-                                                <i className="volt-navigator-air__action-border" aria-hidden="true" />
-                                            </button>
-                                        )}
+                                        ))}
                                     </div>
                                 </main>
                             </div>
