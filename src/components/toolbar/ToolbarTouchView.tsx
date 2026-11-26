@@ -178,7 +178,11 @@ export const ToolbarTouchView: FC<ToolbarTouchViewProps> = (props) => {
 
         if (!group || layout !== 'phone-landscape') return;
 
-        const update = () => root.style.setProperty('--volt-toolbar-width', `${Math.ceil(group.getBoundingClientRect().right)}px`);
+        const update = () => {
+            const right = Math.max(group.getBoundingClientRect().left, ...Array.from(group.children, (child) => child.getBoundingClientRect().right));
+
+            root.style.setProperty('--volt-toolbar-width', `${Math.ceil(right)}px`);
+        };
         const observer = new ResizeObserver(update);
 
         update();
