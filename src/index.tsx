@@ -102,6 +102,7 @@ import './css/user-settings/UserSettingsView.css';
 
 import './css/vault/VaultView.css';
 import './css/widgets/FurnitureWidgets.css';
+import './css/widgets/EffectBoxDialog.css';
 import './css/widgets/FurnitureNativeDialogs.css';
 import './css/WiredView.css';
 import './css/camera/CameraWidget.css';

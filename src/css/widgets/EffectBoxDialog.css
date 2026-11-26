@@ -1,0 +1,103 @@
+/* effectbox_xml: a 475x193 frame_3 coloured 0x67a3bf with the margins 0/33/0/3. Positions are the layout's, relative to the content area. */
+.volt-effectbox.volt-card-shell.volt-card-frame-3 {
+    width: 475px;
+    height: 193px;
+    min-width: 475px !important;
+    min-height: 193px !important;
+    max-width: 475px !important;
+    max-height: 193px !important;
+    padding: 33px 0 3px !important;
+}
+
+.volt-effectbox-content {
+    position: absolute;
+    top: 33px;
+    left: 0;
+    width: 475px;
+    height: 157px;
+    overflow: hidden;
+    image-rendering: pixelated;
+    user-select: none;
+}
+
+.volt-effectbox-content :is(div, img, button) {
+    position: absolute;
+    box-sizing: border-box;
+}
+
+/* effectbox.header.background.border (1, 0, 473x100) */
+.volt-effectbox-header-border {
+    left: 1px;
+    top: 0;
+    width: 473px;
+    height: 100px;
+    overflow: hidden;
+    background: #376275;
+}
+
+.volt-effectbox-header-body {
+    left: 2px;
+    top: 2px;
+    width: 469px;
+    height: 95px;
+    background: #0e3f52;
+}
+
+/* The 68x85 bitmap centred in the unstretched 85x93 window at (3, 5). */
+.volt-effectbox-frank {
+    left: 11px;
+    top: 9px;
+    width: 68px;
+    height: 85px;
+}
+
+/* effectbox.header (0, 0, 475x90) clips its texts, so a long description is cut at its bottom. */
+.volt-effectbox-header {
+    left: 0;
+    top: 0;
+    width: 475px;
+    height: 90px;
+    overflow: hidden;
+}
+
+.volt-effectbox-title {
+    left: 95px;
+    top: 11px;
+}
+
+.volt-effectbox-description {
+    left: 95px;
+    top: 41px;
+    width: 354px;
+}
+
+/* Bottom container (-1, 101, 475x51) */
+.volt-effectbox-bottom {
+    left: -1px;
+    top: 101px;
+    width: 475px;
+    height: 51px;
+}
+
+/* The cancel region (177, 11, 101x32) with its underlined text at (9, 8). */
+.volt-effectbox-cancel {
+    left: 177px;
+    top: 11px;
+    width: 101px;
+    height: 32px;
+    margin: 0;
+    padding: 8px 0 0 9px;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+}
+
+.volt-effectbox-cancel > * {
+    position: relative;
+}
+
+.volt-effectbox-bottom .volt-effectbox-ok {
+    left: 319px;
+    top: 10px;
+}
