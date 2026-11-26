@@ -541,3 +541,45 @@ html[data-volt-device='phone'] .volt-room-creator-air .volt-room-creator-air__ti
     width: fit-content;
     margin-inline: auto;
 }
+
+/* ---------- Phone landscape: search, saved searches and the AIR Create / Random buttons on the left, the room list at full height on the right ---------- */
+
+html[data-volt-layout='phone-landscape'] .volt-navigator-air__workspace {
+    display: grid;
+    grid-template-columns: 196px minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    gap: 8px 10px;
+    height: 100%;
+}
+
+html[data-volt-layout='phone-landscape'] .volt-navigator-air__search {
+    grid-area: 1 / 1;
+}
+
+html[data-volt-layout='phone-landscape'] .volt-navigator-air__quick-links {
+    grid-area: 2 / 1;
+    min-width: 0;
+}
+
+html[data-volt-layout='phone-landscape'] :is(.volt-navigator-air__results, .volt-navigator-air__busy-mask) {
+    grid-area: 1 / 2 / 4 / 3;
+    min-height: 0;
+}
+
+html[data-volt-layout='phone-landscape'] .volt-navigator-air__actions {
+    grid-area: 3 / 1;
+    flex-direction: column;
+    align-self: start;
+    gap: 8px;
+    height: auto;
+    min-height: 0;
+    margin: 0;
+    overflow: visible;
+}
+
+html[data-volt-layout='phone-landscape'] .volt-navigator-air__action {
+    flex: 0 0 60px;
+    width: 189px;
+    max-width: 189px;
+    height: 60px;
+}

@@ -92,9 +92,16 @@ html[data-volt-touch='on'] .draggable-window[data-volt-window='dock'] {
     padding-right: var(--volt-safe-right);
 }
 
-/* Landscape phones are short, so docked windows take the width right of the toolbar icons and keep them usable. */
+/* Landscape phones: windows open as one large AIR panel over the room, close to full screen, so the
+   desktop multi-pane layouts fit. The short screen leaves no room for a side dock. */
 html[data-volt-layout='phone-landscape'] .draggable-window[data-volt-window='dock'] {
-    width: min(760px, calc(100vw - var(--volt-toolbar-width, 300px) - 4px)) !important;
+    top: calc(4px + var(--volt-safe-top)) !important;
+    right: calc(8px + var(--volt-safe-right)) !important;
+    bottom: calc(4px + var(--volt-safe-bottom)) !important;
+    left: calc(8px + var(--volt-safe-left)) !important;
+    width: min(920px, calc(100vw - 16px - var(--volt-safe-left) - var(--volt-safe-right))) !important;
+    margin-inline: auto;
+    padding-right: 0;
 }
 
 html[data-volt-touch='on'] .draggable-window[data-volt-window='dialog'] {
