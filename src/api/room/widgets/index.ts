@@ -16,6 +16,7 @@ export * from './DoChatsOverlap';
 export * from './FurnitureDimmerUtilities';
 export * from './GetDiskColor';
 export * from './IAvatarInfo';
+export * from './ICraftingFurni';
 export * from './ICraftingIngredient';
 export * from './ICraftingRecipe';
 export * from './IPhotoData';

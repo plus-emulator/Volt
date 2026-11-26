@@ -404,23 +404,6 @@
     padding-left: 8px !important;
 }
 
-.volt-widget-crafting {
-    width: min(500px, calc(100vw - 16px));
-    min-width: 0;
-    max-width: calc(100vw - 16px);
-    height: min(300px, calc(100vh - 16px));
-    min-height: 0;
-    max-height: calc(100vh - 16px);
-
-    .crafting-widget-layout {
-        min-height: 0;
-    }
-
-    .crafting-widget-pane {
-        flex: 1 1 0;
-    }
-}
-
 /* AIR credit_redeem text fields set their first glyph on the 2px gutter of the field. */
 .furniture-exchange-credit .native0-text > .native0-text__line {
     left: 0;
@@ -1149,20 +1132,6 @@
 
         .text-decoration {
             text-decoration: underline;
-        }
-    }
-}
-
-@media (max-width: 560px), (max-height: 460px) {
-    .volt-widget-crafting {
-        .crafting-widget-layout {
-            flex-direction: column;
-            overflow: auto;
-        }
-
-        .crafting-widget-pane {
-            width: 100%;
-            min-height: 0;
         }
     }
 }

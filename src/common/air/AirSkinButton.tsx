@@ -3,6 +3,7 @@ import { resolveLineMetrics, roundTiesEven } from '../native-text/Air32NativeTex
 import { loadNativeFont, measureNativeText, NativeFontStyle } from '../native-text/NativeFont';
 import { NativeText } from '../native-text/NativeText';
 import { NativeTextStyleName, nativeTextStyles } from '../native-text/NativeTextStyles';
+import { TintSkinImage } from '../utils/TintedSkin';
 import './AirSkinButton.css';
 
 type SkinState = 'default' | 'hover' | 'pressed' | 'disabled';
@@ -11,6 +12,8 @@ const slice = (name: string) => new URL(`../../assets/images/habbo-skin/slices/$
 interface AirButtonKind {
     /** Slice files per state: the AIR skin template with its top and bottom caps and the stretchable middle rows. */
     skin: Record<SkinState, string>;
+    /** The uncoloured skin a layout colour multiplies, for a style that is a coloured skin. */
+    base?: Record<SkinState, string>;
     cap: number;
     /** The window_layout of the type and style: label size, margins, text style and caption colour. */
     height: number;
@@ -36,7 +39,15 @@ export const AIR_BUTTONS = {
     /** button style 3: habbo_skin_button_shiny_default, habbo_window_layout_button_shiny. */
     shiny: { skin: skin('button-shiny'), cap: 5, height: 22, margins: [8, 2, 8, 3], textStyle: 'button_shiny_regular' },
     /** button style 6: the shiny skin coloured 0x00aa00, habbo_window_layout_button_shiny_black. */
-    green: { skin: skin('button-shiny-green'), cap: 5, height: 28, margins: [10, 5, 10, 6], textStyle: 'button_shiny_regular', color: 0xffffff },
+    green: {
+        skin: skin('button-shiny-green'),
+        base: skin('button-shiny'),
+        cap: 5,
+        height: 28,
+        margins: [10, 5, 10, 6],
+        textStyle: 'button_shiny_regular',
+        color: 0xffffff
+    },
     /** button_thick style 0: habbo_skin_button_thick, habbo_window_layout_button_thick. */
     thick: { skin: skin('button-thick'), cap: 4, height: 22, margins: [8, 4, 8, 4], textStyle: 'button_bold' },
     /** button_thick style 3: habbo_skin_button_shiny_thick, habbo_window_layout_button_shiny_thick. */
@@ -44,6 +55,7 @@ export const AIR_BUTTONS = {
     /** button_thick style 6: the shiny thick skin coloured 0x00aa00, habbo_window_layout_button_shiny_thick_black. */
     'shiny-thick-green': {
         skin: skin('button-shiny-thick-green'),
+        base: skin('button-shiny-thick'),
         cap: 5,
         height: 28,
         margins: [10, 5, 10, 6],
@@ -99,21 +111,23 @@ function stretchSkin(url: string, cap: number, height: number): Promise<string> 
     return stretched.get(key);
 }
 
-function useStretchedSkin(kind: AirButtonKind, height: number) {
+function useStretchedSkin(kind: AirButtonKind, height: number, skinColor?: number) {
     const [urls, setUrls] = useState<Record<SkinState, string>>(null);
 
     useEffect(() => {
         let disposed = false;
         const states: SkinState[] = ['default', 'hover', 'pressed', 'disabled'];
-        Promise.all(states.map((state) => stretchSkin(kind.skin[state], kind.cap, height)))
+        const source = (state: SkinState) =>
+            skinColor === undefined ? Promise.resolve(kind.skin[state]) : TintSkinImage((kind.base ?? kind.skin)[state], skinColor & 0xffffff);
+        Promise.all(states.map((state) => source(state).then((url) => stretchSkin(url, kind.cap, height))))
             .then((list) => !disposed && setUrls(Object.fromEntries(states.map((state, index) => [state, list[index]])) as Record<SkinState, string>))
             .catch(() => !disposed && setUrls(null));
         return () => {
             disposed = true;
         };
-    }, [kind, height]);
+    }, [kind, height, skinColor]);
 
-    return urls ?? kind.skin;
+    return urls ?? (skinColor === undefined ? kind.skin : null);
 }
 
 /** An auto-sized label text field: floor(textWidth + 4) by floor(textHeight + 4), the TextField gutters included. */
@@ -150,6 +164,8 @@ export interface AirButtonOptions {
     heightMax?: number;
     /** A text_style variable on the button in the layout XML. */
     textStyle?: NativeTextStyleName;
+    /** The color attribute of the button in the layout XML; it multiplies the uncoloured skin. */
+    skinColor?: number;
 }
 
 /**
@@ -165,7 +181,8 @@ export function useAirButton<T extends HTMLElement>({
     widthMin = 0,
     widthMax = Infinity,
     heightMax = Infinity,
-    textStyle
+    textStyle,
+    skinColor
 }: AirButtonOptions) {
     const air: AirButtonKind = AIR_BUTTONS[kind];
     const fontStyle = textStyle ?? air.textStyle;
@@ -177,7 +194,7 @@ export function useAirButton<T extends HTMLElement>({
     const labelHeight = field ? field.height + top + bottom : air.height;
     const ref = useRef<T>(null);
     const [renderedHeight, setRenderedHeight] = useState(height ?? air.height);
-    const skins = useStretchedSkin(air, renderedHeight);
+    const skins = useStretchedSkin(air, renderedHeight, skinColor);
     const textStyleDefinition = nativeTextStyles[fontStyle] as NativeFontStyle;
     const color = air.color ?? textStyleDefinition.color;
     // LabelRenderer draws a label with antiAliasType advanced in its own text colour, so a Volter caption sits on whole pixels.
@@ -201,10 +218,10 @@ export function useAirButton<T extends HTMLElement>({
     const style = {
         '--air-skin-cap': `${air.cap}px`,
         '--air-skin-slice': air.cap,
-        '--air-skin': `url("${skins.default}")`,
-        '--air-skin-hover': `url("${skins.hover}")`,
-        '--air-skin-pressed': `url("${skins.pressed}")`,
-        '--air-skin-disabled': `url("${skins.disabled}")`,
+        '--air-skin': skins ? `url("${skins.default}")` : 'none',
+        '--air-skin-hover': skins ? `url("${skins.hover}")` : 'none',
+        '--air-skin-pressed': skins ? `url("${skins.pressed}")` : 'none',
+        '--air-skin-disabled': skins ? `url("${skins.disabled}")` : 'none',
         '--air-button-height': `${air.height}px`,
         minWidth: Math.min(widthMax, Math.max(widthMin, labelWidth)),
         maxWidth: Number.isFinite(widthMax) ? widthMax : undefined,
@@ -221,7 +238,7 @@ export function useAirButton<T extends HTMLElement>({
             className="air-skin-button__caption"
             overrides={overrides}
             style={{
-                left: `max(0px, calc(round(down, 50%, 1px) - ${Math.floor(labelWidth / 2) - left}px))`,
+                left: `calc(max(0px, round(down, 50%, 1px) - ${Math.floor(labelWidth / 2)}px) + ${left}px)`,
                 top: `calc(max(0px, round(down, 50%, 1px) - ${Math.floor(labelHeight / 2)}px) + ${top}px)`
             }}
             text={caption}
@@ -245,13 +262,14 @@ export const AirSkinButton: FC<AirSkinButtonProps> = ({
     widthMax,
     heightMax,
     textStyle,
+    skinColor,
     className = '',
     style,
     type = 'button',
     children,
     ...rest
 }) => {
-    const air = useAirButton<HTMLButtonElement>({ kind, caption, height, widthMin, widthMax, heightMax, textStyle });
+    const air = useAirButton<HTMLButtonElement>({ kind, caption, height, widthMin, widthMax, heightMax, textStyle, skinColor });
 
     return (
         <button

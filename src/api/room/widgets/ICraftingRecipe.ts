@@ -1,5 +1,7 @@
+import { ICraftingFurni } from './ICraftingFurni';
+
 export interface ICraftingRecipe {
-    name: string;
-    localizedName: string;
-    iconUrl: string;
+    recipeName: string;
+    productCode: string;
+    furni: ICraftingFurni;
 }

@@ -1023,6 +1023,10 @@
     pointer-events: auto;
 }
 
+.volt-native-modal.is-on-top {
+    z-index: 1000;
+}
+
 .volt-native-modal-slot {
     position: absolute;
     width: max-content;

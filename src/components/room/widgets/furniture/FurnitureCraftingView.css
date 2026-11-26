@@ -1,0 +1,153 @@
+.volt-card-shell.volt-card-frame-3.volt-crafting {
+    position: relative;
+    box-sizing: border-box;
+    width: 543px;
+    height: 407px;
+    padding: 0;
+    filter: drop-shadow(2.828px 2.828px 2px rgba(0, 0, 0, 0.349)) !important;
+    user-select: none;
+}
+
+.volt-card-shell.volt-card-frame-3.volt-crafting > .volt-card-header-shell .volt-card-title {
+    top: 4px !important;
+    letter-spacing: -0.2px;
+    white-space: nowrap;
+}
+
+.volt-crafting__content {
+    position: absolute;
+    top: 34px;
+    left: 2px;
+    width: 537px;
+    height: 371px;
+}
+
+.volt-crafting__background {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    pointer-events: none;
+}
+
+.volt-crafting__abs {
+    position: absolute !important;
+}
+
+.volt-crafting__bitmap {
+    position: absolute;
+    max-width: none;
+    image-rendering: pixelated;
+    pointer-events: none;
+}
+
+.volt-crafting__heading {
+    display: flex;
+    justify-content: center;
+}
+
+/* itemgrid: 40px thumbnails with 4px spacing, wrapping at the 246px width; the vertical scrollbar takes 17px inside it when needed. */
+.volt-crafting__grid {
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 4px;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+/* The mixer grid steps 45px both ways, five per row. */
+.volt-crafting__grid.is-mixer {
+    display: grid;
+    grid-template-columns: repeat(5, 40px);
+    grid-auto-rows: 40px;
+    gap: 5px;
+    overflow: visible;
+}
+
+.volt-crafting__cell {
+    position: relative;
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    overflow: hidden;
+}
+
+.volt-crafting__count {
+    position: absolute;
+    top: 2px;
+    right: 1px;
+    min-width: 6px;
+    height: 15px;
+    box-sizing: border-box;
+    padding: 1px;
+    background: #2f6982;
+    pointer-events: none;
+}
+
+.volt-crafting__count > * {
+    display: block;
+}
+
+.volt-crafting__info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.volt-crafting__craft {
+    overflow: hidden;
+}
+
+/* border style 3 (habbo_skin_border_slot): a flat fill with 2px stepped corners. */
+.volt-crafting__bar {
+    overflow: hidden;
+    background: #299f3a;
+    clip-path: polygon(2px 0, calc(100% - 2px) 0, calc(100% - 2px) 1px, calc(100% - 1px) 1px, calc(100% - 1px) 2px, 100% 2px, 100% calc(100% - 2px), calc(100% - 1px) calc(100% - 2px), calc(100% - 1px) calc(100% - 1px), calc(100% - 2px) calc(100% - 1px), calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 1px), 1px calc(100% - 1px), 1px calc(100% - 2px), 0 calc(100% - 2px), 0 2px, 1px 2px, 1px 1px, 2px 1px);
+    pointer-events: none;
+}
+
+.volt-crafting__bar-shade {
+    background: rgba(0, 0, 0, 0.0667);
+}
+
+.volt-crafting__bar-edge {
+    background: #000;
+    pointer-events: none;
+}
+
+/* The tooltip skin of the toolbar: #232323 at 90% with 5px stepped corners. */
+.volt-crafting__tooltip {
+    position: fixed;
+    z-index: 1;
+    box-sizing: border-box;
+    height: 22px;
+    padding: 3px 2px 0 3px;
+    border: 6px solid transparent;
+    border-image-source: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA0AAAANCAQAAADY4iz3AAAAIGNIUk0AAHomAACAhAAA+gAAAIDoAAB1MAAA6mAAADqYAAAXcJy6UTwAAAACYktHRAD/h4/MvwAAAAd0SU1FB+oKBAseCoYYJJIAAAA/SURBVBjTY2SAA+VnDAwMDHelYHxGZGEYgEgzYkrAJBmxSUAkmRhwAkbsehgYGBjw6MJnIHnOwOsvvKGBPQwBDksRG4f3nNQAAAAASUVORK5CYII=");
+    border-image-slice: 6 fill;
+    border-image-width: 6px;
+    white-space: nowrap;
+    pointer-events: none;
+    image-rendering: pixelated;
+}
+
+.volt-crafting__tooltip > * {
+    margin: -6px -3px 0;
+}
+
+/* lift_vertical_3: a 5px cap and foot with the grip bitmap tiled between them. The root AIR skin is !important. */
+.volt-crafting__grid.has-air-scrollbar::-webkit-scrollbar-thumb:vertical,
+.has-classic-scrollbar .volt-crafting__grid.has-air-scrollbar::-webkit-scrollbar-thumb:vertical {
+    border-width: 5px 0 !important;
+    background: url("../../../../assets/images/habbo-skin/slices/scroll-grip-3-default.png") 0 0 repeat-y padding-box !important;
+}
+
+.volt-crafting__grid.has-air-scrollbar::-webkit-scrollbar-thumb:vertical:hover:not(:active),
+.has-classic-scrollbar .volt-crafting__grid.has-air-scrollbar::-webkit-scrollbar-thumb:vertical:hover:not(:active) {
+    background-image: url("../../../../assets/images/habbo-skin/slices/scroll-grip-3-hover.png") !important;
+}
+
+.volt-crafting__grid.has-air-scrollbar::-webkit-scrollbar-thumb:vertical:active,
+.has-classic-scrollbar .volt-crafting__grid.has-air-scrollbar::-webkit-scrollbar-thumb:vertical:active {
+    background-image: url("../../../../assets/images/habbo-skin/slices/scroll-grip-3-pressed.png") !important;
+}
