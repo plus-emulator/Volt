@@ -554,9 +554,19 @@ html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-colour-grid {
 }
 
 html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-colour-swatch {
-    flex: 0 0 34px;
-    width: 34px !important;
-    height: 30px !important;
+    flex: 0 0 40px;
+    width: 40px !important;
+    height: 32px !important;
+    background-image: url('../../assets/images/catalog/air/colour-grid/ctlg_clr_40x32_1.png');
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-colour-swatch::before {
+    background-image: url('../../assets/images/catalog/air/colour-grid/ctlg_clr_40x32_2.png');
+    mask-image: url('../../assets/images/catalog/air/colour-grid/ctlg_clr_40x32_2.png');
+}
+
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-colour-swatch.is-chosen::after {
+    background-image: url('../../assets/images/catalog/air/colour-grid/ctlg_clr_40x32_3.png');
 }
 
 /* Buy Dock Row 1: Total price on left, quantity stepper (- [1] +) on right. */
@@ -1131,8 +1141,18 @@ html[data-volt-device='phone'] .volt-catalog-window .volt-cfp-voucher {
     padding: 10px 10px 12px;
 }
 
+html[data-volt-device='phone'] .volt-catalog-window .volt-cfp-voucher::before {
+    z-index: 0;
+}
+
+html[data-volt-device='phone'] .volt-catalog-window .volt-cfp-voucher > * {
+    position: relative !important;
+    z-index: 1;
+    top: auto !important;
+    left: auto !important;
+}
+
 html[data-volt-device='phone'] .volt-catalog-window .volt-cfp-voucher-text {
-    position: static;
     grid-column: 1 / -1;
     width: auto;
     height: auto;
@@ -1142,7 +1162,6 @@ html[data-volt-device='phone'] .volt-catalog-window .volt-cfp-voucher-text {
 }
 
 html[data-volt-device='phone'] .volt-catalog-window .volt-cfp-voucher-input {
-    position: static;
     grid-column: 1;
     display: flex;
     align-items: center;
@@ -1160,7 +1179,6 @@ html[data-volt-device='phone'] .volt-catalog-window .volt-cfp-voucher-input inpu
 }
 
 html[data-volt-device='phone'] .volt-catalog-window .volt-cfp-voucher-button {
-    position: static;
     grid-column: 2;
     min-width: 84px;
     max-width: none;
@@ -1315,12 +1333,15 @@ html[data-volt-device='phone'] .volt-catalog-window .volt-air-club .volt-club-te
 
 html[data-volt-device='phone'] .volt-catalog-window .volt-air-club .volt-club-vip-copy {
     position: static;
+    align-items: center;
+    text-align: center;
     width: 100% !important;
     height: auto;
 }
 
 html[data-volt-device='phone'] .volt-catalog-window .volt-air-club .volt-club-vip-offers {
     position: static;
+    align-items: center;
     width: 100% !important;
     height: auto;
     gap: 8px;
@@ -1328,8 +1349,8 @@ html[data-volt-device='phone'] .volt-catalog-window .volt-air-club .volt-club-vi
 }
 
 html[data-volt-device='phone'] .volt-catalog-window .volt-air-club-vip-item {
-    width: 100%;
-    max-width: 340px;
+    width: 320px;
+    max-width: 100%;
     margin-inline: auto;
 }
 
