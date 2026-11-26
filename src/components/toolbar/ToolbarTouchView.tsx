@@ -2,6 +2,7 @@ import { CreateLinkEvent, FindNewFriendsMessageComposer, GetRoomEngine, RewardTr
 import { AnimatePresence, motion } from 'framer-motion';
 import { FC, ReactNode, useLayoutEffect, useRef, useState } from 'react';
 import { GetRoomSession, IsTabletLayout, localizeWithFallback, MessengerIconState, OpenMessengerChat, SendMessageComposer, VisitDesktop, VoltLayout } from '../../api';
+import chatStylesImg from '../../assets/images/chat-input-swf/chat_styles.png';
 import memenuBgImg from '../../assets/images/toolbar/air/memenu-bg.png';
 import memenuCircleImg from '../../assets/images/toolbar/air/memenu-circle.png';
 import { LayoutAvatarImageView } from '../../common';
@@ -196,6 +197,40 @@ export const ToolbarTouchView: FC<ToolbarTouchViewProps> = (props) => {
         };
     }, [layout]);
 
+    useLayoutEffect(() => {
+        const root = document.documentElement;
+        const container = document.getElementById('toolbar-chat-input-container');
+
+        if (layout !== 'phone-landscape' || !container) return;
+
+        let timer = 0;
+
+        const onFocusOut = () => {
+            window.clearTimeout(timer);
+            timer = window.setTimeout(() => {
+                const active = document.activeElement;
+                const input = container.querySelector('input');
+
+                if (container.contains(active) || active?.closest('[data-radix-popper-content-wrapper]') || input?.value) return;
+
+                delete root.dataset.voltChatOpen;
+            }, 200);
+        };
+
+        container.addEventListener('focusout', onFocusOut);
+
+        return () => {
+            window.clearTimeout(timer);
+            container.removeEventListener('focusout', onFocusOut);
+            delete root.dataset.voltChatOpen;
+        };
+    }, [layout]);
+
+    const openChat = () => {
+        document.documentElement.dataset.voltChatOpen = 'true';
+        document.querySelector<HTMLInputElement>('#toolbar-chat-input-container input')?.focus();
+    };
+
     const slots = [
         !isLandscapePhone && slot('home', homeIcon, goHome),
         slot('navigator', 'rooms', () => CreateLinkEvent('navigator/toggle')),
@@ -212,7 +247,19 @@ export const ToolbarTouchView: FC<ToolbarTouchViewProps> = (props) => {
                 () => OpenMessengerChat(),
                 null,
                 messengerState === MessengerIconState.UNREAD ? `is-notify-${messengerNotifyFrame}` : ''
-            )
+            ),
+        isLandscapePhone && (
+            <div key="chat" className="volt-touch-toolbar__slot volt-touch-toolbar__slot--chat">
+                <button
+                    type="button"
+                    className="volt-touch-chat-open"
+                    aria-label={localizeWithFallback('widgets.chatinput.default', 'Chat')}
+                    onClick={openChat}
+                >
+                    <img src={chatStylesImg} alt="" />
+                </button>
+            </div>
+        )
     ];
 
     return (

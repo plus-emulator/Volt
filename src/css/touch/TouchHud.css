@@ -12,7 +12,7 @@ html[data-volt-device='tablet'] {
 }
 
 html[data-volt-layout='phone-landscape'] {
-    --volt-toolbar-height: calc(52px + var(--volt-safe-bottom));
+    --volt-toolbar-height: calc(60px + var(--volt-safe-bottom));
 }
 
 /* Toolbar */
@@ -71,20 +71,62 @@ html[data-volt-layout='phone-landscape'] {
     margin: 0 auto;
 }
 
-/* Landscape: one AIR strip like the desktop toolbar. Icons sit on the left and the chat bar fills the rest
-   of the row; ToolbarTouchView measures the icon group into --volt-toolbar-width. */
+/* Landscape: no strip, so the room uses the whole screen. The icons sit in one AIR glass group in the bottom
+   left, ending with a chat button that opens the full chat bar. ToolbarTouchView measures the group into
+   --volt-toolbar-width for the docked windows. */
+.volt-touch-toolbar--phone-landscape {
+    right: auto;
+    bottom: calc(4px + var(--volt-safe-bottom));
+    left: calc(6px + var(--volt-safe-left));
+    height: auto;
+    padding-bottom: 0;
+    border-top: 0;
+    background: none;
+    box-shadow: none;
+    pointer-events: none;
+}
+
 .volt-touch-toolbar--phone-landscape .volt-touch-toolbar__group {
     display: inline-flex;
-    height: 52px;
+    box-sizing: border-box;
+    height: 56px;
     align-items: center;
     justify-content: flex-start;
-    padding: 0 4px 0 calc(6px + var(--volt-safe-left));
+    padding: 0 2px;
+    border: 6px solid transparent;
+    border-image-source: url("../../assets/images/habbo-skin/slices/border-colorless-3b3933.png");
+    border-image-slice: 24 fill;
+    border-image-width: 6px;
+    border-image-repeat: stretch;
+    image-rendering: var(--volt-pixel-art, pixelated);
+    pointer-events: auto;
 }
 
 .volt-touch-toolbar--phone-landscape .volt-touch-toolbar__slot {
-    width: 48px;
-    height: 48px;
-    flex-basis: 48px;
+    width: 46px;
+    height: 44px;
+    flex-basis: 46px;
+}
+
+.volt-touch-chat-open {
+    display: flex;
+    width: 44px;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    background: none;
+}
+
+.volt-touch-chat-open img {
+    width: 34px;
+    height: 38px;
+    image-rendering: pixelated;
+}
+
+.volt-touch-chat-open:active img {
+    filter: brightness(0.85);
 }
 
 /* Me menu and progression menu above the toolbar */
@@ -190,8 +232,12 @@ html[data-volt-layout='phone-portrait'] .volt-touch-chat-slot {
 
 html[data-volt-layout='phone-landscape'] .volt-touch-chat-slot {
     right: calc(8px + var(--volt-safe-right));
-    bottom: calc(var(--volt-safe-bottom) + 4px);
-    left: calc(var(--volt-toolbar-width, 300px) + 4px);
+    bottom: calc(var(--volt-safe-bottom) + 10px);
+    left: calc(8px + var(--volt-safe-left));
+}
+
+html[data-volt-layout='phone-landscape']:not([data-volt-chat-open]) .volt-touch-chat-slot {
+    display: none !important;
 }
 
 html[data-volt-device='tablet'] .volt-touch-chat-slot {
