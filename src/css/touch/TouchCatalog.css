@@ -473,6 +473,13 @@ html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-preview-controls b
     min-height: 36px !important;
 }
 
+html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-preview-controls button.volt-catalog-preview-btn .volt-catalog-preview-arrow {
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    transform: scale(2);
+}
+
 html[data-volt-touch='on'] .volt-catalog-window .volt-catalog-preview-controls button.volt-catalog-preview-region {
     position: relative !important;
     top: auto !important;
@@ -1086,14 +1093,15 @@ html[data-volt-device='phone'] .volt-catalog-window .volt-cfp-item.is-first {
     top: auto;
     left: auto;
     order: 2;
-    flex: 0 0 240px;
+    flex: 0 0 320px;
     width: 100%;
-    height: 240px;
+    height: 320px;
+    background: #162530;
 }
 
 html[data-volt-device='phone'] .volt-catalog-window .volt-cfp-item.is-first .volt-cfp-item-image {
-    background-size: cover;
-    background-position: center 20%;
+    background-size: contain;
+    background-position: center;
 }
 
 html[data-volt-device='phone'] .volt-catalog-window .volt-cfp-item.is-first .volt-cfp-item-region {
