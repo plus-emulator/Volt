@@ -30,12 +30,9 @@ const ShareIcon: FC = () => (
     </svg>
 );
 
-const MoreIcon: FC = () => (
-    <svg className="volt-install-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" role="img" aria-label="More">
-        <circle cx="12" cy="12" r="9.5" />
-        <circle cx="7.5" cy="12" r="1.2" fill="currentColor" stroke="none" />
-        <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none" />
-        <circle cx="16.5" cy="12" r="1.2" fill="currentColor" stroke="none" />
+const MenuIcon: FC = () => (
+    <svg className="volt-install-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" role="img" aria-label="Menu">
+        <path d="M4 7h16M4 12h16M4 17h16" />
     </svg>
 );
 
@@ -62,7 +59,7 @@ export const InstallPromptView: FC<{}> = () => {
 
     const iPad = IsIPad();
     const moreMenu = ShareIsInMoreMenu() && !iPad;
-    const arrow = platform !== 'ios-safari' ? null : iPad ? 'top' : moreMenu ? 'bottom-right' : 'bottom';
+    const arrow = platform !== 'ios-safari' ? null : iPad ? 'top' : moreMenu ? 'bottom-left' : 'bottom';
 
     const dismiss = () => {
         RememberDismissal();
@@ -129,8 +126,8 @@ export const InstallPromptView: FC<{}> = () => {
                             )}
                             {platform === 'ios-safari' && moreMenu && (
                                 <span>
-                                    {text('step_more', 'Tap the More button')} <MoreIcon />{' '}
-                                    {text('step_more_then_share', 'at the bottom right, then tap Share')} <ShareIcon />
+                                    {text('step_menu', 'Tap the menu button')} <MenuIcon />{' '}
+                                    {text('step_menu_then_share', 'on the left of the address bar, then tap Share')} <ShareIcon />
                                 </span>
                             )}
                             {platform === 'ios-safari' && !moreMenu && (

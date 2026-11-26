@@ -1,6 +1,6 @@
 import { CreateLinkEvent, GetRoomEngine, GetSessionDataManager, RoomObjectCategory } from '@volt/renderer';
 import { Dispatch, FC, PropsWithChildren, SetStateAction, useEffect, useRef } from 'react';
-import { DispatchUiEvent, GetConfigurationValue, GetRoomSession, GetUserProfile, localizeWithFallback } from '../../api';
+import { DispatchUiEvent, GetConfigurationValue, GetRoomSession, GetUserProfile, GetVoltLayout, IsTouchLayout, localizeWithFallback } from '../../api';
 import { Flex, LayoutItemCountView } from '../../common';
 import { GuideToolEvent } from '../../events';
 import { useGroupForumUnreadStore } from '../../state/groupForumUnreadStore';
@@ -19,6 +19,8 @@ export const ToolbarMeView: FC<
 
     useEffect(() =>
     {
+        if (IsTouchLayout(GetVoltLayout())) return;
+
         const roomSession = GetRoomSession();
 
         if (!roomSession) return;
@@ -28,19 +30,28 @@ export const ToolbarMeView: FC<
 
     useEffect(() =>
     {
-        const onClick = (event: MouseEvent) =>
+        const isTouch = IsTouchLayout(GetVoltLayout());
+        const onOutside = (event: Event) =>
         {
-            if (elementRef.current && elementRef.current.contains(event.target as Node)) return;
+            const target = event.target as HTMLElement | null;
+
+            if (elementRef.current && target && elementRef.current.contains(target)) return;
+            if (isTouch && target?.closest('.tb-memenu-avatar')) return;
 
             setMeExpanded(false);
         };
 
-        const timeout = window.setTimeout(() => document.addEventListener('click', onClick), 0);
+        const timeout = window.setTimeout(() =>
+        {
+            document.addEventListener('click', onOutside);
+            if (isTouch) document.addEventListener('pointerdown', onOutside);
+        }, 0);
 
         return () =>
         {
             window.clearTimeout(timeout);
-            document.removeEventListener('click', onClick);
+            document.removeEventListener('click', onOutside);
+            if (isTouch) document.removeEventListener('pointerdown', onOutside);
         };
     }, [setMeExpanded]);
 

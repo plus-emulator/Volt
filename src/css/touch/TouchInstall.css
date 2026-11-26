@@ -215,6 +215,11 @@
         left: calc(50% - 20px);
     }
 
+    &.is-bottom-left {
+        bottom: calc(var(--volt-safe-bottom, 0px) + 6px);
+        left: calc(28% - 20px);
+    }
+
     &.is-bottom-right {
         right: 18px;
         bottom: calc(var(--volt-safe-bottom, 0px) + 6px);

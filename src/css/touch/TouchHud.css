@@ -108,6 +108,7 @@ html[data-volt-layout='phone-landscape'] {
     display: flex;
     justify-content: center;
     pointer-events: none;
+    touch-action: pan-x;
 }
 
 .volt-touch-toolbar--phone-landscape .volt-touch-toolbar__popup {
@@ -119,12 +120,24 @@ html[data-volt-layout='phone-landscape'] {
 }
 
 .volt-touch-toolbar .volt-toolbar-me-popup {
+    min-width: 0 !important;
+    width: auto;
     max-width: 100%;
     height: auto;
-    flex-wrap: wrap;
-    justify-content: center;
+    flex-wrap: nowrap !important;
+    justify-content: flex-start !important;
     gap: 4px;
-    padding: 8px;
+    padding: 8px 10px 6px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+}
+
+.volt-touch-toolbar .volt-toolbar-me-popup::-webkit-scrollbar {
+    display: none;
 }
 
 .volt-touch-toolbar .volt-toolbar-me-popup::after {
@@ -133,15 +146,15 @@ html[data-volt-layout='phone-landscape'] {
 
 .volt-touch-toolbar .volt-toolbar-me-popup .tbme-item,
 .volt-touch-toolbar .volt-toolbar-me-popup .tbme-item:has(.icon-me-helper-tool) {
-    width: 68px;
+    width: 72px;
     height: 62px;
-    flex: 0 0 68px;
+    flex: 0 0 72px;
 }
 
 .volt-touch-toolbar .volt-toolbar-me-popup .tbme-item > .volt-icon,
 .volt-touch-toolbar .volt-toolbar-me-popup .tbme-item > [class^="icon-me-"] {
     top: 0;
-    left: 12px;
+    left: 14px;
     width: 44px;
     height: 44px;
     background-position: center;
@@ -151,6 +164,7 @@ html[data-volt-layout='phone-landscape'] {
 
 .volt-touch-toolbar .volt-toolbar-me-popup .tbme-item > span:last-of-type {
     top: 45px;
+    font-size: 10px;
     overflow: hidden;
     text-overflow: ellipsis;
 }

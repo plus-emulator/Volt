@@ -1,7 +1,7 @@
-import { CreateLinkEvent, FindNewFriendsMessageComposer, RewardTrackData } from '@volt/renderer';
+import { CreateLinkEvent, FindNewFriendsMessageComposer, GetRoomEngine, RewardTrackData, RoomObjectCategory } from '@volt/renderer';
 import { AnimatePresence, motion } from 'framer-motion';
 import { FC, ReactNode, useState } from 'react';
-import { IsTabletLayout, localizeWithFallback, MessengerIconState, OpenMessengerChat, SendMessageComposer, VisitDesktop, VoltLayout } from '../../api';
+import { GetRoomSession, IsTabletLayout, localizeWithFallback, MessengerIconState, OpenMessengerChat, SendMessageComposer, VisitDesktop, VoltLayout } from '../../api';
 import memenuBgImg from '../../assets/images/toolbar/air/memenu-bg.png';
 import memenuCircleImg from '../../assets/images/toolbar/air/memenu-circle.png';
 import { LayoutAvatarImageView } from '../../common';
@@ -95,6 +95,12 @@ export const ToolbarTouchView: FC<ToolbarTouchViewProps> = (props) => {
     );
 
     const meExtras = [
+        isInRoom &&
+            meItem('myhabbo', 'me-profile', localizeWithFallback('widget.memenu.actions', 'Actions'), () => {
+                const roomSession = GetRoomSession();
+
+                if (roomSession) GetRoomEngine().selectRoomObject(roomSession.roomId, roomSession.ownRoomIndex, RoomObjectCategory.UNIT);
+            }),
         isLandscapePhone &&
             meItem(
                 'home',
