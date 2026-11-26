@@ -88,13 +88,13 @@ html[data-volt-touch='on'] .draggable-window[data-volt-window='dock'] {
     right: 0 !important;
     bottom: 0 !important;
     left: auto !important;
-    width: min(var(--volt-dock-width), 60vw);
+    width: min(var(--volt-dock-width), 60vw) !important;
     padding-right: var(--volt-safe-right);
 }
 
 /* Landscape phones are short, so docked windows take the width right of the toolbar icons and keep them usable. */
 html[data-volt-layout='phone-landscape'] .draggable-window[data-volt-window='dock'] {
-    width: min(760px, calc(100vw - var(--volt-toolbar-width, 300px) - 4px));
+    width: min(760px, calc(100vw - var(--volt-toolbar-width, 300px) - 4px)) !important;
 }
 
 html[data-volt-touch='on'] .draggable-window[data-volt-window='dialog'] {
