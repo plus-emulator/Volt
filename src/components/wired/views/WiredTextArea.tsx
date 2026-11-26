@@ -1,5 +1,5 @@
 import { FC, useLayoutEffect, useRef, useState } from 'react';
-import { IsTouchLayout, useVoltLayout } from '../../../api';
+import { IsTouchLayout, useVoltLayout } from '../../../api/touch';
 import atlas from '../../../assets/images/friends/swf/illumina_light_input_chat.png';
 import skinXml from '../../../assets/images/wired/native/input-border.xml?raw';
 import { parseNativeSkin } from '../../mod-tools/native/NativeSkin';

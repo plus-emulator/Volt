@@ -1,6 +1,6 @@
 import { FC, useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { IsTouchLayout, useVoltLayout } from '../../../api';
+import { IsTouchLayout, useVoltLayout } from '../../../api/touch';
 import { HabboDropMenuView } from '../../../common/dropmenu/HabboDropMenuView';
 import { useWiredNative } from './WiredNativeContext';
 

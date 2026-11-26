@@ -1,6 +1,6 @@
 import { FC, useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { IsTouchLayout, useVoltLayout } from '../../../api';
+import { IsTouchLayout, useVoltLayout } from '../../../api/touch';
 import { NativeText } from '../../../common/native-text/NativeText';
 import { WiredInputBorderSkin } from './WiredInputBorderSkin';
 import { useWiredNative } from './WiredNativeContext';

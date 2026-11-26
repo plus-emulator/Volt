@@ -1,5 +1,6 @@
 import { ChangeEvent, FC, useEffect, useRef, useState } from 'react';
-import { IsTouchLayout, localizeWithFallback, useVoltLayout } from '../../../api';
+import { localizeWithFallback } from '../../../api';
+import { IsTouchLayout, useVoltLayout } from '../../../api/touch';
 
 export interface WiredNumberInputProps {
     value: number;
