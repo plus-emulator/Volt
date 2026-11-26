@@ -12,7 +12,7 @@ import {
     RoomEngineTriggerWidgetEvent,
     RoomWidgetEnum
 } from '@volt/renderer';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ICraftingIngredient, ICraftingRecipe, LocalizeText, SendMessageComposer } from '../../../../api';
 import { useMessageEvent, useVoltEvent } from '../../../events';
 import { useInventoryFurni } from '../../../inventory';
@@ -20,6 +20,7 @@ import { useNotification } from './../../../notification';
 
 const useFurnitureCraftingWidgetState = () => {
     const [objectId, setObjectId] = useState(-1);
+    const requestedObjectId = useRef(-1);
     const [recipes, setRecipes] = useState<ICraftingRecipe[]>([]);
     const [selectedRecipe, setSelectedRecipe] = useState<ICraftingRecipe>(null);
     const [ingredients, setIngredients] = useState<ICraftingIngredient[]>([]);
@@ -39,6 +40,7 @@ const useFurnitureCraftingWidgetState = () => {
     };
 
     const onClose = () => {
+        requestedObjectId.current = -1;
         setObjectId(-1);
         resetData();
     };
@@ -60,7 +62,7 @@ const useFurnitureCraftingWidgetState = () => {
     useVoltEvent<RoomEngineTriggerWidgetEvent>(RoomEngineTriggerWidgetEvent.OPEN_WIDGET, (event) => {
         if (event.widget !== RoomWidgetEnum.CRAFTING) return;
 
-        setObjectId(event.objectId);
+        requestedObjectId.current = event.objectId;
         resetData();
         SendMessageComposer(new GetCraftableProductsComposer(event.objectId));
     });
@@ -69,10 +71,12 @@ const useFurnitureCraftingWidgetState = () => {
         const parser = event.getParser();
 
         if (!parser.isActive()) {
-            setObjectId(-1);
+            onClose();
 
             return;
         }
+
+        setObjectId(requestedObjectId.current);
 
         setRecipes((prevValue) => {
             const newValue: ICraftingRecipe[] = [];
