@@ -51,6 +51,7 @@ const measureSelectorHeight = (sections: SelectorSection[]) => {
 
 export const ChatInputHabbiconSelectorView: FC = () => {
     const catalog = useHabbiconCatalog();
+    const selectorLabel = localizeWithFallback('habbicons.hud.title', 'Habicons');
     const [selectorVisible, setSelectorVisible] = useState(false);
     const [search, setSearch] = useState('');
 
@@ -110,7 +111,7 @@ export const ChatInputHabbiconSelectorView: FC = () => {
             }}
         >
             <Popover.Trigger asChild>
-                <button className="habbicon-chat-trigger" title={localizeWithFallback('habbicons.hud.title', 'Habicons')} type="button">
+                <button aria-label={selectorLabel} className="habbicon-chat-trigger" title={selectorLabel} type="button">
                     {/* chat_extra_set_icon stays hidden until a set has been used */}
                     {!!catalog.lastUsedCollectionId && <LayoutHabbiconImageView collection outlined id={catalog.lastUsedCollectionId} size={22} />}
                     {!selectorVisible && catalog.unseenCount > 0 && <span className="habbicon-unseen-count">{catalog.unseenCount}</span>}

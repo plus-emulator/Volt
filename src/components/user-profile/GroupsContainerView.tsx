@@ -10,15 +10,17 @@ import { useMessageEvent } from '../../hooks';
 import { ProfileGroupDetailsView } from './ProfileGroupDetailsView';
 
 interface GroupsContainerViewProps {
+    isTouch: boolean;
     itsMe: boolean;
     groups: HabboGroupEntryData[];
     onLeaveGroup: () => void;
 }
 
-export const GroupsContainerView: FC<GroupsContainerViewProps> = ({ itsMe, groups = [], onLeaveGroup }) => {
+export const GroupsContainerView: FC<GroupsContainerViewProps> = ({ isTouch, itsMe, groups = [], onLeaveGroup }) => {
     const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
     const [groupInformation, setGroupInformation] = useState<GroupInformationParser | null>(null);
-    const currentGroupId = groups.some((group) => group.groupId === selectedGroupId) ? selectedGroupId : groups[0]?.groupId ?? null;
+    const currentGroup = groups.find((group) => group.groupId === selectedGroupId) ?? groups[0];
+    const currentGroupId = currentGroup?.groupId ?? null;
 
     const onGroupInformation = useCallback((event: GroupInformationEvent) => {
         const parser = event.getParser();
@@ -46,8 +48,9 @@ export const GroupsContainerView: FC<GroupsContainerViewProps> = ({ itsMe, group
                             <button type="button" className="volt-extended-profile-groups__select" aria-label={group.groupName}
                                 aria-pressed={currentGroupId === group.groupId} onClick={() => setSelectedGroupId(group.groupId)}>
                                 <LayoutBadgeImageView badgeCode={group.badgeCode} isGroup />
+                                {isTouch && <span>{group.groupName}</span>}
                             </button>
-                            {itsMe && (
+                            {itsMe && !isTouch && (
                                 <button type="button" className="volt-extended-profile-groups__favourite"
                                     aria-label={LocalizeText(group.favourite ? 'group.clearfavourite' : 'group.makefavourite')}
                                     onClick={() => { setSelectedGroupId(group.groupId); ToggleFavoriteGroup(group); }}>
@@ -71,7 +74,14 @@ export const GroupsContainerView: FC<GroupsContainerViewProps> = ({ itsMe, group
                             </button>
                         </div>
                     ) : groupInformation?.id === currentGroupId && (
-                        <ProfileGroupDetailsView groupInformation={groupInformation} onLeaveGroup={onLeaveGroup} />
+                        <>
+                            <ProfileGroupDetailsView groupInformation={groupInformation} onLeaveGroup={onLeaveGroup} />
+                            {isTouch && itsMe && <button type="button" className="volt-profile-group-favourite"
+                                onClick={() => ToggleFavoriteGroup(currentGroup)}>
+                                <img src={currentGroup.favourite ? clearFavourite : makeFavourite} alt="" />
+                                {LocalizeText(currentGroup.favourite ? 'group.clearfavourite' : 'group.makefavourite')}
+                            </button>}
+                        </>
                     )}
                 </div>
             </div>

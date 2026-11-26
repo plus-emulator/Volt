@@ -5,6 +5,7 @@ import { LayoutAvatarImageView } from '../../../../common/layout/LayoutAvatarIma
 export type TouchChatMode = 'say' | 'shout' | 'whisper';
 
 interface ChatInputTouchModeBarViewProps {
+    closeChat: () => void;
     mode: TouchChatMode;
     whisperTarget: string;
     whisperFigure: string;
@@ -16,7 +17,7 @@ interface ChatInputTouchModeBarViewProps {
 const keepFocus = (event: PointerEvent) => event.preventDefault();
 
 export const ChatInputTouchModeBarView: FC<ChatInputTouchModeBarViewProps> = (props) => {
-    const { mode, whisperTarget, whisperFigure, canWhisper, selectMode } = props;
+    const { closeChat, mode, whisperTarget, whisperFigure, canWhisper, selectMode } = props;
     const modes: { id: TouchChatMode; label: string; disabled?: boolean }[] = [
         { id: 'say', label: localizeWithFallback('widgets.chatinput.button.say', 'Say') },
         { id: 'shout', label: localizeWithFallback('widgets.chatinput.button.shout', 'Shout') },
@@ -54,6 +55,12 @@ export const ChatInputTouchModeBarView: FC<ChatInputTouchModeBarViewProps> = (pr
                     <span aria-hidden="true" className="volt-touch-chat-target-close" />
                 </button>
             )}
+            <button
+                aria-label={localizeWithFallback('generic.close', 'Close')}
+                className="volt-touch-chat-close"
+                type="button"
+                onClick={closeChat}
+            />
         </div>
     );
 };

@@ -13,9 +13,11 @@ import {
     filterFurnitureGroupItems,
     FURNI_MAIN_FILTER,
     FurniMainFilter,
+    IsPhoneLayout,
     LocalizeBadgeName,
     LocalizeText,
-    UnseenItemCategory
+    UnseenItemCategory,
+    useVoltLayout
 } from '../../api';
 import { VoltCardHeaderView, VoltCardTabsItemView, VoltCardTabsView, VoltCardView } from '../../common';
 import {
@@ -113,6 +115,7 @@ interface InventoryWindowProps {
 }
 
 export const InventoryWindow: FC<InventoryWindowProps> = ({ currentTab, setCurrentTab, roomSession, onClose }) => {
+    const isPhone = IsPhoneLayout(useVoltLayout());
     const [roomPreviewer, setRoomPreviewer] = useState<RoomPreviewer>(null);
     const [searchValue, setSearchValue] = useState('');
     const [appliedSearch, setAppliedSearch] = useState('');
@@ -205,7 +208,7 @@ export const InventoryWindow: FC<InventoryWindowProps> = ({ currentTab, setCurre
                 className={`volt-inventory-window max-w-[calc(100vw-16px)] ${isTrading ? (isTradeMinimized ? 'is-trading is-minimized' : `is-trading${hasCreditNote ? ' has-credit-note' : ''}`) : ''}`}
                 frameStyle={3}
                 resizeAxis="vertical"
-                touchPresentation="half"
+                touchPresentation={isPhone ? 'full' : 'half'}
                 uniqueKey="inventory"
             >
                 <VoltCardHeaderView headerText={LocalizeText('inventory.title')} onCloseClick={onClose} />

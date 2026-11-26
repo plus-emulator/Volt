@@ -1,21 +1,22 @@
 import { InfiniteGrid } from '@layout/InfiniteGrid';
 import { CSSProperties, FC, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { IPurchasableOffer, IsTouchLayout, Offer, useVoltLayout, VoltLayout } from '../../../../../api';
+import { IPurchasableOffer, IsPhoneLayout, IsTouchLayout, Offer, useVoltLayout, VoltLayout } from '../../../../../api';
 import { AutoGrid, AutoGridProps, ClassicScrollAreaView } from '../../../../../common';
 import { useCatalogActions, useCatalogData, useScrollWindow } from '../../../../../hooks';
 import { CatalogGridOfferView } from '../common/CatalogGridOfferView';
 import { getAirCatalogColumnCount, getVisibleAirGridEntries, isAirBaseCatalogOffer, layoutAirCatalogOffers } from '../common/catalogAirGrid.helpers';
 import { shouldVirtualizeCatalogOffers } from './catalogGridPerformance.helpers';
 
-/** Touch layouts use a fixed number of wider tiles so icons can show at 2x. */
+/** Tablets keep the six-column AIR grid. Phones fit whole tiles into the available pane. */
 const TOUCH_COLUMN_COUNTS: Partial<Record<VoltLayout, number>> = {
-    'phone-portrait': 4,
-    'phone-landscape': 4,
     'tablet-portrait': 6,
     'tablet-landscape': 6
 };
 
-const TOUCH_TILE_HEIGHT = 88;
+const TOUCH_TILE_HEIGHT = 90;
+const PHONE_TILE_WIDTH = 52;
+const PHONE_TILE_HEIGHT = 70;
+const PHONE_TILE_GAP = 4;
 
 interface CatalogItemGridWidgetViewProps extends AutoGridProps {
     showPrices?: boolean;
@@ -46,6 +47,7 @@ export const CatalogItemGridWidgetView: FC<CatalogItemGridWidgetViewProps> = (pr
 
     const layout = useVoltLayout();
     const isTouch = IsTouchLayout(layout);
+    const usesPhoneGrid = IsPhoneLayout(layout) && isAirStandardDensity;
     const offers = offersOverride ?? currentPage?.offers ?? [];
     const hasAirBaseOffer = offers.some((offer) => isAirBaseCatalogOffer(offer));
     const hasAirPricedOffer = offers.some((offer) => !isAirBaseCatalogOffer(offer));
@@ -59,7 +61,8 @@ export const CatalogItemGridWidgetView: FC<CatalogItemGridWidgetViewProps> = (pr
     const touchColumnCount = isAirStandardDensity && !usesAirMixedGridTemplate ? (TOUCH_COLUMN_COUNTS[layout] ?? null) : null;
     const airGridStyle = {
         ...style,
-        ...(isAirStandardDensity && { '--volt-air-column-count': (touchColumnCount ?? airColumnCount).toString() })
+        ...(isAirStandardDensity && { '--volt-air-column-count': (touchColumnCount ?? airColumnCount).toString() }),
+        ...(usesPhoneGrid && { '--volt-phone-tile-width': `${PHONE_TILE_WIDTH}px`, '--volt-touch-tile-height': `${PHONE_TILE_HEIGHT}px` })
     } as CSSProperties;
     const mixedLayout = useMemo(() => layoutAirCatalogOffers(offers, airColumnCount), [airColumnCount, offers]);
     const bundleCounterByOffer = useMemo(() => {
@@ -91,7 +94,7 @@ export const CatalogItemGridWidgetView: FC<CatalogItemGridWidgetViewProps> = (pr
     );
 
     useLayoutEffect(() => {
-        if (!isAirStandardDensity || !offers.length) {
+        if (usesPhoneGrid || !isAirStandardDensity || !offers.length) {
             setAirColumnCount(columnCount);
             return;
         }
@@ -119,7 +122,7 @@ export const CatalogItemGridWidgetView: FC<CatalogItemGridWidgetViewProps> = (pr
         observer.observe(element);
 
         return () => observer.disconnect();
-    }, [columnCount, isAirStandardDensity, offers]);
+    }, [columnCount, isAirStandardDensity, offers, usesPhoneGrid]);
 
     if (!currentPage) return null;
 
@@ -182,15 +185,15 @@ export const CatalogItemGridWidgetView: FC<CatalogItemGridWidgetViewProps> = (pr
             >
                 <InfiniteGrid
                     classicScrollbar
-                    airColumnAdmission={isAirStandardDensity}
-                    columnGap={3}
+                    airColumnAdmission={isAirStandardDensity && !usesPhoneGrid}
+                    columnGap={usesPhoneGrid ? PHONE_TILE_GAP : 3}
                     columnCount={touchColumnCount ?? columnCount}
-                    estimateSize={touchColumnCount ? TOUCH_TILE_HEIGHT : effectiveColumnMinHeight}
-                    itemMinWidth={touchColumnCount ? 0 : effectiveColumnMinWidth}
+                    estimateSize={usesPhoneGrid ? PHONE_TILE_HEIGHT + PHONE_TILE_GAP : touchColumnCount ? TOUCH_TILE_HEIGHT : effectiveColumnMinHeight}
+                    itemMinWidth={usesPhoneGrid ? PHONE_TILE_WIDTH : touchColumnCount ? 0 : effectiveColumnMinWidth}
                     items={offers}
                     overscan={4}
-                    rowGap={isAirStandardDensity ? 0 : 3}
-                    onColumnCountChange={isAirStandardDensity ? setAirColumnCount : undefined}
+                    rowGap={usesPhoneGrid ? PHONE_TILE_GAP : isAirStandardDensity ? 0 : 3}
+                    onColumnCountChange={isAirStandardDensity && !usesPhoneGrid ? setAirColumnCount : undefined}
                     itemRender={(offer, index) => (offer ? renderOfferTile(offer, index) : <></>)}
                 />
                 {children}

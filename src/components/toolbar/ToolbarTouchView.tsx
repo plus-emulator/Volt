@@ -1,7 +1,7 @@
 import { CreateLinkEvent, FindNewFriendsMessageComposer, GetRoomEngine, RewardTrackData, RoomObjectCategory } from '@volt/renderer';
 import { AnimatePresence, motion } from 'framer-motion';
-import { FC, ReactNode, useLayoutEffect, useRef, useState } from 'react';
-import { GetRoomSession, IsTabletLayout, localizeWithFallback, MessengerIconState, OpenMessengerChat, SendMessageComposer, VisitDesktop, VoltLayout } from '../../api';
+import { FC, ReactNode, useState } from 'react';
+import { DispatchUiEvent, GetRoomSession, IsPhoneLayout, IsTabletLayout, localizeWithFallback, MessengerIconState, OpenMessengerChat, RoomWidgetUpdateChatInputContentEvent, SendMessageComposer, VisitDesktop, VoltLayout } from '../../api';
 import chatStylesImg from '../../assets/images/chat-input-swf/chat_styles.png';
 import memenuBgImg from '../../assets/images/toolbar/air/memenu-bg.png';
 import memenuCircleImg from '../../assets/images/toolbar/air/memenu-circle.png';
@@ -68,9 +68,8 @@ export const ToolbarTouchView: FC<ToolbarTouchViewProps> = (props) => {
     } = props;
     const [isMeExpanded, setMeExpanded] = useState(false);
     const [isProgressionExpanded, setProgressionExpanded] = useState(false);
-    const groupRef = useRef<HTMLElement>(null);
     const isTablet = IsTabletLayout(layout);
-    const isLandscapePhone = layout === 'phone-landscape';
+    const isPhone = IsPhoneLayout(layout);
     const homeIcon = isInRoom ? 'habbo' : 'house';
     const goHome = () => (isInRoom ? VisitDesktop() : CreateLinkEvent('navigator/goto/home'));
 
@@ -103,7 +102,7 @@ export const ToolbarTouchView: FC<ToolbarTouchViewProps> = (props) => {
 
                 if (roomSession) GetRoomEngine().selectRoomObject(roomSession.roomId, roomSession.ownRoomIndex, RoomObjectCategory.UNIT);
             }),
-        isLandscapePhone &&
+        isPhone &&
             meItem(
                 'home',
                 homeIcon,
@@ -173,80 +172,14 @@ export const ToolbarTouchView: FC<ToolbarTouchViewProps> = (props) => {
         </div>
     );
 
-    useLayoutEffect(() => {
-        const group = groupRef.current;
-        const root = document.documentElement;
-
-        if (!group || layout !== 'phone-landscape') return;
-
-        const update = () => {
-            const right = Math.max(group.getBoundingClientRect().left, ...Array.from(group.children, (child) => child.getBoundingClientRect().right));
-
-            root.style.setProperty('--volt-toolbar-width', `${Math.ceil(right)}px`);
-        };
-        const observer = new ResizeObserver(update);
-
-        update();
-        observer.observe(group);
-        window.addEventListener('resize', update);
-
-        return () => {
-            observer.disconnect();
-            window.removeEventListener('resize', update);
-            root.style.removeProperty('--volt-toolbar-width');
-        };
-    }, [layout]);
-
-    useLayoutEffect(() => {
-        const root = document.documentElement;
-
-        if (layout !== 'phone-landscape') return;
-
-        let timer = 0;
-        const chat = () => document.getElementById('toolbar-chat-input-container');
-        const isKept = (element: Element | null) =>
-            !!element && (!!chat()?.contains(element) || !!element.closest?.('[data-radix-popper-content-wrapper], .volt-touch-chat-open'));
-        const close = () => {
-            if (!root.dataset.voltChatOpen || chat()?.querySelector('input')?.value) return;
-
-            chat()?.querySelector('input')?.blur();
-            delete root.dataset.voltChatOpen;
-        };
-
-        const onFocusOut = (event: FocusEvent) => {
-            if (!chat()?.contains(event.target as Node)) return;
-
-            window.clearTimeout(timer);
-            timer = window.setTimeout(() => {
-                if (!isKept(document.activeElement)) close();
-            }, 200);
-        };
-
-        // The room canvas cancels touches, so a tap there never blurs the input.
-        const onTouchOutside = (event: Event) => {
-            if (!isKept(event.target as Element)) close();
-        };
-
-        document.addEventListener('focusout', onFocusOut, true);
-        document.addEventListener('pointerdown', onTouchOutside, true);
-        document.addEventListener('touchstart', onTouchOutside, true);
-
-        return () => {
-            window.clearTimeout(timer);
-            document.removeEventListener('focusout', onFocusOut, true);
-            document.removeEventListener('pointerdown', onTouchOutside, true);
-            document.removeEventListener('touchstart', onTouchOutside, true);
-            delete root.dataset.voltChatOpen;
-        };
-    }, [layout]);
-
     const openChat = () => {
-        document.documentElement.dataset.voltChatOpen = 'true';
-        document.querySelector<HTMLInputElement>('#toolbar-chat-input-container input')?.focus();
+        setMeExpanded(false);
+        setProgressionExpanded(false);
+        DispatchUiEvent(new RoomWidgetUpdateChatInputContentEvent(RoomWidgetUpdateChatInputContentEvent.FOCUS, ''));
     };
 
     const slots = [
-        !isLandscapePhone && slot('home', homeIcon, goHome),
+        !isPhone && slot('home', homeIcon, goHome),
         slot('navigator', 'rooms', () => CreateLinkEvent('navigator/toggle')),
         slot('shop', 'catalog', () => CreateLinkEvent('catalog/toggle/normal')),
         isInRoom && slot('inventory', 'inventory', () => CreateLinkEvent('inventory/toggle'), <ToolbarUnseenCountView count={inventoryCount} />),
@@ -262,12 +195,13 @@ export const ToolbarTouchView: FC<ToolbarTouchViewProps> = (props) => {
                 null,
                 messengerState === MessengerIconState.UNREAD ? `is-notify-${messengerNotifyFrame}` : ''
             ),
-        isLandscapePhone && (
+        isPhone && isInRoom && (
             <div key="chat" className="volt-touch-toolbar__slot volt-touch-toolbar__slot--chat">
                 <button
                     type="button"
                     className="volt-touch-chat-open"
-                    aria-label={localizeWithFallback('widgets.chatinput.default', 'Chat')}
+                    aria-controls="toolbar-chat-input-container"
+                    aria-label={localizeWithFallback('toolbar.icon.label.chat', 'Chat')}
                     onClick={openChat}
                 >
                     <img src={chatStylesImg} alt="" />
@@ -311,7 +245,7 @@ export const ToolbarTouchView: FC<ToolbarTouchViewProps> = (props) => {
                     </motion.div>
                 )}
             </AnimatePresence>
-            <nav ref={groupRef} className="volt-touch-toolbar__group tb-nav-clip">
+            <nav className="volt-touch-toolbar__group tb-nav-clip">
                 {slots}
             </nav>
         </div>

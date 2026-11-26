@@ -4,7 +4,7 @@ import { useVoltLayout, VoltLayout } from '../../api/touch';
 /** How a window shows on touch screens. `auto` picks dialog for small windows and a full sheet for the rest. */
 export type TouchPresentation = 'auto' | 'full' | 'half' | 'dialog' | 'float';
 
-export type TouchWindowMode = 'float' | 'sheet' | 'dock' | 'dialog';
+export type TouchWindowMode = 'float' | 'screen' | 'sheet' | 'dock' | 'dialog';
 
 export type TouchDock = 'right' | 'bottom' | null;
 
@@ -28,6 +28,8 @@ export const CloseTouchWindow = (element: HTMLElement | null) => {
 
 const resolveMode = (layout: VoltLayout, presentation: TouchPresentation, isSmall: boolean, isWide: boolean, dock: TouchDock): TouchWindowMode => {
     if (layout === 'desktop' || presentation === 'float') return 'float';
+
+    if (presentation === 'full' && layout.startsWith('phone')) return 'screen';
 
     const wantsDialog = presentation === 'dialog' || (presentation === 'auto' && isSmall);
 
@@ -59,11 +61,6 @@ interface TouchWindowOptions {
     presentation: TouchPresentation;
 }
 
-/**
- * Touch layouts for every draggable window. Phone portrait shows sheets that snap between half and full
- * height and close on a swipe down. Phone landscape docks windows on the right. Tablets keep floating
- * windows that dock right (landscape) or bottom (portrait) when dropped near that edge.
- */
 export const useTouchWindow = ({ elementRef, dragHandler, presentation }: TouchWindowOptions) => {
     const layout = useVoltLayout();
     const [natural, setNatural] = useState<{ width: number; height: number } | null>(null);

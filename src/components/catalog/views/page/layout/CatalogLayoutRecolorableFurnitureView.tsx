@@ -1,6 +1,6 @@
 import { GetRecolorableFurnitureColors, MapDataType } from '@volt/renderer';
 import { CSSProperties, FC, useEffect, useMemo, useState } from 'react';
-import { ApplyRecolorableColorToPage, CreateRecolorableStuffData, GetRecolorableColorParam, LocalizeText } from '../../../../../api';
+import { ApplyRecolorableColorToPage, CreateRecolorableStuffData, GetRecolorableColorParam, GetVoltLayout, LocalizeText } from '../../../../../api';
 import { ClassicScrollAreaView } from '../../../../../common';
 import { NativeText } from '../../../../../common/native-text/NativeText';
 import { useCatalogActions, useCatalogData, useCatalogUiState } from '../../../../../hooks';
@@ -37,7 +37,7 @@ export const CatalogLayoutRecolorableFurnitureView: FC<CatalogLayoutProps> = (pr
     // onWidgetsInitialized (RecolorableFurnitureCatalogWidget.as:66): the page opens on its first offer.
     useEffect(() =>
     {
-        if (!page?.offers.length || !selectCatalogOffer) return;
+        if (!page?.offers.length || !selectCatalogOffer || GetVoltLayout() === 'phone-portrait') return;
 
         selectCatalogOffer(page.offers[0]);
     }, [page, selectCatalogOffer]);

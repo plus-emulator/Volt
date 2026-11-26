@@ -1,30 +1,9 @@
-/* TouchNavigator: the navigator as a phone sheet (portrait) or dock (landscape). The AIR frame keeps its look with the
-   touch header; the panes stack: search, saved search chips, results, then Create and Random. */
-
 html[data-volt-device='phone'] .volt-navigator-air {
-    --nav-touch-header: 48px;
+    --nav-touch-header: var(--volt-screen-header);
     filter: none;
 }
 
-html[data-volt-layout='phone-landscape'] .volt-navigator-air {
-    --nav-touch-header: 44px;
-}
-
-/* ---------- Frame and header ---------- */
-
 html[data-volt-device='phone'] .volt-navigator-air__skin {
-    border-width: var(--nav-touch-header) 10px 10px !important;
-    border-image-source: url('../../assets/images/habbo-skin/touch/frame-touch-48.png') !important;
-    border-image-slice: 48 10 10 10 fill !important;
-    border-image-width: var(--nav-touch-header) 10px 10px 10px !important;
-}
-
-html[data-volt-layout='phone-landscape'] .volt-navigator-air__skin {
-    border-image-source: url('../../assets/images/habbo-skin/touch/frame-touch-44.png') !important;
-    border-image-slice: 44 10 10 10 fill !important;
-}
-
-html[data-volt-device='phone'] .volt-navigator-air__skin::before {
     display: none;
 }
 
@@ -50,20 +29,19 @@ html[data-volt-device='phone'] .volt-navigator-air__title > span {
     margin: -9px auto 0;
 }
 
-/* Close: the 27 x 28 touch sprite in a 38 x 44 hit area at the edge; help 7 px to its left in a 34 x 44 area. */
 html[data-volt-device='phone'] .volt-navigator-air__close,
 html[data-volt-device='phone'] .volt-navigator-air__close:is(:hover, :active) {
     top: 0;
     right: 0;
-    width: 38px !important;
+    width: var(--volt-touch-target) !important;
     height: var(--nav-touch-header) !important;
     background: url('../../assets/images/habbo-skin/touch/close-touch.png') left 4px center / 27px 28px no-repeat !important;
 }
 
 html[data-volt-device='phone'] .volt-navigator-air__close.volt-navigator-air__help,
 html[data-volt-device='phone'] .volt-navigator-air__close.volt-navigator-air__help:is(:hover, :active) {
-    right: 38px;
-    width: 34px !important;
+    right: var(--volt-touch-target);
+    width: var(--volt-touch-target) !important;
     background: url('../../assets/images/habbo-skin/touch/help-touch.png') right 3px center / 27px 28px no-repeat !important;
 }
 
@@ -153,7 +131,7 @@ html[data-volt-device='phone'] .volt-navigator-air__body,
 html[data-volt-device='phone'] .volt-navigator-air.is-quick-links .volt-navigator-air__body {
     top: calc(var(--nav-touch-header) + 41px);
     right: 8px;
-    bottom: calc(8px + var(--volt-safe-bottom));
+    bottom: 8px;
     left: 8px;
     width: auto;
     height: auto;
@@ -321,6 +299,7 @@ html[data-volt-device='phone'] .volt-navigator-air__results {
     width: auto;
     max-width: none;
     margin: 8px 0 0;
+    background-color: #fff;
     overflow-y: auto;
     overscroll-behavior: contain;
 }

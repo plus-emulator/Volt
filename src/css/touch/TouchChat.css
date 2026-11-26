@@ -1,31 +1,55 @@
-/* TouchChat */
+html[data-volt-touch='on'] .volt-touch-chat-slot {
+    position: fixed;
+    z-index: 72 !important;
+    height: 44px;
+}
 
-/* Chat input inside the toolbar's chat slot: the 44 px AIR chat input bubble, with the Say / Shout / Whisper bar above it while typing. */
+html[data-volt-device='phone']:not([data-volt-chat-open]) .volt-touch-chat-slot,
+html[data-volt-device='tablet'][data-volt-keyboard='open']:not([data-volt-chat-open]) .volt-touch-chat-slot {
+    display: none;
+}
+
+html[data-volt-device='tablet'] .volt-touch-chat-slot {
+    bottom: calc(var(--volt-toolbar-height) + 8px);
+    left: 50%;
+    width: min(520px, calc(100vw - 32px));
+    margin-left: calc(min(520px, calc(100vw - 32px)) / -2);
+}
+
+html[data-volt-device='phone'][data-volt-chat-open] :is(.volt-touch-toolbar, .volt-touch-infosheet),
+html[data-volt-device='tablet'][data-volt-chat-open][data-volt-keyboard='open'] .volt-touch-toolbar {
+    display: none;
+}
+
 .volt-touch-chat {
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 2px;
     width: 100%;
     min-width: 0;
     font-family: Ubuntu, sans-serif;
     image-rendering: var(--volt-pixel-art, pixelated);
 }
 
-/* Keyboard open: the slot becomes a HUD strip on the keyboard, the bar touching it with no gap. */
-html[data-volt-touch='on'][data-volt-keyboard='open'] .volt-touch-chat-slot {
+html[data-volt-device='phone'][data-volt-chat-open] .volt-touch-chat-slot,
+html[data-volt-device='tablet'][data-volt-keyboard='open'][data-volt-chat-open] .volt-touch-chat-slot {
     right: 0;
     bottom: var(--volt-keyboard-inset, 0px);
     left: 0;
     width: auto;
     height: auto;
     margin-left: 0;
-    padding: 8px calc(8px + var(--volt-safe-right, 0px)) 0 calc(8px + var(--volt-safe-left, 0px));
+    padding: 4px calc(8px + var(--volt-safe-right, 0px)) var(--volt-safe-bottom, 0px) calc(8px + var(--volt-safe-left, 0px));
     border-top: 1px solid #000000;
     background: var(--volt-hud-strip, rgba(46, 45, 41, 0.78));
 }
 
-html[data-volt-device='tablet'][data-volt-keyboard='open'] .volt-touch-chat {
+html[data-volt-touch='on'][data-volt-keyboard='open'][data-volt-chat-open] .volt-touch-chat-slot {
+    padding-bottom: 0;
+}
+
+html[data-volt-chat-open] .volt-touch-chat {
     max-width: 520px;
     margin: 0 auto;
 }
@@ -35,16 +59,15 @@ html[data-volt-device='tablet'][data-volt-keyboard='open'] .volt-touch-chat {
     display: none;
     align-items: center;
     gap: 8px;
-    height: 36px;
+    height: 44px;
 }
 
-html[data-volt-keyboard='open'] .volt-touch-chat-modes,
-.volt-touch-chat:focus-within .volt-touch-chat-modes {
+html[data-volt-chat-open] .volt-touch-chat-modes {
     display: flex;
 }
 
 /* Hardware keyboard: the slot keeps its place, so the mode bar floats above the bar. */
-html[data-volt-keyboard='closed'] .volt-touch-chat:focus-within .volt-touch-chat-modes {
+html[data-volt-device='tablet'][data-volt-keyboard='closed'][data-volt-chat-open] .volt-touch-chat-modes {
     position: absolute;
     right: 0;
     bottom: calc(100% + 8px);
@@ -53,15 +76,16 @@ html[data-volt-keyboard='closed'] .volt-touch-chat:focus-within .volt-touch-chat
 
 .volt-touch-chat-mode-group {
     display: flex;
-    flex: 0 1 252px;
+    flex: 1 1 200px;
+    max-width: 252px;
     min-width: 0;
-    height: 36px;
+    height: 44px;
 }
 
 .volt-touch-chat-mode {
     flex: 1 1 0;
     min-width: 0;
-    height: 36px;
+    height: 44px;
     margin: 0 -1px 0 0;
     padding: 0 8px;
     border-style: solid;
@@ -101,14 +125,22 @@ html[data-volt-keyboard='closed'] .volt-touch-chat:focus-within .volt-touch-chat
     cursor: default;
 }
 
+.volt-touch-chat-close {
+    flex: 0 0 44px;
+    height: 44px;
+    margin-left: auto;
+    padding: 0;
+    border: 0;
+    background: url('../../assets/images/habbo-skin/touch/close-touch.png') center / 27px 28px no-repeat;
+}
+
 .volt-touch-chat-target {
     display: flex;
-    flex: 0 1 auto;
+    flex: 0 2 auto;
     align-items: center;
     gap: 6px;
     min-width: 0;
-    height: 36px;
-    margin-left: auto;
+    height: 44px;
     padding: 0 10px 0 4px;
     border-style: solid;
     border-width: 0;
@@ -180,7 +212,7 @@ html[data-volt-keyboard='closed'] .volt-touch-chat:focus-within .volt-touch-chat
 .volt-touch-chat-bar .swf-chat-style-trigger {
     position: relative;
     flex: none;
-    width: 34px;
+    width: 44px;
     height: 44px;
     margin-left: -4px;
 }
@@ -191,7 +223,7 @@ html[data-volt-keyboard='closed'] .volt-touch-chat:focus-within .volt-touch-chat
 
 .volt-touch-chat-bar .swf-chat-style-icon {
     position: absolute;
-    left: 8px;
+    left: 13px;
     top: 12px;
     width: 17px;
     height: 19px;
@@ -206,7 +238,7 @@ html[data-volt-keyboard='closed'] .volt-touch-chat:focus-within .volt-touch-chat
     height: 44px;
 }
 
-.volt-touch-chat-input {
+html[data-volt-touch='on'] input.volt-touch-chat-input[type='text'] {
     width: 100%;
     min-width: 0;
     height: 44px;
@@ -234,13 +266,13 @@ html[data-volt-keyboard='closed'] .volt-touch-chat:focus-within .volt-touch-chat
 
 .volt-touch-chat-bar .habbicon-chat-trigger {
     flex: none;
-    width: 36px;
+    width: 44px;
     height: 44px;
-    margin-right: 10px;
+    margin: 0;
 }
 
 .volt-touch-chat-bar .habbicon-chat-trigger:not(:has(img)) {
-    background: url('../../assets/images/chat-input-swf/sticky_note.png') center / 36px 38px no-repeat;
+    background: url('../../assets/images/habbicons/use_habbicon_duck_only.png') center no-repeat;
 }
 
 /* AIR shiny green button at its real 30 px height, centred in a 44 px hit area. */
@@ -285,8 +317,7 @@ html[data-volt-keyboard='closed'] .volt-touch-chat:focus-within .volt-touch-chat
     border-image-source: url('../../assets/images/habbo-skin/touch/btn-disabled-h30.png');
 }
 
-html[data-volt-keyboard='open'] .volt-touch-chat-send,
-.volt-touch-chat:focus-within .volt-touch-chat-send,
+html[data-volt-chat-open] .volt-touch-chat-send,
 .volt-touch-chat-bar:has(.volt-touch-chat-input:not(:placeholder-shown)) .volt-touch-chat-send {
     display: block;
 }
@@ -296,7 +327,7 @@ html[data-volt-touch='on'] .volt-chat-viewer {
     top: calc(60px + var(--volt-safe-top, 0px));
 }
 
-html[data-volt-touch='on'][data-volt-keyboard='open'] .volt-chat-viewer {
+html[data-volt-chat-open][data-volt-keyboard='open'] .volt-chat-viewer {
     top: min(calc(60px + var(--volt-safe-top, 0px)), calc(var(--volt-visual-height, 100vh) - 104px - var(--volt-chat-viewer-height, 0px)));
 }
 
@@ -449,21 +480,27 @@ html[data-volt-touch='on'][data-volt-keyboard='open'] .volt-chat-viewer {
     text-align: center;
 }
 
-/* The picker opens from the bar's right end; on touch it is pinned inside the screen above the chat bar. */
+html[data-volt-chat-open] .swf-chat-style-menu {
+    max-width: calc(100vw - var(--volt-safe-left) - var(--volt-safe-right) - 16px);
+    max-height: var(--radix-popover-content-available-height);
+    overflow: auto;
+}
+
+html[data-volt-device='phone'][data-volt-chat-open],
+html[data-volt-device='tablet'][data-volt-keyboard='open'][data-volt-chat-open] {
+    --volt-chat-picker-bottom: calc(var(--volt-keyboard-inset) + 98px);
+}
+
 html[data-volt-touch='on'] [data-radix-popper-content-wrapper]:has(> .habbicon-selector-popover) {
     position: fixed !important;
     top: auto !important;
     right: calc(8px + var(--volt-safe-right)) !important;
-    bottom: calc(var(--volt-toolbar-height, 58px) + 56px + var(--volt-keyboard-inset)) !important;
+    bottom: var(--volt-chat-picker-bottom, calc(var(--volt-toolbar-height) + 100px)) !important;
     left: auto !important;
     transform: none !important;
 }
 
-html[data-volt-keyboard='open'] [data-radix-popper-content-wrapper]:has(> .habbicon-selector-popover) {
-    bottom: calc(var(--volt-keyboard-inset) + 104px) !important;
-}
-
 html[data-volt-touch='on'] .habbicon-selector-popover {
-    max-height: calc(var(--volt-visual-height, 100dvh) - var(--volt-toolbar-height, 58px) - 140px);
+    max-height: calc(var(--volt-visual-height, 100dvh) - var(--volt-safe-top) - 108px);
     overflow-y: auto;
 }

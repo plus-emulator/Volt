@@ -1,8 +1,7 @@
-import { FC, PointerEvent, ReactNode, useRef, useState } from 'react';
+import { FC, PointerEvent, ReactNode, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { LocalizeText } from '../../../../../api';
+import { LocalizeText, useVoltLayout } from '../../../../../api';
 
-/** Dragging the header further down than this closes the sheet. */
 const CLOSE_DRAG_PX = 72;
 
 interface TouchInfoSheetViewProps {
@@ -14,48 +13,76 @@ interface TouchInfoSheetViewProps {
 
 /** The touch InfoStand: a bottom sheet (phone) or touch-sized panel (tablet) with the 44 px AIR header. */
 export const TouchInfoSheetView: FC<TouchInfoSheetViewProps> = ({ title, className = '', onClose, children }) => {
-    const [dragY, setDragY] = useState(0);
-    const dragStartRef = useRef<number>(null);
+    const fromRight = useVoltLayout() === 'phone-landscape';
+    const [dragDistance, setDragDistance] = useState(0);
+    const sheetRef = useRef<HTMLDivElement>(null);
+    const dragRef = useRef<{ pointerId: number; start: number } | null>(null);
+    const exitRef = useRef<Animation | null>(null);
+
+    useEffect(() => () => exitRef.current?.cancel(), []);
+
+    const close = () => {
+        const sheet = sheetRef.current;
+
+        if (!sheet || exitRef.current) return;
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            onClose();
+            return;
+        }
+
+        sheet.inert = true;
+        const animation = sheet.animate(
+            [{ transform: getComputedStyle(sheet).transform }, { transform: 'var(--volt-info-exit)' }],
+            { duration: 160, easing: 'cubic-bezier(.4, 0, 1, 1)', fill: 'forwards' }
+        );
+
+        exitRef.current = animation;
+        animation.onfinish = onClose;
+    };
+
+    const pointerPosition = (event: PointerEvent<HTMLDivElement>) => fromRight ? event.clientX : event.clientY;
 
     const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
-        if ((event.target as HTMLElement).closest('button')) return;
+        if (!event.isPrimary || event.button !== 0 || (event.target as HTMLElement).closest('button')) return;
 
-        dragStartRef.current = event.clientY;
+        dragRef.current = { pointerId: event.pointerId, start: pointerPosition(event) };
         event.currentTarget.setPointerCapture(event.pointerId);
     };
 
     const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
-        if (dragStartRef.current === null) return;
+        const drag = dragRef.current;
 
-        setDragY(Math.max(0, event.clientY - dragStartRef.current));
+        if (drag?.pointerId !== event.pointerId) return;
+        setDragDistance(Math.max(0, pointerPosition(event) - drag.start));
     };
 
     const onPointerEnd = (event: PointerEvent<HTMLDivElement>) => {
-        if (dragStartRef.current === null) return;
+        const drag = dragRef.current;
 
-        const distance = event.clientY - dragStartRef.current;
+        if (drag?.pointerId !== event.pointerId) return;
+        dragRef.current = null;
 
-        dragStartRef.current = null;
-        setDragY(0);
-
-        if (event.type === 'pointerup' && distance > CLOSE_DRAG_PX) onClose();
+        if (event.type === 'pointerup' && pointerPosition(event) - drag.start > CLOSE_DRAG_PX) close();
+        else setDragDistance(0);
     };
 
     return createPortal(
         <div
             className={`volt-touch-infosheet ${className}`}
-            data-dragging={dragY > 0 ? '' : undefined}
-            style={dragY > 0 ? { transform: `translateY(${dragY}px)` } : undefined}
+            ref={sheetRef}
+            data-dragging={dragDistance > 0 ? '' : undefined}
+            style={dragDistance > 0 ? { transform: `translate${fromRight ? 'X' : 'Y'}(${dragDistance}px)` } : undefined}
         >
             <div
                 className="volt-touch-infosheet__header"
+                onLostPointerCapture={onPointerEnd}
                 onPointerCancel={onPointerEnd}
                 onPointerDown={onPointerDown}
                 onPointerMove={onPointerMove}
                 onPointerUp={onPointerEnd}
             >
                 <span className="volt-touch-infosheet__title">{title}</span>
-                <button type="button" className="volt-touch-infosheet__close" aria-label={LocalizeText('generic.close')} onClick={onClose} />
+                <button type="button" className="volt-touch-infosheet__close" aria-label={LocalizeText('generic.close')} onClick={close} />
             </div>
             <div className="volt-touch-infosheet__body">{children}</div>
         </div>,

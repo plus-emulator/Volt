@@ -685,3 +685,31 @@ html[data-volt-touch='on'] .volt-inventory-window {
 html[data-volt-touch='on'] .volt-inventory-window .volt-inventory-furni-preview {
     display: none;
 }
+
+html[data-volt-layout='phone-landscape'] .volt-inventory-window .volt-inventory-furni {
+    flex-direction: row;
+}
+
+html[data-volt-layout='phone-landscape'] .volt-inventory-touch-bar {
+    display: grid;
+    flex: 0 0 36%;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto auto;
+    gap: 4px;
+    min-height: 0;
+    padding: 6px;
+}
+
+html[data-volt-layout='phone-landscape'] .volt-inventory-touch-bar > :is(.volt-inventory-touch-room-preview, .volt-inventory-touch-bar-icon, .volt-inventory-touch-bar-text) {
+    grid-column: 1 / -1;
+}
+
+html[data-volt-layout='phone-landscape'] .volt-inventory-touch-room-preview {
+    position: relative;
+    height: 100%;
+    overflow: hidden;
+}
+
+html[data-volt-layout='phone-landscape'] .volt-inventory-touch-bar-text + .volt-inventory-touch-button {
+    grid-column: 1 / -1;
+}

@@ -8,7 +8,7 @@
     -webkit-touch-callout: none;
 }
 
-/* ---------- Black AIR button (40 px) ---------- */
+/* ---------- Black AIR button ---------- */
 
 .volt-touch-black-button {
     display: flex;
@@ -16,7 +16,7 @@
     justify-content: center;
     gap: 7px;
     min-width: 0;
-    height: 40px;
+    min-height: 44px;
     padding: 0 8px;
     border-style: solid;
     border-width: 0;
@@ -25,6 +25,7 @@
     color: #ffffff;
     font: 700 13px Ubuntu, sans-serif;
     white-space: nowrap;
+    touch-action: manipulation;
     cursor: pointer;
     image-rendering: var(--volt-pixel-art, pixelated);
 
@@ -54,6 +55,18 @@
     color: #151515;
     font: 700 13px/1 HabboAirUbuntu, Ubuntu, sans-serif;
 
+    gap: 5px;
+    white-space: normal;
+
+    span {
+        overflow-wrap: anywhere;
+    }
+
+    &:focus-visible {
+        outline: 2px solid #155b85;
+        outline-offset: 1px;
+    }
+
     &:active {
         border-image-source: url('../../assets/images/habbo-skin/touch/btn-pressed-h44.png');
     }
@@ -62,6 +75,7 @@
 /* ---------- InfoStand sheet ---------- */
 
 .volt-touch-infosheet {
+    --volt-info-exit: translateY(100%);
     position: fixed;
     right: 0;
     bottom: 0;
@@ -78,7 +92,7 @@
     font: 400 13px Ubuntu, sans-serif;
     pointer-events: auto;
     transition: transform 200ms cubic-bezier(0.2, 0.9, 0.3, 1);
-    animation: volt-touch-infosheet-in 220ms cubic-bezier(0.2, 0.9, 0.3, 1);
+    transform: translate(0, 0);
     image-rendering: var(--volt-pixel-art, pixelated);
 
     &[data-dragging] {
@@ -100,10 +114,9 @@
     }
 }
 
-@keyframes volt-touch-infosheet-in {
-    from {
-        transform: translateY(40%);
-        opacity: 0;
+@starting-style {
+    .volt-touch-infosheet {
+        transform: var(--volt-info-exit);
     }
 }
 
@@ -111,6 +124,8 @@
     position: relative;
     flex: none;
     height: 44px;
+    user-select: none;
+    -webkit-user-select: none;
     touch-action: none;
     cursor: grab;
 }
@@ -133,11 +148,11 @@
     position: absolute;
     top: 1px;
     right: 0;
-    width: 38px;
+    width: 44px;
     height: 44px;
     padding: 0;
     border: 0;
-    background: url('../../assets/images/habbo-skin/touch/close-touch.png') 3px center / 27px 28px no-repeat;
+    background: url('../../assets/images/habbo-skin/touch/close-touch.png') center / 27px 28px no-repeat;
     cursor: pointer;
 }
 
@@ -297,7 +312,7 @@
 }
 
 .volt-touch-infosheet__actions--3 {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(104px, 100%), 1fr));
 
     .volt-touch-black-button {
         padding: 0 6px;
@@ -331,7 +346,8 @@
 }
 
 html[data-volt-layout='phone-landscape'] .volt-touch-infosheet {
-    top: 0;
+    --volt-info-exit: translateX(100%);
+    top: var(--volt-safe-top);
     left: auto;
     width: min(400px, 55vw);
     max-height: none;
@@ -339,12 +355,29 @@ html[data-volt-layout='phone-landscape'] .volt-touch-infosheet {
 }
 
 html[data-volt-device='tablet'] .volt-touch-infosheet {
+    --volt-info-exit: translateY(calc(100% + 72px + var(--volt-safe-bottom)));
     right: calc(8px + var(--volt-safe-right));
     bottom: calc(72px + var(--volt-safe-bottom));
     left: auto;
     width: 380px;
     max-height: calc(var(--volt-visual-height, 100dvh) - 160px);
     padding-bottom: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .volt-touch-infosheet .volt-touch-black-button {
+        transition: transform 100ms ease-out;
+
+        &:active {
+            transform: translateY(1px);
+        }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .volt-touch-infosheet {
+        transition: none;
+    }
 }
 
 /* ---------- Context menus ---------- */

@@ -5,7 +5,7 @@ import noTradeIcon from '../../../../../assets/images/catalog/air/inventory-furn
 import { NativeText } from '../../../../../common/native-text/NativeText';
 import { useCatalogProductMetadata, useCatalogUiState } from '../../../../../hooks';
 
-export const CatalogProductDetailsView: FC<{ offer: IPurchasableOffer }> = ({ offer }) => {
+export const CatalogProductDetailsView: FC<{ offer: IPurchasableOffer; phone?: boolean }> = ({ offer, phone = false }) => {
     const { currentType = 'NORMAL' } = useCatalogUiState();
     const metadata = useCatalogProductMetadata(offer?.page?.pageId ?? 0, currentType);
 
@@ -32,28 +32,37 @@ export const CatalogProductDetailsView: FC<{ offer: IPurchasableOffer }> = ({ of
 
     return (
         <div aria-label={name} className="volt-catalog-product-details" role="group">
-            {/* ctlg_product_name (u_bold) and ctlg_description (u_small italic), 280px wide: white over the room canvas, black when it is hidden. */}
-            <NativeText
-                nativeResolution
-                transparent
-                background={textColor ^ 0xffffff}
-                className="volt-catalog-product-details-name"
-                maxWidth={280}
-                overrides={{ color: textColor }}
-                text={name}
-                textStyle="u_bold"
-            />
-            {!!description && (
-                <NativeText
-                    nativeResolution
-                    transparent
-                    background={textColor ^ 0xffffff}
-                    className="volt-catalog-product-details-description"
-                    maxWidth={280}
-                    overrides={{ color: textColor, italic: true }}
-                    text={description}
-                    textStyle="u_small"
-                />
+            {phone ? (
+                <>
+                    <strong>{name}</strong>
+                    {description && <span>{description}</span>}
+                </>
+            ) : (
+                <>
+                    {/* ctlg_product_name (u_bold) and ctlg_description (u_small italic), 280px wide: white over the room canvas, black when it is hidden. */}
+                    <NativeText
+                        nativeResolution
+                        transparent
+                        background={textColor ^ 0xffffff}
+                        className="volt-catalog-product-details-name"
+                        maxWidth={280}
+                        overrides={{ color: textColor }}
+                        text={name}
+                        textStyle="u_bold"
+                    />
+                    {!!description && (
+                        <NativeText
+                            nativeResolution
+                            transparent
+                            background={textColor ^ 0xffffff}
+                            className="volt-catalog-product-details-description"
+                            maxWidth={280}
+                            overrides={{ color: textColor, italic: true }}
+                            text={description}
+                            textStyle="u_small"
+                        />
+                    )}
+                </>
             )}
             {(showNoTrade || showNoRecycle) && (
                 <div className="volt-catalog-product-details-badges" role="list">

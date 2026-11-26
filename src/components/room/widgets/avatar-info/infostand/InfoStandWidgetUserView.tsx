@@ -157,7 +157,7 @@ export const InfoStandWidgetUserView: FC<InfoStandWidgetUserViewProps> = (props)
         const touchBadges = avatarInfo.badges.filter((code) => !!code).slice(0, 4);
 
         return (
-            <TouchInfoSheetView className="volt-touch-infosheet--user" title={avatarInfo.name} onClose={onClose}>
+            <TouchInfoSheetView key={avatarInfo.webID} className="volt-touch-infosheet--user" title={avatarInfo.name} onClose={onClose}>
                 <div className="volt-touch-infosheet__summary">
                     <button type="button" className="volt-touch-infosheet__figure" aria-label={avatarInfo.name} onClick={handleProfileClick}>
                         <LayoutAvatarImageView nativeCroppedHead trimmed direction={4} figure={avatarInfo.figure} scale={2} />

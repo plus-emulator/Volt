@@ -585,6 +585,7 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
 
             switch (action) {
                 case 'buy_one':
+                    if (isTouch) onClose();
                     CreateLinkEvent(`catalog/open/offerId/${avatarInfo.purchaseOfferId}`);
                     return;
                 case 'move':
@@ -633,7 +634,7 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
                 }
             }
         },
-        [avatarInfo, pickupMode, customKeys, customValues, furniKeys, furniValues, pickupRoomObject]
+        [avatarInfo, isTouch, onClose, pickupMode, customKeys, customValues, furniKeys, furniValues, pickupRoomObject]
     );
 
     if (!avatarInfo) return null;
@@ -1046,7 +1047,7 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
 
         return (
             <>
-                <TouchInfoSheetView className="volt-touch-infosheet--furni" title={avatarInfo.name} onClose={onClose}>
+                <TouchInfoSheetView key={`${avatarInfo.category}-${avatarInfo.id}`} className="volt-touch-infosheet--furni" title={avatarInfo.name} onClose={onClose}>
                     <div className="volt-touch-infosheet__summary">
                         <div className="volt-touch-infosheet__preview">{preview}</div>
                         <div className="volt-touch-infosheet__info">

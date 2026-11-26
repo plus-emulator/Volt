@@ -1,5 +1,6 @@
 import { FC, ReactNode, SyntheticEvent, useState } from 'react';
-import { CatalogType, GetConfigurationValue, IPurchasableOffer, LocalizeText, ProductTypeEnum, useVoltLayout, VoltLayout } from '../../../../../api';
+import { CatalogType, GetConfigurationValue, IPurchasableOffer, IsPhoneLayout, LocalizeText, ProductTypeEnum, useVoltLayout } from '../../../../../api';
+import backIcon from '../../../../../assets/images/navigator/air/button-back.png';
 import { NativeText } from '../../../../../common/native-text/NativeText';
 import { getCatalogGridMetrics, useCatalogData, useCatalogDisplayPreferences, useCatalogUiState } from '../../../../../hooks';
 import { getCatalogPlainText } from '../../../catalogLocalization.helpers';
@@ -28,12 +29,6 @@ interface CatalogLayoutDefaultViewProps extends CatalogLayoutProps {
     previewHeight?: number;
 }
 
-/** Phones keep the page and the pinned buy bar on screen with a shorter room preview. */
-const TOUCH_PREVIEW_HEIGHTS: Partial<Record<VoltLayout, number>> = {
-    'phone-portrait': 148,
-    'phone-landscape': 108
-};
-
 /** LocalizationCatalogWidget.setElementImage: the teaser keeps its own size, centred on whole pixels in the product view. */
 const CatalogTeaserImageView: FC<{ src: string }> = ({ src }) => {
     const [offset, setOffset] = useState<{ left: number; top: number }>(null);
@@ -60,11 +55,11 @@ const CatalogTeaserImageView: FC<{ src: string }> = ({ src }) => {
 };
 
 export const CatalogLayoutDefaultView: FC<CatalogLayoutDefaultViewProps> = (props) => {
-    const { page = null, gridOffers, isGridOfferActive, colourGrid = null, layoutClassName = '', previewHeight: pagePreviewHeight = 240 } = props;
-    const touchPreviewHeight = TOUCH_PREVIEW_HEIGHTS[useVoltLayout()];
-    const previewHeight = touchPreviewHeight ? Math.min(touchPreviewHeight, pagePreviewHeight) : pagePreviewHeight;
+    const { page = null, gridOffers, isGridOfferActive, colourGrid = null, layoutClassName = '', previewHeight = 240 } = props;
+    const layout = useVoltLayout();
+    const isPhone = IsPhoneLayout(layout);
     const { currentOffer = null, currentPage = null, roomPreviewer = null } = useCatalogData();
-    const { currentType = CatalogType.NORMAL } = useCatalogUiState();
+    const { currentType = CatalogType.NORMAL, setCurrentOffer } = useCatalogUiState();
     const isBuilder = currentType === CatalogType.BUILDER;
     const { density = 'standard', showTilePrices = true } = useCatalogDisplayPreferences();
     const gridMetrics = getCatalogGridMetrics(density);
@@ -81,93 +76,128 @@ export const CatalogLayoutDefaultView: FC<CatalogLayoutDefaultViewProps> = (prop
         GetConfigurationValue<boolean>('catalog.multiple.purchase.enabled', true);
     const isBundleOffer = currentOffer?.pricingModel === 'pricing_model_bundle';
 
-    return (
-        <div
-            className={`volt-catalog-default-layout flex flex-col h-full gap-2 ${colourGrid ? 'has-colour-grid' : ''} ${currentOffer ? 'has-offer' : 'no-offer'} ${isEmptyWelcome ? 'is-empty-welcome' : ''} ${layoutClassName}`}
-        >
-            <div className="volt-catalog-product-view">
-                {currentOffer && (
-                    <div className="volt-catalog-offer-panel flex gap-0">
-                        <div
-                            className={`volt-catalog-offer-preview relative flex items-center justify-center ${currentOffer.product.productType === ProductTypeEnum.BADGE ? 'is-badge' : ''} ${isBundleOffer ? 'is-bundle' : ''}`}
-                            style={{ flex: '1 1 auto', minWidth: 0, width: '100%' }}
-                        >
+    const productView = (
+        <div className="volt-catalog-product-view">
+            {currentOffer && (
+                <div className="volt-catalog-offer-panel flex gap-0">
+                    <div
+                        className={`volt-catalog-offer-preview relative flex items-center justify-center ${currentOffer.product.productType === ProductTypeEnum.BADGE ? 'is-badge' : ''} ${isBundleOffer ? 'is-bundle' : ''}`}
+                        style={{ flex: '1 1 auto', minWidth: 0, width: '100%' }}
+                    >
+                        {!isPhone && (
                             <div className="volt-catalog-preview-details">
                                 <CatalogProductDetailsView offer={currentOffer} />
                             </div>
-                            <div className="volt-catalog-preview-limited">
-                                <CatalogLimitedItemWidgetView />
-                            </div>
-                            {currentOffer.product.productType !== ProductTypeEnum.BADGE && (
-                                <>
-                                    {!isBundleOffer && <CatalogPreviewControls productType={currentOffer.product.productType} roomPreviewer={roomPreviewer} />}
-                                    <CatalogViewProductWidgetView height={previewHeight} />
-                                    <CatalogAddOnBadgeWidgetView className="bg-muted rounded bottom-1 right-1 absolute" />
-                                </>
-                            )}
-                            {/* ProductViewCatalogWidget.onPreviewProduct: without the quantity and total price widgets the price sits on the product. */}
-                            {!showBundlePurchase && <CatalogAirPriceDisplayView className="volt-catalog-default-price" offer={currentOffer} />}
-                            {currentOffer.product.productType === ProductTypeEnum.BADGE && <CatalogAddOnBadgeWidgetView className="scale-200" />}
-                        </div>
-                    </div>
-                )}
-
-                {!currentOffer && (
-                    <div className="volt-catalog-welcome">
-                        {!!page.localization.getImage(1) && <CatalogTeaserImageView key={page.localization.getImage(1)} src={page.localization.getImage(1)} />}
-                        {hasTeaserText && (
-                            <NativeText
-                                nativeResolution
-                                background={0xe9e9e1}
-                                className="volt-catalog-welcome-description"
-                                maxWidth={280}
-                                overrides={{ italic: true }}
-                                text={getCatalogPlainText(teaserText)}
-                                textStyle="u_small"
-                            />
                         )}
-                    </div>
-                )}
-            </div>
-
-            <div className="volt-catalog-grid-shell flex-1 overflow-auto min-h-0">
-                {GetConfigurationValue('catalog.headers') && <CatalogHeaderView imageUrl={currentPage.localization.getImage(0)} />}
-                <CatalogItemGridWidgetView
-                    className={`volt-catalog-grid volt-catalog-grid-density-${density}`}
-                    isOfferActive={isGridOfferActive}
-                    offers={gridOffers}
-                    showPrices={showTilePrices}
-                    {...gridMetrics}
-                />
-            </div>
-
-            {colourGrid}
-
-            {showBundlePurchase && (
-                <div className="volt-catalog-price-row flex items-center justify-between gap-2">
-                    <div className="volt-catalog-spinner-slot">
-                        <CatalogSpinnerWidgetView />
-                    </div>
-                    <div className="volt-catalog-total-price-slot">
-                        <span className="volt-catalog-total-price-label">
-                            <NativeText nativeResolution background={0xe9e9e1} overrides={{ color: 0x666666 }} text={LocalizeText('catalog.bundlewidget.price')} textStyle="u_regular" />
-                        </span>
-                        <CatalogTotalPriceWidget classNames={['volt-catalog-total-price-value']} />
+                        <div className="volt-catalog-preview-limited">
+                            <CatalogLimitedItemWidgetView />
+                        </div>
+                        {currentOffer.product.productType !== ProductTypeEnum.BADGE && (
+                            <>
+                                {!isBundleOffer && <CatalogPreviewControls productType={currentOffer.product.productType} roomPreviewer={roomPreviewer} />}
+                                <CatalogViewProductWidgetView fitParent={isPhone} height={previewHeight} />
+                                <CatalogAddOnBadgeWidgetView className="bg-muted rounded bottom-1 right-1 absolute" />
+                            </>
+                        )}
+                        {/* ProductViewCatalogWidget.onPreviewProduct: without the quantity and total price widgets the price sits on the product. */}
+                        {!showBundlePurchase && <CatalogAirPriceDisplayView className="volt-catalog-default-price" offer={currentOffer} />}
+                        {currentOffer.product.productType === ProductTypeEnum.BADGE && <CatalogAddOnBadgeWidgetView className="scale-200" />}
                     </div>
                 </div>
             )}
 
-            <div className={`volt-catalog-purchase-row flex items-start justify-end ${isBuilder ? 'is-builder' : ''}`}>
-                {isBuilder ? (
-                    <CatalogBuilderWidgetView />
-                ) : currentOffer ? (
-                    <div className="volt-catalog-offer-actions flex gap-1.5">
-                        <CatalogPurchaseWidgetView />
-                    </div>
-                ) : (
-                    <CatalogPurchaseSelectionPrompt />
-                )}
+            {!currentOffer && (
+                <div className="volt-catalog-welcome">
+                    {!!page.localization.getImage(1) && <CatalogTeaserImageView key={page.localization.getImage(1)} src={page.localization.getImage(1)} />}
+                    {hasTeaserText && (
+                        <NativeText
+                            nativeResolution
+                            background={0xe9e9e1}
+                            className="volt-catalog-welcome-description"
+                            maxWidth={280}
+                            overrides={{ italic: true }}
+                            text={getCatalogPlainText(teaserText)}
+                            textStyle="u_small"
+                        />
+                    )}
+                </div>
+            )}
+        </div>
+    );
+    const grid = (
+        <div className="volt-catalog-grid-shell flex-1 overflow-auto min-h-0">
+            {GetConfigurationValue('catalog.headers') && <CatalogHeaderView imageUrl={currentPage.localization.getImage(0)} />}
+            <CatalogItemGridWidgetView
+                className={`volt-catalog-grid volt-catalog-grid-density-${density}`}
+                isOfferActive={isGridOfferActive}
+                offers={gridOffers}
+                showPrices={showTilePrices}
+                {...gridMetrics}
+            />
+        </div>
+    );
+    const price = showBundlePurchase && (
+        <div className="volt-catalog-price-row flex items-center justify-between gap-2">
+            <div className="volt-catalog-spinner-slot">
+                <CatalogSpinnerWidgetView />
             </div>
+            <div className="volt-catalog-total-price-slot">
+                <span className="volt-catalog-total-price-label">
+                    <NativeText nativeResolution background={0xe9e9e1} overrides={{ color: 0x666666 }} text={LocalizeText('catalog.bundlewidget.price')} textStyle="u_regular" />
+                </span>
+                <CatalogTotalPriceWidget classNames={['volt-catalog-total-price-value']} />
+            </div>
+        </div>
+    );
+    const purchase = (
+        <div className={`volt-catalog-purchase-row flex items-start justify-end ${isBuilder ? 'is-builder' : ''}`}>
+            {isBuilder ? (
+                <CatalogBuilderWidgetView />
+            ) : currentOffer ? (
+                <div className="volt-catalog-offer-actions flex gap-1.5">
+                    <CatalogPurchaseWidgetView onPurchased={layout === 'phone-portrait' ? () => setCurrentOffer(null) : undefined} />
+                </div>
+            ) : (
+                <CatalogPurchaseSelectionPrompt />
+            )}
+        </div>
+    );
+    return (
+        <div
+            className={`volt-catalog-default-layout flex flex-col h-full gap-2 ${colourGrid ? 'has-colour-grid' : ''} ${currentOffer ? 'has-offer' : 'no-offer'} ${isEmptyWelcome ? 'is-empty-welcome' : ''} ${layoutClassName}`}
+        >
+            {isPhone ? (
+                <>
+                    {grid}
+                    <div className="volt-catalog-phone-detail">
+                        {currentOffer && (
+                            <div className="volt-catalog-phone-detail-heading">
+                                {layout === 'phone-portrait' && (
+                                    <button className="volt-catalog-touch-back" onClick={() => setCurrentOffer(null)} type="button">
+                                        <img alt="" src={backIcon} />
+                                        <span>{LocalizeText('generic.back')}</span>
+                                    </button>
+                                )}
+                                <CatalogProductDetailsView offer={currentOffer} phone />
+                            </div>
+                        )}
+                        {productView}
+                        {currentOffer && colourGrid}
+                        <div className="volt-catalog-phone-checkout">
+                            {price}
+                            {purchase}
+                        </div>
+                    </div>
+                </>
+            ) : (
+                <>
+                    {productView}
+                    {grid}
+                    {colourGrid}
+                    {price}
+                    {purchase}
+                </>
+            )}
         </div>
     );
 };

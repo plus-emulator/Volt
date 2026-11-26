@@ -32,7 +32,8 @@ export const ChatInputView: FC<{}> = (props) => {
     ), [ chatStyleIds, purchasableChatStyleIds, clubLevel, isAmbassador, securityLevel ]);
     const inputRef = useRef<HTMLInputElement>(null);
     const { isHelpButtonVisible, hoverRegionProps, helpButtonProps } = useChatHelpButton();
-    const isTouch = IsTouchLayout(useVoltLayout());
+    const layout = useVoltLayout();
+    const isTouch = IsTouchLayout(layout);
     const [touchMode, setTouchMode] = useState<TouchChatMode>('say');
     const [whisperTarget, setWhisperTarget] = useState('');
 
@@ -162,10 +163,65 @@ export const ChatInputView: FC<{}> = (props) => {
         [setIsTyping, setIsIdle]
     );
 
+    const showTouchChat = () => {
+        document.documentElement.dataset.voltChatOpen = 'true';
+    };
+
+    const openTouchChat = () => {
+        showTouchChat();
+        inputRef.current?.focus({ preventScroll: true });
+    };
+
+    const closeTouchChat = useCallback(() => {
+        delete document.documentElement.dataset.voltChatOpen;
+        inputRef.current?.blur();
+        setIsTyping(false);
+    }, [setIsTyping]);
+
+    useEffect(() => {
+        if (!isTouch || !roomSession) return;
+
+        const closeOutside = (event: Event) => {
+            if (!document.documentElement.dataset.voltChatOpen || !(event.target instanceof Element)) return;
+
+            if (!event.target.closest('.volt-touch-chat, .volt-touch-chat-open, .swf-chat-style-menu, .habbicon-selector-popover')) closeTouchChat();
+        };
+
+        const closeOnEscape = (event: KeyboardEvent) => {
+            if (event.key !== 'Escape' || event.defaultPrevented || !document.documentElement.dataset.voltChatOpen) return;
+            if (document.querySelector('.swf-chat-style-menu, .habbicon-selector-popover')) return;
+
+            closeTouchChat();
+        };
+
+        const windows = document.getElementById('draggable-windows-container');
+        const windowObserver = new MutationObserver((changes) => {
+            if (!document.documentElement.dataset.voltChatOpen) return;
+
+            if (changes.some(({ addedNodes }) => Array.from(addedNodes).some((node) => node instanceof Element && node.matches('.draggable-window')))) {
+                closeTouchChat();
+            }
+        });
+
+        if (windows) windowObserver.observe(windows, { childList: true });
+        document.addEventListener('pointerdown', closeOutside, true);
+        document.addEventListener('focusin', closeOutside, true);
+        document.addEventListener('keydown', closeOnEscape);
+
+        return () => {
+            windowObserver.disconnect();
+            document.removeEventListener('pointerdown', closeOutside, true);
+            document.removeEventListener('focusin', closeOutside, true);
+            document.removeEventListener('keydown', closeOnEscape);
+            delete document.documentElement.dataset.voltChatOpen;
+        };
+    }, [isTouch, roomSession, closeTouchChat]);
+
     const onKeyDownEvent = useCallback(
         (event: KeyboardEvent) => {
             if (floodBlocked || !inputRef.current || anotherInputHasFocus()) return;
 
+            if (isTouch && document.activeElement !== inputRef.current) return;
             if (document.activeElement !== inputRef.current) setInputFocus();
 
             const value = (event.target as HTMLInputElement).value;
@@ -177,8 +233,11 @@ export const ChatInputView: FC<{}> = (props) => {
                     return;
                 case 'NumpadEnter':
                 case 'Enter':
-                    if (isTouch) sendTouchChatValue(value);
-                    else sendChatValue(value, event.shiftKey);
+                    if (isTouch) {
+                        if (event.isComposing || event.keyCode === 229) return;
+                        event.preventDefault();
+                        sendTouchChatValue(value);
+                    } else sendChatValue(value, event.shiftKey);
                     return;
                 case 'Backspace':
                     if (value) {
@@ -196,16 +255,19 @@ export const ChatInputView: FC<{}> = (props) => {
 
     useUiEvent<RoomWidgetUpdateChatInputContentEvent>(RoomWidgetUpdateChatInputContentEvent.CHAT_INPUT_CONTENT, (event) => {
         switch (event.chatMode) {
+            case RoomWidgetUpdateChatInputContentEvent.FOCUS:
+                if (isTouch && roomSession && !roomSession.isSpectator) openTouchChat();
+                return;
             case RoomWidgetUpdateChatInputContentEvent.TEXT:
                 setChatValue(event.userName);
-                inputRef.current?.focus();
+                if (isTouch) openTouchChat();
+                else inputRef.current?.focus();
                 return;
             case RoomWidgetUpdateChatInputContentEvent.WHISPER: {
                 if (isTouch) {
                     setWhisperTarget(event.userName);
                     setTouchMode('whisper');
-                    setChatValue('');
-                    inputRef.current?.focus();
+                    openTouchChat();
                     return;
                 }
 
@@ -265,8 +327,9 @@ export const ChatInputView: FC<{}> = (props) => {
         const whisperFigure = whisperTarget ? (roomSession.userDataManager?.getUserDataByName(whisperTarget)?.figure ?? '') : '';
 
         return createPortal(
-            <div className="volt-touch-chat" data-chat-mode={touchMode}>
+            <div className="volt-touch-chat" data-chat-mode={touchMode} onFocusCapture={showTouchChat} onPointerDownCapture={showTouchChat}>
                 <ChatInputTouchModeBarView
+                    closeChat={closeTouchChat}
                     canWhisper={!!(selectedUsername || whisperTarget)}
                     mode={touchMode}
                     selectMode={selectTouchMode}
@@ -281,6 +344,7 @@ export const ChatInputView: FC<{}> = (props) => {
                                 ref={inputRef}
                                 autoComplete="off"
                                 className="volt-touch-chat-input"
+                                aria-label={LocalizeText('widgets.chatinput.default')}
                                 enterKeyHint="send"
                                 maxLength={maxChatLength}
                                 placeholder={LocalizeText('widgets.chatinput.default')}
@@ -298,7 +362,7 @@ export const ChatInputView: FC<{}> = (props) => {
                     <ChatInputHabbiconSelectorView />
                     <button
                         className="volt-touch-chat-send"
-                        disabled={floodBlocked}
+                        disabled={floodBlocked || !chatValue.trim()}
                         type="button"
                         onPointerDown={(event) => event.preventDefault()}
                         onClick={() => sendTouchChatValue(chatValue)}

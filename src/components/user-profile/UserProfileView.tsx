@@ -14,14 +14,17 @@ import {
     UserRelationshipsComposer
 } from '@volt/renderer';
 import { FC, useState } from 'react';
-import { CreateLinkEvent, GetRoomSession, GetUserProfile, LocalizeText, localizeWithFallback, SanitizeHtml, SendMessageComposer } from '../../api';
+import { CreateLinkEvent, GetRoomSession, GetUserProfile, IsTouchLayout, LocalizeText, localizeWithFallback, SanitizeHtml, SendMessageComposer, useVoltLayout } from '../../api';
 import { frankStop } from '../../assets/images/user-profile';
 import { VoltCardHeaderView, VoltCardView } from '../../common';
 import { useIsUserBlocked, useMessageEvent, useNotification, useVoltEvent } from '../../hooks';
 import { GroupsContainerView } from './GroupsContainerView';
 import { UserContainerView } from './UserContainerView';
+import '../../css/touch/TouchUserProfile.css';
 
 export const UserProfileView: FC<{}> = () => {
+    const isTouch = IsTouchLayout(useVoltLayout());
+    const [section, setSection] = useState<'profile' | 'groups'>('profile');
     const [userProfile, setUserProfile] = useState<UserProfileParser>(null);
     const [userBadges, setUserBadges] = useState<IUserCurrentBadgeData[]>([]);
     const [userRelationships, setUserRelationships] = useState<RelationshipStatusInfoMessageParser>(null);
@@ -93,6 +96,7 @@ export const UserProfileView: FC<{}> = () => {
         if (!windowPosition) setWindowPosition({ x: (window.innerWidth - 521) / 2, y: (window.innerHeight - 537) / 2 });
 
         if (!isSameProfile) {
+            setSection('profile');
             setUserBadges([]);
             setUserRelationships(null);
         }
@@ -125,10 +129,16 @@ export const UserProfileView: FC<{}> = () => {
     const isProfileHidden = userProfile.hasNativeProfileFields && userProfile.isHidden && userProfile.id !== GetSessionDataManager().userId;
 
     return (
-        <VoltCardView className="volt-extended-profile-window" uniqueKey="volt-user-profile" frameStyle={3} isResizable={false}
+        <VoltCardView className="volt-extended-profile-window" uniqueKey="volt-user-profile" frameStyle={3} isResizable={false} touchPresentation="full"
             initialPosition={windowPosition} onPositionChange={setWindowPosition} unconstrainedPosition>
             <VoltCardHeaderView headerText={LocalizeText('extendedprofile.caption')} onCloseClick={onClose} />
-            <div className="volt-extended-profile-window__content">
+            {isTouch && !isBlocked && (
+                <div className="volt-extended-profile-tabs">
+                    <button type="button" aria-pressed={section === 'profile'} onClick={() => setSection('profile')}>{LocalizeText('extendedprofile.caption')}</button>
+                    <button type="button" aria-pressed={section === 'groups'} onClick={() => setSection('groups')}>{localizeWithFallback('people.groups.title', 'Groups')}</button>
+                </div>
+            )}
+            <div className="volt-extended-profile-window__content" data-section={section}>
                 {isBlocked && (
                     // Official blocked_container: the drama text, whose "event:profile/unblock" link
                     // opens the unblock confirm (it carries no href, so it is never followed as a
@@ -155,6 +165,7 @@ export const UserProfileView: FC<{}> = () => {
                     </div>
                 )}
                 <UserContainerView
+                    isTouch={isTouch}
                     userBadges={userBadges}
                     userProfile={userProfile}
                     userRelationships={userRelationships}
@@ -169,6 +180,7 @@ export const UserProfileView: FC<{}> = () => {
                             <p>{localizeWithFallback('profile.full_profile_hidden', 'The full profile of this user is hidden')}</p>
                         </div>
                     ) : <GroupsContainerView
+                        isTouch={isTouch}
                         groups={userProfile.groups}
                         itsMe={userProfile.id === GetSessionDataManager().userId}
                         onLeaveGroup={onLeaveGroup}

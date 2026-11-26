@@ -73,7 +73,8 @@ export const InventoryFurnitureView: FC<{
     const { isTrading = false, ownUser = null } = useInventoryTrade();
     const { simpleAlert = null } = useNotification();
     const [offerCount, setOfferCount] = useState('1');
-    const isTouch = IsTouchLayout(useVoltLayout());
+    const layout = useVoltLayout();
+    const isTouch = IsTouchLayout(layout);
     const furniRef = useRef<HTMLDivElement>(null);
     const [touchMenu, setTouchMenu] = useState<{ groupItem: GroupItem; position: { left: number; top?: number; bottom?: number } }>(null);
     const closeTouchMenu = useCallback(() => setTouchMenu(null), []);
@@ -293,6 +294,7 @@ export const InventoryFurnitureView: FC<{
                             : placeAction(selectedItem)
                     }
                     groupItem={selectedItem}
+                    roomPreviewer={layout === 'phone-landscape' ? roomPreviewer : null}
                     offerCount={offerCount}
                     recyclableCount={recyclableCount}
                     tradeableCount={tradeableCount}

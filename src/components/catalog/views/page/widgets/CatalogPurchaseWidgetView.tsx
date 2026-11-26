@@ -48,6 +48,7 @@ interface CatalogPurchaseWidgetViewProps {
     disabled?: boolean;
     noGiftOption?: boolean;
     purchaseCallback?: () => void;
+    onPurchased?: () => void;
     /** Checked when Buy is pressed, before the confirmation opens; false stops the purchase (the room ad checks in PurchaseCatalogWidget.onPurchase). */
     canStartPurchase?: () => boolean;
     /** AIR PURCHASE_OVERRIDE: Buy and Gift call this instead of opening the confirmation; `openConfirmation` carries on (pet name approval). */
@@ -63,7 +64,7 @@ const BuyCaption: FC<{ text: string; isTouch?: boolean }> = ({ text, isTouch = f
     );
 
 export const CatalogPurchaseWidgetView: FC<CatalogPurchaseWidgetViewProps> = (props) => {
-    const { disabled = false, noGiftOption = false, purchaseCallback = null, canStartPurchase = null, purchaseOverride = null } = props;
+    const { disabled = false, noGiftOption = false, purchaseCallback = null, onPurchased, canStartPurchase = null, purchaseOverride = null } = props;
     const isTouch = IsTouchLayout(useVoltLayout());
     const habbicons = useHabbiconCatalog();
     const [purchaseWillBeGift, setPurchaseWillBeGift] = useState(false);
@@ -186,14 +187,17 @@ export const CatalogPurchaseWidgetView: FC<CatalogPurchaseWidgetViewProps> = (pr
         (event: CatalogEvent) => {
             if (!ownsPurchaseOutcomeRef.current) return;
 
-            ownsPurchaseOutcomeRef.current = false;
-
             switch (event.type) {
-                case CatalogPurchasedEvent.PURCHASE_SUCCESS:
+                case CatalogPurchasedEvent.PURCHASE_SUCCESS: {
+                    const purchasedOfferId = (event as CatalogPurchasedEvent).purchase?.offerId ?? 0;
+
+                    if (onPurchased && purchasedOfferId > 0 && purchasedOfferId !== currentOffer?.offerId) return;
+                    if (purchasedOfferId > 0) onPurchased?.();
                     resetPurchaseGuard();
                     setPurchaseWillBeGift(false);
                     setPurchaseState(CatalogPurchaseState.NONE);
                     return;
+                }
                 case CatalogPurchaseFailureEvent.PURCHASE_FAILED:
                     resetPurchaseGuard();
                     setPurchaseWillBeGift(false);
@@ -211,7 +215,7 @@ export const CatalogPurchaseWidgetView: FC<CatalogPurchaseWidgetViewProps> = (pr
                     return;
             }
         },
-        [resetPurchaseGuard]
+        [currentOffer, onPurchased, resetPurchaseGuard]
     );
 
     useUiEvent(CatalogPurchasedEvent.PURCHASE_SUCCESS, onCatalogEvent);

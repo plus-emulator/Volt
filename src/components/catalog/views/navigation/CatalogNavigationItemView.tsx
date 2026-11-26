@@ -80,26 +80,30 @@ export const CatalogNavigationItemView: FC<CatalogNavigationItemViewProps> = (pr
                     <CatalogIconView icon={node.iconId} />
                 </div>
                 <span className="volt-catalog-navigation-label">
-                    {/* ITEM_TITLE u_bold (u_bold italic below the top level) on the list, then white with the etching over SELECTION_HILIGHT. */}
-                    <NativeText
-                        nativeResolution
-                        transparent={isTouch}
-                        background={NAVIGATION_BACKGROUND}
-                        className="volt-catalog-navigation-label-normal"
-                        overrides={{ color: child ? (isBuilder ? 0xb77734 : 0x52819a) : 0x666666 }}
-                        text={swfLabel}
-                        textStyle={child ? 'u_bold_italic' : 'u_bold'}
-                    />
-                    <NativeText
-                        ariaHidden
-                        nativeResolution
-                        transparent
-                        background={isBuilder ? 0xff8d00 : 0x63c5e9}
-                        className="volt-catalog-navigation-label-selected"
-                        overrides={{ color: 0xffffff, etchingColor: isBuilder ? 0xcf7200 : 0xb4b4ae, etchingPosition: 'top' }}
-                        text={swfLabel}
-                        textStyle={child ? 'u_bold_italic' : 'u_bold'}
-                    />
+                    {layout === 'phone-landscape' ? swfLabel : (
+                        <>
+                            {/* ITEM_TITLE u_bold (u_bold italic below the top level) on the list, then white with the etching over SELECTION_HILIGHT. */}
+                            <NativeText
+                                nativeResolution
+                                transparent={isTouch}
+                                background={NAVIGATION_BACKGROUND}
+                                className="volt-catalog-navigation-label-normal"
+                                overrides={{ color: child ? (isBuilder ? 0xb77734 : 0x52819a) : 0x666666 }}
+                                text={swfLabel}
+                                textStyle={child ? 'u_bold_italic' : 'u_bold'}
+                            />
+                            <NativeText
+                                ariaHidden
+                                nativeResolution
+                                transparent
+                                background={isBuilder ? 0xff8d00 : 0x63c5e9}
+                                className="volt-catalog-navigation-label-selected"
+                                overrides={{ color: 0xffffff, etchingColor: isBuilder ? 0xcf7200 : 0xb4b4ae, etchingPosition: 'top' }}
+                                text={swfLabel}
+                                textStyle={child ? 'u_bold_italic' : 'u_bold'}
+                            />
+                        </>
+                    )}
                 </span>
                 {!!hint && <span className="volt-catalog-navigation-hint">{hint}</span>}
                 {node.isBranch && <span aria-hidden="true" className="volt-catalog-navigation-caret" />}

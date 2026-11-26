@@ -2,16 +2,14 @@
 
 :root {
     --volt-toolbar-height: 48px;
-    --volt-toolbar-width: 0px;
     --volt-hud-strip: rgba(46, 45, 41, 0.78);
 }
 
-html[data-volt-layout='phone-portrait'],
 html[data-volt-device='tablet'] {
     --volt-toolbar-height: calc(58px + var(--volt-safe-bottom));
 }
 
-html[data-volt-layout='phone-landscape'] {
+html[data-volt-device='phone'] {
     --volt-toolbar-height: calc(60px + var(--volt-safe-bottom));
 }
 
@@ -71,10 +69,7 @@ html[data-volt-layout='phone-landscape'] {
     margin: 0 auto;
 }
 
-/* Landscape: no strip, so the room uses the whole screen. The icons sit in one AIR glass group in the bottom
-   left, ending with a chat button that opens the full chat bar. ToolbarTouchView measures the group into
-   --volt-toolbar-width for the docked windows. */
-.volt-touch-toolbar--phone-landscape {
+html[data-volt-device='phone'] .volt-touch-toolbar {
     right: auto;
     bottom: calc(4px + var(--volt-safe-bottom));
     left: calc(6px + var(--volt-safe-left));
@@ -84,9 +79,10 @@ html[data-volt-layout='phone-landscape'] {
     background: none;
     box-shadow: none;
     pointer-events: none;
+    touch-action: pan-x;
 }
 
-.volt-touch-toolbar--phone-landscape .volt-touch-toolbar__group {
+html[data-volt-device='phone'] .volt-touch-toolbar .volt-touch-toolbar__group {
     display: inline-flex;
     box-sizing: border-box;
     height: 56px;
@@ -102,10 +98,28 @@ html[data-volt-layout='phone-landscape'] {
     pointer-events: auto;
 }
 
-.volt-touch-toolbar--phone-landscape .volt-touch-toolbar__slot {
+html[data-volt-device='phone'] .volt-touch-toolbar .volt-touch-toolbar__slot {
     width: 46px;
     height: 44px;
     flex-basis: 46px;
+}
+
+html[data-volt-layout='phone-portrait'] .volt-touch-toolbar {
+    right: calc(4px + var(--volt-safe-right));
+    left: calc(4px + var(--volt-safe-left));
+    display: flex;
+    justify-content: center;
+}
+
+html[data-volt-layout='phone-portrait'] .volt-touch-toolbar__group {
+    max-width: 100%;
+    overflow-x: auto;
+    touch-action: pan-x;
+    scrollbar-width: none;
+}
+
+html[data-volt-layout='phone-portrait'] .volt-touch-toolbar__group .volt-touch-toolbar__slot {
+    flex: 1 0 44px;
 }
 
 .volt-touch-chat-open {
@@ -214,37 +228,6 @@ html[data-volt-layout='phone-landscape'] {
     left: auto !important;
     width: auto !important;
     height: auto !important;
-}
-
-/* Chat bar slot; the chat input itself is styled in TouchChat.css. */
-
-html[data-volt-touch='on'] .volt-touch-chat-slot {
-    position: fixed;
-    z-index: 72 !important;
-    height: 44px;
-}
-
-html[data-volt-layout='phone-portrait'] .volt-touch-chat-slot {
-    right: calc(8px + var(--volt-safe-right));
-    bottom: calc(var(--volt-toolbar-height) + 6px);
-    left: calc(8px + var(--volt-safe-left));
-}
-
-html[data-volt-layout='phone-landscape'] .volt-touch-chat-slot {
-    right: calc(8px + var(--volt-safe-right));
-    bottom: calc(var(--volt-safe-bottom) + 10px);
-    left: calc(8px + var(--volt-safe-left));
-}
-
-html[data-volt-layout='phone-landscape']:not([data-volt-chat-open]) .volt-touch-chat-slot {
-    display: none !important;
-}
-
-html[data-volt-device='tablet'] .volt-touch-chat-slot {
-    bottom: calc(var(--volt-toolbar-height) + 8px);
-    left: 50%;
-    width: min(520px, calc(100vw - 32px));
-    margin-left: calc(min(520px, calc(100vw - 32px)) / -2);
 }
 
 /* Purse: compact on phones, tap for the full AIR purse. */

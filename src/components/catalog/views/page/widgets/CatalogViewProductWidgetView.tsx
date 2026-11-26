@@ -31,8 +31,8 @@ const getActiveRoomPlanes = () => {
     };
 };
 
-export const CatalogViewProductWidgetView: FC<{ height?: number }> = (props) => {
-    const { height = 240 } = props;
+export const CatalogViewProductWidgetView: FC<{ height?: number; fitParent?: boolean }> = (props) => {
+    const { height = 240, fitParent = false } = props;
     const { currentOffer = null, roomPreviewer = null } = useCatalogData();
     const { purchaseOptions = null } = useCatalogUiState();
     const { previewStuffData = null } = purchaseOptions;
@@ -196,7 +196,7 @@ export const CatalogViewProductWidgetView: FC<{ height?: number }> = (props) => 
         const bundleProducts = currentOffer.products.filter((product) => product.productType !== ProductTypeEnum.BADGE);
 
         return (
-            <div className="volt-catalog-bundle-preview" style={{ height }}>
+            <div className="volt-catalog-bundle-preview" style={{ height: fitParent ? '100%' : height }}>
                 <img alt="" className="volt-catalog-bundle-preview-scene" draggable={false} src={dyndealBackground} />
                 <div className="volt-catalog-bundle-preview-grid" key={currentOffer.offerId}>
                     {bundleProducts.map((product, index) => {
@@ -218,5 +218,5 @@ export const CatalogViewProductWidgetView: FC<{ height?: number }> = (props) => 
         );
     }
 
-    return <LayoutRoomPreviewerView height={height} roomPreviewer={roomPreviewer} />;
+    return <LayoutRoomPreviewerView fitParent={fitParent} height={height} roomPreviewer={roomPreviewer} />;
 };

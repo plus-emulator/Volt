@@ -1,0 +1,244 @@
+html[data-volt-touch='on'] .volt-extended-profile-window {
+    container-type: inline-size;
+    font-size: 14px;
+
+    /* The AIR profile places each field at a fixed coordinate. Touch sections flow in reading order. */
+    :where(.volt-extended-profile, [class*='volt-extended-profile__'], .volt-extended-profile-window__body,
+        .volt-extended-profile-groups, [class^='volt-extended-profile-groups__'],
+        .volt-profile-group-info, [class^='volt-profile-group-info__']) {
+        position: static;
+        inset: auto;
+        width: auto;
+        height: auto;
+        min-width: 0;
+        max-width: 100%;
+        white-space: normal;
+    }
+
+    .volt-extended-profile-tabs {
+        display: flex;
+        flex: none;
+        padding: 0 6px;
+        border-bottom: 1px solid #777;
+    }
+
+    .volt-extended-profile-tabs button {
+        flex: 1;
+        min-height: 44px;
+        padding: 4px 8px;
+        border-image: url('../../assets/images/habbo-skin/slices/tab-3-default.png') 6 9 2 9 fill / 6px 9px 2px 9px stretch;
+    }
+
+    .volt-extended-profile-tabs button[aria-pressed='true'] {
+        border-image-source: url('../../assets/images/habbo-skin/slices/tab-3-selected.png');
+        font-weight: bold;
+    }
+
+    .volt-extended-profile-window__content {
+        flex: 1 1 0;
+        width: 100%;
+        min-height: 0;
+        height: auto;
+        overflow: hidden;
+    }
+
+    .volt-extended-profile, .volt-extended-profile-window__body, .volt-extended-profile__blocked-overlay {
+        position: relative;
+        height: 100%;
+        overflow: auto;
+        overscroll-behavior: contain;
+        padding: 10px;
+    }
+
+    [data-section='groups'] > .volt-extended-profile,
+    [data-section='profile'] > .volt-extended-profile-window__body,
+    .volt-extended-profile-window__content:has(> .volt-extended-profile__blocked-overlay) > :not(.volt-extended-profile__blocked-overlay),
+    .volt-extended-profile__separator {
+        display: none;
+    }
+
+    .volt-extended-profile__top {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
+    }
+
+    .volt-extended-profile__left, .volt-extended-profile__right, .volt-extended-profile-groups__details {
+        align-self: start;
+        padding: 10px;
+        border: 6px solid transparent;
+        border-image: url('../../assets/images/habbo-skin/slices/border-white.png') 6 fill / 6px stretch;
+    }
+
+    .volt-extended-profile__identity {
+        display: grid;
+        grid-template-columns: 54px minmax(0, 1fr);
+        gap: 6px;
+        min-height: 96px;
+    }
+
+    .volt-extended-profile__avatar-shell { width: 34px; justify-self: center; }
+    .volt-extended-profile__identity-copy { overflow-wrap: anywhere; }
+    .volt-extended-profile__username { position: static; display: block; height: auto; font-size: 16px; line-height: 20px; }
+    .volt-extended-profile__username .username { white-space: normal; }
+    .volt-extended-profile:has(.volt-extended-profile__block-button) .volt-extended-profile__username { padding-right: 42px; }
+    .volt-extended-profile__motto { margin: 2px 0 6px; font-size: 13px; }
+    .volt-extended-profile__meta { line-height: 19px; }
+
+    .volt-extended-profile__status, .volt-extended-profile__status-copy, .volt-extended-profile__actions,
+    .volt-extended-profile-groups__browse, .volt-profile-group-favourite {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+
+    .volt-extended-profile__status { margin-top: 5px; min-height: 24px; }
+    .volt-extended-profile__presence img, .volt-extended-profile__status-copy .icon-pf-tick { position: static; }
+    .volt-extended-profile__friend-button { min-height: 44px; padding-inline: 6px; }
+    .volt-extended-profile__block-button { position: absolute; inset: 16px 16px auto auto; width: 44px; height: 44px; }
+    .volt-extended-profile__block-button img { position: static; margin: auto; }
+
+    .volt-extended-profile__actions { margin: 6px 0; }
+    .volt-extended-profile__link, .volt-profile-group-favourite, .volt-extended-profile-groups__browse,
+    .volt-profile-group-info button:not(.volt-profile-group-info__button) {
+        min-height: 44px;
+        height: auto;
+        padding: 4px 8px;
+        border: 5px solid transparent;
+        border-image: url('../../assets/images/habbo-skin/slices/button-shiny-default.png') 5 fill / 5px stretch;
+        text-decoration: none;
+        text-align: center;
+        font-size: 13px !important;
+        font-weight: bold;
+        white-space: normal;
+    }
+
+    .volt-extended-profile__link { flex: 1; }
+    .volt-extended-profile__badges {
+        position: relative;
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        align-items: center;
+        margin-top: 5px;
+        padding: 4px;
+    }
+    .volt-extended-profile__badges:not(:has(button:enabled)) { display: none; }
+    .volt-extended-profile__badge-slot { position: relative; min-height: 44px; }
+    .volt-extended-profile__badge-slot[aria-pressed='true'] { background: #f5deb1; border-radius: 4px; }
+    .volt-profile-badge-details { position: relative; width: 100%; margin-top: 4px; transform: none; }
+    .volt-profile-badge-details__name, .volt-profile-badge-details__description, .volt-profile-badge-details__owners { width: auto; }
+
+    .volt-extended-profile__relationships-label { margin: 4px 0; }
+    .volt-extended-profile__relationship { display: flex; gap: 4px; align-items: flex-start; }
+    .volt-extended-profile__relationship-icon { flex: none; width: 16px; height: 14px; margin-top: 15px; }
+    .volt-extended-profile__relationship-copy { flex: 1; min-width: 0; }
+    .volt-extended-profile__relationship-box { position: relative; }
+    .volt-extended-profile__relationship-name {
+        position: relative;
+        width: 100%;
+        min-height: 44px;
+        padding: 4px 46px 4px 10px;
+        text-align: left;
+        overflow-wrap: anywhere;
+    }
+    .volt-extended-profile__relationship-head { position: absolute; inset: 50% 5px auto auto; width: 34px; transform: translateY(-50%); pointer-events: none; }
+    .volt-extended-profile__relationship-subcopy { margin-left: 6px; font-size: 12px; line-height: 17px; color: #555; }
+
+    .volt-extended-profile__summary-bar {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-top: 10px;
+        border: 1px solid #aaa;
+    }
+    .volt-extended-profile__summary-button {
+        min-height: 44px;
+        padding: 4px;
+        align-items: center;
+        align-content: center;
+        flex-wrap: wrap;
+        gap: 2px 4px;
+        font-size: 13px !important;
+    }
+    .volt-extended-profile__summary-button + .volt-extended-profile__summary-button { border-left: 1px solid #aaa; }
+    .volt-extended-profile__summary-button:first-child,
+    .volt-extended-profile__summary-label, .volt-extended-profile__summary-value, .volt-extended-profile__summary-rank { margin: 0; }
+    .volt-extended-profile__summary-button:last-child { width: auto; }
+    .volt-extended-profile__summary-bar::before, .volt-extended-profile__summary-bar::after,
+    .volt-extended-profile__summary-button::before, .volt-extended-profile__summary-button::after { content: none; }
+    .volt-extended-profile__summary-button--level .volt-extended-profile__summary-label { text-decoration: none; }
+
+    .volt-extended-profile-groups { display: grid; gap: 8px; }
+    .volt-extended-profile-groups__list {
+        display: flex;
+        gap: 6px;
+        overflow: auto;
+        padding: 2px;
+    }
+    .volt-extended-profile-groups__item { flex: 0 0 100px; background: none; }
+    .volt-extended-profile-groups__select {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        width: 100%;
+        height: 100%;
+        padding: 4px;
+        border: 1px solid #999;
+        border-radius: 4px;
+        background: #fff;
+        overflow-wrap: anywhere;
+    }
+    .volt-extended-profile-groups__select[aria-pressed='true'] { border-color: #8b6225; background: #ffde97; font-weight: bold; }
+    .volt-extended-profile-groups__select .group-badge { position: static !important; }
+
+    .volt-extended-profile-groups__details::before { content: none; }
+    .volt-extended-profile-groups__empty { display: grid; justify-items: center; gap: 6px; text-align: center; }
+    .volt-extended-profile-groups__empty-image { width: min(100%, 311px); }
+    .volt-extended-profile-groups__browse, .volt-profile-group-favourite { justify-content: center; }
+    .volt-extended-profile-groups__browse img, .volt-extended-profile-groups__browse span { position: static; white-space: normal; }
+
+    .volt-profile-group-info { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; background: none; }
+    .volt-profile-group-info__badge { width: 46px; height: 46px; }
+    .volt-profile-group-info__badge .group-badge { width: 40px !important; height: 40px !important; background-size: 40px 40px; }
+    .volt-profile-group-info__name { flex: 1; font-size: 16px; overflow-wrap: anywhere; }
+    .volt-profile-group-info__created, .volt-profile-group-info__description { flex-basis: 100%; font-size: 13px; overflow-wrap: anywhere; }
+    .volt-profile-group-info__description > div { width: auto; padding-bottom: 5px; }
+    .volt-profile-group-info button { flex: 1 1 calc(50% - 6px); min-height: 44px; overflow-wrap: anywhere; }
+    .volt-profile-group-info__role { width: 20px; height: 20px; }
+    .volt-profile-group-info__owner, .volt-profile-group-info__pending { flex: 1 0 75%; }
+    .volt-profile-group-favourite { width: 100%; margin-top: 6px; }
+
+    .volt-extended-profile__hidden-profile, .volt-extended-profile__blocked-overlay {
+        display: grid;
+        align-content: center;
+        justify-items: center;
+        gap: 8px;
+        min-height: 100%;
+        clip-path: none;
+    }
+    .volt-extended-profile__hidden-profile p { position: static; width: auto; height: auto; padding: 12px; white-space: normal; transform: none; }
+    .volt-extended-profile__blocked-text { position: relative; padding: 10px; max-width: 320px; }
+    .volt-extended-profile__blocked-copy { position: relative; }
+    .volt-extended-profile__blocked-text a { display: inline-flex; align-items: center; min-height: 44px; }
+    .volt-extended-profile__blocked-frank { width: 95px; }
+
+    @container (min-width: 560px) {
+        .volt-extended-profile {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            align-content: start;
+            gap: 8px 12px;
+        }
+        .volt-extended-profile__top { display: contents; }
+        .volt-extended-profile__right { grid-column: 2; grid-row: 1 / 3; }
+        .volt-extended-profile__summary-bar { grid-column: 1; align-self: start; margin: 0; }
+        .volt-extended-profile__block-button { right: calc(50% + 12px); }
+        .volt-extended-profile-groups:has(.volt-extended-profile-groups__list) { grid-template-columns: minmax(110px, 24%) minmax(0, 1fr); }
+        .volt-extended-profile-groups__count { grid-column: 1 / -1; }
+        .volt-extended-profile-groups__list { flex-direction: column; align-self: start; max-height: 65dvh; }
+        .volt-extended-profile-groups__item { flex: none; }
+        .volt-extended-profile-groups__select { flex-direction: row; justify-content: flex-start; text-align: left; }
+    }
+}

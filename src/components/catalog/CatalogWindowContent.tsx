@@ -25,7 +25,7 @@ import { CatalogNavigationView } from './views/navigation/CatalogNavigationView'
 import { CatalogTouchBackBar } from './views/navigation/CatalogTouchBackBar';
 import { CatalogSearchView } from './views/page/common/CatalogSearchView';
 import { GetCatalogLayout } from './views/page/layout/GetCatalogLayout';
-import { catalogPageHidesLeftPane } from './views/page/layout/catalogLayoutRegistry';
+import { catalogPageHidesLeftPane, getCatalogLayoutDefinition } from './views/page/layout/catalogLayoutRegistry';
 
 // The Builders Club page icon (LocalizationCatalogWidget: builder pages show icon_193 in the header).
 const BUILDER_HEADER_ICON = 193;
@@ -88,7 +88,7 @@ const CatalogTabLabel: FC<{ text: string; width: number; isTouch?: boolean }> = 
 );
 
 export const CatalogWindowContent: FC<{}> = () => {
-    const { rootNode = null, currentPage = null, searchResult = null, isBusy = false, catalogLoadError = null } = useCatalogData();
+    const { rootNode = null, currentPage = null, currentOffer = null, searchResult = null, isBusy = false, catalogLoadError = null } = useCatalogData();
     const {
         isVisible = false,
         setIsVisible = null,
@@ -143,12 +143,16 @@ export const CatalogWindowContent: FC<{}> = () => {
     const activeLeaf = activeNodes.at(-1) ?? null;
     const tabFirstPage = useMemo(() => (currentTab ? getFirstPageNode(currentTab) : null), [currentTab]);
 
-    // A page opened from a link or an offer goes straight to the page step; the page a tab opens by itself does not.
+    const renderer = getCatalogLayoutDefinition(currentPage?.layoutCode)?.renderer;
+    const hasOfferDetail = !!currentOffer && (renderer === 'default' || renderer === 'colorGrouping' || renderer === 'recolorableFurniture');
+
+    // Keep the selected product when rotating. A tab's automatic first page still opens at the category list.
     useEffect(() => {
-        if (!usesSteps || pageId < 0 || !activeLeaf || hasVisibleChildren(activeLeaf) || activeLeaf === tabFirstPage) return;
+        if (!usesSteps) return;
+        if (!hasOfferDetail && (pageId < 0 || !activeLeaf || hasVisibleChildren(activeLeaf) || activeLeaf === tabFirstPage)) return;
 
         setTouchStep('page');
-    }, [usesSteps, pageId, activeLeaf, tabFirstPage]);
+    }, [usesSteps, pageId, activeLeaf, tabFirstPage, hasOfferDetail]);
 
     const onNodeActivated = useCallback((node: ICatalogNode) => {
         if (node.pageId > -1 && !hasVisibleChildren(node)) setTouchStep('page');

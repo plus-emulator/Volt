@@ -1,5 +1,5 @@
 import { CreateLinkEvent, GetSessionDataManager, IUserCurrentBadgeData, RelationshipStatusInfoMessageParser, UserProfileParser } from '@volt/renderer';
-import { FC, MouseEvent, useEffect, useMemo, useState } from 'react';
+import { FC, SyntheticEvent, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { FriendlyTime, GetConfigurationValue, LocalizeBadgeDescription, LocalizeBadgeName, LocalizeText, localizeWithFallback, SanitizeHtml } from '../../api';
 import { badgeEmblemDefault } from '../../assets/images/leaderboard_badge';
@@ -14,6 +14,7 @@ import { ProfileAvatarImage } from './ProfileAvatarImage';
 import { RelationshipsContainerView } from './RelationshipsContainerView';
 
 interface UserContainerViewProps {
+    isTouch: boolean;
     userProfile: UserProfileParser;
     userBadges?: IUserCurrentBadgeData[];
     userRelationships?: RelationshipStatusInfoMessageParser;
@@ -30,7 +31,7 @@ const BADGE_RARITY_LABELS = ['common', 'common', 'rare', 'epic', 'mythical', 'le
 const BADGE_RARITY_TAG_COLORS = [0x777777, 0x777777, 0x56a152, 0x5194cc, 0xa564b5, 0xc02a20, 0xcc9200];
 
 export const UserContainerView: FC<UserContainerViewProps> = (props) => {
-    const { userProfile = null, userBadges = [], userRelationships = null, onOpenRooms = null, onClose = null, isBlocked = false, onToggleBlock = null } = props;
+    const { isTouch, userProfile = null, userBadges = [], userRelationships = null, onOpenRooms = null, onClose = null, isBlocked = false, onToggleBlock = null } = props;
 
     const [requestSent, setRequestSent] = useState(userProfile.requestSent);
     const [badgePopup, setBadgePopup] = useState<{ userId: number; index: number; badgeCode: string; x: number; y: number; layer: number } | null>(null);
@@ -59,7 +60,7 @@ export const UserContainerView: FC<UserContainerViewProps> = (props) => {
         setRequestSent(true);
     };
 
-    const showBadgePopup = (event: MouseEvent<HTMLDivElement>, index: number) => {
+    const showBadgePopup = (event: SyntheticEvent<HTMLButtonElement>, index: number) => {
         const badgeCode = selectedBadges[index]?.badgeCode;
         if (!badgeCode) return;
 
@@ -79,6 +80,23 @@ export const UserContainerView: FC<UserContainerViewProps> = (props) => {
     useEffect(() => {
         setRequestSent(userProfile.requestSent);
     }, [userProfile]);
+
+    const badgeDetails = visibleBadgePopup && (
+        <div className="volt-profile-badge-details" role="tooltip"
+            style={isTouch ? undefined : { left: visibleBadgePopup.x, top: visibleBadgePopup.y, zIndex: visibleBadgePopup.layer }}>
+            <div className="volt-profile-badge-details__name">{LocalizeBadgeName(visibleBadgePopup.badgeCode)}</div>
+            {badgeDescription && <div className="volt-profile-badge-details__description">{badgeDescription}</div>}
+            {popupBadge && <div className="volt-profile-badge-details__rarity">
+                <span className="volt-profile-badge-details__rarity-skin" aria-hidden="true" style={{ filter: raritySkinFilter }} />
+                <span className="volt-profile-badge-details__rarity-text">
+                    {LocalizeText('badge.rarity.badge', ['rarity'], [rarityLabel ? LocalizeText(`badge.rarity.${rarityLabel}`) : ''])}
+                </span>
+            </div>}
+            {popupBadge?.ownerCount > 0 && popupBadge.ownerCount < 1000 && <div className="volt-profile-badge-details__owners">
+                {LocalizeText('badge.owner_count', ['count'], [popupBadge.ownerCount.toString()])}
+            </div>}
+        </div>
+    );
 
     return (
         <div className={`volt-extended-profile${hasNativeProfileFields ? ' has-native-fields' : ''}${isBlocked ? ' is-blocked' : ''}`}>
@@ -165,13 +183,20 @@ export const UserContainerView: FC<UserContainerViewProps> = (props) => {
                     )}
 
                     <div className="volt-extended-profile__badges">
-                        {[0, 1, 2, 3, 4].map((index) => (
-                            <div key={index} className="volt-extended-profile__badge-slot"
-                                onMouseEnter={(event) => showBadgePopup(event, index)} onMouseLeave={() => setBadgePopup(null)}>
-                                {selectedBadges[index] && <LayoutBadgeImageView badgeCode={selectedBadges[index].badgeCode} />}
-                            </div>
+                        {selectedBadges.map((badge, index) => (
+                            <button key={index} type="button" className="volt-extended-profile__badge-slot"
+                                disabled={!badge} aria-label={badge && LocalizeBadgeName(badge.badgeCode)}
+                                aria-pressed={isTouch && badge ? visibleBadgePopup?.index === index : undefined}
+                                onMouseEnter={isTouch ? undefined : (event) => showBadgePopup(event, index)}
+                                onMouseLeave={isTouch ? undefined : () => setBadgePopup(null)}
+                                onFocus={isTouch ? undefined : (event) => showBadgePopup(event, index)}
+                                onBlur={isTouch ? undefined : () => setBadgePopup(null)}
+                                onClick={(event) => visibleBadgePopup?.index === index && isTouch ? setBadgePopup(null) : showBadgePopup(event, index)}>
+                                {badge && <LayoutBadgeImageView badgeCode={badge.badgeCode} />}
+                            </button>
                         ))}
                     </div>
+                    {badgeDetails && (isTouch ? badgeDetails : createPortal(badgeDetails, document.body))}
                 </div>
 
                 <div className="volt-extended-profile__separator" />
@@ -210,22 +235,6 @@ export const UserContainerView: FC<UserContainerViewProps> = (props) => {
                     <span className="volt-extended-profile__summary-value">{hasNativeProfileFields ? userProfile.level : userProfile.achievementPoints}</span>
                 </div>
             </div>
-            {visibleBadgePopup && createPortal(
-                <div className="volt-profile-badge-details" role="tooltip"
-                    style={{ left: visibleBadgePopup.x, top: visibleBadgePopup.y, zIndex: visibleBadgePopup.layer }}>
-                    <div className="volt-profile-badge-details__name">{LocalizeBadgeName(visibleBadgePopup.badgeCode)}</div>
-                    {badgeDescription && <div className="volt-profile-badge-details__description">{badgeDescription}</div>}
-                    {popupBadge && <div className="volt-profile-badge-details__rarity">
-                        <span className="volt-profile-badge-details__rarity-skin" aria-hidden="true" style={{ filter: raritySkinFilter }} />
-                        <span className="volt-profile-badge-details__rarity-text">
-                            {LocalizeText('badge.rarity.badge', ['rarity'], [rarityLabel ? LocalizeText(`badge.rarity.${rarityLabel}`) : ''])}
-                        </span>
-                    </div>}
-                    {popupBadge?.ownerCount > 0 && popupBadge.ownerCount < 1000 && <div className="volt-profile-badge-details__owners">
-                        {LocalizeText('badge.owner_count', ['count'], [popupBadge.ownerCount.toString()])}
-                    </div>}
-                </div>, document.body
-            )}
         </div>
     );
 };

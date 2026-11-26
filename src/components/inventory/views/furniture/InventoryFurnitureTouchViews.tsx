@@ -1,3 +1,5 @@
+import type { RoomPreviewer } from '@volt/renderer';
+import { LayoutRoomPreviewerView } from '../../../../common';
 import { FC, SyntheticEvent, useEffect, useRef } from 'react';
 import { GroupItem, LocalizeText } from '../../../../api';
 
@@ -24,13 +26,20 @@ export const InventoryFurnitureTouchBarView: FC<{
     tradeableCount: number;
     recyclableCount: number;
     action: InventoryTouchAction;
+    roomPreviewer: RoomPreviewer | null;
     offerCount?: string;
     onOfferCountChange?: (value: string) => void;
-}> = ({ groupItem, tradeableCount, recyclableCount, action, offerCount = null, onOfferCountChange = null }) => (
+}> = ({ groupItem, tradeableCount, recyclableCount, action, roomPreviewer, offerCount = null, onOfferCountChange = null }) => (
     <div className="volt-inventory-touch-bar">
-        <div className="volt-inventory-touch-bar-icon">
-            <img key={groupItem.iconUrl} src={groupItem.iconUrl} alt="" draggable={false} onLoad={fitIcon} />
-        </div>
+        {roomPreviewer ? (
+            <div className="volt-inventory-touch-room-preview">
+                <LayoutRoomPreviewerView fitParent roomPreviewer={roomPreviewer} />
+            </div>
+        ) : (
+            <div className="volt-inventory-touch-bar-icon">
+                <img key={groupItem.iconUrl} src={groupItem.iconUrl} alt="" draggable={false} onLoad={fitIcon} />
+            </div>
+        )}
         <div className="volt-inventory-touch-bar-text">
             <div className="volt-inventory-touch-bar-name">{groupItem.name}</div>
             <div className="volt-inventory-touch-bar-meta">

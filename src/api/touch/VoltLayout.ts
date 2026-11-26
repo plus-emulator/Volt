@@ -12,6 +12,7 @@ const TABLET_MAX_SHORT_SIDE = 1100;
 const listeners = new Set<() => void>();
 let current: VoltLayout = 'desktop';
 let started = false;
+let hostViewport: { width: number; height: number; keyboardOpen: boolean } | null = null;
 
 const readOverride = (): VoltLayout | null => {
     try {
@@ -40,8 +41,8 @@ const detect = (): VoltLayout => {
 
     if (override) return override;
 
-    const width = window.innerWidth;
-    const height = window.innerHeight;
+    const width = hostViewport?.width ?? window.innerWidth;
+    const height = hostViewport?.height ?? window.innerHeight;
     const shortSide = Math.min(width, height);
     const isLandscape = width > height;
     const isCoarse = window.matchMedia?.('(pointer: coarse)').matches ?? false;
@@ -53,6 +54,16 @@ const detect = (): VoltLayout => {
     return 'desktop';
 };
 
+const hasTextFocus = () => {
+    const active = document.activeElement;
+    if (active instanceof HTMLTextAreaElement || (active instanceof HTMLElement && active.isContentEditable)) return true;
+    return active instanceof HTMLInputElement && ['text', 'search', 'email', 'url', 'tel', 'number', 'password'].includes(active.type);
+};
+
+const requestHostViewport = () => {
+    if (window.parent !== window) window.parent.postMessage({ type: 'volt-viewport-request', textFocused: hasTextFocus() }, '*');
+};
+
 const applyKeyboardInset = () => {
     const viewport = window.visualViewport;
     const root = document.documentElement;
@@ -60,10 +71,11 @@ const applyKeyboardInset = () => {
     if (!viewport) return;
 
     const inset = Math.max(0, Math.round(window.innerHeight - viewport.height - viewport.offsetTop));
-    const keyboardOpen = inset > 80;
-    const visualHeight = keyboardOpen ? Math.round(viewport.height) : window.innerHeight;
+    const localKeyboardOpen = inset > 80 && hasTextFocus();
+    const keyboardOpen = localKeyboardOpen || hostViewport?.keyboardOpen === true;
+    const visualHeight = localKeyboardOpen ? Math.round(viewport.height) : window.innerHeight;
 
-    root.style.setProperty('--volt-keyboard-inset', `${keyboardOpen ? inset : 0}px`);
+    root.style.setProperty('--volt-keyboard-inset', `${localKeyboardOpen ? inset : 0}px`);
     root.style.setProperty('--volt-visual-height', `${visualHeight}px`);
     root.dataset.voltKeyboard = keyboardOpen ? 'open' : 'closed';
 };
@@ -71,7 +83,7 @@ const applyKeyboardInset = () => {
 const handleSafeAreaMessage = (event: MessageEvent) => {
     const data = event.data;
 
-    if (!data || typeof data !== 'object' || data.type !== 'volt-safe-area') return;
+    if (window.parent === window || event.source !== window.parent || data?.type !== 'volt-safe-area') return;
 
     const root = document.documentElement;
 
@@ -79,6 +91,15 @@ const handleSafeAreaMessage = (event: MessageEvent) => {
     if (typeof data.right === 'string') root.style.setProperty('--volt-safe-right', data.right);
     if (typeof data.bottom === 'string') root.style.setProperty('--volt-safe-bottom', data.bottom);
     if (typeof data.left === 'string') root.style.setProperty('--volt-safe-left', data.left);
+
+    if (
+        Number.isFinite(data.layoutWidth) && data.layoutWidth > 0 &&
+        Number.isFinite(data.layoutHeight) && data.layoutHeight > 0 &&
+        typeof data.keyboardOpen === 'boolean'
+    ) {
+        hostViewport = { width: data.layoutWidth, height: data.layoutHeight, keyboardOpen: data.keyboardOpen };
+        update();
+    }
 };
 
 const update = () => {
@@ -105,6 +126,10 @@ export const StartVoltLayout = () => {
     window.addEventListener('resize', update);
     window.addEventListener('orientationchange', update);
     window.addEventListener('message', handleSafeAreaMessage);
+    requestHostViewport();
+    window.addEventListener('pageshow', requestHostViewport);
+    document.addEventListener('focusin', requestHostViewport);
+    document.addEventListener('focusout', () => queueMicrotask(requestHostViewport));
     window.visualViewport?.addEventListener('resize', applyKeyboardInset);
     window.visualViewport?.addEventListener('scroll', applyKeyboardInset);
     window.matchMedia?.('(pointer: coarse)').addEventListener?.('change', update);

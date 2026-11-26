@@ -47,6 +47,7 @@ html[data-volt-layout='tablet-portrait'] {
 
 /* ---------- Window modes ---------- */
 
+html[data-volt-touch='on'] .draggable-window[data-volt-window='screen'],
 html[data-volt-touch='on'] .draggable-window[data-volt-window='sheet'],
 html[data-volt-touch='on'] .draggable-window[data-volt-window='dock'],
 html[data-volt-touch='on'] .draggable-window[data-volt-window='dialog'] {
@@ -57,6 +58,32 @@ html[data-volt-touch='on'] .draggable-window[data-volt-window='dialog'] {
     flex-direction: column;
 }
 
+html[data-volt-device='phone'] .draggable-window[data-volt-window='screen'] {
+    --volt-screen-header: 44px;
+    --volt-screen-header-end: calc(var(--volt-safe-top) + var(--volt-screen-header));
+    inset: 0 0 auto !important;
+    box-sizing: border-box;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: var(--volt-visual-height, 100dvh) !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: hidden;
+    padding: var(--volt-safe-top) var(--volt-safe-right) var(--volt-safe-bottom) var(--volt-safe-left);
+    background: linear-gradient(
+        to bottom,
+        #377998 calc(var(--volt-screen-header-end) - 1px),
+        #030f18 0 var(--volt-screen-header-end),
+        #e9e9e1 0
+    );
+}
+
+/* The screen paints the frame behind the cutout and home indicator. */
+html[data-volt-device='phone'] .draggable-window[data-volt-window='screen'] > .volt-card-shell.volt-card-frame-3::before {
+    display: none;
+}
+
 html[data-volt-touch='on'] .draggable-window[data-volt-window='sheet'] {
     top: auto !important;
     right: 0 !important;
@@ -65,6 +92,25 @@ html[data-volt-touch='on'] .draggable-window[data-volt-window='sheet'] {
     height: calc(100% - var(--volt-safe-top) - 8px);
     max-height: calc(var(--volt-visual-height, 100dvh) - var(--volt-safe-top));
     transition: height 220ms cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+@keyframes volt-touch-sheet-enter {
+    from {
+        translate: 0 20px;
+        opacity: 0.85;
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    html[data-volt-touch='on'] .draggable-window[data-volt-window='sheet'] {
+        animation: volt-touch-sheet-enter 160ms ease-out;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html[data-volt-touch='on'] .draggable-window[data-volt-window='sheet'] {
+        transition: none;
+    }
 }
 
 html[data-volt-touch='on'] .draggable-window[data-volt-window='sheet'][data-volt-sheet-size='half'] {
@@ -92,8 +138,7 @@ html[data-volt-touch='on'] .draggable-window[data-volt-window='dock'] {
     padding-right: var(--volt-safe-right);
 }
 
-/* Landscape phones: windows open as one large AIR panel over the room, close to full screen, so the
-   desktop multi-pane layouts fit. The short screen leaves no room for a side dock. */
+/* Secondary landscape panels keep room context around the frame. */
 html[data-volt-layout='phone-landscape'] .draggable-window[data-volt-window='dock'] {
     top: calc(4px + var(--volt-safe-top)) !important;
     right: calc(8px + var(--volt-safe-right)) !important;
@@ -105,8 +150,8 @@ html[data-volt-layout='phone-landscape'] .draggable-window[data-volt-window='doc
 }
 
 html[data-volt-touch='on'] .draggable-window[data-volt-window='dialog'] {
-    top: 50% !important;
-    left: 50% !important;
+    top: calc((var(--volt-visual-height, 100dvh) + var(--volt-safe-top) - var(--volt-safe-bottom)) / 2) !important;
+    left: calc((100% + var(--volt-safe-left) - var(--volt-safe-right)) / 2) !important;
     right: auto !important;
     bottom: auto !important;
     max-width: calc(100vw - 16px - var(--volt-safe-left) - var(--volt-safe-right));
@@ -114,8 +159,7 @@ html[data-volt-touch='on'] .draggable-window[data-volt-window='dialog'] {
     translate: -50% -50%;
 }
 
-/* The window's own card fills the sheet or dock; inline sizes from desktop layouts lose here. */
-html[data-volt-touch='on'] .draggable-window:is([data-volt-window='sheet'], [data-volt-window='dock']) > :not(.volt-native-frame-shadow) {
+html[data-volt-touch='on'] .draggable-window:is([data-volt-window='screen'], [data-volt-window='sheet'], [data-volt-window='dock']) > :not(.volt-native-frame-shadow) {
     flex: 1 1 auto;
     width: 100% !important;
     min-width: 0 !important;
@@ -231,11 +275,11 @@ html[data-volt-touch='on'] .draggable-window .volt-card-shell.volt-card-frame-3 
     transform: translateY(-50%);
 }
 
-/* Close: a 27 x 28 sprite in a 38 x 44 hit area that meets the window edge. */
+/* Close and help retain a 7px gap between their sprites. */
 html[data-volt-touch='on'] .draggable-window .volt-card-shell.volt-card-frame-3 > .volt-card-header-shell .volt-card-close-button {
     top: 0 !important;
     right: 0 !important;
-    width: 38px !important;
+    width: var(--volt-touch-target) !important;
     height: var(--volt-touch-header) !important;
     background: var(--volt-card-close-3) left 4px center / 27px 28px no-repeat !important;
     transform: none !important;
@@ -245,12 +289,11 @@ html[data-volt-touch='on'] .draggable-window .volt-card-shell.volt-card-frame-3 
     filter: brightness(0.85) !important;
 }
 
-/* Help: 27 x 28 sprite in a 34 x 44 hit area, 7 px left of close. */
 html[data-volt-touch='on'] .draggable-window .volt-card-shell.volt-card-frame-3 > .volt-card-header-shell .volt-card-header-info-habbopages {
     position: absolute !important;
     top: 0 !important;
-    right: 38px !important;
-    width: 34px !important;
+    right: var(--volt-touch-target) !important;
+    width: var(--volt-touch-target) !important;
     height: var(--volt-touch-header) !important;
     background: url('../../assets/images/habbo-skin/touch/help-touch.png') right 3px center / 27px 28px no-repeat !important;
     image-rendering: pixelated;
