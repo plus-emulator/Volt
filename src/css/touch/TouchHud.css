@@ -12,8 +12,7 @@ html[data-volt-device='tablet'] {
 }
 
 html[data-volt-layout='phone-landscape'] {
-    --volt-toolbar-height: calc(64px + var(--volt-safe-bottom));
-    --volt-toolbar-width: calc(320px + var(--volt-safe-right));
+    --volt-toolbar-height: calc(52px + var(--volt-safe-bottom));
 }
 
 /* Toolbar */
@@ -72,29 +71,20 @@ html[data-volt-layout='phone-landscape'] {
     margin: 0 auto;
 }
 
-/* Landscape: the whole row is a solid strip so taps never fall through to the tiles; the icons sit in the AIR glass group on the right. */
+/* Landscape: one AIR strip like the desktop toolbar. Icons sit on the left and the chat bar fills the rest
+   of the row; ToolbarTouchView measures the icon group into --volt-toolbar-width. */
 .volt-touch-toolbar--phone-landscape .volt-touch-toolbar__group {
-    position: absolute;
-    top: 4px;
-    right: calc(8px + var(--volt-safe-right));
-    box-sizing: border-box;
-    width: 312px;
-    height: 56px;
+    display: inline-flex;
+    height: 52px;
     align-items: center;
-    justify-content: space-evenly;
-    padding: 0;
-    border: 6px solid transparent;
-    border-image-source: url("../../assets/images/habbo-skin/slices/border-colorless-3b3933.png");
-    border-image-slice: 24 fill;
-    border-image-width: 6px;
-    border-image-repeat: stretch;
-    image-rendering: var(--volt-pixel-art, pixelated);
+    justify-content: flex-start;
+    padding: 0 4px 0 calc(6px + var(--volt-safe-left));
 }
 
 .volt-touch-toolbar--phone-landscape .volt-touch-toolbar__slot {
-    width: 50px;
-    height: 50px;
-    flex-basis: 50px;
+    width: 48px;
+    height: 48px;
+    flex-basis: 48px;
 }
 
 /* Me menu and progression menu above the toolbar */
@@ -112,7 +102,7 @@ html[data-volt-layout='phone-landscape'] {
 }
 
 .volt-touch-toolbar--phone-landscape .volt-touch-toolbar__popup {
-    justify-content: flex-end;
+    justify-content: flex-start;
 }
 
 .volt-touch-toolbar__popup > * {
@@ -188,6 +178,7 @@ html[data-volt-layout='phone-landscape'] {
 
 html[data-volt-touch='on'] .volt-touch-chat-slot {
     position: fixed;
+    z-index: 72 !important;
     height: 44px;
 }
 
@@ -198,9 +189,9 @@ html[data-volt-layout='phone-portrait'] .volt-touch-chat-slot {
 }
 
 html[data-volt-layout='phone-landscape'] .volt-touch-chat-slot {
-    right: calc(var(--volt-toolbar-width) + 8px);
-    bottom: calc(var(--volt-safe-bottom) + 10px);
-    left: calc(8px + var(--volt-safe-left));
+    right: calc(8px + var(--volt-safe-right));
+    bottom: calc(var(--volt-safe-bottom) + 4px);
+    left: calc(var(--volt-toolbar-width, 300px) + 4px);
 }
 
 html[data-volt-device='tablet'] .volt-touch-chat-slot {
@@ -584,4 +575,9 @@ html[data-volt-device='tablet'] .volt-room-chip {
 
 .volt-touch-toolbar [data-toolbar-tooltip]::after {
     display: none;
+}
+
+/* Phones fold the seasonal currencies (Stars, Letters) behind the same toggle as the other extras. */
+html[data-volt-device='phone'] :has(> .volt-touch-extensions[data-open='false']) .volt-purse-seasonal-currency {
+    display: none !important;
 }

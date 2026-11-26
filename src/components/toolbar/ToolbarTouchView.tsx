@@ -1,6 +1,6 @@
 import { CreateLinkEvent, FindNewFriendsMessageComposer, GetRoomEngine, RewardTrackData, RoomObjectCategory } from '@volt/renderer';
 import { AnimatePresence, motion } from 'framer-motion';
-import { FC, ReactNode, useState } from 'react';
+import { FC, ReactNode, useLayoutEffect, useRef, useState } from 'react';
 import { GetRoomSession, IsTabletLayout, localizeWithFallback, MessengerIconState, OpenMessengerChat, SendMessageComposer, VisitDesktop, VoltLayout } from '../../api';
 import memenuBgImg from '../../assets/images/toolbar/air/memenu-bg.png';
 import memenuCircleImg from '../../assets/images/toolbar/air/memenu-circle.png';
@@ -67,6 +67,7 @@ export const ToolbarTouchView: FC<ToolbarTouchViewProps> = (props) => {
     } = props;
     const [isMeExpanded, setMeExpanded] = useState(false);
     const [isProgressionExpanded, setProgressionExpanded] = useState(false);
+    const groupRef = useRef<HTMLElement>(null);
     const isTablet = IsTabletLayout(layout);
     const isLandscapePhone = layout === 'phone-landscape';
     const homeIcon = isInRoom ? 'habbo' : 'house';
@@ -171,6 +172,26 @@ export const ToolbarTouchView: FC<ToolbarTouchViewProps> = (props) => {
         </div>
     );
 
+    useLayoutEffect(() => {
+        const group = groupRef.current;
+        const root = document.documentElement;
+
+        if (!group || layout !== 'phone-landscape') return;
+
+        const update = () => root.style.setProperty('--volt-toolbar-width', `${Math.ceil(group.getBoundingClientRect().right)}px`);
+        const observer = new ResizeObserver(update);
+
+        update();
+        observer.observe(group);
+        window.addEventListener('resize', update);
+
+        return () => {
+            observer.disconnect();
+            window.removeEventListener('resize', update);
+            root.style.removeProperty('--volt-toolbar-width');
+        };
+    }, [layout]);
+
     const slots = [
         !isLandscapePhone && slot('home', homeIcon, goHome),
         slot('navigator', 'rooms', () => CreateLinkEvent('navigator/toggle')),
@@ -225,7 +246,9 @@ export const ToolbarTouchView: FC<ToolbarTouchViewProps> = (props) => {
                     </motion.div>
                 )}
             </AnimatePresence>
-            <nav className="volt-touch-toolbar__group tb-nav-clip">{slots}</nav>
+            <nav ref={groupRef} className="volt-touch-toolbar__group tb-nav-clip">
+                {slots}
+            </nav>
         </div>
     );
 };
