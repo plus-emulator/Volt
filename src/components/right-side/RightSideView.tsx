@@ -35,9 +35,9 @@ export const RightSideView: FC<{}> = (props) => {
                     <NewFeatureNotificationsView />
                     <QuestTrackerView />
                     <GroupRoomInformationView />
-                    <MysteryBoxExtensionView />
                     <OfferView />
                     <RoomPromotesWidgetView />
+                    <MysteryBoxExtensionView />
                 </div>
                 <NotificationCenterView />
             </Column>

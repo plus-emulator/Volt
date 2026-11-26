@@ -27,6 +27,7 @@ const useFurnitureContextMenuWidgetState = () => {
     const [groupData, setGroupData] = useState<GroupFurniContextMenuInfoMessageParser>(null);
     const [isGroupMember, setIsGroupMember] = useState(false);
     const [objectOwnerId, setObjectOwnerId] = useState(-1);
+    const [mysteryBoxOwnerId, setMysteryBoxOwnerId] = useState(-1);
     const { roomSession = null } = useRoom();
 
     const onClose = () => {
@@ -59,6 +60,7 @@ const useFurnitureContextMenuWidgetState = () => {
                     setConfirmingObjectId(objectId);
                     break;
                 case 'use_mystery_box':
+                    setMysteryBoxOwnerId(objectOwnerId);
                     roomSession.useMultistateItem(objectId);
                     break;
                 case 'use_mystery_trophy':
@@ -125,6 +127,7 @@ const useFurnitureContextMenuWidgetState = () => {
                     onClose();
                     return;
                 case RoomEngineTriggerWidgetEvent.REQUEST_MYSTERYBOX_OPEN_DIALOG:
+                    setMysteryBoxOwnerId(object.model.getValue<number>(RoomObjectVariable.FURNITURE_OWNER_ID));
                     roomSession.useMultistateItem(object.id);
 
                     onClose();
@@ -178,7 +181,19 @@ const useFurnitureContextMenuWidgetState = () => {
         setMode(GROUP_FURNITURE);
     });
 
-    return { objectId, mode, confirmMode, confirmingObjectId, groupData, isGroupMember, objectOwnerId, closeConfirm, processAction, onClose };
+    return {
+        objectId,
+        mode,
+        confirmMode,
+        confirmingObjectId,
+        groupData,
+        isGroupMember,
+        objectOwnerId,
+        mysteryBoxOwnerId,
+        closeConfirm,
+        processAction,
+        onClose
+    };
 };
 
 export const useFurnitureContextMenuWidget = useFurnitureContextMenuWidgetState;

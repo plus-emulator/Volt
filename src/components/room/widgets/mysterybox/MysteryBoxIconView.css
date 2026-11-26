@@ -1,0 +1,11 @@
+.volt-mysterybox-icon {
+    position: absolute;
+    width: 39px;
+    height: 39px;
+}
+
+.volt-mysterybox-icon__layer {
+    position: absolute;
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+}

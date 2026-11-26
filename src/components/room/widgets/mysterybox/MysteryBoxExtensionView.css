@@ -1,0 +1,118 @@
+.volt-mysterybox-tracker {
+    position: relative;
+    flex-shrink: 0;
+    width: 192px;
+    height: 137px;
+    overflow: hidden;
+    pointer-events: all;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.volt-mysterybox-tracker.is-minimised {
+    height: 25px;
+}
+
+/* border style 6 in 0x676767 */
+.volt-mysterybox-tracker::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 0 solid transparent;
+    border-image: url("../../../../assets/images/mysterybox/border-6-676767.png") 8 fill / 8px stretch;
+    pointer-events: none;
+}
+
+/* The inner border keeps its 186x130 size, so the minimised window cuts it off. */
+.volt-mysterybox-tracker__body {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 186px;
+    height: 130px;
+}
+
+/* border style 3 (border_slot) in 0x201e19 at blend 0.8, on its own layer so the blend does not fade the children. */
+.volt-mysterybox-tracker__body::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 0 solid transparent;
+    border-image: url("../../../../assets/images/user-settings/native/border-slot-201e19.png") 3 fill / 3px stretch;
+    opacity: 0.8;
+    pointer-events: none;
+}
+
+.volt-mysterybox-tracker__header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 186px;
+    height: 20px;
+    background: #676767;
+}
+
+.volt-mysterybox-tracker__title {
+    position: absolute;
+    top: 3px;
+    left: 1px;
+}
+
+.volt-mysterybox-tracker__description {
+    position: absolute;
+    top: 27px;
+    left: 6px;
+}
+
+.volt-mysterybox-tracker__slots {
+    position: absolute;
+    top: 72px;
+    left: 49px;
+    width: 89px;
+    height: 39px;
+}
+
+.volt-mysterybox-tracker__slot {
+    position: absolute;
+    top: 0;
+    width: 39px;
+    height: 39px;
+}
+
+.volt-mysterybox-tracker__bitmap {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.volt-mysterybox-tracker__faq {
+    position: absolute;
+    top: 112px;
+    left: 24px;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+}
+
+.volt-mysterybox-tracker__toggle {
+    position: absolute;
+    top: 2px;
+    left: 168px;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+}
+
+.volt-mysterybox-tracker__toggle img {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.volt-mysterybox-tracker__small {
+    position: absolute;
+    background-repeat: no-repeat;
+}

@@ -31,7 +31,8 @@ export const FurnitureContextMenuView: FC<{}> = (props) => {
         confirmingObjectId = -1,
         groupData = null,
         isGroupMember = false,
-        objectOwnerId = -1
+        objectOwnerId = -1,
+        mysteryBoxOwnerId = -1
     } = useFurnitureContextMenuWidget();
     const { simpleAlert = null } = useNotification();
 
@@ -122,7 +123,7 @@ export const FurnitureContextMenuView: FC<{}> = (props) => {
             {confirmMode === PURCHASABLE_CLOTHING_CONFIRMATION && <PurchasableClothingConfirmView objectId={confirmingObjectId} onClose={closeConfirm} />}
             {confirmMode === EFFECTBOX_OPEN && <EffectBoxConfirmView objectId={confirmingObjectId} onClose={closeConfirm} />}
             {confirmMode === MYSTERYTROPHY_OPEN_DIALOG && <FurnitureMysteryTrophyOpenDialogView objectId={confirmingObjectId} onClose={closeConfirm} />}
-            <FurnitureMysteryBoxOpenDialogView ownerId={objectOwnerId} />
+            <FurnitureMysteryBoxOpenDialogView ownerId={mysteryBoxOwnerId} />
             {objectId >= 0 && mode && (
                 <ContextMenuView
                     category={RoomObjectCategory.FLOOR}

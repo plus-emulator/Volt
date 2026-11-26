@@ -1,0 +1,51 @@
+/* mystery_box_open_dialog and mystery_box_reward, relative to the Illumina content area (1,30). */
+.volt-mysterybox-wait {
+    width: 361px;
+    height: 271px;
+}
+
+.volt-mysterybox-reward {
+    width: 430px;
+    height: 234px;
+}
+
+.volt-mysterybox-at,
+.volt-mysterybox-star {
+    position: absolute;
+}
+
+.volt-mysterybox-star {
+    width: 109px;
+    height: 109px;
+    image-rendering: pixelated;
+}
+
+/* Border style 102: illumina_light_skin_border_sunk. */
+.volt-mysterybox-sunk {
+    position: absolute;
+    left: 24px;
+    top: 123px;
+    width: 310px;
+    height: 60px;
+}
+
+/* The itemlist at y 8 stacks the label, this 109x109 box and the close button with 4px spacing. */
+.volt-mysterybox-prize {
+    position: absolute;
+    left: 160px;
+    top: 28px;
+    width: 109px;
+    height: 109px;
+}
+
+.volt-mysterybox-prize .volt-mysterybox-star {
+    left: 0;
+    top: 0;
+}
+
+.volt-mysterybox-prize__image {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+}
