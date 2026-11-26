@@ -199,43 +199,43 @@ export const ToolbarTouchView: FC<ToolbarTouchViewProps> = (props) => {
 
     useLayoutEffect(() => {
         const root = document.documentElement;
-        const container = document.getElementById('toolbar-chat-input-container');
 
-        if (layout !== 'phone-landscape' || !container) return;
+        if (layout !== 'phone-landscape') return;
 
         let timer = 0;
+        const chat = () => document.getElementById('toolbar-chat-input-container');
+        const isKept = (element: Element | null) =>
+            !!element && (!!chat()?.contains(element) || !!element.closest?.('[data-radix-popper-content-wrapper], .volt-touch-chat-open'));
+        const close = () => {
+            if (!root.dataset.voltChatOpen || chat()?.querySelector('input')?.value) return;
 
-        const onFocusOut = () => {
+            chat()?.querySelector('input')?.blur();
+            delete root.dataset.voltChatOpen;
+        };
+
+        const onFocusOut = (event: FocusEvent) => {
+            if (!chat()?.contains(event.target as Node)) return;
+
             window.clearTimeout(timer);
             timer = window.setTimeout(() => {
-                const active = document.activeElement;
-                const input = container.querySelector('input');
-
-                if (container.contains(active) || active?.closest('[data-radix-popper-content-wrapper]') || input?.value) return;
-
-                delete root.dataset.voltChatOpen;
+                if (!isKept(document.activeElement)) close();
             }, 200);
         };
 
         // The room canvas cancels touches, so a tap there never blurs the input.
-        const onPointerDown = (event: PointerEvent) => {
-            const target = event.target as Element;
-            const input = container.querySelector('input');
-
-            if (!root.dataset.voltChatOpen || input?.value) return;
-            if (container.contains(target) || target.closest?.('[data-radix-popper-content-wrapper], .volt-touch-chat-open')) return;
-
-            input?.blur();
-            delete root.dataset.voltChatOpen;
+        const onTouchOutside = (event: Event) => {
+            if (!isKept(event.target as Element)) close();
         };
 
-        container.addEventListener('focusout', onFocusOut);
-        document.addEventListener('pointerdown', onPointerDown, true);
+        document.addEventListener('focusout', onFocusOut, true);
+        document.addEventListener('pointerdown', onTouchOutside, true);
+        document.addEventListener('touchstart', onTouchOutside, true);
 
         return () => {
             window.clearTimeout(timer);
-            container.removeEventListener('focusout', onFocusOut);
-            document.removeEventListener('pointerdown', onPointerDown, true);
+            document.removeEventListener('focusout', onFocusOut, true);
+            document.removeEventListener('pointerdown', onTouchOutside, true);
+            document.removeEventListener('touchstart', onTouchOutside, true);
             delete root.dataset.voltChatOpen;
         };
     }, [layout]);
