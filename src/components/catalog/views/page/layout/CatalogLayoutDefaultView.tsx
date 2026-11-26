@@ -1,5 +1,6 @@
 import { FC, ReactNode, SyntheticEvent, useState } from 'react';
-import { CatalogType, GetConfigurationValue, IPurchasableOffer, IsPhoneLayout, LocalizeText, ProductTypeEnum, useVoltLayout } from '../../../../../api';
+import { CatalogType, GetConfigurationValue, IPurchasableOffer, LocalizeText, ProductTypeEnum } from '../../../../../api';
+import { IsPhoneLayout, useVoltLayout } from '../../../../../api/touch';
 import backIcon from '../../../../../assets/images/navigator/air/button-back.png';
 import { NativeText } from '../../../../../common/native-text/NativeText';
 import { getCatalogGridMetrics, useCatalogData, useCatalogDisplayPreferences, useCatalogUiState } from '../../../../../hooks';

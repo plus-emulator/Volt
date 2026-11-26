@@ -1,5 +1,6 @@
 import { CSSProperties, FC, PointerEvent as ReactPointerEvent, ReactNode, useLayoutEffect, useRef, useState } from 'react';
-import { IsTouchLayout, LocalizeText, useVoltLayout, WiredSliderConverter, WIRED_SLIDER_ECHO } from '../../../api';
+import { LocalizeText, WiredSliderConverter, WIRED_SLIDER_ECHO } from '../../../api';
+import { IsTouchLayout, useVoltLayout } from '../../../api/touch';
 import { Slider, SliderProps } from '../../../common';
 import sliderTrack from '../../../assets/images/wired/native/slider_track.png';
 import sliderThumb from '../../../assets/images/wired/native/slider_obj.png';

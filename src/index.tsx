@@ -108,7 +108,6 @@ import './css/camera/CameraWidget.css';
 import './css/catalog/CatalogGiftView.css';
 import './css/navigator/NavigatorView.css';
 import './css/quests/RewardTrackView.css';
-import './css/common/ClassicScrollbar.css';
 
 import './css/touch/TouchWindows.css';
 import './css/touch/TouchRightSide.css';
@@ -125,6 +124,7 @@ import './css/touch/TouchWired.css';
 import './css/touch/TouchWiredTools.css';
 import './css/touch/TouchFloorplan.css';
 import './css/touch/TouchQuests.css';
+import './css/common/ClassicScrollbar.css';
 
 // bootstrap.ts mounts the app once the configuration has loaded.
 export const mountApp = () => {

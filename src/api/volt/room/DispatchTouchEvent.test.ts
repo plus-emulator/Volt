@@ -5,6 +5,7 @@ const roomEngine = vi.hoisted(() => ({ dispatchMouseEvent: vi.fn() }));
 
 vi.mock('@volt/renderer', () => ({
     GetRoomEngine: () => roomEngine,
+    RoomAreaSelectionManager: { AWAITING_MOUSE_DOWN: 1, SELECTING: 2 },
     MouseEventType: {
         MOUSE_CLICK: 'click',
         DOUBLE_CLICK: 'double_click',

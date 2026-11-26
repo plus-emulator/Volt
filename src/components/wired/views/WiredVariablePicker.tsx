@@ -1,6 +1,7 @@
 import { CSSProperties, FC, KeyboardEvent, MouseEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { GetRoomSession, IsTouchLayout, LocalizeText, useVoltLayout } from '../../../api';
+import { GetRoomSession, LocalizeText } from '../../../api';
+import { IsTouchLayout, useVoltLayout } from '../../../api/touch';
 import cancelSearchIcon from '../../../assets/images/wired/var/ar_picker_cancel_search.png';
 import allIcon from '../../../assets/images/wired/var/var_picker_all.png';
 import internalIcon from '../../../assets/images/wired/var/var_picker_internal.png';

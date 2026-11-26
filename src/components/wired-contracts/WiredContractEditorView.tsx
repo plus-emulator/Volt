@@ -1,6 +1,7 @@
 import { FurnitureType, GetSessionDataManager, IFurnitureData, IWiredContractContents, IWiredContractNode, IWiredContractRule } from '@volt/renderer';
 import { FC, PropsWithChildren, ReactNode, useMemo, useState } from 'react';
-import { IsTouchLayout, LocalizeText, localizeWithFallback, useVoltLayout } from '../../api';
+import { LocalizeText, localizeWithFallback } from '../../api';
+import { IsTouchLayout, useVoltLayout } from '../../api/touch';
 import { LayoutFurniImageView, VoltCardContentView, VoltCardHeaderView, VoltCardView } from '../../common';
 import { HabboDropMenuView } from '../../common/dropmenu/HabboDropMenuView';
 import { NativeText } from '../../common/native-text/NativeText';

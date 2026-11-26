@@ -28,13 +28,12 @@ import {
     GetGroupInformation,
     IPhotoData,
     isSafeExternalUrl,
-    IsTouchLayout,
     LocalizeText,
     localizeWithFallback,
     RoomWidgetFurnitureRecolorEvent,
-    SendMessageComposer,
-    useVoltLayout
+    SendMessageComposer
 } from '../../../../../api';
+import { IsTouchLayout, useVoltLayout } from '../../../../../api/touch';
 import rotateIcon from '../../../../../assets/images/avatareditor/arrow-right-icon.png';
 import moveIcon from '../../../../../assets/images/infostand/furni-place.png';
 import shopIcon from '../../../../../assets/images/infostand/furni-shop.png';

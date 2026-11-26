@@ -1,6 +1,7 @@
 import { CreateLinkEvent, GetRoomEngine, GetSessionDataManager, RoomObjectCategory } from '@volt/renderer';
 import { Dispatch, FC, PropsWithChildren, SetStateAction, useEffect, useRef } from 'react';
-import { DispatchUiEvent, GetConfigurationValue, GetRoomSession, GetUserProfile, GetVoltLayout, IsTouchLayout, localizeWithFallback } from '../../api';
+import { DispatchUiEvent, GetConfigurationValue, GetRoomSession, GetUserProfile, localizeWithFallback } from '../../api';
+import { GetVoltLayout, IsTouchLayout } from '../../api/touch';
 import { Flex, LayoutItemCountView } from '../../common';
 import { GuideToolEvent } from '../../events';
 import { useGroupForumUnreadStore } from '../../state/groupForumUnreadStore';

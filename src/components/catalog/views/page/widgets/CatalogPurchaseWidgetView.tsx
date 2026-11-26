@@ -6,14 +6,13 @@ import {
     DispatchUiEvent,
     GetClubMemberLevel,
     GetConfigurationValue,
-    IsTouchLayout,
     LocalizeText,
     Offer,
     OpenUrl,
     ProductTypeEnum,
-    SendMessageComposer,
-    useVoltLayout
+    SendMessageComposer
 } from '../../../../../api';
+import { IsTouchLayout, useVoltLayout } from '../../../../../api/touch';
 import { getCatalogBundlePrice } from '../../../../../api/catalog/CatalogBundleDiscount';
 import { useHabbiconCatalog } from '../../../../../api/habbicons';
 import { localizeWithFallback } from '../../../../../api/utils/localizeWithFallback';

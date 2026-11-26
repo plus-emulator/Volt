@@ -1,6 +1,7 @@
 import { FC, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { IsTouchLayout, localizeWithFallback, useVoltLayout } from '../../../../api';
+import { localizeWithFallback } from '../../../../api';
+import { IsTouchLayout, useVoltLayout } from '../../../../api/touch';
 import { Text, VoltCardView } from '../../../../common';
 import { WiredTextArea } from '../WiredTextArea';
 import { useWiredNative, WiredNativeContext } from '../WiredNativeContext';

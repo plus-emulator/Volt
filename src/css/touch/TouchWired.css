@@ -975,7 +975,7 @@ html[data-volt-touch='on'] :is(.volt-wired, .wired-contract) .habbo-dropmenu {
     height: 40px !important;
     min-height: 40px !important;
     border: 1px solid #8a8a8a !important;
-    border-image: none !important;
+    border-image-source: none !important;
     border-radius: 4px !important;
     background: linear-gradient(180deg, #ffffff 0%, #eaeaea 100%) !important;
 }

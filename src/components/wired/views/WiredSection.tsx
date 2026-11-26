@@ -1,5 +1,5 @@
 import { FC, PropsWithChildren, ReactNode } from 'react';
-import { IsTouchLayout, useVoltLayout } from '../../../api';
+import { IsTouchLayout, useVoltLayout } from '../../../api/touch';
 import { Text } from '../../../common';
 import { useWiredNative } from './WiredNativeContext';
 import { WiredText } from './WiredText';

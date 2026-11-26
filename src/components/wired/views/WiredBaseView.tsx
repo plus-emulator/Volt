@@ -2,19 +2,18 @@ import { CreateLinkEvent, GetRoomEngine, GetSessionDataManager } from '@volt/ren
 import { CSSProperties, FC, PropsWithChildren, ReactNode, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
-    IsTouchLayout,
     isWiredVolterStyle,
     LocalizeText,
     localizeWithFallback,
     resolveWiredStyle,
     unreleasedWiredTitleKey,
-    useVoltLayout,
     WiredFurniType,
     WiredSelectionVisualizer,
     wiredStyleClassName,
     wiredStyleWidth,
     wiredWidthMultiplier
 } from '../../../api';
+import { IsTouchLayout, useVoltLayout } from '../../../api/touch';
 import { isUsingAdvancedSettings } from '../../../api/wired/WiredAdvancedSettings';
 import volterAtlas from '../../../assets/images/wired/volter_shell_atlas.png';
 import { VoltCardContentView, VoltCardView, Text } from '../../../common';
