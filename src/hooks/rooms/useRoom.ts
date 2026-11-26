@@ -42,10 +42,13 @@ import { useWiredFurniOpacity } from './useWiredFurniOpacity';
 
 const getViewportSize = () => {
     const viewport = window.visualViewport;
+    const innerWidth = window.innerWidth;
+    const innerHeight = window.innerHeight;
+    const keyboardOpen = !!viewport && innerHeight - viewport.height - viewport.offsetTop > 80;
 
     return {
-        width: Math.max(1, Math.floor(viewport?.width ?? window.innerWidth)),
-        height: Math.max(1, Math.floor(viewport?.height ?? window.innerHeight))
+        width: Math.max(1, Math.floor(viewport && Math.abs(viewport.scale - 1) > 0.01 ? viewport.width : innerWidth)),
+        height: Math.max(1, Math.floor(keyboardOpen && viewport ? viewport.height : innerHeight))
     };
 };
 

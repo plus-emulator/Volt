@@ -60,10 +60,25 @@ const applyKeyboardInset = () => {
     if (!viewport) return;
 
     const inset = Math.max(0, Math.round(window.innerHeight - viewport.height - viewport.offsetTop));
+    const keyboardOpen = inset > 80;
+    const visualHeight = keyboardOpen ? Math.round(viewport.height) : window.innerHeight;
 
-    root.style.setProperty('--volt-keyboard-inset', `${inset}px`);
-    root.style.setProperty('--volt-visual-height', `${Math.round(viewport.height)}px`);
-    root.dataset.voltKeyboard = inset > 80 ? 'open' : 'closed';
+    root.style.setProperty('--volt-keyboard-inset', `${keyboardOpen ? inset : 0}px`);
+    root.style.setProperty('--volt-visual-height', `${visualHeight}px`);
+    root.dataset.voltKeyboard = keyboardOpen ? 'open' : 'closed';
+};
+
+const handleSafeAreaMessage = (event: MessageEvent) => {
+    const data = event.data;
+
+    if (!data || typeof data !== 'object' || data.type !== 'volt-safe-area') return;
+
+    const root = document.documentElement;
+
+    if (typeof data.top === 'string') root.style.setProperty('--volt-safe-top', data.top);
+    if (typeof data.right === 'string') root.style.setProperty('--volt-safe-right', data.right);
+    if (typeof data.bottom === 'string') root.style.setProperty('--volt-safe-bottom', data.bottom);
+    if (typeof data.left === 'string') root.style.setProperty('--volt-safe-left', data.left);
 };
 
 const update = () => {
@@ -89,6 +104,7 @@ export const StartVoltLayout = () => {
     update();
     window.addEventListener('resize', update);
     window.addEventListener('orientationchange', update);
+    window.addEventListener('message', handleSafeAreaMessage);
     window.visualViewport?.addEventListener('resize', applyKeyboardInset);
     window.visualViewport?.addEventListener('scroll', applyKeyboardInset);
     window.matchMedia?.('(pointer: coarse)').addEventListener?.('change', update);

@@ -36,8 +36,11 @@ import { SharedHookRegistry } from './state/useSharedHook';
 
 const getViewportDimensions = () => {
     const viewport = window.visualViewport;
-    const width = Math.max(1, Math.floor(viewport?.width ?? window.innerWidth));
-    const height = Math.max(1, Math.floor(viewport?.height ?? window.innerHeight));
+    const innerWidth = window.innerWidth;
+    const innerHeight = window.innerHeight;
+    const keyboardOpen = !!viewport && innerHeight - viewport.height - viewport.offsetTop > 80;
+    const width = Math.max(1, Math.floor(viewport && Math.abs(viewport.scale - 1) > 0.01 ? viewport.width : innerWidth));
+    const height = Math.max(1, Math.floor(keyboardOpen && viewport ? viewport.height : innerHeight));
 
     return { width, height };
 };
