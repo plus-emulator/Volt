@@ -1911,6 +1911,32 @@
     overflow: hidden;
 }
 
+/* ---- ME menu icons ---- */
+
+.icon-me-quests,
+.icon-me-dailytasks,
+.icon-me-rewardtrack {
+    width: 32px;
+    height: 30px;
+    background-position: center;
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+}
+
+.icon-me-quests {
+    background-image: url("@/assets/images/toolbar/icons/me-menu/quests.png");
+}
+
+.icon-me-dailytasks {
+    background-image: url("@/assets/images/toolbar/icons/me-menu/daily-tasks.png");
+}
+
+.icon-me-rewardtrack {
+    width: 33px;
+    height: 32px;
+    background-image: url("@/assets/images/toolbar/icons/me-menu/reward-track.png");
+}
+
 /* Reward track staff editor (the gear in the window, rewardtrack.manage). Volt only, kept clear of the
    profile bulge and the previous arrow, skinned with the shiny button like the official controls. */
 .volt-reward-track .volt-reward-track-admin-toggle {

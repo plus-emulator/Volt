@@ -1,4 +1,3 @@
-import '../../css/help/HelpView.css';
 import { GetSessionDataManager, RoomObjectType } from '@volt/renderer';
 import { Dispatch, FC, SetStateAction, useEffect, useMemo, useRef, useState } from 'react';
 import { ChatEntryType, LocalizeText, ReportState, ReportType } from '../../api';

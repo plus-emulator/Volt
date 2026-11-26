@@ -1,4 +1,3 @@
-import '../../css/collectibles/CollectiblesHubView.css';
 import { CSSProperties, FC, useMemo, useState } from 'react';
 import { CreateCollectiblesPurchaseOffer, GetCollectorLevelColor, GetConfigurationValue, LocalizeText } from '../../api';
 import cabinetElement from '../../assets/images/collectibles/collectables-cabinet-element.png';

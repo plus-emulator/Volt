@@ -1,4 +1,3 @@
-import '../../css/collectibles/CollectiblesHubView.css';
 import { CSSProperties, FC } from 'react';
 import { GetCollectibleProductName, GetCollectibleRarityColor, LocalizeText } from '../../api';
 import bgStar from '../../assets/images/collectibles/bg-star-300x300.png';

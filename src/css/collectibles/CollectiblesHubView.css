@@ -542,6 +542,42 @@
     transform: translate(-50%, -50%);
 }
 
+/* notification_nft_opening_xml: 190x110. */
+.volt-collectibles-nft-opening {
+    position: relative;
+    width: 190px;
+    height: 110px;
+    color: #ffffff;
+    font-family: HabboAirUbuntu, UbuntuRegular, sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.volt-collectibles-nft-opening-header-fill {
+    position: absolute;
+    background: #012723;
+}
+
+.volt-collectibles-nft-opening-title {
+    position: absolute;
+    font-weight: 700;
+    line-height: 17px;
+    white-space: nowrap;
+    opacity: 0.95;
+}
+
+.volt-collectibles-nft-opening-icon {
+    position: absolute;
+}
+
+.volt-collectibles-nft-opening-text {
+    position: absolute;
+    overflow: hidden;
+    font-size: 11px;
+    line-height: 13px;
+}
+
 /* room_previewer widget: no rounded corners or shadow around the effect preview. */
 .volt-collectibles-effect-preview > div {
     border-radius: 0 !important;

@@ -1,4 +1,3 @@
-import '../../css/WiredView.css';
 import { ConditionDefinition, TriggerDefinition, WiredActionDefinition, WiredAddonDefinition, WiredSelectorDefinition, WiredVariableDefinition } from '@volt/renderer';
 import { FC, Fragment, ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { useWired } from '../../hooks';

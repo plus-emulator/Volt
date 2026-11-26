@@ -273,6 +273,97 @@
     height: 245px;
 }
 
+/* The style 3 scroll area shared by the achievements list and the quests list. */
+.air-style3-scroll-area > .volt-classic-scroll-area-viewport {
+    box-sizing: border-box;
+    overflow-x: hidden;
+    overflow-y: scroll;
+    scrollbar-width: none !important;
+}
+
+.air-style3-scroll-area > .volt-classic-scroll-area-viewport::-webkit-scrollbar {
+    display: none !important;
+}
+
+.air-style3-scroll-area > .volt-classic-scrollbar {
+    top: 0;
+    right: 0;
+}
+
+.air-style3-scroll-area > .volt-classic-scrollbar .volt-classic-scrollbar-button.is-up {
+    background-image: url('../../assets/images/habbo-skin/slices/scroll-up-3-default.png');
+}
+
+.air-style3-scroll-area > .volt-classic-scrollbar .volt-classic-scrollbar-button.is-up:hover {
+    background-image: url('../../assets/images/habbo-skin/slices/scroll-up-3-hover.png');
+}
+
+.air-style3-scroll-area > .volt-classic-scrollbar .volt-classic-scrollbar-button.is-up:active {
+    background-image: url('../../assets/images/habbo-skin/slices/scroll-up-3-pressed.png');
+}
+
+.air-style3-scroll-area > .volt-classic-scrollbar .volt-classic-scrollbar-button.is-down {
+    background-image: url('../../assets/images/habbo-skin/slices/scroll-down-3-default.png');
+}
+
+.air-style3-scroll-area > .volt-classic-scrollbar .volt-classic-scrollbar-button.is-down:hover {
+    background-image: url('../../assets/images/habbo-skin/slices/scroll-down-3-hover.png');
+}
+
+.air-style3-scroll-area > .volt-classic-scrollbar .volt-classic-scrollbar-button.is-down:active {
+    background-image: url('../../assets/images/habbo-skin/slices/scroll-down-3-pressed.png');
+}
+
+.air-style3-scroll-area > .volt-classic-scrollbar .volt-classic-scrollbar-track {
+    background-image: url('../../assets/images/habbo-skin/slices/scroll-track-3.png');
+}
+
+.air-style3-scroll-area > .volt-classic-scrollbar .volt-classic-scrollbar-thumb {
+    --air-scroll-thumb: url('../../assets/images/habbo-skin/slices/scroll-thumb-3-default.png');
+    --air-scroll-grip: url('../../assets/images/habbo-skin/slices/scroll-grip-3-default.png');
+    position: relative;
+    min-height: 0;
+    box-sizing: border-box;
+    /* thumb art rows 0-3 are the cap and rows 6-10 the foot; the grip bitmap repeats between them */
+    padding: 4px 0 5px;
+    border: 0;
+    background: var(--air-scroll-grip) 0 1px repeat-y;
+    background-clip: content-box;
+    background-origin: content-box;
+}
+
+.air-style3-scroll-area > .volt-classic-scrollbar .volt-classic-scrollbar-thumb::before,
+.air-style3-scroll-area > .volt-classic-scrollbar .volt-classic-scrollbar-thumb::after {
+    position: absolute;
+    left: 0;
+    width: 17px;
+    content: '';
+    background-image: var(--air-scroll-thumb);
+    background-repeat: no-repeat;
+}
+
+.air-style3-scroll-area > .volt-classic-scrollbar .volt-classic-scrollbar-thumb::before {
+    top: 0;
+    height: 4px;
+    background-position: 0 0;
+}
+
+.air-style3-scroll-area > .volt-classic-scrollbar .volt-classic-scrollbar-thumb::after {
+    bottom: 0;
+    height: 5px;
+    background-position: 0 -6px;
+}
+
+.air-style3-scroll-area > .volt-classic-scrollbar .volt-classic-scrollbar-thumb:hover {
+    --air-scroll-thumb: url('../../assets/images/habbo-skin/slices/scroll-thumb-3-hover.png');
+    --air-scroll-grip: url('../../assets/images/habbo-skin/slices/scroll-grip-3-hover.png');
+}
+
+.air-style3-scroll-area > .volt-classic-scrollbar .volt-classic-scrollbar-thumb:active {
+    --air-scroll-thumb: url('../../assets/images/habbo-skin/slices/scroll-thumb-3-pressed.png');
+    --air-scroll-grip: url('../../assets/images/habbo-skin/slices/scroll-grip-3-pressed.png');
+}
+
 .volt-achievements-air .air-achievements-list-grid {
     display: grid;
     width: max-content;
@@ -448,4 +539,77 @@
     position: absolute !important;
     top: 93px;
     left: 115px;
+}
+
+.air-achievement-progress {
+    position: relative;
+    height: 23px;
+    overflow: hidden;
+    color: #ffffff;
+    font-family: HabboAirUbuntu, Ubuntu, sans-serif;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.air-achievement-progress__left,
+.air-achievement-progress__track,
+.air-achievement-progress__right,
+.air-achievement-progress__fill-background,
+.air-achievement-progress__fill,
+.air-achievement-progress__fill-cap {
+    position: absolute;
+    display: block;
+    background-repeat: no-repeat;
+    image-rendering: var(--volt-pixel-art, pixelated);
+}
+
+.air-achievement-progress__left {
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 23px;
+    background-image: var(--air-achievement-progress-left);
+}
+
+.air-achievement-progress__track {
+    top: 0;
+    left: 4px;
+    height: 23px;
+    background-image: var(--air-achievement-progress-track);
+    background-repeat: repeat-x;
+}
+
+.air-achievement-progress__right {
+    top: 0;
+    width: 4px;
+    height: 23px;
+    background-image: var(--air-achievement-progress-right);
+}
+
+.air-achievement-progress__fill {
+    top: 3px;
+    left: 4px;
+    height: 17px;
+    background-image: var(--air-achievement-progress-fill);
+    background-repeat: repeat-x;
+}
+
+.air-achievement-progress__fill-background {
+    top: 3px;
+    left: 4px;
+    height: 17px;
+    background: #ffff00;
+}
+
+.air-achievement-progress__fill-cap {
+    top: 3px;
+    width: 1px;
+    height: 17px;
+    background-image: var(--air-achievement-progress-fill-cap);
+}
+
+.volt-room-tools .room-tool-row .icon-room-achievements {
+    width: 25px;
+    height: 25px;
+    flex: 0 0 25px;
+    background-image: url('../../assets/images/achievements/room-tools-achievements.png');
 }

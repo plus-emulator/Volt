@@ -1,4 +1,3 @@
-import '../../../../../../css/inventory/InventoryMarketplaceOffer.css';
 import { GetMarketplaceItemStatsComposer, GetSessionDataManager, MakeOfferMessageComposer, MarketplaceItemStatsEvent } from '@volt/renderer';
 import { FC, useEffect, useState } from 'react';
 import { FurnitureItem, LocalizeText, ProductTypeEnum, SendMessageComposer } from '../../../../../../api';

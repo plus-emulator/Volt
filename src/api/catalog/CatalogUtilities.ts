@@ -3,9 +3,14 @@ import { ICatalogNode } from './ICatalogNode';
 import { IProduct } from './IProduct';
 import { IPurchasableOffer } from './IPurchasableOffer';
 
-export const GetPixelEffectIcon = (id: number) => {
-    return '';
-};
+const EFFECT_ICONS = Object.fromEntries(
+    Object.entries(import.meta.glob('../../assets/images/avatareditor/effects/fx_icon_*.png', { eager: true, import: 'default' })).map(([path, url]) => [
+        path.slice(path.lastIndexOf('_') + 1, -4),
+        url
+    ])
+) as Record<string, string>;
+
+export const GetPixelEffectIcon = (id: number) => EFFECT_ICONS[id] ?? '';
 
 export const GetProductIconUrl = (product: IProduct, offer: IPurchasableOffer = null): string => {
     if (typeof product?.getIconUrl !== 'function') return null;

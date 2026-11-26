@@ -1,4 +1,3 @@
-import '../../css/avatar-editor/AvatarEditorView.css';
 import {
     AvatarEditorFigureCategory,
     GetSessionDataManager,

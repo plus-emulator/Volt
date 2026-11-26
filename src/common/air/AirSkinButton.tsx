@@ -104,33 +104,12 @@ function useStretchedSkin(kind: AirButtonKind, height: number) {
 
     useEffect(() => {
         let disposed = false;
-        let idleTimer: number | null = null;
-        // Stretch the visible default state right away; warm interactive states shortly after so initial mount stays fast.
-        stretchSkin(kind.skin.default, kind.cap, height)
-            .then((defaultUrl) => {
-                if (disposed) return;
-                setUrls({ ...kind.skin, default: defaultUrl });
-                const secondaryStates: SkinState[] = ['hover', 'pressed', 'disabled'];
-                idleTimer = window.setTimeout(() => {
-                    if (disposed) return;
-                    Promise.all(secondaryStates.map((state) => stretchSkin(kind.skin[state], kind.cap, height)))
-                        .then((list) => {
-                            if (disposed) return;
-                            setUrls({
-                                ...kind.skin,
-                                default: defaultUrl,
-                                hover: list[0],
-                                pressed: list[1],
-                                disabled: list[2]
-                            });
-                        })
-                        .catch(() => {});
-                }, 80);
-            })
+        const states: SkinState[] = ['default', 'hover', 'pressed', 'disabled'];
+        Promise.all(states.map((state) => stretchSkin(kind.skin[state], kind.cap, height)))
+            .then((list) => !disposed && setUrls(Object.fromEntries(states.map((state, index) => [state, list[index]])) as Record<SkinState, string>))
             .catch(() => !disposed && setUrls(null));
         return () => {
             disposed = true;
-            if (idleTimer !== null) window.clearTimeout(idleTimer);
         };
     }, [kind, height]);
 

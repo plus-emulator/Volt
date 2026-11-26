@@ -1,4 +1,3 @@
-import '../../../../css/game-center/GameCenterView.css';
 import { FC, useEffect, useState } from 'react';
 import { GetSessionDataManager, LocalizeText } from '../../../../api';
 import { buySnowWarTokens, SnowWarEngineState, SnowWarHookState, SnowWarResults } from '../../../../api/snowwar';

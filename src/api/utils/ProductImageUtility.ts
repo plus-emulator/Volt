@@ -1,4 +1,5 @@
 import { FurnitureType, GetRoomEngine } from '@volt/renderer';
+import { GetPixelEffectIcon } from '../catalog/CatalogUtilities';
 import { FurniCategory } from '../inventory';
 
 export class ProductImageUtility {
@@ -26,7 +27,7 @@ export class ProductImageUtility {
                 }
                 break;
             case FurnitureType.EFFECT:
-                // fx_icon_furniClassId_png
+                imageUrl = GetPixelEffectIcon(furniClassId);
                 break;
         }
 

@@ -1,4 +1,3 @@
-import '../../css/camera/CameraWidget.css';
 import { IRoomCameraWidgetEffect } from '@volt/renderer';
 import { FC } from 'react';
 import { CameraEffectSelection, CameraPicture } from '../../api';

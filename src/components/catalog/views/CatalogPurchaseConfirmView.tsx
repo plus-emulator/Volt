@@ -1,4 +1,3 @@
-import '../../../css/catalog/CatalogView.css';
 import { IObjectData } from '@volt/renderer';
 import { CSSProperties, FC, KeyboardEvent, ReactNode, useEffect, useRef, useState } from 'react';
 import { GetConfigurationValue, IPurchasableOffer, LocalizeText, ProductTypeEnum } from '../../../api';

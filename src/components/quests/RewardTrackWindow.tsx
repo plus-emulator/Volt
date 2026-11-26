@@ -1,4 +1,3 @@
-import '../../css/quests/RewardTrackView.css';
 import {
     CreateLinkEvent,
     GetSessionDataManager,

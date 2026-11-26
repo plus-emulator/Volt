@@ -1,4 +1,3 @@
-import '../../css/achievements/AchievementsView.css';
 import { FC, useEffect, useState } from 'react';
 import { AchievementUtilities, LocalizeText } from '../../api';
 import { VoltCardHeaderView, VoltCardView } from '../../common';

@@ -1,8 +1,3 @@
-import '../../css/inventory/InventoryView.css';
-import '../../css/inventory/InventoryTrade.css';
-import '../../css/inventory/InventoryAnimals.css';
-import '../../css/inventory/InventoryBadges.css';
-import '../../css/inventory/InventoryFilters.css';
 import {
     GetRoomEngine,
     IRoomSession,

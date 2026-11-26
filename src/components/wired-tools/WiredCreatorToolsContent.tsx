@@ -1,4 +1,3 @@
-import '../../css/WiredView.css';
 import { IWiredErrorLogEntry, IWiredVariableData, parseWiredInt64 } from '@volt/renderer';
 import {
     AddLinkEventTracker,

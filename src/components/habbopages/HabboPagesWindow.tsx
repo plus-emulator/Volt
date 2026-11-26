@@ -1,4 +1,3 @@
-import '../../css/habbopages/HabboPagesViewer.css';
 import DOMPurify from 'dompurify';
 import { FC, MouseEvent, useMemo } from 'react';
 import { CreateLinkEvent, OpenUrl } from '../../api';

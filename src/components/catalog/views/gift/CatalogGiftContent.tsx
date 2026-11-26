@@ -1,5 +1,3 @@
-import '../../../../css/catalog/CatalogGiftView.css';
-import '../../../../css/catalog/CatalogView.css';
 import {
     GetSessionDataManager,
     GiftReceiverNotFoundEvent,
