@@ -1,6 +1,15 @@
 import { GetRoomEngine, IRoomSession, RoomObjectCategory, RoomUnitWalkComposer, RoomWalkPreviewComposer, RoomWalkPreviewEvent, Vector3d } from '@volt/renderer';
 import { FC, PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from 'react';
-import { AddAnimationTickerCallback, IsTouchLayout, SendMessageComposer, Tile, useVoltLayout, walkStickTarget } from '../../../../api';
+import {
+    AddAnimationTickerCallback,
+    BuildWalkGrid,
+    FindWalkRoute,
+    IsTouchLayout,
+    SendMessageComposer,
+    Tile,
+    useVoltLayout,
+    walkStickTarget
+} from '../../../../api';
 import blockedCursor from '../../../../assets/images/room/walk-stick/tile-cursor-blocked.png';
 import pathCursor from '../../../../assets/images/room/walk-stick/tile-cursor-path.png';
 import stopCursor from '../../../../assets/images/room/walk-stick/tile-cursor-stop.png';
@@ -9,10 +18,14 @@ import { useMessageEvent, useRoom } from '../../../../hooks';
 const STICK_RADIUS = 60;
 const KNOB_TRAVEL = 36;
 const CANVAS_ID = 1;
-const PREVIEW_INTERVAL = 250;
-const HOLD_STEP_MS = 1100;
-const HOLD_DELAY = 600;
+// The route is drawn from the client's own room data at once; the server only confirms a target the thumb rests on.
+const PREVIEW_SETTLE_MS = 200;
+const PREVIEW_INTERVAL = 400;
+const PREVIEW_TIMEOUT_MS = 1500;
 const PREVIEW_REFRESH_MS = 1250;
+const WALK_INTERVAL = 300;
+const HOLD_STEP_MS = 400;
+const HOLD_DELAY = 400;
 const sameTile = (a: Tile | null, b: Tile | null) => a?.x === b?.x && a?.y === b?.y;
 let nextRequestId = 0;
 
@@ -24,6 +37,7 @@ type Selection = {
     route: Tile[] | null;
     committed: boolean;
     lastMove: number;
+    goalSince: number;
 };
 
 export const WalkStickView: FC = () => {
@@ -39,6 +53,7 @@ const RoomWalkStick: FC<{ roomSession: IRoomSession }> = ({ roomSession }) => {
     const gesture = useRef<Gesture | null>(null);
     const selected = useRef<Selection | null>(null);
     const lastRequest = useRef(-Infinity);
+    const lastWalk = useRef(-Infinity);
     const received = useRef<number | null>(null);
     const layerRef = useRef<HTMLDivElement>(null);
     const [knob, setKnob] = useState({ x: 0, y: 0 });
@@ -47,6 +62,12 @@ const RoomWalkStick: FC<{ roomSession: IRoomSession }> = ({ roomSession }) => {
     const avatarTile = (): Tile | null => {
         const loc = GetRoomEngine().getRoomObject(roomId, roomSession.ownRoomIndex, RoomObjectCategory.UNIT)?.getLocation();
         return loc ? { x: Math.round(loc.x), y: Math.round(loc.y) } : null;
+    };
+
+    const localRoute = (origin: Tile, goal: Tile): Tile[] => {
+        const grid = BuildWalkGrid(roomId, roomSession.ownRoomIndex);
+
+        return (grid && FindWalkRoute(grid, origin, goal)) ?? [];
     };
 
     const select = (value: Selection | null) => {
@@ -66,7 +87,12 @@ const RoomWalkStick: FC<{ roomSession: IRoomSession }> = ({ roomSession }) => {
         const target = walkStickTarget(g.origin, g.dx, g.dy, extra, map.width, map.height, engine.getRoomInstanceRenderingCanvasIsFlipped(roomId, CANVAS_ID));
 
         if (sameTile(target, selected.current?.goal ?? null)) return;
-        select(target ? { goal: target, origin: avatarTile() ?? g.origin, route: null, requestId: null, committed: false, lastMove: now } : null);
+        if (!target) {
+            select(null);
+            return;
+        }
+        const origin = avatarTile() ?? g.origin;
+        select({ goal: target, origin, route: localRoute(origin, target), requestId: null, committed: false, lastMove: now, goalSince: now });
     };
 
     useMessageEvent<RoomWalkPreviewEvent>(RoomWalkPreviewEvent, (event) => {
@@ -77,45 +103,44 @@ const RoomWalkStick: FC<{ roomSession: IRoomSession }> = ({ roomSession }) => {
         const here = avatarTile();
         if (!here) return;
         received.current = reply.requestId;
-        if (!reply.route) {
-            select({ ...value, origin: here, route: null });
-            return;
-        }
+        if (!reply.route) return;
         const reached = reply.route.findIndex((tile) => sameTile(tile, here));
         const route = reply.route.slice(reached + 1);
-        if (!sameTile(here, { x: reply.originX, y: reply.originY }) && reached < 0) {
-            select({ ...value, origin: here, route: null, requestId: null });
-            return;
-        }
+        if (!sameTile(here, { x: reply.originX, y: reply.originY }) && reached < 0) return;
         select({ ...value, origin: here, route });
     });
 
-    useEffect(() => AddAnimationTickerCallback(() => {
-        if (!gesture.current && !selected.current) return;
-        const now = performance.now();
-        updateGoal(now);
-        let value = selected.current;
-        const here = avatarTile();
-        if (!value || !here) return;
-        if (value.committed && (sameTile(here, value.goal) || now - value.lastMove > 3500)) {
-            select(null);
-            return;
-        }
-        if (!sameTile(here, value.origin)) {
-            const reached = value.route?.findIndex((tile) => sameTile(tile, here)) ?? -1;
-            const needsRoute = value.route !== null && reached < 0;
-            value = { ...value, origin: here, lastMove: now, route: reached >= 0 ? value.route.slice(reached + 1) : null, requestId: needsRoute ? null : value.requestId };
-            select(value);
-        }
-        // Refresh a held target when a seat, gate or other obstacle changes. Older servers never acknowledge a preview.
-        const refresh = !value.committed && received.current === value.requestId && now - lastRequest.current >= PREVIEW_REFRESH_MS;
-        if ((value.requestId === null || refresh) && now - lastRequest.current >= PREVIEW_INTERVAL) {
-            lastRequest.current = now;
-            nextRequestId = (nextRequestId + 1) & 0x7fffffff;
-            selected.current = { ...value, requestId: nextRequestId };
-            SendMessageComposer(new RoomWalkPreviewComposer(nextRequestId, roomId, value.goal.x, value.goal.y));
-        }
-    }), [roomSession]);
+    useEffect(
+        () =>
+            AddAnimationTickerCallback(() => {
+                if (!gesture.current && !selected.current) return;
+                const now = performance.now();
+                updateGoal(now);
+                let value = selected.current;
+                const here = avatarTile();
+                if (!value || !here) return;
+                if (value.committed && (sameTile(here, value.goal) || now - value.lastMove > 3500)) {
+                    select(null);
+                    return;
+                }
+                if (!sameTile(here, value.origin)) {
+                    const reached = value.route?.findIndex((tile) => sameTile(tile, here)) ?? -1;
+                    value = { ...value, origin: here, lastMove: now, route: reached >= 0 ? value.route.slice(reached + 1) : localRoute(here, value.goal) };
+                    select(value);
+                }
+                if (value.committed) return;
+                // One preview at a time, only for a target the thumb rests on. Refresh it while held so seats and gates stay current.
+                const waiting = value.requestId !== null && received.current !== value.requestId && now - lastRequest.current < PREVIEW_TIMEOUT_MS;
+                const due = value.requestId === null ? now - value.goalSince >= PREVIEW_SETTLE_MS : now - lastRequest.current >= PREVIEW_REFRESH_MS;
+                if (!waiting && due && now - lastRequest.current >= PREVIEW_INTERVAL) {
+                    lastRequest.current = now;
+                    nextRequestId = (nextRequestId + 1) & 0x7fffffff;
+                    selected.current = { ...value, requestId: nextRequestId };
+                    SendMessageComposer(new RoomWalkPreviewComposer(nextRequestId, roomId, value.goal.x, value.goal.y));
+                }
+            }),
+        [roomSession]
+    );
 
     useEffect(() => {
         const layer = layerRef.current;
@@ -160,7 +185,7 @@ const RoomWalkStick: FC<{ roomSession: IRoomSession }> = ({ roomSession }) => {
         g.dy = event.clientY - (bounds.top + bounds.height / 2);
         const distance = Math.hypot(g.dx, g.dy);
         const now = performance.now();
-        g.edgeSince = distance >= STICK_RADIUS * 0.9 && distance <= STICK_RADIUS * 1.1 ? g.edgeSince ?? now : null;
+        g.edgeSince = distance >= STICK_RADIUS * 0.9 && distance <= STICK_RADIUS * 1.1 ? (g.edgeSince ?? now) : null;
         const factor = KNOB_TRAVEL / Math.max(STICK_RADIUS, distance);
         setKnob({ x: g.dx * factor, y: g.dy * factor });
         updateGoal(now);
@@ -172,11 +197,13 @@ const RoomWalkStick: FC<{ roomSession: IRoomSession }> = ({ roomSession }) => {
         const value = selected.current;
         gesture.current = null;
         setKnob({ x: 0, y: 0 });
-        if (!commit || !value || value.route?.length === 0) {
+        const now = performance.now();
+        if (!commit || !value || value.route?.length === 0 || now - lastWalk.current < WALK_INTERVAL) {
             select(null);
             return;
         }
-        select({ ...value, committed: true, lastMove: performance.now() });
+        lastWalk.current = now;
+        select({ ...value, committed: true, lastMove: now });
         SendMessageComposer(new RoomUnitWalkComposer(value.goal.x, value.goal.y));
     };
 
