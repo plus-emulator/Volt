@@ -40,6 +40,14 @@
     opacity: 1;
 }
 
+.volt-walk-stick.is-blocked {
+    box-shadow: inset 0 0 0 2px #ff6a5e, 0 0 8px 2px #dc382e;
+}
+
+.volt-walk-path-layer > img.is-blocked {
+    filter: drop-shadow(0 0 2px #ff6a5e) drop-shadow(0 0 4px #dc382e);
+}
+
 .volt-walk-stick__knob {
     width: 46px;
     height: 46px;

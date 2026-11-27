@@ -180,6 +180,8 @@ const RoomWalkStick: FC<{ roomSession: IRoomSession }> = ({ roomSession }) => {
         SendMessageComposer(new RoomUnitWalkComposer(value.goal.x, value.goal.y));
     };
 
+    const isBlocked = plan?.route?.length === 0 && !sameTile(plan.origin, plan.goal);
+
     return (
         <>
             <div ref={layerRef} className="volt-walk-path-layer">
@@ -187,11 +189,18 @@ const RoomWalkStick: FC<{ roomSession: IRoomSession }> = ({ roomSession }) => {
                     <img key={`${x}-${y}`} alt="" draggable={false} src={pathCursor} data-x={x} data-y={y} />
                 ))}
                 {plan && (
-                    <img alt="" draggable={false} src={plan.route?.length === 0 ? blockedCursor : stopCursor} data-x={plan.goal.x} data-y={plan.goal.y} />
+                    <img
+                        alt=""
+                        draggable={false}
+                        className={isBlocked ? 'is-blocked' : undefined}
+                        src={isBlocked ? blockedCursor : stopCursor}
+                        data-x={plan.goal.x}
+                        data-y={plan.goal.y}
+                    />
                 )}
             </div>
             <div
-                className={`volt-walk-stick${gesture.current ? ' is-active' : ''}`}
+                className={`volt-walk-stick${gesture.current ? ' is-active' : ''}${isBlocked ? ' is-blocked' : ''}`}
                 onPointerDown={(event) => {
                     const origin = avatarTile();
                     if (gesture.current || !origin) return;
