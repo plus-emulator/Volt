@@ -266,6 +266,18 @@ html[data-volt-layout='phone-landscape']:has([data-volt-window='dock']) .volt-pu
     display: none;
 }
 
+/* Landscape phones have width to spare: a wider purse with the currencies spread out. */
+html[data-volt-layout='phone-landscape'] :is(.volt-right-side, .volt-right-side__purse) {
+    width: min(320px, 45vw) !important;
+}
+
+html[data-volt-layout='phone-landscape'] .volt-purse-compact {
+    align-self: stretch;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 0 10px;
+}
+
 /* Tablet: the full AIR purse with 28 px buttons. */
 
 html[data-volt-device='tablet'] .volt-purse-container {

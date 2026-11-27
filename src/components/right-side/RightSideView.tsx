@@ -15,10 +15,10 @@ export const RightSideView: FC<{}> = (props) => {
     const [isExtensionsOpen, setIsExtensionsOpen] = useState(false);
 
     return (
-        <div className="absolute top-0 right-1 z-10 w-[min(230px,calc(100vw-16px))] sm:w-[min(230px,calc(100vw-20px))] h-[calc(100%-55px)] pointer-events-none">
+        <div className="volt-right-side absolute top-0 right-1 z-10 w-[min(230px,calc(100vw-16px))] sm:w-[min(230px,calc(100vw-20px))] h-[calc(100%-55px)] pointer-events-none">
             {/* extension_grid_xml: 2px item spacing; the grid sits at y = 3 - 8 while the purse is in it. */}
             <Column gap={0} position="relative" alignItems="end" className="-mt-[5px] w-full gap-[2px]">
-                <div className="relative left-px w-[230px] shrink-0">
+                <div className="volt-right-side__purse relative left-px w-[230px] shrink-0">
                     <PurseView />
                 </div>
                 {isPhone && (
