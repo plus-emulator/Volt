@@ -1,133 +1,126 @@
-import { GetRoomEngine, RoomObjectCategory, RoomUnitWalkComposer, Vector3d } from '@volt/renderer';
+import { GetRoomEngine, IRoomSession, RoomObjectCategory, RoomUnitWalkComposer, RoomWalkPreviewComposer, RoomWalkPreviewEvent, Vector3d } from '@volt/renderer';
 import { FC, PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from 'react';
-import {
-    AddAnimationTickerCallback,
-    aimWalkStick,
-    EMPTY_WALK_PLAN,
-    IsTouchLayout,
-    isFullWalkAim,
-    planWalk,
-    SendMessageComposer,
-    Tile,
-    useVoltLayout,
-    WalkPlan,
-    WalkStickAim
-} from '../../../../api';
+import { AddAnimationTickerCallback, IsTouchLayout, SendMessageComposer, Tile, useVoltLayout, walkStickTarget } from '../../../../api';
 import blockedCursor from '../../../../assets/images/room/walk-stick/tile-cursor-blocked.png';
 import pathCursor from '../../../../assets/images/room/walk-stick/tile-cursor-path.png';
 import stopCursor from '../../../../assets/images/room/walk-stick/tile-cursor-stop.png';
-import { useRoom } from '../../../../hooks';
+import { useMessageEvent, useRoom } from '../../../../hooks';
 
 const STICK_RADIUS = 60;
 const KNOB_TRAVEL = 36;
-const RETARGET_MS = 350;
-const STUCK_TICKS = 3;
 const CANVAS_ID = 1;
-
-type CursorKind = 'path' | 'stop' | 'blocked';
-
-const CURSOR_IMAGES: Record<CursorKind, string> = { path: pathCursor, stop: stopCursor, blocked: blockedCursor };
-
+const PREVIEW_INTERVAL = 250;
+const HOLD_STEP_MS = 1100;
+const HOLD_DELAY = 600;
+const PREVIEW_REFRESH_MS = 1250;
 const sameTile = (a: Tile | null, b: Tile | null) => a?.x === b?.x && a?.y === b?.y;
+let nextRequestId = 0;
 
-const cursorsFor = (plan: WalkPlan): { tile: Tile; kind: CursorKind }[] => [
-    ...plan.route.map((tile) => ({ tile, kind: 'path' as const })),
-    ...(plan.stop ? [{ tile: plan.stop, kind: 'stop' as const }] : []),
-    ...(plan.blocked ? [{ tile: plan.blocked, kind: 'blocked' as const }] : [])
-];
+type Gesture = { pointer: number; origin: Tile; dx: number; dy: number; edgeSince: number | null };
+type Selection = {
+    goal: Tile;
+    origin: Tile;
+    requestId: number | null;
+    route: Tile[] | null;
+    committed: boolean;
+    lastMove: number;
+};
 
-/** Left-thumb stick: the further the knob, the more tiles; the room previews them with AIR's TileCursor sprites. */
-export const WalkStickView: FC<{}> = () => {
+export const WalkStickView: FC = () => {
     const isTouch = IsTouchLayout(useVoltLayout());
-    const { roomSession = null } = useRoom();
-    const [aim, setAim] = useState<WalkStickAim | null>(null);
-    const [knob, setKnob] = useState({ x: 0, y: 0 });
-    const [plan, setPlan] = useState<WalkPlan>(EMPTY_WALK_PLAN);
-    const stickRef = useRef<HTMLDivElement>(null);
+    const { roomSession } = useRoom();
+    if (!isTouch || !roomSession || roomSession.isSpectator) return null;
+
+    return <RoomWalkStick key={roomSession.roomId} roomSession={roomSession} />;
+};
+
+const RoomWalkStick: FC<{ roomSession: IRoomSession }> = ({ roomSession }) => {
+    const roomId = roomSession.roomId;
+    const gesture = useRef<Gesture | null>(null);
+    const selected = useRef<Selection | null>(null);
+    const lastRequest = useRef(-Infinity);
+    const received = useRef<number | null>(null);
     const layerRef = useRef<HTMLDivElement>(null);
-    const lastSent = useRef<Tile | null>(null);
+    const [knob, setKnob] = useState({ x: 0, y: 0 });
+    const [plan, setPlan] = useState<Selection | null>(null);
 
-    const roomId = roomSession?.roomId ?? -1;
-    const enabled = isTouch && !!roomSession && !roomSession.isSpectator;
+    const avatarTile = (): Tile | null => {
+        const loc = GetRoomEngine().getRoomObject(roomId, roomSession.ownRoomIndex, RoomObjectCategory.UNIT)?.getLocation();
+        return loc ? { x: Math.round(loc.x), y: Math.round(loc.y) } : null;
+    };
 
-    useEffect(() => {
-        if (!enabled) return;
+    const select = (value: Selection | null) => {
+        selected.current = value;
+        setPlan(value);
+    };
 
-        const avatarTile = (): Tile | null => {
-            const location = GetRoomEngine().getRoomObject(roomId, roomSession.ownRoomIndex, RoomObjectCategory.UNIT)?.getLocation();
+    const updateGoal = (now: number) => {
+        const g = gesture.current;
+        if (!g) return;
+        const engine = GetRoomEngine();
+        const map = engine.getFurnitureStackingHeightMap(roomId);
+        if (!map) return;
+        // Pause between extensions so the room can reply with a complete path at each distance.
+        const extensions = g.edgeSince === null || now - g.edgeSince < HOLD_DELAY ? 0 : 1 + Math.floor((now - g.edgeSince - HOLD_DELAY) / HOLD_STEP_MS);
+        const extra = extensions * 24;
+        const target = walkStickTarget(g.origin, g.dx, g.dy, extra, map.width, map.height, engine.getRoomInstanceRenderingCanvasIsFlipped(roomId, CANVAS_ID));
 
-            return location ? { x: Math.round(location.x), y: Math.round(location.y) } : null;
-        };
+        if (sameTile(target, selected.current?.goal ?? null)) return;
+        select(target ? { goal: target, origin: avatarTile() ?? g.origin, route: null, requestId: null, committed: false, lastMove: now } : null);
+    };
 
-        const heightMap = GetRoomEngine().getFurnitureStackingHeightMap(roomId);
-        const isRoomTile = (tile: Tile) => !!heightMap?.validateLocation(tile.x, tile.y, 1, 1, 0, 0, 0, 0, true);
-        const isInsideMap = (tile: Tile | null) => !!tile && !!heightMap && tile.x >= 0 && tile.y >= 0 && tile.x < heightMap.width && tile.y < heightMap.height;
+    useMessageEvent<RoomWalkPreviewEvent>(RoomWalkPreviewEvent, (event) => {
+        const value = selected.current;
+        const reply = event.getParser();
+        if (!value || reply.roomId !== roomId || value.requestId !== reply.requestId || !sameTile(reply, value.goal)) return;
 
-        const replan = () => {
-            const origin = avatarTile();
+        const here = avatarTile();
+        if (!here) return;
+        received.current = reply.requestId;
+        if (!reply.route) {
+            select({ ...value, origin: here, route: null });
+            return;
+        }
+        const reached = reply.route.findIndex((tile) => sameTile(tile, here));
+        const route = reply.route.slice(reached + 1);
+        if (!sameTile(here, { x: reply.originX, y: reply.originY }) && reached < 0) {
+            select({ ...value, origin: here, route: null, requestId: null });
+            return;
+        }
+        select({ ...value, origin: here, route });
+    });
 
-            setPlan((previous) => {
-                const planned = origin ? planWalk(origin, aim, isRoomTile) : EMPTY_WALK_PLAN;
-                // A blocked tile beyond the map edge would float over the wall; only holes inside the room get the red cursor.
-                const next = isInsideMap(planned.blocked) ? planned : { ...planned, blocked: null };
-
-                return sameTile(next.stop, previous.stop) && sameTile(next.blocked, previous.blocked) && next.route.length === previous.route.length
-                    ? previous
-                    : next;
-            });
-        };
-
-        replan();
-
-        if (!isFullWalkAim(aim)) return AddAnimationTickerCallback(replan);
-
-        // The client height map can mark a tile walkable that the server refuses (e.g. flush against a wall). A step takes
-        // longer than one tick, so only a few ticks on the same tile count as stuck; then aim one tile shorter.
-        let previousOrigin: Tile | null = null;
-        let stillTicks = 0;
-        let shortenBy = 0;
-
-        const keepWalking = window.setInterval(() => {
-            const origin = avatarTile();
-
-            if (!origin) return;
-
-            const moved = !sameTile(origin, previousOrigin);
-
-            previousOrigin = origin;
-            stillTicks = moved || lastSent.current === null ? 0 : stillTicks + 1;
-
-            const stuck = stillTicks >= STUCK_TICKS;
-
-            if (moved) shortenBy = 0;
-
-            if (stuck) {
-                shortenBy++;
-                stillTicks = 0;
-            }
-
-            const { route, stop } = planWalk(origin, aim, isRoomTile);
-            const tiles = stop ? [...route, stop] : [];
-            const target = tiles[tiles.length - 1 - shortenBy] ?? null;
-
-            if (!target || (sameTile(target, lastSent.current) && !stuck)) return;
-
-            lastSent.current = target;
-            SendMessageComposer(new RoomUnitWalkComposer(target.x, target.y));
-        }, RETARGET_MS);
-
-        const stopTicker = AddAnimationTickerCallback(replan);
-
-        return () => {
-            window.clearInterval(keepWalking);
-            stopTicker();
-        };
-    }, [enabled, roomId, roomSession, aim]);
+    useEffect(() => AddAnimationTickerCallback(() => {
+        if (!gesture.current && !selected.current) return;
+        const now = performance.now();
+        updateGoal(now);
+        let value = selected.current;
+        const here = avatarTile();
+        if (!value || !here) return;
+        if (value.committed && (sameTile(here, value.goal) || now - value.lastMove > 3500)) {
+            select(null);
+            return;
+        }
+        if (!sameTile(here, value.origin)) {
+            const reached = value.route?.findIndex((tile) => sameTile(tile, here)) ?? -1;
+            const needsRoute = value.route !== null && reached < 0;
+            value = { ...value, origin: here, lastMove: now, route: reached >= 0 ? value.route.slice(reached + 1) : null, requestId: needsRoute ? null : value.requestId };
+            select(value);
+        }
+        // Refresh a held target when a seat, gate or other obstacle changes. Older servers never acknowledge a preview.
+        const refresh = !value.committed && received.current === value.requestId && now - lastRequest.current >= PREVIEW_REFRESH_MS;
+        if ((value.requestId === null || refresh) && now - lastRequest.current >= PREVIEW_INTERVAL) {
+            lastRequest.current = now;
+            nextRequestId = (nextRequestId + 1) & 0x7fffffff;
+            selected.current = { ...value, requestId: nextRequestId };
+            SendMessageComposer(new RoomWalkPreviewComposer(nextRequestId, roomId, value.goal.x, value.goal.y));
+        }
+    }), [roomSession]);
 
     useEffect(() => {
         const layer = layerRef.current;
 
-        if (!layer) return;
+        if (!layer || !plan) return;
 
         const place = () => {
             const engine = GetRoomEngine();
@@ -159,53 +152,59 @@ export const WalkStickView: FC<{}> = () => {
         return AddAnimationTickerCallback(place);
     }, [roomId, plan]);
 
-    if (!enabled) return null;
-
-    const release = () => {
-        const target = plan.stop;
-
-        if (target && !isFullWalkAim(aim)) SendMessageComposer(new RoomUnitWalkComposer(target.x, target.y));
-
-        lastSent.current = null;
-        setAim(null);
-        setKnob({ x: 0, y: 0 });
+    const track = (event: ReactPointerEvent<HTMLDivElement>) => {
+        const g = gesture.current;
+        if (!g || g.pointer !== event.pointerId) return;
+        const bounds = event.currentTarget.getBoundingClientRect();
+        g.dx = event.clientX - (bounds.left + bounds.width / 2);
+        g.dy = event.clientY - (bounds.top + bounds.height / 2);
+        const distance = Math.hypot(g.dx, g.dy);
+        const now = performance.now();
+        g.edgeSince = distance >= STICK_RADIUS * 0.9 && distance <= STICK_RADIUS * 1.1 ? g.edgeSince ?? now : null;
+        const factor = KNOB_TRAVEL / Math.max(STICK_RADIUS, distance);
+        setKnob({ x: g.dx * factor, y: g.dy * factor });
+        updateGoal(now);
     };
 
-    const track = (event: ReactPointerEvent<HTMLDivElement>) => {
-        const bounds = stickRef.current.getBoundingClientRect();
-        const dx = event.clientX - (bounds.left + bounds.width / 2);
-        const dy = event.clientY - (bounds.top + bounds.height / 2);
-        const reach = Math.min(Math.hypot(dx, dy), STICK_RADIUS);
-        const angle = Math.atan2(dy, dx);
-
-        setKnob({ x: (Math.cos(angle) * reach * KNOB_TRAVEL) / STICK_RADIUS, y: (Math.sin(angle) * reach * KNOB_TRAVEL) / STICK_RADIUS });
-        setAim(aimWalkStick(dx, dy, STICK_RADIUS));
+    const end = (event: ReactPointerEvent<HTMLDivElement>, commit: boolean) => {
+        if (gesture.current?.pointer !== event.pointerId) return;
+        if (commit) track(event);
+        const value = selected.current;
+        gesture.current = null;
+        setKnob({ x: 0, y: 0 });
+        if (!commit || !value || (value.route?.length === 0 && value.requestId === received.current)) {
+            select(null);
+            return;
+        }
+        select({ ...value, committed: true, lastMove: performance.now() });
+        SendMessageComposer(new RoomUnitWalkComposer(value.goal.x, value.goal.y));
     };
 
     return (
         <>
             <div ref={layerRef} className="volt-walk-path-layer">
-                {cursorsFor(plan).map(({ tile, kind }) => (
-                    <img key={`${kind}-${tile.x}-${tile.y}`} alt="" draggable={false} src={CURSOR_IMAGES[kind]} data-x={tile.x} data-y={tile.y} />
+                {plan?.route?.slice(0, -1).map(({ x, y }) => (
+                    <img key={`${x}-${y}`} alt="" draggable={false} src={pathCursor} data-x={x} data-y={y} />
                 ))}
+                {plan && (
+                    <img alt="" draggable={false} src={plan.route?.length === 0 ? blockedCursor : stopCursor} data-x={plan.goal.x} data-y={plan.goal.y} />
+                )}
             </div>
             <div
-                ref={stickRef}
-                className={`volt-walk-stick${aim ? ' is-active' : ''}`}
+                className={`volt-walk-stick${gesture.current ? ' is-active' : ''}`}
                 onPointerDown={(event) => {
+                    const origin = avatarTile();
+                    if (gesture.current || !origin) return;
                     event.stopPropagation();
                     event.currentTarget.setPointerCapture(event.pointerId);
+                    select(null);
+                    gesture.current = { pointer: event.pointerId, origin, dx: 0, dy: 0, edgeSince: null };
                     track(event);
                 }}
-                onPointerMove={(event) => {
-                    if (event.currentTarget.hasPointerCapture(event.pointerId)) track(event);
-                }}
-                onPointerUp={release}
-                onPointerCancel={() => {
-                    lastSent.current = null;
-                    setAim(null);
-                    setKnob({ x: 0, y: 0 });
-                }}
+                onPointerMove={track}
+                onPointerUp={(event) => end(event, true)}
+                onPointerCancel={(event) => end(event, false)}
+                onLostPointerCapture={(event) => end(event, false)}
             >
                 <div className="volt-walk-stick__knob" style={{ transform: `translate(${knob.x}px, ${knob.y}px)` }} />
             </div>
