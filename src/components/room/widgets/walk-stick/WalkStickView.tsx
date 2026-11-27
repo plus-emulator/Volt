@@ -172,7 +172,7 @@ const RoomWalkStick: FC<{ roomSession: IRoomSession }> = ({ roomSession }) => {
         const value = selected.current;
         gesture.current = null;
         setKnob({ x: 0, y: 0 });
-        if (!commit || !value || (value.route?.length === 0 && value.requestId === received.current)) {
+        if (!commit || !value || value.route?.length === 0) {
             select(null);
             return;
         }
