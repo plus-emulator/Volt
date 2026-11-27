@@ -1,4 +1,5 @@
-import { FC, useMemo } from 'react';
+import { FC, PointerEvent, ReactNode, useMemo, useRef, useState } from 'react';
+import { IsTouchLayout, useVoltLayout } from '../../../api';
 import { DraggableWindow } from '../../../common/draggable-window';
 import { parseNativeLayout } from '../native/NativeLayout';
 import { NativeFrameView, NativeNodeHandlers, NativeNodeStates } from '../native/NativeLayoutView';
@@ -34,7 +35,21 @@ export interface StartPanelProps {
 
 const DISABLED = 0x666666;
 
-export const StartPanelView: FC<StartPanelProps> = ({ canUseRoomTool, canUseChatlog, canUseUserInfo, canUseTicketQueue, userCaption, onRoomTool, onChatlog, onUserInfo, onTicketQueue, onClose, x, y, onMove }) => {
+export const StartPanelView: FC<StartPanelProps> = ({
+    canUseRoomTool,
+    canUseChatlog,
+    canUseUserInfo,
+    canUseTicketQueue,
+    userCaption,
+    onRoomTool,
+    onChatlog,
+    onUserInfo,
+    onTicketQueue,
+    onClose,
+    x,
+    y,
+    onMove
+}) => {
     const node = useMemo(() => parseNativeLayout(startPanelXml), []);
     // fme.show(): the four regions keep their offence_name label; a disabled button greys its label (0x666666), an enabled one is black
     const labelColor = (enabled: boolean) => (enabled ? 0 : DISABLED);
@@ -48,11 +63,74 @@ export const StartPanelView: FC<StartPanelProps> = ({ canUseRoomTool, canUseChat
         'userinfo_but/offence_name': { textColor: labelColor(canUseUserInfo), caption: userCaption },
         'ticket_queue_but/offence_name': { textColor: labelColor(canUseTicketQueue) }
     };
-    const handlers: NativeNodeHandlers = { room_tool_but: { onClick: onRoomTool }, chatlog_but: { onClick: onChatlog }, userinfo_but: { onClick: onUserInfo }, ticket_queue_but: { onClick: onTicketQueue } };
+    const handlers: NativeNodeHandlers = {
+        room_tool_but: { onClick: onRoomTool },
+        chatlog_but: { onClick: onChatlog },
+        userinfo_but: { onClick: onUserInfo },
+        ticket_queue_but: { onClick: onTicketQueue }
+    };
+    const isTouch = IsTouchLayout(useVoltLayout());
+
+    if (isTouch) {
+        return (
+            <ModToolsDrawer>
+                <NativeFrameView handlers={handlers} images={IMAGES} node={node} states={states} onClose={onClose} />
+            </ModToolsDrawer>
+        );
+    }
 
     return (
-        <DraggableWindow handleSelector=".native-frame__titlebar" initialPosition={{ x, y }} onPositionChange={(position) => onMove(position.x, position.y)} unconstrainedPosition>
+        <DraggableWindow
+            handleSelector=".native-frame__titlebar"
+            initialPosition={{ x, y }}
+            onPositionChange={(position) => onMove(position.x, position.y)}
+            unconstrainedPosition
+        >
             <NativeFrameView handlers={handlers} images={IMAGES} node={node} states={states} onClose={onClose} />
         </DraggableWindow>
+    );
+};
+
+const SWIPE_PX = 40;
+
+/** Touch layouts: the start panel lives on the left edge and slides in and out with its tab or a swipe. */
+const ModToolsDrawer: FC<{ children: ReactNode }> = ({ children }) => {
+    const [isOpen, setIsOpen] = useState(true);
+    const swipe = useRef<{ pointer: number; x: number } | null>(null);
+
+    const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+        swipe.current = { pointer: event.pointerId, x: event.clientX };
+    };
+
+    const onPointerUp = (event: PointerEvent<HTMLDivElement>) => {
+        const start = swipe.current;
+
+        swipe.current = null;
+
+        if (!start || start.pointer !== event.pointerId) return;
+
+        const dx = event.clientX - start.x;
+
+        if (dx <= -SWIPE_PX) setIsOpen(false);
+        else if (dx >= SWIPE_PX) setIsOpen(true);
+    };
+
+    return (
+        <div
+            className="volt-modtools-drawer"
+            data-open={isOpen}
+            onPointerCancel={() => (swipe.current = null)}
+            onPointerDown={onPointerDown}
+            onPointerUp={onPointerUp}
+        >
+            <div className="volt-modtools-drawer__panel">{children}</div>
+            <button
+                aria-expanded={isOpen}
+                aria-label={isOpen ? 'Hide mod tools' : 'Show mod tools'}
+                className="volt-modtools-drawer__tab"
+                type="button"
+                onClick={() => setIsOpen((value) => !value)}
+            />
+        </div>
     );
 };

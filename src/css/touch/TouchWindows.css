@@ -346,3 +346,56 @@ html[data-volt-touch='on'] .draggable-window :is(.overflow-auto, .overflow-y-aut
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
 }
+
+/* Mod tools on touch: a drawer on the left edge. Closed, only its tab stays on screen. */
+.volt-modtools-drawer {
+    position: fixed;
+    top: 50%;
+    left: 0;
+    z-index: 450;
+    display: flex;
+    align-items: center;
+    padding-left: var(--volt-safe-left);
+    translate: 0 -50%;
+    transition: transform 220ms cubic-bezier(0.2, 0.9, 0.3, 1);
+    touch-action: pan-y;
+}
+
+.volt-modtools-drawer[data-open='false'] {
+    transform: translateX(calc(-100% + 28px + var(--volt-safe-left)));
+}
+
+.volt-modtools-drawer__panel {
+    max-height: calc(var(--volt-visual-height, 100dvh) - 16px);
+    overflow: auto;
+}
+
+.volt-modtools-drawer__tab {
+    position: relative;
+    flex: none;
+    width: 28px;
+    height: 64px;
+    padding: 0;
+    border: 6px solid transparent;
+    border-left-width: 0;
+    border-image: url('../../assets/images/habbo-skin/slices/border-colorless-3b3933-opaque.png') 24 fill / 6px stretch;
+    background: none;
+}
+
+.volt-modtools-drawer__tab::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    margin: -4px 0 0 -2px;
+    border-bottom: 2px solid #fff;
+    border-left: 2px solid #fff;
+    transform: rotate(45deg);
+}
+
+.volt-modtools-drawer[data-open='false'] .volt-modtools-drawer__tab::after {
+    margin-left: -6px;
+    transform: rotate(-135deg);
+}
