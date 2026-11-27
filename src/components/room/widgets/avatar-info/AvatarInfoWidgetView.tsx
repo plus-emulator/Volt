@@ -55,6 +55,8 @@ export const AvatarInfoWidgetView: FC<{}> = (props) => {
     const [isDancing, setIsDancing] = useState(false);
     const isTouchLayout = IsTouchLayout(useVoltLayout());
     const [mobileUserDetailsOpen, setMobileUserDetailsOpen] = useState(false);
+    // Touch: a tap only selects furni; its drawer opens after a long press on it.
+    const [touchFurniSheet, setTouchFurniSheet] = useState<string>(null);
     const touchMenuRequestRef = useRef<{ roomIndex: number; until: number }>(null);
     const selectedUserIndexRef = useRef<number>(null);
     const [rentableBotChatEvent, setRentableBotChatEvent] = useState<RoomWidgetUpdateRentableBotChatEvent>(null);
@@ -133,6 +135,9 @@ export const AvatarInfoWidgetView: FC<{}> = (props) => {
                         return;
                     case 'block-rotate':
                         updateAvatarClickControl({ suppressRotateUntil: Date.now() + BLOCK_ROTATE_WINDOW_MS });
+                        return;
+                    case 'touch-furni':
+                        setTouchFurniSheet(`${parts[2]}-${parts[3]}`);
                         return;
                     case 'touch-menu': {
                         const roomIndex = Number(parts[2]);
@@ -233,8 +238,17 @@ export const AvatarInfoWidgetView: FC<{}> = (props) => {
         if (!avatarInfo) return null;
 
         switch (avatarInfo.type) {
-            case AvatarInfoFurni.FURNI:
-                return <InfoStandWidgetFurniView avatarInfo={avatarInfo as AvatarInfoFurni} onClose={() => setAvatarInfo(null)} />;
+            case AvatarInfoFurni.FURNI: {
+                const furni = avatarInfo as AvatarInfoFurni;
+                const closeFurni = () => {
+                    setTouchFurniSheet(null);
+                    setAvatarInfo(null);
+                };
+
+                if (isTouchLayout && touchFurniSheet !== `${furni.category}-${furni.id}`) return null;
+
+                return <InfoStandWidgetFurniView avatarInfo={furni} onClose={closeFurni} />;
+            }
             case AvatarInfoUser.OWN_USER:
             case AvatarInfoUser.PEER:
                 return (

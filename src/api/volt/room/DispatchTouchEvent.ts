@@ -86,6 +86,7 @@ const onLongPress = () => {
     if (!target) return;
 
     if (target.category === RoomObjectCategory.UNIT) CreateLinkEvent(`avatar-info/touch-menu/${target.id}`);
+    else CreateLinkEvent(`avatar-info/touch-furni/${target.category}/${target.id}`);
 
     roomEngine.selectRoomObject(roomId, target.id, target.category);
 };

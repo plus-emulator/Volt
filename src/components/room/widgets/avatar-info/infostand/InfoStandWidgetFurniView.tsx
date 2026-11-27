@@ -27,6 +27,7 @@ import {
     DispatchUiEvent,
     GetGroupInformation,
     IPhotoData,
+    IsOwnerOfFurniture,
     isSafeExternalUrl,
     LocalizeText,
     localizeWithFallback,
@@ -1034,10 +1035,31 @@ export const InfoStandWidgetFurniView: FC<InfoStandWidgetFurniViewProps> = (prop
     if (isTouch) {
         const hasDetails =
             isJukeBox || isSongDisk || isCrackable || isPlant || avatarInfo.groupId > 0 || showIds || furniKeys.length > 0 || showBuildtools || customKeys.length > 0;
-        const touchActions =
-            avatarInfo.purchaseOfferId > 0
-                ? [...actions, { key: 'buy_one', label: LocalizeText('infostand.button.buy'), icon: shopIcon, onClick: () => processButtonAction('buy_one') }]
-                : actions;
+        const roomObject = GetRoomEngine().getRoomObject(GetRoomEngine().activeRoomId, avatarInfo.id, avatarInfo.category);
+        // Credit furni open the AIR exchange dialog when used. CFC_ furni are non-redeemable.
+        const canRedeem =
+            !!roomObject &&
+            IsOwnerOfFurniture(roomObject) &&
+            !roomObject.type.toUpperCase().startsWith('CFC_') &&
+            (roomObject.model.getValue<number>(RoomObjectVariable.FURNITURE_CREDIT_VALUE) || 0) > 0;
+        const touchActions: typeof actions = [];
+
+        if (canRedeem) {
+            touchActions.push({
+                key: 'redeem',
+                label: localizeWithFallback('infostand.button.redeem', 'Redeem'),
+                onClick: () => {
+                    GetRoomEngine().useRoomObject(avatarInfo.id, avatarInfo.category);
+                    onClose();
+                }
+            });
+        }
+
+        touchActions.push(...actions);
+
+        if (avatarInfo.purchaseOfferId > 0) {
+            touchActions.push({ key: 'buy_one', label: LocalizeText('infostand.button.buy'), icon: shopIcon, onClick: () => processButtonAction('buy_one') });
+        }
         const ownerName = avatarInfo.isBuildersClub
             ? LocalizeText('builder.catalog.title')
             : avatarInfo.isTemporary
