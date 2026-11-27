@@ -1,4 +1,5 @@
 import { GetRoomEngine, IRoomSession, RoomObjectCategory, RoomUnitWalkComposer, RoomWalkPreviewComposer, RoomWalkPreviewEvent, Vector3d } from '@volt/renderer';
+import { Point } from 'pixi.js';
 import { FC, PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from 'react';
 import {
     AddAnimationTickerCallback,
@@ -26,6 +27,9 @@ const PREVIEW_REFRESH_MS = 1250;
 const WALK_INTERVAL = 300;
 const HOLD_STEP_MS = 400;
 const HOLD_DELAY = 400;
+// While aiming, the camera follows the stop marker once it leaves this part of the screen. Bottom leaves room for the stick and toolbar.
+const VIEW_MARGIN = { left: 48, right: 48, top: 72, bottom: 180 };
+const PAN_EASE = 0.25;
 const sameTile = (a: Tile | null, b: Tile | null) => a?.x === b?.x && a?.y === b?.y;
 let nextRequestId = 0;
 
@@ -54,6 +58,7 @@ const RoomWalkStick: FC<{ roomSession: IRoomSession }> = ({ roomSession }) => {
     const selected = useRef<Selection | null>(null);
     const lastRequest = useRef(-Infinity);
     const lastWalk = useRef(-Infinity);
+    const panned = useRef(false);
     const received = useRef<number | null>(null);
     const layerRef = useRef<HTMLDivElement>(null);
     const [knob, setKnob] = useState({ x: 0, y: 0 });
@@ -62,6 +67,63 @@ const RoomWalkStick: FC<{ roomSession: IRoomSession }> = ({ roomSession }) => {
     const avatarTile = (): Tile | null => {
         const loc = GetRoomEngine().getRoomObject(roomId, roomSession.ownRoomIndex, RoomObjectCategory.UNIT)?.getLocation();
         return loc ? { x: Math.round(loc.x), y: Math.round(loc.y) } : null;
+    };
+
+    // Same projection as RoomEngine.getRoomObjectScreenLocation: canvas zoom, centre and scroll offset, mirrored when flipped.
+    const projectTile = (tile: Tile): { x: number; y: number; spriteScale: number } | null => {
+        const engine = GetRoomEngine();
+        const geometry = engine.getRoomInstanceGeometry(roomId, CANVAS_ID);
+        const canvas = engine.getRoomInstanceRenderingCanvas(roomId, CANVAS_ID);
+        const heightMap = engine.getFurnitureStackingHeightMap(roomId);
+
+        if (!geometry || !canvas) return null;
+
+        const zoom = canvas.isFlipped ? -canvas.scale : canvas.scale;
+        const originX = (canvas.isFlipped ? -canvas.width : canvas.width) / 2 + canvas.screenOffsetX;
+        const originY = (canvas.isFlipped ? -canvas.height : canvas.height) / 2 + canvas.screenOffsetY;
+        const point = geometry.getScreenPoint(new Vector3d(tile.x, tile.y, heightMap?.getTileHeight(Math.round(tile.x), Math.round(tile.y)) ?? 0));
+
+        if (!point) return null;
+
+        return { x: point.x * zoom + originX, y: point.y * zoom + originY, spriteScale: Math.abs(zoom) * (geometry.scale / 64) };
+    };
+
+    const followMarker = (goal: Tile) => {
+        const marker = projectTile(goal);
+        const canvas = GetRoomEngine().getRoomInstanceRenderingCanvas(roomId, CANVAS_ID);
+
+        if (!marker || !canvas) return;
+
+        const shift = (low: number, high: number, value: number) => (value < low ? low - value : value > high ? high - value : 0);
+        const dx = shift(VIEW_MARGIN.left, window.innerWidth - VIEW_MARGIN.right, marker.x);
+        const dy = shift(VIEW_MARGIN.top, window.innerHeight - VIEW_MARGIN.bottom, marker.y);
+
+        if (!dx && !dy) return;
+
+        panned.current = true;
+
+        const step = (value: number) => (value ? Math.sign(value) * Math.max(1, Math.round(Math.abs(value) * PAN_EASE)) : 0);
+
+        GetRoomEngine().setRoomInstanceRenderingCanvasOffset(roomId, CANVAS_ID, new Point(canvas.screenOffsetX + step(dx), canvas.screenOffsetY + step(dy)));
+    };
+
+    // Snaps back to the avatar the way the room's follow camera frames it: centred, feet at about 70% of the height.
+    const restoreCamera = () => {
+        if (!panned.current) return;
+
+        panned.current = false;
+
+        const engine = GetRoomEngine();
+        const location = engine.getRoomObject(roomId, roomSession.ownRoomIndex, RoomObjectCategory.UNIT)?.getLocation();
+        const canvas = engine.getRoomInstanceRenderingCanvas(roomId, CANVAS_ID);
+        const avatar = location && projectTile({ x: location.x, y: location.y });
+
+        if (!avatar || !canvas) return;
+
+        const x = window.innerWidth / 2 - avatar.x;
+        const y = window.innerHeight * 0.7 - avatar.y;
+
+        engine.setRoomInstanceRenderingCanvasOffset(roomId, CANVAS_ID, new Point(Math.round(canvas.screenOffsetX + x), Math.round(canvas.screenOffsetY + y)));
     };
 
     const localRoute = (origin: Tile, goal: Tile): Tile[] => {
@@ -116,6 +178,7 @@ const RoomWalkStick: FC<{ roomSession: IRoomSession }> = ({ roomSession }) => {
                 if (!gesture.current && !selected.current) return;
                 const now = performance.now();
                 updateGoal(now);
+                if (gesture.current && selected.current) followMarker(selected.current.goal);
                 let value = selected.current;
                 const here = avatarTile();
                 if (!value || !here) return;
@@ -148,27 +211,12 @@ const RoomWalkStick: FC<{ roomSession: IRoomSession }> = ({ roomSession }) => {
         if (!layer || !plan) return;
 
         const place = () => {
-            const engine = GetRoomEngine();
-            const geometry = engine.getRoomInstanceGeometry(roomId, CANVAS_ID);
-            const canvas = engine.getRoomInstanceRenderingCanvas(roomId, CANVAS_ID);
-            const heightMap = engine.getFurnitureStackingHeightMap(roomId);
-
-            if (!geometry || !canvas) return;
-
-            // Same projection as RoomEngine.getRoomObjectScreenLocation: canvas zoom, centre and scroll offset, mirrored when flipped.
-            const zoom = canvas.isFlipped ? -canvas.scale : canvas.scale;
-            const originX = (canvas.isFlipped ? -canvas.width : canvas.width) / 2 + canvas.screenOffsetX;
-            const originY = (canvas.isFlipped ? -canvas.height : canvas.height) / 2 + canvas.screenOffsetY;
-            const spriteScale = Math.abs(zoom) * (geometry.scale / 64);
-
             for (const element of Array.from(layer.children) as HTMLImageElement[]) {
-                const x = Number(element.dataset.x);
-                const y = Number(element.dataset.y);
-                const point = geometry.getScreenPoint(new Vector3d(x, y, heightMap?.getTileHeight(x, y) ?? 0));
+                const point = projectTile({ x: Number(element.dataset.x), y: Number(element.dataset.y) });
 
                 if (!point) continue;
 
-                element.style.transform = `translate(${Math.round(point.x * zoom + originX)}px, ${Math.round(point.y * zoom + originY)}px) translate(-50%, -50%) scale(${spriteScale})`;
+                element.style.transform = `translate(${Math.round(point.x)}px, ${Math.round(point.y)}px) translate(-50%, -50%) scale(${point.spriteScale})`;
             }
         };
 
@@ -197,6 +245,7 @@ const RoomWalkStick: FC<{ roomSession: IRoomSession }> = ({ roomSession }) => {
         const value = selected.current;
         gesture.current = null;
         setKnob({ x: 0, y: 0 });
+        restoreCamera();
         const now = performance.now();
         if (!commit || !value || value.route?.length === 0 || now - lastWalk.current < WALK_INTERVAL) {
             select(null);
