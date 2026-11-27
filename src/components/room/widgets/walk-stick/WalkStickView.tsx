@@ -1,4 +1,14 @@
-import { GetRoomEngine, IRoomSession, RoomObjectCategory, RoomUnitWalkComposer, RoomWalkPreviewComposer, RoomWalkPreviewEvent, Vector3d } from '@volt/renderer';
+import {
+    AvatarAction,
+    GetRoomEngine,
+    IRoomSession,
+    RoomObjectCategory,
+    RoomObjectVariable,
+    RoomUnitWalkComposer,
+    RoomWalkPreviewComposer,
+    RoomWalkPreviewEvent,
+    Vector3d
+} from '@volt/renderer';
 import { Point } from 'pixi.js';
 import { FC, PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from 'react';
 import {
@@ -30,6 +40,8 @@ const HOLD_DELAY = 400;
 // While aiming, the camera follows the stop marker once it leaves this part of the screen. Bottom leaves room for the stick and toolbar.
 const VIEW_MARGIN = { left: 48, right: 48, top: 72, bottom: 180 };
 const PAN_EASE = 0.25;
+// A committed route clears once the avatar stops short of the goal, or when the walk never starts.
+const WALK_START_TIMEOUT_MS = 1500;
 const sameTile = (a: Tile | null, b: Tile | null) => a?.x === b?.x && a?.y === b?.y;
 let nextRequestId = 0;
 
@@ -40,6 +52,7 @@ type Selection = {
     requestId: number | null;
     route: Tile[] | null;
     committed: boolean;
+    walking: boolean;
     lastMove: number;
     goalSince: number;
 };
@@ -154,7 +167,7 @@ const RoomWalkStick: FC<{ roomSession: IRoomSession }> = ({ roomSession }) => {
             return;
         }
         const origin = avatarTile() ?? g.origin;
-        select({ goal: target, origin, route: localRoute(origin, target), requestId: null, committed: false, lastMove: now, goalSince: now });
+        select({ goal: target, origin, route: localRoute(origin, target), requestId: null, committed: false, walking: false, lastMove: now, goalSince: now });
     };
 
     useMessageEvent<RoomWalkPreviewEvent>(RoomWalkPreviewEvent, (event) => {
@@ -182,9 +195,22 @@ const RoomWalkStick: FC<{ roomSession: IRoomSession }> = ({ roomSession }) => {
                 let value = selected.current;
                 const here = avatarTile();
                 if (!value || !here) return;
-                if (value.committed && (sameTile(here, value.goal) || now - value.lastMove > 3500)) {
-                    select(null);
-                    return;
+                if (value.committed) {
+                    const posture = GetRoomEngine()
+                        .getRoomObject(roomId, roomSession.ownRoomIndex, RoomObjectCategory.UNIT)
+                        ?.model.getValue<string>(RoomObjectVariable.FIGURE_POSTURE);
+                    const isWalking = posture === AvatarAction.POSTURE_WALK;
+                    const stopped = value.walking ? !isWalking : now - value.lastMove > WALK_START_TIMEOUT_MS;
+
+                    if (sameTile(here, value.goal) || stopped) {
+                        select(null);
+                        return;
+                    }
+
+                    if (isWalking && !value.walking) {
+                        value = { ...value, walking: true };
+                        selected.current = value;
+                    }
                 }
                 if (!sameTile(here, value.origin)) {
                     const reached = value.route?.findIndex((tile) => sameTile(tile, here)) ?? -1;
@@ -252,7 +278,7 @@ const RoomWalkStick: FC<{ roomSession: IRoomSession }> = ({ roomSession }) => {
             return;
         }
         lastWalk.current = now;
-        select({ ...value, committed: true, lastMove: now });
+        select({ ...value, committed: true, walking: false, lastMove: now });
         SendMessageComposer(new RoomUnitWalkComposer(value.goal.x, value.goal.y));
     };
 
